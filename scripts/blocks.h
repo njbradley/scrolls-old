@@ -316,7 +316,7 @@ class World {
                 delete pix;
             }
         }
-        
+         
         void generate(pair<int,int> pos) {
             Pixel* pix = new Pixel(pos.first,0,pos.second,chunksize,nullptr);
             chunks[pos] = pix->subdivide(iter_gen_func);
