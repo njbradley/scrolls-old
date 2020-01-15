@@ -1,0 +1,2 @@
+Scrolls data file of world 'gg'
+seed:55555
