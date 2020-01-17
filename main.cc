@@ -258,7 +258,7 @@ int main( void )
 	init();
 	
 	Player player( vec3(10,50,10), vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2), world);
-	player.flying = false;
+	player.flying = true;
 	player.autojump = true;
 	player.health = 8;
 	

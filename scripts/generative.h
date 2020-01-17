@@ -3,7 +3,8 @@
     using std::endl;
 #include <math.h>
 
-int seed = 409423040;
+int rseed = 4094240;
+int seed = rseed;
 
 double lerp(double a0, double a1, double w) {
     return (1.0f - w)*a0 + w*a1;
@@ -43,19 +44,16 @@ double dotGridGradient(int ix, int iy, double x, double y) {
 // Compute Perlin noise at coordinates x, y
 double perlin(double x, double y) {
     
+    x += INT_MAX/2;
+    y += INT_MAX/2;
+    
     // Determine grid cell coordinates
     int x0 = (int)x;
     int x1 = x0 + 1;
-    if (x0 < 0) {
-        x1 = x0;
-        x0--;
-    }
+    
     int y0 = (int)y;
     int y1 = y0 + 1;
-    if (y0 < 0) {
-        y1 = y0;
-        y0--;
-    }
+    
     
     // Determine interpolation weights
     // Could also use higher order polynomial/s-curve here
@@ -78,6 +76,7 @@ double perlin(double x, double y) {
     value = lerp(ix0, ix1, sy);
     //cout << value << endl;
     //exit(0);
+    seed ++;
     return value;
 }
 
@@ -90,8 +89,15 @@ double get_height(int x, int y) {
 }
 
 char generative_function( int x, int y, int z ) {
+    seed = rseed;
     double height = get_height(x, z);
     //cout << height << endl;
+    bool treepos = randfloat(x,y);
+    if (treepos) {
+        return 1;
+    } if (treepos > 0.8f and y > height+10 and y < height+10+treepos*10) {
+        return 4;
+    }
     if (y < 4) {
         return 7;
     } if (y < 8 and y < height) {

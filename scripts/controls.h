@@ -35,6 +35,8 @@ void mouse_button_call(GLFWwindow*, int, int, int);
 bool mouse;
 int button;
 
+double scroll;
+
 class Player: public Entity {
 	
 	mat4 ViewMatrix;
@@ -268,6 +270,10 @@ void mouse_button_call(GLFWwindow* window, int nbutton, int action, int mods) {
 	}
 }
 
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	scroll = yoffset;
+}
 
 
 
