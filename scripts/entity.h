@@ -38,6 +38,10 @@ class Entity { public:
         angle = vec2(0,0);
         vel = vec3(0,0,0);
         lastTime = glfwGetTime();
+        for (int i = 0; i < 7; i ++) {
+            consts[i] = false;
+            old_consts[i] = false;
+        }
     }
     
     void timestep(World* world) {

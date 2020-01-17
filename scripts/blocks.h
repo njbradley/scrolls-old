@@ -6,6 +6,7 @@
 #include <cmath>
 #include <fstream>
 #include <windows.h>
+#include <sstream>
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
@@ -28,12 +29,131 @@ using namespace std;
 
 class Block; class Pixel; class Chunk; class World;
 
-struct RenderVecs {
-    vector<GLfloat> verts;
-	vector<GLfloat> uvs;
-	vector<GLfloat> light;
-	vector<GLint> mats;
-    int num_verts = 0;
+class RenderVecs {
+    public:
+        vector<GLfloat> verts;
+    	vector<GLfloat> uvs;
+    	vector<GLfloat> light;
+    	vector<GLint> mats;
+        vector<float> empty;
+        int num_verts = 0;
+        
+        void add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat newlight, GLint mat) {
+            verts.insert(verts.end(), newverts, newverts+6*3);
+            uvs.insert(uvs.end(), newuvs, newuvs+6*2);
+            for (int i = 0; i < 6; i ++) {
+                light.push_back(newlight);
+                mats.push_back(mat);
+            }
+            num_verts += 6;
+        }
+        
+        float add(RenderVecs* newvecs) {
+            int old_num_verts = light.size();
+            int location = light.size();
+            
+            for (int i = 0; i < empty.size(); i ++) {
+                int num_faces = (int)(empty[i]*10)%10;
+                if (num_faces == newvecs->num_verts/6) {
+                    location = (int)empty[i]*6;
+                    float index = empty[i];
+                    //cout << "used: " << empty[i] << " for " << newvecs->num_verts << endl;
+                    empty.erase(empty.begin()+i);
+                    
+                    for (int i = 0; i < newvecs->verts.size(); i ++) {
+                        verts[location*3+i] = newvecs->verts[i];
+                    }
+                    for (int i = 0; i < newvecs->uvs.size(); i ++) {
+                        uvs[location*2+i] = newvecs->uvs[i];
+                    }
+                    for (int i = 0; i < newvecs->light.size(); i ++) {
+                        light[location+i] = newvecs->light[i];
+                    }
+                    for (int i = 0; i < newvecs->mats.size(); i ++) {
+                        mats[location+i] = newvecs->mats[i];
+                    }
+                    //num_verts += newvecs->num_verts;
+                    return index;
+                }
+            }
+            verts.insert(verts.end(), newvecs->verts.begin(), newvecs->verts.end());
+            uvs.insert(uvs.end(), newvecs->uvs.begin(), newvecs->uvs.end());
+            light.insert(light.end(), newvecs->light.begin(), newvecs->light.end());
+            mats.insert(mats.end(), newvecs->mats.begin(), newvecs->mats.end());
+            num_verts += newvecs->num_verts;
+            float out = old_num_verts/6 + newvecs->num_verts/6*0.1f;
+            //cout << "add:" << out << endl;
+            //cout << out << ' ' << old_num_verts <<  ' '<< newvecs->num_verts << endl;
+            return out;
+        }
+        
+        void del(float index) {
+            //cout << "del: " << index << endl;
+            int faces = (int)(index*10)%10;
+            if ( faces != 0) {
+                empty.push_back(index);
+                int start = (int)index*6;
+                int end = start + (int)(index*10)%10*6;
+                for (; start < end; start += 6) {
+                    for (int i = 0; i < 6*3; i ++) {
+                        verts[start*3+i] = 0;//verts[extras*3+i];
+                    }
+                    for (int i = 0; i < 6*2; i ++) {
+                        uvs[start*2+i] = 0;//uvs[extras*2+i];
+                    }
+                    for (int i = 0; i < 6; i ++) {
+                        light[start+i] = 0;//light[extras+i];
+                    }
+                    for (int i = 0; i < 6; i ++) {
+                        mats[start+i] = 0;//mats[extras+i];
+                    }
+                }
+                //num_verts -= (int)(index*10)%10*6;
+            }
+        }
+        
+        void clean() {
+            return;
+            int extras = num_verts;
+            for (float f : empty) {
+                cout << f << ' ' << extras/6 << ' ' << light.size()/6 << endl;
+                int start = (int)f*6;
+                if (start > num_verts) {
+                    extras += (int)(f*10)%10*6;
+                    continue;
+                }
+                int end = start + (int)(f*10)%10*6;
+                cout << start/6 << ' ' << end/6 << endl;
+                for (; start < end; start += 6) {
+                    for (int i = 0; i < 6*3; i ++) {
+                        verts[start*3+i] = 0;//verts[extras*3+i];
+                    }
+                    for (int i = 0; i < 6*2; i ++) {
+                        uvs[start*2+i] = 0;//uvs[extras*2+i];
+                    }
+                    for (int i = 0; i < 6; i ++) {
+                        light[start+i] = 0;//light[extras+i];
+                    }
+                    for (int i = 0; i < 6; i ++) {
+                        mats[start+i] = 0;//mats[extras+i];
+                    }
+                    extras += 6;
+                }
+            }
+        }
+        
+        void status(std::stringstream & message) {
+            message << "memory vectors:" << endl;
+            message << "num verts: " << num_verts/6 << endl;
+            message << "empty: ";
+            int sum;
+            for (float f : empty) {
+                //message << f << ' ';
+                sum += (int)(f*10)%10;
+            }
+            message << sum << endl << "size: " << light.size()/6 << endl;
+        }
+                    
 };
 
 bool render_flag;
@@ -74,11 +194,13 @@ class Block { public:
     }
     void global_position(int*, int*, int*);
     
-    virtual void render(RenderVecs*) = 0;
+    virtual void render(RenderVecs*, int, int, int) = 0;
         
     virtual bool is_air(int, int, int) = 0;
     
     virtual Block * get_global(int,int,int,int) = 0;
+    
+    virtual void render_update() = 0;
     
     virtual void save_to_file(ofstream*) = 0;
     
@@ -92,6 +214,7 @@ class Block { public:
 class Pixel: public Block { public:
     char value;
     bool continues = false;
+    float render_index = -1;
     
     Pixel(int x, int y, int z, int nscale, Chunk* nparent):
         Block(x, y, z, nscale, nparent) {}
@@ -108,6 +231,9 @@ class Pixel: public Block { public:
     
     void set(char val);
     
+    void render_update();
+        
+    
     bool is_air(int dx, int dy, int dz) {
         //cout << "pix is air reaturning:" << (value == 0) << endl;
         return value == 0;
@@ -118,7 +244,7 @@ class Pixel: public Block { public:
         return this;
     }
     
-    void render(RenderVecs* vecs);
+    void render(RenderVecs*, int, int,int);
     
     Chunk* subdivide(function<void(int,int,int,Pixel*)> func);
     
@@ -133,7 +259,6 @@ class Chunk: public Block { public:
     
     Chunk(int x, int y, int z, int nscale, Chunk* nparent):
         Block(x, y, z, nscale, nparent) {}
-    
     
     Block * get(int x, int y, int z) {
         //cout << "chunk get px" << px << " py" << py << " pz" << pz << " s" << scale << " x" << x << " y" << y << " z" << z << endl;
@@ -150,11 +275,21 @@ class Chunk: public Block { public:
         return nullptr;
     }
     
-    void render(RenderVecs* vecs) {
+    void render(RenderVecs* vecs, int gx, int gy, int gz) {
         for (int x = 0; x < csize; x ++) {
             for (int y = 0; y < csize; y ++) {
                 for (int z = 0; z < csize; z ++) {
-                    blocks[x][y][z]->render(vecs);
+                    blocks[x][y][z]->render(vecs, gx + px*scale, gy + py*scale, gz + pz*scale);
+                }
+            }
+        }
+    }
+    
+    void render_update() {
+        for (int x = 0; x < csize; x ++) {
+            for (int y = 0; y < csize; y ++) {
+                for (int z = 0; z < csize; z ++) {
+                    blocks[x][y][z]->render_update();
                 }
             }
         }
@@ -240,12 +375,12 @@ class Chunk: public Block { public:
 
 class World {
     map<pair<int,int>, Block*> chunks;
-    map<pair<int,int>, RenderVecs*> chunk_vecs;
     public:
         int seed;
         string name;
         static const int chunksize = 64;
         function<void(int,int,int,Pixel*)> iter_gen_func;
+        RenderVecs rendvecs;
         
         World(string newname, int newseed): seed(newseed), name(newname) {
             setup_files();
@@ -323,39 +458,11 @@ class World {
             delete pix;
         }
         
-        void render(RenderVecs* vecs) {
+        void render() {
             for (pair<pair<int,int>, Block*> kvpair : chunks) {
-                //chunks[kvpair.first]->render(vecs);
-                render_chunk_vectors(kvpair.first);
+                chunks[kvpair.first]->render(&rendvecs, 0, 0, 0);
+                //render_chunk_vectors(kvpair.first);
             }
-            for (pair<pair<int,int>, RenderVecs*>  kvpair : chunk_vecs) {
-                
-                vecs->verts.insert(vecs->verts.end(), kvpair.second->verts.begin(), kvpair.second->verts.end() );
-                vecs->mats.insert(vecs->mats.end(), kvpair.second->mats.begin(), kvpair.second->mats.end() );
-                vecs->light.insert(vecs->light.end(), kvpair.second->light.begin(), kvpair.second->light.end() );
-                vecs->uvs.insert(vecs->uvs.end(), kvpair.second->uvs.begin(), kvpair.second->uvs.end() );
-                vecs->num_verts += kvpair.second->num_verts;
-                //cout << kvpair.second->pz << endl;
-            }
-            //exit(1);
-        }
-        
-        void render_chunk_vectors(pair<int,int> pos) {
-            
-            //cout << (chunk_vecs.find(pos) == chunk_vecs.end()) << endl;
-            if (chunk_vecs.find(pos) == chunk_vecs.end()) {
-                //cout << "rendering " << pos.first << ' ' << pos.second << endl;
-                RenderVecs* rv = new RenderVecs;
-                chunks[pos]->render(rv);
-                chunk_vecs[pos] = rv;
-                //cout << rv->num_verts << endl;
-            }
-        }
-        
-        void mark_render_update(pair<int,int> pos) {
-            delete chunk_vecs[pos];
-            chunk_vecs.erase(pos);
-            render_flag = true;
         }
         
         Block* get_global(int x, int y, int z, int scale) {
@@ -491,14 +598,6 @@ Block* Block::get_world() {
     }
 }
 
-void Block::update_chunk() {
-    if (parent == nullptr) {
-        world->mark_render_update(pair<int,int>(px,pz));
-    } else {
-        parent->update_chunk();
-    }
-}
-
 
 Block* Block::raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time) {
         //cout << "block raycast(" << *x << ' ' << *y << ' ' << *z << ' ' << dx << ' ' << dy << ' ' << dz << endl;
@@ -553,25 +652,38 @@ Block* Block::raycast(double* x, double* y, double* z, double dx, double dy, dou
     }
 
 void Pixel::set(char val) {
+    
+    //cout << "render_indes: " << render_index << " val:" << (int)value <<  ' '<< (int)val << endl;
     //cout << "pixel set " << val << endl;
     value = val;
+    render_flag = true;
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);
-    world->mark_render_update(pair<int,int>(gx/world->chunksize - (gx<0), gz/world->chunksize - (gz<0)));
-    world->mark_render_update(pair<int,int>((gx+1)/world->chunksize - (gx+1<0), gz/world->chunksize - (gz<0)));
-    world->mark_render_update(pair<int,int>((gx-1)/world->chunksize - (gx-1<0), gz/world->chunksize - (gz<0)));
-    world->mark_render_update(pair<int,int>(gx/world->chunksize - (gx<0), (gz+1)/world->chunksize - (gz+1<0)));
-    world->mark_render_update(pair<int,int>(gx/world->chunksize - (gx<0), (gz-1)/world->chunksize - (gz-1<0)));
+    render_update();
+    world->get_global(gx+1, gy, gz, 1)->render_update();
+    world->get_global(gx-1, gy, gz, 1)->render_update();
+    world->get_global(gx, gy+1, gz, 1)->render_update();
+    world->get_global(gx, gy-1, gz, 1)->render_update();
+    world->get_global(gx, gy, gz+1, 1)->render_update();
+    world->get_global(gx, gy, gz-1, 1)->render_update();
     
 }
 
-void Pixel::render(RenderVecs* vecs) {
-    if (value == 0) {
+void Pixel::render_update() {
+    if (render_index != -1) {
+        world->rendvecs.del(render_index);
+        render_index = -1;
+    }
+}
+
+void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
+    if (value == 0 or render_index != -1) {
         //cout << "air " << endl;
         return;
     }
-    int gx, gy, gz;
-    global_position(&gx, &gy, &gz);
+    gx += px*scale;
+    gy += py*scale;
+    gz += pz*scale;
     GLfloat x = gx;
     GLfloat y = gy;
     GLfloat z = gz;
@@ -586,7 +698,7 @@ void Pixel::render(RenderVecs* vecs) {
         0.0f, 1.0f * scale,
         0.0f, 0.0f
     };
-    
+    RenderVecs* vecs = new RenderVecs;
     //cout << 85 << endl;
     Block* block;
     //cout << 87 << endl;
@@ -609,13 +721,7 @@ void Pixel::render(RenderVecs* vecs) {
             x + scale, y, z,
             x, y, z
         };
-        vecs->verts.insert(vecs->verts.end(), begin(face), end(face));
-        vecs->uvs.insert(vecs->uvs.end(), begin(new_uvs), end(new_uvs));
-        for (int i = 0; i < 6; i ++) {
-            vecs->light.push_back(0.4f);
-            vecs->mats.push_back(mat);
-        }
-        vecs->num_verts += 6;
+        vecs->add_face(face, new_uvs, 0.4f, mat);
     }
     
     block = world->get_global(gx, gy-scale, gz, scale);
@@ -628,13 +734,8 @@ void Pixel::render(RenderVecs* vecs) {
             x, y, z + scale,
             x, y, z
         };
-        vecs->verts.insert(vecs->verts.end(), begin(face), end(face));
-        vecs->uvs.insert(vecs->uvs.end(), begin(new_uvs), end(new_uvs));
-        for (int i = 0; i < 6; i ++) {
-            vecs->light.push_back(0.2f);
-            vecs->mats.push_back(mat);
-        }
-        vecs->num_verts += 6;
+        
+        vecs->add_face(face, new_uvs, 0.2f, mat);
     }
     
     block = world->get_global(gx-scale, gy, gz, scale);
@@ -647,13 +748,7 @@ void Pixel::render(RenderVecs* vecs) {
             x, y + scale, z,
             x, y, z
         };
-        vecs->verts.insert(vecs->verts.end(), begin(face), end(face));
-        vecs->uvs.insert(vecs->uvs.end(), begin(new_uvs), end(new_uvs));
-        for (int i = 0; i < 6; i ++) {
-            vecs->light.push_back(0.6f);
-            vecs->mats.push_back(mat);
-        }
-        vecs->num_verts += 6;
+        vecs->add_face(face, new_uvs, 0.6f, mat);
     }
     
     block = world->get_global(gx, gy, gz+scale, scale);
@@ -666,13 +761,7 @@ void Pixel::render(RenderVecs* vecs) {
             x + scale, y, z + scale,
             x + scale, y + scale, z + scale
         };
-        vecs->verts.insert(vecs->verts.end(), begin(face), end(face));
-        vecs->uvs.insert(vecs->uvs.end(), begin(new_uvs), end(new_uvs));
-        for (int i = 0; i < 6; i ++) {
-            vecs->light.push_back(0.6f);
-            vecs->mats.push_back(mat);
-        }
-        vecs->num_verts += 6;
+        vecs->add_face(face, new_uvs, 0.6f, mat);
     }
     
     block = world->get_global(gx, gy+scale, gz, scale);
@@ -685,13 +774,7 @@ void Pixel::render(RenderVecs* vecs) {
             x, y + scale, z + scale,
             x + scale, y + scale, z + scale
         };
-        vecs->verts.insert(vecs->verts.end(), begin(face), end(face));
-        vecs->uvs.insert(vecs->uvs.end(), begin(new_uvs), end(new_uvs));
-        for (int i = 0; i < 6; i ++) {
-            vecs->light.push_back(0.8f);
-            vecs->mats.push_back(mat);
-        }
-        vecs->num_verts += 6;
+        vecs->add_face(face, new_uvs, 0.8f, mat);
     }
     
     block = world->get_global(gx+scale, gy, gz, scale);
@@ -704,14 +787,12 @@ void Pixel::render(RenderVecs* vecs) {
             x + scale, y + scale, z,
             x + scale, y + scale, z + scale
         };
-        vecs->verts.insert(vecs->verts.end(), begin(face), end(face));
-        vecs->uvs.insert(vecs->uvs.end(), begin(new_uvs), end(new_uvs));
-        for (int i = 0; i < 6; i ++) {
-            vecs->light.push_back(0.4f);
-            vecs->mats.push_back(mat);
-        }
-        vecs->num_verts += 6;
+        vecs->add_face(face, new_uvs, 0.4f, mat);
     }
+    render_index = allvecs->add(vecs);
+    
+    //cout << render_index << endl;
+    delete vecs;
     //cout << "done rendering" << endl;
     //cout << *num_verts << endl;
     //exit(1);
@@ -719,6 +800,7 @@ void Pixel::render(RenderVecs* vecs) {
 
 Chunk* Pixel::subdivide(function<void(int,int,int,Pixel*)> func) {
     //cout << "subdivide " << endl;
+    render_update();
     if (scale == 1) {
         cout << "error: block alreasy at scale 1" << endl;
         return nullptr;

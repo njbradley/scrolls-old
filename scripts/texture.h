@@ -69,7 +69,6 @@ GLuint loadBMP_custom(const char * imagepath, bool transparency){
 	*/
 	int width, height, nrChannels;
     data = stbi_load(imagepath, &width, &height, &nrChannels, (transparency) ? 4 : 3);
-	cout << nrChannels << ' ';
     //SOIL_load_image("sample.png", &width, &height, 0, SOIL_LOAD_RGB);
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
     

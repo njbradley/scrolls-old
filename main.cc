@@ -63,15 +63,10 @@ void make_ui_buffer(Player* player, string message, GLuint vertexbuffer, GLuint 
 
 void make_vertex_buffer(GLuint vertexbuffer, GLuint uvbuffer, GLuint lightbuffer, GLuint matbuffer, int * num_tris) {
 	//cout << "frame" << endl;
-	RenderVecs vecs;
-	if (last_num_verts != 0) {
-		vecs.verts.reserve(last_num_verts*3);
-		vecs.uvs.reserve(last_num_verts*2);
-		vecs.light.reserve(last_num_verts);
-		vecs.mats.reserve(last_num_verts);
-	}
-	render_terrain(&vecs);
-	int num_verts = vecs.num_verts;
+	
+	render_terrain();
+	world->rendvecs.clean();
+	int num_verts = world->rendvecs.num_verts;
 	last_num_verts = num_verts;
 	
 	*num_tris = num_verts/3;
@@ -99,16 +94,16 @@ void make_vertex_buffer(GLuint vertexbuffer, GLuint uvbuffer, GLuint lightbuffer
 	GLint j = 0;
 	//cout << sizeof(i) << ' ' << sizeof(j) << endl;
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(i)*3, &vecs.verts.front(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(i)*3, &world->rendvecs.verts.front(), GL_STATIC_DRAW);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(i)*2, &vecs.uvs.front(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(i)*2, &world->rendvecs.uvs.front(), GL_STATIC_DRAW);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(i), &vecs.light.front(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(i), &world->rendvecs.light.front(), GL_STATIC_DRAW);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &vecs.mats.front(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &world->rendvecs.mats.front(), GL_STATIC_DRAW);
 }
 
 
@@ -289,6 +284,7 @@ int main( void )
             message << b << ' ';
         }
         message << endl;
+		world->rendvecs.status(message);
 		if ( render_flag) {
 			make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, matbuffer, &num_tris);
 			render_flag = false;

@@ -76,8 +76,8 @@ void init() {
     
 }
 
-void render_terrain(RenderVecs* vecs) {
+void render_terrain() {
     
-    world->render(vecs);
+    world->render();
     
 }
