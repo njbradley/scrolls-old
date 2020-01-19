@@ -1,4 +1,7 @@
+#ifndef WIN
+#define WIN
 #include <Windows.h>
+//#include <windows.h>
 using std::string;
 
 void get_files_folder(string folder, vector<string> * names)
@@ -17,3 +20,9 @@ void get_files_folder(string folder, vector<string> * names)
         ::FindClose(hFind); 
     } 
 }
+
+void create_dir(string path) {
+    CreateDirectory(path.c_str(), NULL);
+}
+
+#endif

@@ -259,7 +259,7 @@ int main( void )
 	
 	init();
 	
-	Player player( vec3(10,50,10), vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2), world);
+	Player player( vec3(10,50,10), world);
 	player.flying = false;
 	player.autojump = true;
 	player.health = 8;
@@ -287,7 +287,7 @@ int main( void )
         }
         message << endl;
 		world->rendvecs.status(message);
-		if ( true or render_flag) {
+		if ( render_flag) {
 			make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, matbuffer, &num_tris, render_flag);
 			render_flag = false;
 		}

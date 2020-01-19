@@ -34,7 +34,7 @@ class Entity { public:
     bool consts[7]; // constraints for entity, posx, pos y, pos z, neg x, neg y, neg z
     
     Entity(vec3 pos, vec3 hitbox1, vec3 hitbox2):
-    position(pos), box1(hitbox1), box2(hitbox2)
+    position(pos), box1(hitbox1), box2(hitbox2-vec3(1,1,1))
     {
         angle = vec2(0,0);
         vel = vec3(0,0,0);

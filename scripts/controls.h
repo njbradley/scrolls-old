@@ -15,7 +15,6 @@ using namespace glm;
 
 
 
-
 /*
 // Initial position : on +Z
 glm::vec3 position = glm::vec3( 25, 45, 5 ); 
@@ -44,18 +43,19 @@ class Player: public Entity {
 	mat4 ProjectionMatrix;
 	vec3 pointing;
 	World* world;
-	char item;
-	//Item item;
+	int selitem;
+	Item item;
 	
 	public:
 		bool autojump = false;
 		
-		Player(vec3 pos, vec3 box1, vec3 box2, World* newworld):
-			Entity(pos, box1, box2), world(newworld) {
+		Player(vec3 pos, World* newworld):
+			Entity(pos, vec3(-0.8,-3.6,-0.8), vec3(0.8,1,0.8)), world(newworld),
+			item(1, new CharArray( new char[6] {1,2,1,2,1,1}, 3,1,2), nullptr, 1) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
 			glfwSetMouseButtonCallback(window, mouse_button_call);
 			glfwSetScrollCallback(window, scroll_callback);
 			//char arr[] = {1,0,1,0,1,0,1,0}
-			item = 3;
+			selitem = 3;
 			//item = Item(
 		}
 			
@@ -77,11 +77,18 @@ class Player: public Entity {
 			if (target == nullptr) {
 				return;
 			}
+			int ox = (int)x - (x<0);
+			int oy = (int)y - (y<0);
+			int oz = (int)z - (z<0);
 			x -= pointing.x*0.001;
 			y -= pointing.y*0.001;
 			z -= pointing.z*0.001;
-			world->set(item, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
-			
+			int dx = (int)x - (x<0) - ox;
+			int dy = (int)y - (y<0) - oy;
+			int dz = (int)z - (z<0) - oz;
+			cout << dx << ' ' << dy << ' ' << dz << endl;
+			//world->set(item, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+			item.onplace->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
 			//world->mark_render_update(pair<int,int>((int)position.x/world->chunksize - (position.x<0), (int)position.z/world->chunksize - (position.z<0)));
 		}
 		
@@ -218,12 +225,13 @@ class Player: public Entity {
 				mouse = false;
 			}
 			
+			
 			if (scroll != 0) {
-				item += scroll;
-				if (item < 1) {
-					item = 1;
-				} if (item > 8) {
-					item = 8;
+				selitem += scroll;
+				if (selitem < 1) {
+					selitem = 1;
+				} if (selitem > 8) {
+					selitem = 8;
 				}
 				scroll = 0;
 			}
