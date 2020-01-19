@@ -92,12 +92,8 @@ char generative_function( int x, int y, int z ) {
     seed = rseed;
     double height = get_height(x, z);
     //cout << height << endl;
-    bool treepos = randfloat(x,y);
-    if (treepos) {
-        return 1;
-    } if (treepos > 0.8f and y > height+10 and y < height+10+treepos*10) {
-        return 4;
-    }
+    //double treepos = scaled_perlin(x,z,1,30);
+    //if (treepos > 0.9f) {
     if (y < 4) {
         return 7;
     } if (y < 8 and y < height) {

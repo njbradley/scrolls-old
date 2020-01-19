@@ -61,11 +61,13 @@ void make_ui_buffer(Player* player, string message, GLuint vertexbuffer, GLuint 
 	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &vecs.mats.front(), GL_STATIC_DRAW);
 }
 
-void make_vertex_buffer(GLuint vertexbuffer, GLuint uvbuffer, GLuint lightbuffer, GLuint matbuffer, int * num_tris) {
+void make_vertex_buffer(GLuint vertexbuffer, GLuint uvbuffer, GLuint lightbuffer, GLuint matbuffer, int * num_tris, bool render_flag) {
 	//cout << "frame" << endl;
 	
-	render_terrain();
-	world->rendvecs.clean();
+	if(render_flag) {
+		render_terrain();
+	}
+	
 	int num_verts = world->rendvecs.num_verts;
 	last_num_verts = num_verts;
 	
@@ -258,7 +260,7 @@ int main( void )
 	init();
 	
 	Player player( vec3(10,50,10), vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2), world);
-	player.flying = true;
+	player.flying = false;
 	player.autojump = true;
 	player.health = 8;
 	
@@ -285,8 +287,8 @@ int main( void )
         }
         message << endl;
 		world->rendvecs.status(message);
-		if ( render_flag) {
-			make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, matbuffer, &num_tris);
+		if ( true or render_flag) {
+			make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, matbuffer, &num_tris, render_flag);
 			render_flag = false;
 		}
 		

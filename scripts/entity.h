@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "blocks.h"
+#include "items.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>

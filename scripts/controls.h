@@ -32,6 +32,7 @@ float speed = 40.0f; // 3 units / second
 float mouseSpeed = 0.005f;
 
 void mouse_button_call(GLFWwindow*, int, int, int);
+void scroll_callback(GLFWwindow*, double, double);
 bool mouse;
 int button;
 
@@ -43,6 +44,8 @@ class Player: public Entity {
 	mat4 ProjectionMatrix;
 	vec3 pointing;
 	World* world;
+	char item;
+	//Item item;
 	
 	public:
 		bool autojump = false;
@@ -50,6 +53,10 @@ class Player: public Entity {
 		Player(vec3 pos, vec3 box1, vec3 box2, World* newworld):
 			Entity(pos, box1, box2), world(newworld) {
 			glfwSetMouseButtonCallback(window, mouse_button_call);
+			glfwSetScrollCallback(window, scroll_callback);
+			//char arr[] = {1,0,1,0,1,0,1,0}
+			item = 3;
+			//item = Item(
 		}
 			
 		mat4 getViewMatrix(){
@@ -73,19 +80,8 @@ class Player: public Entity {
 			x -= pointing.x*0.001;
 			y -= pointing.y*0.001;
 			z -= pointing.z*0.001;
-			Block* newblock = world->get_global((int)x - (x<0), (int)y - (y<0), (int)z - (z<0), 1);
-			if (newblock == nullptr) {
-				return;
-			}
-			while (newblock->scale != 1) {
-				char val = newblock->get();
-				newblock->subdivide([=] (int x, int y, int z, Pixel* pix) {
-					pix->value = val;
-				});
-				delete newblock;
-				newblock = world->get_global((int)x, (int)y, (int)z, 1);
-			}
-			newblock->set(2);
+			world->set(item, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+			
 			//world->mark_render_update(pair<int,int>((int)position.x/world->chunksize - (position.x<0), (int)position.z/world->chunksize - (position.z<0)));
 		}
 		
@@ -100,16 +96,8 @@ class Player: public Entity {
 			if (target == nullptr) {
 				return;
 			}
+			world->set(0, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
 			
-			while (target->scale != 1) {
-				char val = target->get();
-				target->subdivide([=] (int x, int y, int z, Pixel* pix) {
-					pix->value = val;
-				});
-				delete target;
-				target = world->get_global((int)x, (int)y, (int)z, 1);
-			}
-			target->set(0);
 			//world->mark_render_update(pair<int,int>((int)position.x/world->chunksize - (position.x<0), (int)position.z/world->chunksize - (position.z<0)));
 		}
 		
@@ -228,6 +216,16 @@ class Player: public Entity {
 					right_mouse();
 				}
 				mouse = false;
+			}
+			
+			if (scroll != 0) {
+				item += scroll;
+				if (item < 1) {
+					item = 1;
+				} if (item > 8) {
+					item = 8;
+				}
+				scroll = 0;
 			}
 			
 			

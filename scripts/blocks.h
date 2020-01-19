@@ -487,6 +487,26 @@ class World {
             return chunks[pos]->get_global(ox, y, oz, scale);
         }
         
+        void set(char val, int x, int y, int z) {
+            Block* newblock = get_global(x,y,z, 1);
+			if (newblock == nullptr) {
+				return;
+			}
+			while (newblock->scale != 1) {
+				char val = newblock->get();
+				newblock->subdivide([=] (int x, int y, int z, Pixel* pix) {
+					pix->value = val;
+				});
+				delete newblock;
+				newblock = get_global((int)x, (int)y, (int)z, 1);
+			}
+			newblock->set(val);
+        }
+        
+        char get(int x, int y, int z) {
+            return get_global(x, y, z, 1)->get();
+        }
+        
         Block* raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time) {
             //cout << "world raycast" << *x << ' ' << *y << ' ' << *z << ' ' << dx << ' ' << dy << ' ' << dz << endl;
             Block* b = get_global((int)*x - (*x<0), (int)*y - (*y<0), (int)*z - (*z<0), 1);
@@ -536,7 +556,7 @@ class World {
             stringstream path;
             path << "saves/" << name << "/chunk" << pos.first << "x" << pos.second << "y.dat";
             ifstream ifile(path.str(), ios::binary);
-            if (false and ifile.good()) {
+            if (ifile.good()) {
                 cout << "loading '" << path.str() << "' from file\n";
                 string header;
                 getline(ifile, header, ':');
