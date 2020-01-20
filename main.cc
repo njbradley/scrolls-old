@@ -68,7 +68,7 @@ void make_vertex_buffer(GLuint vertexbuffer, GLuint uvbuffer, GLuint lightbuffer
 		render_terrain();
 	}
 	
-	int num_verts = world->rendvecs.num_verts;
+	int num_verts = world->glvecs.num_verts;
 	last_num_verts = num_verts;
 	
 	*num_tris = num_verts/3;
@@ -95,6 +95,7 @@ void make_vertex_buffer(GLuint vertexbuffer, GLuint uvbuffer, GLuint lightbuffer
 	GLfloat i = 0.0f;
 	GLint j = 0;
 	//cout << sizeof(i) << ' ' << sizeof(j) << endl;
+	/*
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(i)*3, &world->rendvecs.verts.front(), GL_STATIC_DRAW);
 	
@@ -106,6 +107,7 @@ void make_vertex_buffer(GLuint vertexbuffer, GLuint uvbuffer, GLuint lightbuffer
 	
 	glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
 	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &world->rendvecs.mats.front(), GL_STATIC_DRAW);
+	*/
 }
 
 
@@ -255,9 +257,10 @@ int main( void )
 	//glGenBuffers(1, &uvbuffer);
 	//glGenBuffers(1, &lightbuffer);
 	//glGenBuffers(1, &matbuffer);
-	
-	
+	cout << 260 << endl;
+	cout << 262 << endl;
 	init();
+	world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
 	
 	Player player( vec3(10,50,10), world);
 	player.flying = false;
@@ -286,16 +289,25 @@ int main( void )
             message << b << ' ';
         }
         message << endl;
-		world->rendvecs.status(message);
+		world->glvecs.status(message);
 		if ( render_flag) {
-			make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, matbuffer, &num_tris, render_flag);
+			render_terrain();
+			num_tris = world->glvecs.num_verts/3;
+			//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, matbuffer, &num_tris, render_flag);
 			render_flag = false;
 		}
 		
+		////////////////////////// error handling:
+		message << "-----opengl errors-----" << endl;
+		GLenum err;
+		while((err = glGetError()) != GL_NO_ERROR) {
+			message << "err: " << std::hex << err << std::dec << endl;
+		}
 		// Measure speed
 		lastFrameTime = currentTime;
 		currentTime = glfwGetTime();
 		double ms = (currentTime-lastFrameTime)*1000;
+		message << "-----time-----" << endl;
 		message << "ms: " << ms << endl;
 		message << "ms(goal):" << min_ms_per_frame << endl;
 		if (ms > min_ms_per_frame) {

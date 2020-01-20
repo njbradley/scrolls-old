@@ -51,7 +51,7 @@ class Player: public Entity {
 		
 		Player(vec3 pos, World* newworld):
 			Entity(pos, vec3(-0.8,-3.6,-0.8), vec3(0.8,1,0.8)), world(newworld),
-			item(1, new CharArray( new char[6] {1,2,1,2,1,1}, 3,1,2), nullptr, 1) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
+			item(1, new CharArray( new char[6] {1,2,1,2,1,1}, 3,1,2), 1) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
 			glfwSetMouseButtonCallback(window, mouse_button_call);
 			glfwSetScrollCallback(window, scroll_callback);
 			//char arr[] = {1,0,1,0,1,0,1,0}

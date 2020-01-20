@@ -69,7 +69,7 @@ class Block { public:
     }
     void global_position(int*, int*, int*);
     
-    virtual void render(RenderVecs*, int, int, int) = 0;
+    virtual void render(GLVecs*, int, int, int) = 0;
         
     virtual bool is_air(int, int, int) = 0;
     
@@ -119,7 +119,7 @@ class Pixel: public Block { public:
         return this;
     }
     
-    void render(RenderVecs*, int, int,int);
+    void render(GLVecs*, int, int,int);
     
     Chunk* subdivide(function<void(int,int,int,Pixel*)> func);
     
@@ -150,7 +150,7 @@ class Chunk: public Block { public:
         return nullptr;
     }
     
-    void render(RenderVecs* vecs, int gx, int gy, int gz) {
+    void render(GLVecs* vecs, int gx, int gy, int gz) {
         for (int x = 0; x < csize; x ++) {
             for (int y = 0; y < csize; y ++) {
                 for (int z = 0; z < csize; z ++) {
@@ -253,9 +253,10 @@ class World {
     public:
         int seed;
         string name;
+        int view_dist = 3;
         static const int chunksize = 64;
         function<void(int,int,int,Pixel*)> iter_gen_func;
-        RenderVecs rendvecs;
+        GLVecs glvecs;
         
         World(string newname, int newseed): seed(newseed), name(newname) {
             setup_files();
@@ -277,6 +278,9 @@ class World {
                 if (buff == "seed") {
                     ifile >> seed;
                 }
+                if (buff == "view_dist") {
+                    ifile >> view_dist;
+                }
                 getline(ifile, buff);
             }
         }
@@ -286,6 +290,7 @@ class World {
             ofstream ofile(path);
             ofile << "Scrolls data file of world '" + name + "'\n";
             ofile << "seed:" << seed << endl;
+            ofile << "view_dist:" << view_dist << endl;
             ofile.close();
         }
         
@@ -297,11 +302,15 @@ class World {
             iter_gen_func = [&] (int x, int y, int z, Pixel* p) {
                 iter_gen(x, y, z, p);
             };
-            for (int x = -2; x < 3; x ++) {
-                for (int y = -2; y < 3; y ++) {
+            for (int x = -3; x < 4; x ++) {
+                for (int y = -3; y < 4; y ++) {
                     load_chunk(pair<int,int>(x,y));
                 }
             }
+        }
+        
+        void render_chunks() {
+            
         }
         
         char gen_func(int x, int y, int z) {
@@ -338,7 +347,7 @@ class World {
         
         void render() {
             for (pair<pair<int,int>, Block*> kvpair : chunks) {
-                chunks[kvpair.first]->render(&rendvecs, 0, 0, 0);
+                chunks[kvpair.first]->render(&glvecs, 0, 0, 0);
                 //render_chunk_vectors(kvpair.first);
             }
         }
@@ -389,6 +398,9 @@ class World {
             //cout << "world raycast" << *x << ' ' << *y << ' ' << *z << ' ' << dx << ' ' << dy << ' ' << dz << endl;
             Block* b = get_global((int)*x - (*x<0), (int)*y - (*y<0), (int)*z - (*z<0), 1);
             //cout << b << endl;
+            if (b == nullptr) {
+                return b;
+            }
             return b->raycast(x, y, z, dx, dy, dz, time);
         }
         
@@ -565,12 +577,15 @@ void Pixel::set(char val) {
 
 void Pixel::render_update() {
     if (render_index != -1) {
-        world->rendvecs.del(render_index);
-        render_index = -1;
+        render_index = -(render_index+2);
     }
 }
 
-void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
+void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
+    if (render_index < -1) {
+        world->glvecs.del(-render_index-2);
+        render_index = -1;
+    }
     if (value == 0 or render_index != -1) {
         //cout << "air " << endl;
         return;

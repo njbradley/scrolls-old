@@ -10,7 +10,7 @@ using std::endl;
 float aspect_ratio = 1024/768;
 
 void render_debug(RenderVecs * vecs, string message) {
-	draw_text("debug message: game scrolls\n" + message, -1, 1-pix_y, vecs);
+	draw_text("-----debug message: game scrolls-----\n" + message, -1, 1-pix_y, vecs);
 	draw_text("X", -pix_x/2, -pix_y/2, vecs);
 }
 
