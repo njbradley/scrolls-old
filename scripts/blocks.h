@@ -89,10 +89,11 @@ class Block { public:
 class Pixel: public Block { public:
     char value;
     bool continues = false;
-    float render_index = -1;
+    pair<int,int> render_index;
+    pair<int,int> id_test;
     
     Pixel(int x, int y, int z, int nscale, Chunk* nparent):
-        Block(x, y, z, nscale, nparent) {}
+        Block(x, y, z, nscale, nparent), render_index(-1,0), id_test(0,-5) {}
     
     char get() {
         //cout << "pixel get px" << px << " py" << py << " pz" << pz << " s" << scale << " value" << value  << endl;
@@ -250,6 +251,7 @@ class Chunk: public Block { public:
 
 class World {
     map<pair<int,int>, Block*> chunks;
+    char* tmparr;
     public:
         int seed;
         string name;
@@ -257,6 +259,7 @@ class World {
         static const int chunksize = 64;
         function<void(int,int,int,Pixel*)> iter_gen_func;
         GLVecs glvecs;
+        
         
         World(string newname, int newseed): seed(newseed), name(newname) {
             setup_files();
@@ -302,8 +305,8 @@ class World {
             iter_gen_func = [&] (int x, int y, int z, Pixel* p) {
                 iter_gen(x, y, z, p);
             };
-            for (int x = -3; x < 4; x ++) {
-                for (int y = -3; y < 4; y ++) {
+            for (int x = -1; x < 2; x ++) {
+                for (int y = -1; y < 2; y ++) {
                     load_chunk(pair<int,int>(x,y));
                 }
             }
@@ -318,12 +321,15 @@ class World {
         }
         
         void iter_gen(int gx, int gy, int gz, Pixel* pix) {
-            char value = gen_func(gx, gy, gz);
+            //gx = gx%chunksize + (gx<0)*chunksize;
+            //gy = gy%chunksize + (gy<0)*chunksize;
+            //gz = gz%chunksize + (gz<0)*chunksize;
+            char value = gen_func(gx,gy,gz);///tmparr[gx*chunksize*chunksize + gy*chunksize + gz];
             bool cont = true;
             for (int x = gx; x < gx+pix->scale and cont; x ++) {
                 for (int y = gy; y < gy+pix->scale and cont; y ++) {
                     for (int z = gz; z < gz+pix->scale and cont; z ++) {
-                        char newval = gen_func(x,y,z);
+                        char newval = gen_func(x,y,z);//tmparr[x*chunksize*chunksize + y*chunksize + z];
                         if (newval != value) {
                             cont = false;
                         }
@@ -340,7 +346,17 @@ class World {
         }
          
         void generate(pair<int,int> pos) {
-            Pixel* pix = new Pixel(pos.first,0,pos.second,chunksize,nullptr);
+            Pixel* pix = new Pixel(pos.first,0,pos.second,chunksize,nullptr);/*
+            tmparr = new char[chunksize*chunksize*chunksize];
+            cout << 349 << endl;
+            for (int x = 0; x < chunksize; x ++) {
+                for (int y = 0; y < chunksize; y ++) {
+                    for (int z = 0; z < chunksize; z ++) {
+                        tmparr[x*chunksize*chunksize + y*chunksize + z] = gen_func(pos.first*chunksize+x, y, pos.second*chunksize+z);
+                    }
+                }
+            }
+            cout << "half" << endl;*/
             chunks[pos] = pix->subdivide(iter_gen_func);
             delete pix;
         }
@@ -361,7 +377,7 @@ class World {
             } if (z < 0 and -z%chunksize != 0) {
                 pz --;
             }
-            pair<int,int> pos = pair<int,int>(px, pz);
+            pair<int,int> pos(px, pz);
             //cout << "pair<" << pos.first << ' ' << pos.second << endl;
             if (chunks.find(pos) == chunks.end() or y > chunksize or y < 0) {
                 //cout << "   returning null\n";
@@ -464,7 +480,7 @@ class World {
 };
 
 World* world;
-
+std::stringstream debugstream;
 
 
 
@@ -549,6 +565,7 @@ Block* Block::raycast(double* x, double* y, double* z, double dx, double dy, dou
             *z += dz*(tz+extra);
             time -= tz;
         }
+        time -= 0.01;
         //cout << "get(" << (int)*x - (*x<0) << ' ' << (int)*y - (*y<0) << ' ' << (int)*z - (*z<0) << ' ' << (*x < 0) << endl;
         Block* b = world->get_global((int)*x - (*x<0), (int)*y - (*y<0), (int)*z - (*z<0), 1);
         if (b == nullptr or time < 0) {
@@ -560,11 +577,14 @@ Block* Block::raycast(double* x, double* y, double* z, double dx, double dy, dou
 void Pixel::set(char val) {
     
     //cout << "render_indes: " << render_index << " val:" << (int)value <<  ' '<< (int)val << endl;
-    //cout << "pixel set " << val << endl;
+    //cout << "pixel(" << (int)value <<  " scale " << scale << ") set " << (int)val << endl;
     value = val;
     render_flag = true;
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);
+    //cout << gx << ' ' << gy << ' ' << gz << "-----------------------------" << render_index.first << ' ' << render_index.second << endl;
+    global_position(&gx, &gy, &gz);
+    //cout << "global position " << gx << ' ' << gy << ' ' << gz << endl;
     render_update();
     world->get_global(gx+1, gy, gz, 1)->render_update();
     world->get_global(gx-1, gy, gz, 1)->render_update();
@@ -576,17 +596,41 @@ void Pixel::set(char val) {
 }
 
 void Pixel::render_update() {
-    if (render_index != -1) {
-        render_index = -(render_index+2);
+    //int gx, gy, gz;
+    //global_position(&gx, &gy, &gz);
+    //cout << gx << ' ' << gy << ' ' << gz << endl;
+    //cout << render_index << endl;
+    //cout << "render_update() " << render_index.first << ' ' << render_index.second << endl;
+    if (render_index.first > -1) {
+        world->glvecs.del(render_index);
+        render_index = pair<int,int>(-1,0);
+        //cout << render_index.first << ' ' << render_index.second << " x" << endl;
+        //render_index.first = -(render_index.first+2);
     }
 }
 
-void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
-    if (render_index < -1) {
-        world->glvecs.del(-render_index-2);
-        render_index = -1;
+void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {/*
+    bool neg = false;
+    if (render_index.first != -1) {
+        if (id_test.second == -5) {
+            id_test = render_index;
+        } else {
+            if (id_test.first != render_index.first or id_test.second != render_index.second) {
+                cout << id_test.first << ',' << id_test.second << ' ' << render_index.first << ',' << render_index.second << endl;
+            }
+        }
     }
-    if (value == 0 or render_index != -1) {
+    if (render_index.first < -1) {
+        neg = true;
+        cout << "render neg" << render_index.first << ',' << render_index.second << ' ' << (int)value;
+        render_index.first = -render_index.first-2;
+        world->glvecs.del(render_index);
+        render_index = pair<int,int>(-1,0);
+    }*/
+    if (value == 0 or render_index.first != -1) {
+        //if (neg) {
+       //     cout << endl;
+        //}
         //cout << "air " << endl;
         return;
     }
@@ -607,7 +651,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
         0.0f, 1.0f * scale,
         0.0f, 0.0f
     };
-    RenderVecs* vecs = new RenderVecs;
+    RenderVecs vecs;
     //cout << 85 << endl;
     Block* block;
     //cout << 87 << endl;
@@ -630,7 +674,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
             x + scale, y, z,
             x, y, z
         };
-        vecs->add_face(face, new_uvs, 0.4f, mat);
+        vecs.add_face(face, new_uvs, 0.4f, mat);
     }
     
     block = world->get_global(gx, gy-scale, gz, scale);
@@ -644,7 +688,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
             x, y, z
         };
         
-        vecs->add_face(face, new_uvs, 0.2f, mat);
+        vecs.add_face(face, new_uvs, 0.2f, mat);
     }
     
     block = world->get_global(gx-scale, gy, gz, scale);
@@ -657,7 +701,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
             x, y + scale, z,
             x, y, z
         };
-        vecs->add_face(face, new_uvs, 0.6f, mat);
+        vecs.add_face(face, new_uvs, 0.6f, mat);
     }
     
     block = world->get_global(gx, gy, gz+scale, scale);
@@ -670,7 +714,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
             x + scale, y, z + scale,
             x + scale, y + scale, z + scale
         };
-        vecs->add_face(face, new_uvs, 0.6f, mat);
+        vecs.add_face(face, new_uvs, 0.6f, mat);
     }
     
     block = world->get_global(gx, gy+scale, gz, scale);
@@ -683,7 +727,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
             x, y + scale, z + scale,
             x + scale, y + scale, z + scale
         };
-        vecs->add_face(face, new_uvs, 0.8f, mat);
+        vecs.add_face(face, new_uvs, 0.8f, mat);
     }
     
     block = world->get_global(gx+scale, gy, gz, scale);
@@ -696,12 +740,11 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
             x + scale, y + scale, z,
             x + scale, y + scale, z + scale
         };
-        vecs->add_face(face, new_uvs, 0.4f, mat);
+        vecs.add_face(face, new_uvs, 0.4f, mat);
     }
-    render_index = allvecs->add(vecs);
+    render_index = allvecs->add(&vecs);
     
     //cout << render_index << endl;
-    delete vecs;
     //cout << "done rendering" << endl;
     //cout << *num_verts << endl;
     //exit(1);
@@ -709,7 +752,10 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
 
 Chunk* Pixel::subdivide(function<void(int,int,int,Pixel*)> func) {
     //cout << "subdivide " << endl;
-    render_update();
+    //render_update();
+    if (render_index.first != -1) {
+        world->glvecs.del(render_index);
+    }
     if (scale == 1) {
         cout << "error: block alreasy at scale 1" << endl;
         return nullptr;

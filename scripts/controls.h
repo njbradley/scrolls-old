@@ -5,12 +5,10 @@ extern GLFWwindow* window; // The "extern" keyword here is to access the variabl
 // Include GLM
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "blocks.h"
 using namespace glm;
 
 #include "entity.h"
 #include "blocks.h"
-#include "ui.h"
 
 
 
@@ -44,19 +42,35 @@ class Player: public Entity {
 	vec3 pointing;
 	World* world;
 	int selitem;
-	Item item;
+	ItemContainer inven;
 	
 	public:
 		bool autojump = false;
 		
 		Player(vec3 pos, World* newworld):
-			Entity(pos, vec3(-0.8,-3.6,-0.8), vec3(0.8,1,0.8)), world(newworld),
-			item(1, new CharArray( new char[6] {1,2,1,2,1,1}, 3,1,2), 1) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
+			Entity(pos, vec3(-0.8,-2.6,-0.8), vec3(0.8,1,0.8)), world(newworld), inven(10) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
 			glfwSetMouseButtonCallback(window, mouse_button_call);
 			glfwSetScrollCallback(window, scroll_callback);
 			//char arr[] = {1,0,1,0,1,0,1,0}
 			selitem = 3;
 			//item = Item(
+			//inven.add( Item(1, new CharArray( new char[6*3*3] {1,1,1,1,8,1,1,1,1, 1,1,1,1,8,1,1,1,1, 1,1,1,1,8,1,1,1,1, 1,1,1,1,8,1,1,1,1, 1,1,1,1,8,1,1,1,1, 1,1,1,1,8,1,1,1,1 }, 6,3,3), 1, 1));
+			//inven.add( Item(2, new CharArray( new char[8] {3,3,3,3,3,3,3,3}, 2,2,2), 1, 1));
+			//inven.add( Item(3, new CharArray( new char[6] {1,1,1,1,1,1}, 6,1,1), 1, 1));
+			//inven.add( Item(4, new CharArray( new char[6] {1}, 1,1,1), 1, 1));
+			//inven.add( Item(5, nullptr, 1, 5));
+			inven.add( items->items["log"] );
+			inven.add( items->items["stick"] );
+			inven.add( items->items["iron-axe"] );
+			inven.add( items->items["chips"] );
+			inven.add( items->items["grass"] );
+			inven.add( items->items["bricks"] );
+			inven.add( items->items["stone"] );
+			
+			
+			
+			
+			
 		}
 			
 		mat4 getViewMatrix(){
@@ -73,7 +87,7 @@ class Player: public Entity {
 			double x = position.x;
 			double y = position.y;
 			double z = position.z;
-			Block* target = world->raycast(&x, &y, &z, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 10);
+			Block* target = world->raycast(&x, &y, &z, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 15);
 			if (target == nullptr) {
 				return;
 			}
@@ -86,9 +100,15 @@ class Player: public Entity {
 			int dx = (int)x - (x<0) - ox;
 			int dy = (int)y - (y<0) - oy;
 			int dz = (int)z - (z<0) - oz;
-			cout << dx << ' ' << dy << ' ' << dz << endl;
+			//cout << dx << ' ' << dy << ' ' << dz << endl;
 			//world->set(item, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
-			item.onplace->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
+			Item* item = inven.get(selitem);
+			if (item != nullptr) {
+				CharArray* arr = item->onplace;
+				if (arr != nullptr) {
+					arr->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
+				}
+			}
 			//world->mark_render_update(pair<int,int>((int)position.x/world->chunksize - (position.x<0), (int)position.z/world->chunksize - (position.z<0)));
 		}
 		
@@ -99,11 +119,14 @@ class Player: public Entity {
 			double x = position.x;
 			double y = position.y;
 			double z = position.z;
-			Block* target = world->raycast(&x, &y, &z, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 10);
+			Block* target = world->raycast(&x, &y, &z, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 15);
 			if (target == nullptr) {
 				return;
 			}
-			world->set(0, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+			Item* item = inven.get(selitem);
+			if (item != nullptr) {
+				item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+			}
 			
 			//world->mark_render_update(pair<int,int>((int)position.x/world->chunksize - (position.x<0), (int)position.z/world->chunksize - (position.z<0)));
 		}
@@ -227,11 +250,11 @@ class Player: public Entity {
 			
 			
 			if (scroll != 0) {
-				selitem += scroll;
-				if (selitem < 1) {
-					selitem = 1;
-				} if (selitem > 8) {
-					selitem = 8;
+				selitem -= scroll;
+				if (selitem < 0) {
+					selitem = 0;
+				} if (selitem > 9) {
+					selitem = 9;
 				}
 				scroll = 0;
 			}
@@ -258,12 +281,17 @@ class Player: public Entity {
 			float scale = 0.1f;
 			int i;
 			for (i = 0; i < health; i ++) {
-				draw_image(uivecs, 2, i*scale, 1-scale, scale, scale);
+				draw_image(uivecs, "heart_full.bmp", i*scale, 1-scale, scale, scale);
 			}
 			for (; i < 10; i ++) {
-				draw_image(uivecs, 1, i*scale, 1-scale, scale, scale);
+				draw_image(uivecs, "heart_empty.bmp", i*scale, 1-scale, scale, scale);
 			}
-			draw_image(uivecs, 3, -0.5f, -1, 1, 0.1f*aspect_ratio);
+			inven.render(uivecs);
+			draw_text("\\/", -0.45f+selitem*0.1f, -0.85f, uivecs);
+			Item* sel = inven.get(selitem);
+			if (sel != nullptr) {
+				draw_text(sel->name, -0.25f, -0.8f, uivecs);
+			}
 		}
 };
 

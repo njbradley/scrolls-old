@@ -28,15 +28,12 @@ void draw_text(string str, float x, float y, RenderVecs* vecs) {
             y -= pix_y;
             continue;
         }
-        int index = -1;
+        int index = 92;
         for (int i = 0; i < 93; i ++) {
             if (c == letters[i]) {
                 index = i;
                 break;
             }
-        }
-        if (index == -1) {
-            index = 92;
         }
         
         GLfloat face[] = {

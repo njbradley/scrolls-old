@@ -34,14 +34,14 @@ int last_num_ui_verts = 0;
 const int max_fps = 200;
 const double min_ms_per_frame = 1000.0/max_fps; 
 
-void make_ui_buffer(Player* player, string message, GLuint vertexbuffer, GLuint uvbuffer, GLuint matbuffer, int * num_tris) {
+void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLuint uvbuffer, GLuint matbuffer, int * num_tris) {
 	RenderVecs vecs;
 	if (last_num_ui_verts != 0) {
 		vecs.verts.reserve(last_num_ui_verts*3);
 		vecs.uvs.reserve(last_num_ui_verts*2);
 		vecs.mats.reserve(last_num_ui_verts);
 	}
-	render_debug(&vecs, message);
+	render_debug(&vecs, debugstream);
 	player->render_ui(&vecs);
 	int num_verts = vecs.num_verts;
 	last_num_ui_verts = num_verts;
@@ -115,7 +115,10 @@ void make_vertex_buffer(GLuint vertexbuffer, GLuint uvbuffer, GLuint lightbuffer
 int main( void )
 {
 	
+	bool fullscreen = false;
+	cout.precision(10);
 	
+	items = new ItemStorage();
 	
 	// Initialise GLFW
 	if( !glfwInit() )
@@ -132,7 +135,7 @@ int main( void )
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// Open a window and create its OpenGL context
-	window = glfwCreateWindow( 1024, 768, "Scrolls - An Adventure Game", NULL, NULL);
+	window = glfwCreateWindow( 1024, 768, "Scrolls - An Adventure Game", fullscreen ? glfwGetPrimaryMonitor() : nullptr, nullptr);
 	if( window == NULL ){
 		fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
 		getchar();
@@ -207,6 +210,7 @@ int main( void )
 	
 	for( int i = 0; i < num_uis; i ++) {
 		string ui = "resources/ui/" + uis[i];
+		ui_names[uis[i]] = i;
 		const char* data = ui.c_str();
 		ui_textures[i] = loadBMP_custom(data, true);
 	}
@@ -262,10 +266,10 @@ int main( void )
 	init();
 	world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
 	
-	Player player( vec3(10,50,10), world);
+	Player player( vec3(10,52,10), world);
 	player.flying = false;
 	player.autojump = true;
-	player.health = 8;
+	player.health = 10;
 	
 	
 	double lastTime = glfwGetTime();
@@ -276,47 +280,60 @@ int main( void )
 	int fps;
 	bool reaching_max_fps = true;
 	double slow_frame = 0;
+	
+	
 	//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, &num_tris);
 	do{
 		
-		stringstream message;
 		
-		message << "fps: " << fps << endl;
-		message << "x: " << player.position.x << "\ny: " << player.position.y << "\nz: " << player.position.z << endl;
-		message << "dx: " << player.vel.x << "\ndy: " << player.vel.y << "\ndz: " << player.vel.z << endl;
-		message << "consts: ";
+		
+		
+		
+		player.timestep(world);
+		player.computeMatricesFromInputs(world);
+		
+		
+		
+		debugstream.str("");
+		
+		debugstream << "fps: " << fps << endl;
+		debugstream << "x: " << player.position.x << "\ny: " << player.position.y << "\nz: " << player.position.z << endl;
+		debugstream << "dx: " << player.vel.x << "\ndy: " << player.vel.y << "\ndz: " << player.vel.z << endl;
+		debugstream << "consts: ";
 		for (bool b : player.consts) {
-            message << b << ' ';
+            debugstream << b << ' ';
         }
-        message << endl;
-		world->glvecs.status(message);
+        debugstream << endl;
+		world->glvecs.status(debugstream);
 		if ( render_flag) {
+			//cout << "rendering!!!!" << endl;
 			render_terrain();
+			world->glvecs.clean();
 			num_tris = world->glvecs.num_verts/3;
 			//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, matbuffer, &num_tris, render_flag);
 			render_flag = false;
 		}
 		
 		////////////////////////// error handling:
-		message << "-----opengl errors-----" << endl;
+		debugstream << "-----opengl errors-----" << endl;
 		GLenum err;
 		while((err = glGetError()) != GL_NO_ERROR) {
-			message << "err: " << std::hex << err << std::dec << endl;
+			debugstream << "err: " << std::hex << err << std::dec << endl;
 		}
 		// Measure speed
 		lastFrameTime = currentTime;
 		currentTime = glfwGetTime();
 		double ms = (currentTime-lastFrameTime)*1000;
-		message << "-----time-----" << endl;
-		message << "ms: " << ms << endl;
-		message << "ms(goal):" << min_ms_per_frame << endl;
+		debugstream << "-----time-----" << endl;
+		debugstream << "ms: " << ms << endl;
+		debugstream << "ms(goal):" << min_ms_per_frame << endl;
 		if (ms > min_ms_per_frame) {
 			reaching_max_fps = false;
 		}
 		if (ms > slow_frame) {
 			slow_frame = ms;
 		}
-		message << "reaching max fps: " << reaching_max_fps << " (" << slow_frame << ")" << endl;
+		debugstream << "reaching max fps: " << reaching_max_fps << " (" << slow_frame << ")" << endl;
 		nbFrames++;
 		if ( currentTime - lastTime >= 1.0 ){ // If last prinf() was more than 1 sec ago
 		    // printf and reset timer
@@ -351,8 +368,6 @@ int main( void )
 		glUseProgram(programID);
 
 		// Compute the MVP matrix from keyboard and mouse input
-		player.timestep(world);
-		player.computeMatricesFromInputs(world);
 		glm::mat4 ProjectionMatrix = player.getProjectionMatrix();
 		glm::mat4 ViewMatrix = player.getViewMatrix();
 		glm::mat4 ModelMatrix = glm::mat4(1.0);
@@ -434,7 +449,7 @@ int main( void )
 		//-----------------------------------------------------SECOND DRAW CALL------------------------------------------------------------------------------------------------------------------------//
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		
-		make_ui_buffer(&player, message.str(), vertex_ui_buffer, uv_ui_buffer, mat_ui_buffer, &num_ui_tris);
+		make_ui_buffer(&player, debugstream.str(), vertex_ui_buffer, uv_ui_buffer, mat_ui_buffer, &num_ui_tris);
 		
 		//allow trancaperancy
 		glDisable(GL_DEPTH_TEST);
