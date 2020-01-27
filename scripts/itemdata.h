@@ -76,28 +76,52 @@ class Item {
         
         void ondig(World* world, int x, int y, int z) {
             char type = world->get(x,y,z);
-            dig_pickaxe(world, x, y, z, damage, type);
+            world->set(0,x,y,z);
+            //double random = (rand()%1000/1000.0);
+            //double prob = blocks->blocks[type]->hardness[tool];// - ((damage-1)-time)*0.2;
+            //cout << prob << ' ' << random << endl;
+            //if (prob > random) {
+            //    world->set(0,x,y,z);
+            //}
+            //dig_pickaxe(world, x, y, z, random);
         }
         
-        void dig_pickaxe(World* world, int x, int y, int z, int time, char type) {
+        void dig_area(World* world, int x, int y, int z, double random) {
+            int size = damage/2;
+            for (int ox = -size; ox <= size; ox ++) {
+                for (int oy = -size; oy <= size; oy ++) {
+                    for (int oz = -size; oz <= size; oz ++) {
+                        char val = world->get(x+ox, y+oy, z+oz);
+                        double distance = sqrt(ox*ox+oy*oy+oz*oz);
+                        if (val != 0) {
+                            double prob = blocks->blocks[val]->hardness[tool] - distance*0.2;
+                            if (prob > random) {
+                                world->set(0,x+ox, y+oy, z+oz);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+            
+        
+        void dig_pickaxe(World* world, int x, int y, int z, int time, double random) {
             time --;
-            if (time < 0 or world->get(x,y,z) != type) {
+            char val = world->get(x,y,z);
+            if (time < 0 or val == 0) {
                 return;
             }
-            world->set(0,x,y,z);
-            int prob = 100-20*time;
-            if (rand()%100 > prob) {
-                dig_pickaxe(world, x+1, y, z, time, type);
-            } if (rand()%100 > prob) {
-                dig_pickaxe(world, x-1, y, z, time, type);
-            } if (rand()%100 > prob) {
-                dig_pickaxe(world, x, y+1, z, time, type);
-            } if (rand()%100 > prob) {
-                dig_pickaxe(world, x, y-1, z, time, type);
-            } if (rand()%100 > prob) {
-                dig_pickaxe(world, x, y, z+1, time, type);
-            } if (rand()%100 > prob) {
-                dig_pickaxe(world, x, y, z-1, time, type);
+            BlockData* data = blocks->blocks[val];
+            double prob = data->hardness[tool] - ((damage-1)-time)*0.2;
+            cout << prob << ' ' << random << endl;
+            if (prob > random) {
+                world->set(0,x,y,z);
+                dig_pickaxe(world, x+1, y, z, time, random);
+                dig_pickaxe(world, x-1, y, z, time, random);
+                dig_pickaxe(world, x, y+1, z, time, random);
+                dig_pickaxe(world, x, y-1, z, time, random);
+                dig_pickaxe(world, x, y, z+1, time, random);
+                dig_pickaxe(world, x, y, z-1, time, random);
             }
         }
 };

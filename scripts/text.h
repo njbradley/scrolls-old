@@ -1,3 +1,6 @@
+#ifndef TEXTH
+#define TEXTH
+
 // Include GLEW
 #include <GL/glew.h>
 #include <iostream>
@@ -20,7 +23,7 @@ const char letters[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234
 const float pix_x = 5/200.0f;
 const float pix_y = pix_x*2;
 
-void draw_text(string str, float x, float y, RenderVecs* vecs) {
+void draw_text(RenderVecs* vecs, string str, float x, float y, int size) {
     float original_x = x;
     for (char c : str) {
         if (c == '\n') {
@@ -38,10 +41,10 @@ void draw_text(string str, float x, float y, RenderVecs* vecs) {
         
         GLfloat face[] = {
             x, y, 0,
-            x + pix_x, y, 0,
-            x + pix_x, y + pix_y, 0,
-            x + pix_x, y + pix_y, 0,
-            x, y + pix_y, 0,
+            x + pix_x*size, y, 0,
+            x + pix_x*size, y + pix_y*size, 0,
+            x + pix_x*size, y + pix_y*size, 0,
+            x, y + pix_y*size, 0,
             x, y, 0
         };
         float uvpos = index / 93.0;
@@ -64,3 +67,8 @@ void draw_text(string str, float x, float y, RenderVecs* vecs) {
     }
 }
 
+void draw_text(RenderVecs* vecs, string str, float x, float y) {
+    draw_text(vecs, str, x, y, 1);
+}
+
+#endif  

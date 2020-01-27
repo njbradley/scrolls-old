@@ -11,7 +11,6 @@ using std::stringstream;
 
 // Include GLFW
 #include <GLFW/glfw3.h>
-GLFWwindow* window;
 
 // Include GLM
 #include <glm/glm.hpp>
@@ -23,6 +22,7 @@ using namespace glm;
 #include "scripts/controls.h"
 #include "scripts/terrain.h"
 #include "scripts/win.h"
+#include "scripts/menu.h"
 //#include "scripts/unix.h"
 
 int num_blocks;
@@ -61,54 +61,6 @@ void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLu
 	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &vecs.mats.front(), GL_STATIC_DRAW);
 }
 
-void make_vertex_buffer(GLuint vertexbuffer, GLuint uvbuffer, GLuint lightbuffer, GLuint matbuffer, int * num_tris, bool render_flag) {
-	//cout << "frame" << endl;
-	
-	if(render_flag) {
-		render_terrain();
-	}
-	
-	int num_verts = world->glvecs.num_verts;
-	last_num_verts = num_verts;
-	
-	*num_tris = num_verts/3;
-	/*
-	cout << 34 << endl;
-	*num_tris = num_verts/3;
-	cout << 36 << endl;
-	cout << num_verts*3 << '-' << endl;
-	GLfloat vert_data[num_verts*3];
-	cout << 39 << endl;
-	GLfloat uv_data[num_verts*2];
-	GLfloat light_data[num_verts];
-	GLint mat_data[num_verts];
-	
-	
-	cout << 41 << endl;
-	
-	copy(verts.begin(), verts.end(), vert_data);
-	copy(uvs.begin(), uvs.end(), uv_data);
-	copy(light.begin(), light.end(), light_data);
-	copy(mats.begin(), mats.end(), mat_data);
-	*/
-	
-	GLfloat i = 0.0f;
-	GLint j = 0;
-	//cout << sizeof(i) << ' ' << sizeof(j) << endl;
-	/*
-	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(i)*3, &world->rendvecs.verts.front(), GL_STATIC_DRAW);
-	
-	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(i)*2, &world->rendvecs.uvs.front(), GL_STATIC_DRAW);
-	
-	glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(i), &world->rendvecs.light.front(), GL_STATIC_DRAW);
-	
-	glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &world->rendvecs.mats.front(), GL_STATIC_DRAW);
-	*/
-}
 
 
 
@@ -119,6 +71,7 @@ int main( void )
 	cout.precision(10);
 	
 	items = new ItemStorage();
+	blocks = new BlockStorage();
 	
 	// Initialise GLFW
 	if( !glfwInit() )
@@ -155,6 +108,7 @@ int main( void )
 
 	// Ensure we can capture the escape key being pressed below
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+	glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
     // Hide the mouse and enable unlimited mouvement
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     
@@ -261,9 +215,12 @@ int main( void )
 	//glGenBuffers(1, &uvbuffer);
 	//glGenBuffers(1, &lightbuffer);
 	//glGenBuffers(1, &matbuffer);
-	cout << 260 << endl;
-	cout << 262 << endl;
-	init();
+	
+	//string level = menu(window, vertexbuffer, uvbuffer, matbuffer, uiVertexArrayID, uiTextureID, ui_textures, num_uis, uiProgram, "Select World:", worlds );
+	//if (level == "") {
+	//	return 0;
+	//}
+	world = new World("new-world");
 	world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
 	
 	Player player( vec3(10,52,10), world);
@@ -522,6 +479,27 @@ int main( void )
 		// Swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+		
+		if (glfwGetKey(window, GLFW_KEY_M ) == GLFW_PRESS) {
+			world->close_world();
+			delete world;
+			player.position = vec3(10,52,10);
+			player.health = 10;
+			
+			worlds.clear();
+			ifstream ifile("saves/saves.txt");
+			string name;
+			while (ifile >> name) {
+				worlds.push_back(name);
+			}
+			string level = menu(window, vertexbuffer, uvbuffer, matbuffer, uiVertexArrayID, uiTextureID, ui_textures, num_uis, uiProgram, "Select World:", worlds );
+			if (level == "") {
+				break;
+			}
+			world = new World(level);
+			world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
+			render_flag = true;
+		}
 
 	} // Check if the ESC key was pressed or the window was closed
 	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
@@ -533,11 +511,14 @@ int main( void )
 	glDeleteProgram(programID);
 	glDeleteTextures(1, &TextureID);
 	glDeleteVertexArrays(1, &VertexArrayID);
-
+	
+	world->close_world();
+	
+	
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
 	
-	world->close_world();
+	
 	
 	return 0;
 }

@@ -28,12 +28,27 @@ float initialFoV = 85.0f;
 float speed = 40.0f; // 3 units / second
 float mouseSpeed = 0.005f;
 
-void mouse_button_call(GLFWwindow*, int, int, int);
-void scroll_callback(GLFWwindow*, double, double);
 bool mouse;
 int button;
+double timeout;
 
 double scroll;
+
+void mouse_button_call(GLFWwindow* window, int nbutton, int action, int mods) {
+	if (action == GLFW_PRESS) {
+		mouse = true;
+		button = nbutton;
+		timeout = 0;
+	} else if (action == GLFW_RELEASE) {
+		mouse = false;
+	}
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	scroll = yoffset;
+}
+
 
 class Player: public Entity {
 	
@@ -66,6 +81,10 @@ class Player: public Entity {
 			inven.add( items->items["grass"] );
 			inven.add( items->items["bricks"] );
 			inven.add( items->items["stone"] );
+			inven.add( items->items["iron-pickaxe"] );
+			inven.add( items->items["iron-shovel"] );
+			inven.add( items->items["stone"] );
+			inven.add( items->items["crafting"] );
 			
 			
 			
@@ -82,12 +101,16 @@ class Player: public Entity {
 		
 		void right_mouse() {
 			//cout << "riht" << endl;
+			if (timeout < 0) {
+				return;
+			}
+			timeout = -0.2;
 			vec3 v = position;
 			double tiny = 0.0000001;
 			double x = position.x;
 			double y = position.y;
 			double z = position.z;
-			Block* target = world->raycast(&x, &y, &z, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 15);
+			Block* target = world->raycast(&x, &y, &z, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 8);
 			if (target == nullptr) {
 				return;
 			}
@@ -119,15 +142,17 @@ class Player: public Entity {
 			double x = position.x;
 			double y = position.y;
 			double z = position.z;
-			Block* target = world->raycast(&x, &y, &z, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 15);
+			Block* target = world->raycast(&x, &y, &z, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 8);
 			if (target == nullptr) {
 				return;
 			}
 			Item* item = inven.get(selitem);
-			if (item != nullptr) {
+			double time_needed = 1.1 - blocks->blocks[target->get()]->hardness[item->tool];
+			if (item != nullptr and timeout > time_needed) {
+				cout << timeout << ' ' << time_needed << endl;
 				item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+				timeout = 0;
 			}
-			
 			//world->mark_render_update(pair<int,int>((int)position.x/world->chunksize - (position.x<0), (int)position.z/world->chunksize - (position.z<0)));
 		}
 		
@@ -239,14 +264,17 @@ class Player: public Entity {
 				}
 			}
 			
-			if (mouse) {
-				if (button == 0) {
-					left_mouse();
-				} else if (button == 1) {
-					right_mouse();
-				}
-				mouse = false;
+			if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+				left_mouse();
+				timeout += deltaTime;
 			}
+			else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+				right_mouse();
+				timeout += deltaTime;
+			} else {
+				timeout = 0;
+			}
+			//mouse = false;
 			
 			
 			if (scroll != 0) {
@@ -287,27 +315,17 @@ class Player: public Entity {
 				draw_image(uivecs, "heart_empty.bmp", i*scale, 1-scale, scale, scale);
 			}
 			inven.render(uivecs);
-			draw_text("\\/", -0.45f+selitem*0.1f, -0.85f, uivecs);
+			draw_text(uivecs, "\\/", -0.45f+selitem*0.1f, -0.85f);
 			Item* sel = inven.get(selitem);
 			if (sel != nullptr) {
-				draw_text(sel->name, -0.25f, -0.8f, uivecs);
+				draw_text(uivecs, sel->name, -0.25f, -0.8f);
 			}
 		}
 };
 
 Player* player;
 
-void mouse_button_call(GLFWwindow* window, int nbutton, int action, int mods) {
-	if (action == GLFW_PRESS) {
-		mouse = true;
-		button = nbutton;
-	}
-}
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-	scroll = yoffset;
-}
 
 
 

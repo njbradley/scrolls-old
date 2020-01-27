@@ -9,7 +9,7 @@ flat in int material;
 out vec3 color;
 
 // Values that stay constant for the whole mesh.
-const int num_blocks = 10;
+const int num_blocks = 11;
 uniform sampler2D myTextureSampler[num_blocks];
 
 void main(){

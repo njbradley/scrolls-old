@@ -1,2 +1,3 @@
-Scrolls world data file of world 'tt'
+Scrolls data file of world 'tt'
 seed:5555
+view_dist:3

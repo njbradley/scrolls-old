@@ -1,0 +1,2 @@
+0
+: iron-pickaxe 4 pickaxe 5

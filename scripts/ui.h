@@ -1,3 +1,5 @@
+#ifndef UI
+#define UI
 #include <iostream>
 #include <string>
 
@@ -9,11 +11,14 @@ using std::endl;
 
 map<string,int> ui_names;
 
-float aspect_ratio = 1024/768;
+int screen_x = 1024;
+int screen_y = 768;
+
+float aspect_ratio = (float)screen_x/screen_y;
 
 void render_debug(RenderVecs * vecs, string message) {
-	draw_text("-----debug message: game scrolls-----\n" + message, -1, 1-pix_y, vecs);
-	draw_text("X", -pix_x/2, -pix_y/2, vecs);
+	draw_text(vecs, "-----debug message: game scrolls-----\n" + message, -1, 1-pix_y);
+	draw_text(vecs, "X", -pix_x/2, -pix_y/2);
 }
 
 
@@ -48,3 +53,5 @@ void draw_image_uv(RenderVecs * vecs, string texture, float x, float y, float x_
 void draw_image(RenderVecs * vecs, string texture, float x, float y, float x_scale, float y_scale) {
 	draw_image_uv(vecs, texture, x, y, x_scale, y_scale, 0, 1);
 }
+
+#endif

@@ -8,6 +8,7 @@
 #include <sstream>
 #include "win.h"
 #include "rendervec.h"
+#include "blockdata.h"
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
@@ -57,6 +58,8 @@ class Block { public:
     virtual char get() = 0;                 //get the value of the block. these two methods are exclusive for pixel/chunk, but same reaseon as above
     virtual void set(char) = 0;             
     virtual Chunk* subdivide(function<void(int,int,int,Pixel*)>) = 0; //same as get,
+    virtual void del() = 0;
+    virtual void calculate_light_level() = 0;
     
     Block(int x, int y, int z, int newscale, Chunk* newparent) :
         px(x), py(y), pz(z), scale(newscale), parent(newparent) {}
@@ -90,10 +93,10 @@ class Pixel: public Block { public:
     char value;
     bool continues = false;
     pair<int,int> render_index;
-    pair<int,int> id_test;
+    float lightlevel;
     
     Pixel(int x, int y, int z, int nscale, Chunk* nparent):
-        Block(x, y, z, nscale, nparent), render_index(-1,0), id_test(0,-5) {}
+        Block(x, y, z, nscale, nparent), render_index(-1,0), lightlevel(-1) {}
     
     char get() {
         //cout << "pixel get px" << px << " py" << py << " pz" << pz << " s" << scale << " value" << value  << endl;
@@ -108,7 +111,10 @@ class Pixel: public Block { public:
     void set(char val);
     
     void render_update();
-        
+    
+    void del();
+    
+    void calculate_light_level();
     
     bool is_air(int dx, int dy, int dz) {
         //cout << "pix is air reaturning:" << (value == 0) << endl;
@@ -150,12 +156,31 @@ class Chunk: public Block { public:
         cout << "error: subdividing already subdivided block" << endl;
         return nullptr;
     }
-    
+    void calculate_light_level() {
+        for (int x = 0; x < csize; x ++) {
+            for (int y = csize-1; y >= 0; y ++) {
+                for (int z = 0; z < csize; z ++) {
+                    blocks[x][y][z]->calculate_light_level();
+                }
+            }
+        }
+    }
     void render(GLVecs* vecs, int gx, int gy, int gz) {
         for (int x = 0; x < csize; x ++) {
             for (int y = 0; y < csize; y ++) {
                 for (int z = 0; z < csize; z ++) {
                     blocks[x][y][z]->render(vecs, gx + px*scale, gy + py*scale, gz + pz*scale);
+                }
+            }
+        }
+    }
+    
+    void del() {
+        for (int x = 0; x < csize; x ++) {
+            for (int y = 0; y < csize; y ++) {
+                for (int z = 0; z < csize; z ++) {
+                    blocks[x][y][z]->del();
+                    delete blocks[x][y][z];
                 }
             }
         }
@@ -299,6 +324,8 @@ class World {
         
         void setup_files() {
             create_dir("saves/" + name);
+            ofstream ofile("saves/saves.txt", ios::app);
+            ofile << ' ' << name;
         }    
         
         void startup() {
@@ -392,10 +419,20 @@ class World {
         
         void set(char val, int x, int y, int z) {
             Block* newblock = get_global(x,y,z, 1);
+            int minscale = 1;
 			if (newblock == nullptr) {
 				return;
 			}
-			while (newblock->scale != 1) {
+            if (newblock->get() != 0) {
+                minscale = blocks->blocks[newblock->get()]->minscale;
+            }
+            if (val != 0) {
+                int place_block_minscale = blocks->blocks[val]->minscale;
+                if (place_block_minscale > minscale) {
+                    minscale = place_block_minscale;
+                }
+            }
+			while (newblock->scale > minscale) {
 				char val = newblock->get();
 				newblock->subdivide([=] (int x, int y, int z, Pixel* pix) {
 					pix->value = val;
@@ -403,6 +440,14 @@ class World {
 				delete newblock;
 				newblock = get_global((int)x, (int)y, (int)z, 1);
 			}
+            while (newblock->scale < minscale) {
+                Chunk* parent = newblock->parent;
+                parent->del();
+                Pixel* newpix = new Pixel(parent->px, parent->py, parent->pz, parent->scale, parent->parent);
+                parent->parent->blocks[parent->px][parent->py][parent->pz] = newpix;
+                delete parent;
+				newblock = get_global((int)x, (int)y, (int)z, 1);
+            }
 			newblock->set(val);
         }
         
@@ -428,6 +473,13 @@ class World {
             of << "scrolls chunk file:";
             chunks[pos]->save_to_file(&of);
             
+        }
+        
+        void del_chunk(pair<int,int> pos) {
+            save_chunk(pos);
+            chunks[pos]->del();
+            delete chunks[pos];
+            chunks.erase(pos);
         }
         
         Block* parse_file(ifstream* ifile, int px, int py, int pz, int scale, Chunk* parent) {
@@ -472,8 +524,12 @@ class World {
         }
         
         void close_world() {
+            vector<pair<int,int> > poses;
             for (pair<pair<int,int>, Block*> kvpair : chunks) {
-                save_chunk(kvpair.first);
+                poses.push_back(kvpair.first);
+            }
+            for (pair<int,int> pos : poses) {
+                del_chunk(pos);
             }
             save_data_file();
         }
@@ -586,12 +642,12 @@ void Pixel::set(char val) {
     global_position(&gx, &gy, &gz);
     //cout << "global position " << gx << ' ' << gy << ' ' << gz << endl;
     render_update();
-    world->get_global(gx+1, gy, gz, 1)->render_update();
-    world->get_global(gx-1, gy, gz, 1)->render_update();
-    world->get_global(gx, gy+1, gz, 1)->render_update();
-    world->get_global(gx, gy-1, gz, 1)->render_update();
-    world->get_global(gx, gy, gz+1, 1)->render_update();
-    world->get_global(gx, gy, gz-1, 1)->render_update();
+    world->get_global(gx+scale, gy, gz, scale)->render_update();
+    world->get_global(gx-scale, gy, gz, scale)->render_update();
+    world->get_global(gx, gy+scale, gz, scale)->render_update();
+    world->get_global(gx, gy-scale, gz, scale)->render_update();
+    world->get_global(gx, gy, gz+scale, scale)->render_update();
+    world->get_global(gx, gy, gz-scale, scale)->render_update();
     
 }
 
@@ -608,6 +664,38 @@ void Pixel::render_update() {
         //render_index.first = -(render_index.first+2);
     }
 }
+
+void Pixel::del() {
+    world->glvecs.del(render_index);
+}
+
+void Pixel::calculate_light_level() {
+    if (lightlevel != -1) {
+        return;
+    }
+    if (value != 0) {
+        lightlevel = 0;
+        return;
+    }
+    int gx, gy, gz;
+    global_position(&gx, &gy, &gz);
+    Block* above = world->get_global(gx, gy+scale, gz, scale);
+    if (above == nullptr) {
+        lightlevel = 1;
+        return;
+    }
+    //if (!above->continues and above->lightlevel != 0) {
+    //    lightlevel = above->lightlevel;
+    //    return;
+    //}
+    int num = 0;
+    int x_off[] = {-1,1,0,0,0};
+    int z_off[] = {0,0,-1,1,0};
+    int y_off[] = {0,0,0,0,-1};
+    for (int i = 0; i < 4; i ++) {
+        Block* side = world->get_global(gx+scale*x_off[i], gy+scale*y_off[i], gz+scale*z_off[i], scale);
+    }
+} 
 
 void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {/*
     bool neg = false;
@@ -643,19 +731,20 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {/*
     //cout << x << ' ' << y << ' ' << z << "rendering call" << endl;
     GLfloat uv_start = 0.0f;// + (1/32.0f*(int)value);
     GLfloat uv_end = uv_start + 1.0f;///32.0f;
+    int minscale = blocks->blocks[value]->minscale;
     GLfloat new_uvs[] = {
         0.0f, 0.0f,
-        1.0f * scale, 0.0f,
-        1.0f * scale, 1.0f * scale,
-        1.0f * scale, 1.0f * scale,
-        0.0f, 1.0f * scale,
+        1.0f * scale/minscale, 0.0f,
+        1.0f * scale/minscale, 1.0f * scale/minscale,
+        1.0f * scale/minscale, 1.0f * scale/minscale,
+        0.0f, 1.0f * scale/minscale,
         0.0f, 0.0f
     };
     RenderVecs vecs;
     //cout << 85 << endl;
     Block* block;
     //cout << 87 << endl;
-    char mat = (int)value - 1;
+    char mat = blocks->blocks[value]->texture;
     block = world->get_global(gx, gy, gz-scale, scale);
     //exit(2);
     //if (block != nullptr) {

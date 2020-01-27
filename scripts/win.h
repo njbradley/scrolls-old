@@ -4,9 +4,9 @@
 //#include <windows.h>
 using std::string;
 
-void get_files_folder(string folder, vector<string> * names)
+void get_files_folder(string folder, vector<string> * names, string expr)
 {
-    string search_path = folder + "/*.*";
+    string search_path = folder + "/" + expr;
     WIN32_FIND_DATA fd; 
     HANDLE hFind = ::FindFirstFile(search_path.c_str(), &fd); 
     if(hFind != INVALID_HANDLE_VALUE) { 
@@ -21,8 +21,16 @@ void get_files_folder(string folder, vector<string> * names)
     } 
 }
 
+void get_files_folder(string folder, vector<string>* names) {
+    get_files_folder(folder, names, "*.*");
+}
+
 void create_dir(string path) {
     CreateDirectory(path.c_str(), NULL);
 }
+
+
+
+
 
 #endif
