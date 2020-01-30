@@ -15,6 +15,7 @@ class BlockData { public:
     int minscale;
     string name;
     string rcaction;
+    float lightlevel;
     
     BlockData(ifstream & ifile) {
         string buff;
@@ -30,8 +31,7 @@ class BlockData { public:
             ifile >> hardness[tool];
         }
         getline(ifile, buff, ':');
-        ifile >> name >> texture >> minscale >> rcaction;
-        cout << rcaction << endl;
+        ifile >> name >> texture >> minscale >> rcaction >> lightlevel;
     }
     
     void do_rcaction() {

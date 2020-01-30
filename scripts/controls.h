@@ -74,17 +74,17 @@ class Player: public Entity {
 			//inven.add( Item(3, new CharArray( new char[6] {1,1,1,1,1,1}, 6,1,1), 1, 1));
 			//inven.add( Item(4, new CharArray( new char[6] {1}, 1,1,1), 1, 1));
 			//inven.add( Item(5, nullptr, 1, 5));
-			inven.add( items->items["log"] );
-			inven.add( items->items["stick"] );
-			inven.add( items->items["iron-axe"] );
-			inven.add( items->items["chips"] );
-			inven.add( items->items["grass"] );
-			inven.add( items->items["bricks"] );
-			inven.add( items->items["stone"] );
-			inven.add( items->items["iron-pickaxe"] );
-			inven.add( items->items["iron-shovel"] );
-			inven.add( items->items["stone"] );
-			inven.add( items->items["crafting"] );
+			inven.add( items->items["log"], 10 );
+			inven.add( items->items["stick"], 10 );
+			inven.add( items->items["iron-axe"], 10 );
+			inven.add( items->items["chips"], 10 );
+			inven.add( items->items["grass"], 10 );
+			inven.add( items->items["bricks"], 10 );
+			inven.add( items->items["stone"], 10 );
+			inven.add( items->items["iron-pickaxe"], 10 );
+			inven.add( items->items["iron-shovel"], 10 );
+			inven.add( items->items["stone"], 10 );
+			inven.add( items->items["lamp"], 10 );
 			
 			
 			

@@ -110,6 +110,15 @@ class GLVecs {
             }
         }
         
+        void edit( pair<int,int> index, RenderVecs* newvecs) {
+            cout << "editing!" << endl;
+            int location = index.first*6;
+            glNamedBufferSubData(vertexbuffer, location*3*sizeof(GLfloat), newvecs->verts.size()*sizeof(GLfloat), &newvecs->verts.front());
+            glNamedBufferSubData(uvbuffer, location*2*sizeof(GLfloat), newvecs->uvs.size()*sizeof(GLfloat), &newvecs->uvs.front());
+            glNamedBufferSubData(lightbuffer, location*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
+            glNamedBufferSubData(matbuffer, location*sizeof(GLint), newvecs->mats.size()*sizeof(GLfloat), &newvecs->mats.front());
+        }
+        
         void status(std::stringstream & message) {
             message << "-----memory vectors-----" << endl;
             message << "num verts: " << num_verts/6 << endl;

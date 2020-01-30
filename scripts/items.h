@@ -21,14 +21,14 @@ class ItemContainer {
             
         }
         
-        void add(Item* item) {
+        void add(Item* item, int num) {
             for (int i = 0; i < items.size(); i ++) {
                 if (item == items[i].first) {
-                    items[i].second ++;
+                    items[i].second += num;
                     return;
                 }
             }
-            items.push_back(pair<Item*,int>(item,1));
+            items.push_back(pair<Item*,int>(item,num));
         }
         
         Item* get(int index) {
