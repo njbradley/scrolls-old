@@ -34,6 +34,9 @@ int last_num_ui_verts = 0;
 const int max_fps = 200;
 const double min_ms_per_frame = 1000.0/max_fps; 
 
+
+Menu* menu;
+
 void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLuint uvbuffer, GLuint matbuffer, int * num_tris) {
 	RenderVecs vecs;
 	if (last_num_ui_verts != 0) {
@@ -43,6 +46,9 @@ void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLu
 	}
 	render_debug(&vecs, debugstream);
 	player->render_ui(&vecs);
+	if (menu != nullptr) {
+		menu->render(window, world, player, &vecs);
+	}
 	int num_verts = vecs.num_verts;
 	last_num_ui_verts = num_verts;
 	
@@ -168,7 +174,6 @@ int main( void )
 		const char* data = ui.c_str();
 		ui_textures[i] = loadBMP_custom(data, true);
 	}
-	
 	// Load the texture
 	//GLuint Texture = loadBMP_custom("scrolls/resources/blocks/dirt.bmp");
 	//GLuint Texture = loadDDS("uvtemplate.DDS");
@@ -211,6 +216,8 @@ int main( void )
 	uvbuffer = blockbuffs[1];
 	lightbuffer = blockbuffs[2];
 	matbuffer = blockbuffs[3];
+	
+	
 	//glGenBuffers(1, &vertexbuffer);
 	//glGenBuffers(1, &uvbuffer);
 	//glGenBuffers(1, &lightbuffer);
@@ -220,6 +227,23 @@ int main( void )
 	//if (level == "") {
 	//	return 0;
 	//}
+	
+	worlds.clear();
+	ifstream ifile("saves/saves.txt");
+	string name;
+	while (ifile >> name) {
+		worlds.push_back(name);
+	}
+	
+	bool debug_visible = false;
+	
+	menu = new Select("select your fate:", worlds, [&] (string result) {
+		cout << "RESULT: " << result << endl;
+		delete menu;
+		menu = nullptr;
+		debug_visible = true;
+	});
+	
 	world = new World("new-world");
 	world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
 	
@@ -245,23 +269,32 @@ int main( void )
 		
 		
 		
+		if (menu == nullptr) {
+			player.timestep(world);
+			player.computeMatricesFromInputs(world);
+		}
 		
-		player.timestep(world);
-		player.computeMatricesFromInputs(world);
 		
+		if (debug_visible) {
+			debugstream.str("");
+			
+			debugstream << "fps: " << fps << endl;
+			debugstream << "x: " << player.position.x << "\ny: " << player.position.y << "\nz: " << player.position.z << endl;
+			debugstream << "dx: " << player.vel.x << "\ndy: " << player.vel.y << "\ndz: " << player.vel.z << endl;
+			debugstream << "consts: ";
+			for (bool b : player.consts) {
+	            debugstream << b << ' ';
+	        }
+	        debugstream << endl;
+			world->glvecs.status(debugstream);
+			////////////////////////// error handling:
+			debugstream << "-----opengl errors-----" << endl;
+			GLenum err;
+			while((err = glGetError()) != GL_NO_ERROR) {
+				debugstream << "err: " << std::hex << err << std::dec << endl;
+			}
+		}
 		
-		
-		debugstream.str("");
-		
-		debugstream << "fps: " << fps << endl;
-		debugstream << "x: " << player.position.x << "\ny: " << player.position.y << "\nz: " << player.position.z << endl;
-		debugstream << "dx: " << player.vel.x << "\ndy: " << player.vel.y << "\ndz: " << player.vel.z << endl;
-		debugstream << "consts: ";
-		for (bool b : player.consts) {
-            debugstream << b << ' ';
-        }
-        debugstream << endl;
-		world->glvecs.status(debugstream);
 		if ( render_flag) {
 			//cout << "rendering!!!!" << endl;
 			render_terrain();
@@ -271,26 +304,25 @@ int main( void )
 			render_flag = false;
 		}
 		
-		////////////////////////// error handling:
-		debugstream << "-----opengl errors-----" << endl;
-		GLenum err;
-		while((err = glGetError()) != GL_NO_ERROR) {
-			debugstream << "err: " << std::hex << err << std::dec << endl;
-		}
+		
 		// Measure speed
 		lastFrameTime = currentTime;
 		currentTime = glfwGetTime();
 		double ms = (currentTime-lastFrameTime)*1000;
-		debugstream << "-----time-----" << endl;
-		debugstream << "ms: " << ms << endl;
-		debugstream << "ms(goal):" << min_ms_per_frame << endl;
+		if (debug_visible) {
+			debugstream << "-----time-----" << endl;
+			debugstream << "ms: " << ms << endl;
+			debugstream << "ms(goal):" << min_ms_per_frame << endl;
+			debugstream << "reaching max fps: " << reaching_max_fps << " (" << slow_frame << ")" << endl;
+		}
+		
 		if (ms > min_ms_per_frame) {
 			reaching_max_fps = false;
 		}
 		if (ms > slow_frame) {
 			slow_frame = ms;
 		}
-		debugstream << "reaching max fps: " << reaching_max_fps << " (" << slow_frame << ")" << endl;
+		
 		nbFrames++;
 		if ( currentTime - lastTime >= 1.0 ){ // If last prinf() was more than 1 sec ago
 		    // printf and reset timer
@@ -492,7 +524,8 @@ int main( void )
 			while (ifile >> name) {
 				worlds.push_back(name);
 			}
-			string level = menu(window, vertexbuffer, uvbuffer, matbuffer, uiVertexArrayID, uiTextureID, ui_textures, num_uis, uiProgram, "Select World:", worlds );
+			string level = "";
+			//string level = menu(window, vertexbuffer, uvbuffer, matbuffer, uiVertexArrayID, uiTextureID, ui_textures, num_uis, uiProgram, "Select World:", worlds );
 			if (level == "") {
 				break;
 			}

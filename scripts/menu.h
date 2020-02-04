@@ -64,6 +64,50 @@ void make_ui_buffer(GLuint vertexbuffer, GLuint uvbuffer, GLuint matbuffer, int 
 	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &vecs.mats.front(), GL_STATIC_DRAW);
 }
 
+class Menu { public:
+    virtual void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) = 0;
+};
+
+class Select : public Menu { public:
+    string header;
+    vector<string> options;
+    string chosen;
+    function<void(string)> after;
+    
+    Select(string head, vector<string> & opts, function<void(string)> after_func): header(head), after(after_func) {
+        options.swap(opts);
+        chosen = "";
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+    
+    void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
+        int i = 0;
+        draw_image(uivecs, "popup.bmp", -0.75f, 0.75f, 1.5f, 1.5f);
+        draw_image(uivecs, "0popup7.bmp", -0.5f, 0, 1, 0.1f*aspect_ratio);
+        draw_text(uivecs, header, -0.75, 0.75f);
+        for (string name : options) {
+            draw_text(uivecs, name, -0.5f, 0.5f - i*0.1f);
+            i++;
+        }
+        
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+            cout << "mouse" << endl;
+			double xpos, ypos;
+			glfwGetCursorPos(window, &xpos, &ypos);
+            int index = (int)((double)ypos/screen_y*20) - 4;
+            if (index >= 0 and index < worlds.size()) {
+                chosen = options[index];
+                cout << chosen << endl;
+            }
+		}
+        
+        if (chosen != "") {
+            after(chosen);
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+    }
+};
+/*
 string menu( GLFWwindow* window, GLuint vertexbuffer, GLuint uvbuffer, GLuint matbuffer, GLuint uiVertexArrayID, GLuint uiTextureID, GLuint ui_textures[], int num_uis, GLuint uiProgram, string header, vector<string> & options) {
     bool inmenu = true;
     int num_tris;
@@ -141,24 +185,15 @@ string menu( GLFWwindow* window, GLuint vertexbuffer, GLuint uvbuffer, GLuint ma
 		glEnable(GL_DEPTH_TEST);
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
-		//*/
+		//
 		// Swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();
         
         inmenu = glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS and glfwWindowShouldClose(window) == 0;
         
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-			double xpos, ypos;
-			glfwGetCursorPos(window, &xpos, &ypos);
-            int index = (int)((double)ypos/screen_y*20) - 4;
-            if (index >= 0 and index < worlds.size()) {
-                chosen = options[index];
-                cout << chosen << endl;
-                inmenu = false;
-            }
-		}
+        
     }
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     return chosen;
-}
+}*/

@@ -14,10 +14,14 @@ uniform sampler2D myTextureSampler[num_blocks];
 
 void main(){
 	// Output color = color of the texture at the specified UV
+	
 	for( int i = 0; i < num_blocks; i ++) {
 		if (material == i) {
 			color = texture( myTextureSampler[i], UV ).bgr * lightLevel;
 			break;
 		}
+	}
+	if (lightLevel == 0) {
+		color = vec3(1,0,0);
 	}
 }

@@ -85,7 +85,7 @@ double scaled_perlin(double x, double y, double height, double width) {
 }
 
 double get_height(int x, int y) {
-    return (scaled_perlin(x,y,16,20) + scaled_perlin(x,y,8,10))*scaled_perlin(x,y,2,40) + scaled_perlin(x,y,4,5) + scaled_perlin(x,y,2,2);
+    return (scaled_perlin(x,y,16,20) + scaled_perlin(x,y,8,10))*scaled_perlin(x,y,2,40) + scaled_perlin(x,y,4,5);
 }
 
 char generative_function( int x, int y, int z ) {

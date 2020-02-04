@@ -6,6 +6,7 @@
 #include <cmath>
 #include <fstream>
 #include <sstream>
+#include <thread>
 #include "win.h"
 #include "rendervec.h"
 #include "blockdata.h"
@@ -14,7 +15,7 @@
 #include <glm/glm.hpp>
 #include <map>
 using namespace glm;
-
+using std::thread;
 #include "generative.h"
 
 #define csize 2
@@ -95,7 +96,7 @@ class Block { public:
 class Pixel: public Block { public:
     char value;
     pair<int,int> render_index;
-    float lightlevel = -1;
+    float lightlevel = 1;
     
     Pixel(int x, int y, int z, int nscale, Chunk* nparent):
         Block(x, y, z, nscale, nparent), render_index(-1,0) {}
@@ -232,16 +233,24 @@ class Chunk: public Block { public:
                 for (int z = z_start; z < z_end; z ++) {
                     float level = blocks[x][y][z]->get_lightlevel(dx, dy, dz);
                     if (level == -1) {
+                        exit(1);
                         return -1;
                     }
-                    if ((blocks[x][y][z]->continues() or blocks[x][y][z]->get() == 0)) {
+                    if (blocks[x][y][z]->is_air(dx,dy,dz)) {
+                        if (level != 1) {
+                        cout << level << ' ' << x << ' ' << y << ' ' << z << endl;
+                    }
                         lightlevel += level;
                         num ++;
                     }
                 }
             }
         }
-        return  lightlevel/num;
+        if (num == 0) {
+            return 0;
+        } else {
+            return  lightlevel/num;
+        }
     }
     
     void render(GLVecs* vecs, int gx, int gy, int gz) {
@@ -412,8 +421,8 @@ class World {
             iter_gen_func = [&] (int x, int y, int z, Pixel* p) {
                 iter_gen(x, y, z, p);
             };
-            for (int x = 0; x < 1; x ++) {
-                for (int y = 0; y < 1; y ++) {
+            for (int x = -1; x < 2; x ++) {
+                for (int y = -1; y < 2; y ++) {
                     load_chunk(pair<int,int>(x,y));
                 }
             }
@@ -470,17 +479,17 @@ class World {
         
         void render() {
             for (pair<pair<int,int>, Block*> kvpair : chunks) {
-                double before = clock();
+                //double before = clock();
                 //chunks[kvpair.first]->all([](Pixel* pix) {
                 //    pix->lightlevel = -1;
                 //});
-                double during = clock();
-                chunks[kvpair.first]->calculate_light_level();
-                double after = clock();
+                //double during = clock();
+                //chunks[kvpair.first]->calculate_light_level();
+                //double after = clock();
                 //chunks[kvpair.first]->calculate_light_level();
                 chunks[kvpair.first]->render(&glvecs, 0, 0, 0);
                 //render_chunk_vectors(kvpair.first);
-                cout << during - before << ' ' << after - during << ' ' << clock()-after << endl;
+                //cout << during - before << ' ' << after - during << ' ' << clock()-after << endl;
             }
         }
         
@@ -607,6 +616,7 @@ class World {
                 chunks[pos] = parse_file(&ifile, pos.first, 0, pos.second, chunksize, nullptr);
             } else {
                 cout << "generating '" << path.str() << "'\n";
+                
                 generate(pos);
             }
             //render_chunk_vectors(pos);
@@ -745,7 +755,7 @@ void Pixel::render_update() {
     //cout << gx << ' ' << gy << ' ' << gz << endl;
     //cout << render_index << endl;
     //cout << "render_update() " << render_index.first << ' ' << render_index.second << endl;
-    lightlevel = -1;
+    //lightlevel = -1;
     if (render_index.first > -1) {
         world->glvecs.del(render_index);
         render_index = pair<int,int>(-1,0);
@@ -890,12 +900,12 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
     char mat = blocks->blocks[value]->texture;
     int minscale = blocks->blocks[value]->minscale;
     GLfloat new_uvs[] = {
-        0.0f, 0.0f,
-        1.0f * scale/minscale, 0.0f,
-        1.0f * scale/minscale, 1.0f * scale/minscale,
-        1.0f * scale/minscale, 1.0f * scale/minscale,
         0.0f, 1.0f * scale/minscale,
-        0.0f, 0.0f
+        1.0f * scale/minscale, 1.0f * scale/minscale,
+        1.0f * scale/minscale, 0.0f,
+        1.0f * scale/minscale, 0.0f,
+        0.0f, 0.0f,
+        0.0f, 1.0f * scale/minscale
     };
     RenderVecs vecs;
     //cout << 85 << endl;
@@ -913,12 +923,12 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
     //
     if (block == nullptr or block->is_air(0, 0, 1)) {
         GLfloat face[] = {
+            x + scale, y, z,
             x, y, z,
             x, y + scale, z,
+            x, y + scale, z,
             x + scale, y + scale, z,
-            x + scale, y + scale, z,
-            x + scale, y, z,
-            x, y, z
+            x + scale, y, z
         };
         vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(0,0,1) : 1 ), mat);//0.4f
     }
@@ -953,12 +963,12 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
     block = world->get_global(gx, gy, gz+scale, scale);
     if (block == nullptr or block->is_air(0, 0, -1)) {
         GLfloat face[] = {
-            x + scale, y + scale, z + scale,
-            x, y + scale, z + scale,
-            x, y, z + scale,
             x, y, z + scale,
             x + scale, y, z + scale,
-            x + scale, y + scale, z + scale
+            x + scale, y + scale, z + scale,
+            x + scale, y + scale, z + scale,
+            x, y + scale, z + scale,
+            x, y, z + scale
         };
         vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(0,0,-1) : 1 ), mat);
     }
@@ -979,12 +989,12 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
     block = world->get_global(gx+scale, gy, gz, scale);
     if (block == nullptr or block->is_air(-1, 0, 0)) {
         GLfloat face[] = {
-            x + scale, y + scale, z + scale,
             x + scale, y, z + scale,
             x + scale, y, z,
-            x + scale, y, z,
             x + scale, y + scale, z,
-            x + scale, y + scale, z + scale
+            x + scale, y + scale, z,
+            x + scale, y + scale, z + scale,
+            x + scale, y, z + scale
         };
         vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(-1,0,0) : 1 ), mat); //0.4f
     }

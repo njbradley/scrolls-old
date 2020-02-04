@@ -14,6 +14,7 @@ using std::function;
 
 class ItemContainer {
     public:
+        
         vector<pair<Item*,int> > items;
         int size;
         
