@@ -97,6 +97,7 @@ class Pixel: public Block { public:
     char value;
     pair<int,int> render_index;
     float lightlevel = 1;
+    //ItemContainer* container;
     
     Pixel(int x, int y, int z, int nscale, Chunk* nparent):
         Block(x, y, z, nscale, nparent), render_index(-1,0) {}
@@ -998,11 +999,8 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
         };
         vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(-1,0,0) : 1 ), mat); //0.4f
     }
-    if (render_index.second*6 == vecs.num_verts and render_index.second != 0) {
-        allvecs->edit(render_index, &vecs);
-    } else {
-        render_index = allvecs->add(&vecs);
-    }
+    render_index = allvecs->add(&vecs);
+    
     //cout << render_index << endl;
     //cout << "done rendering" << endl;
     //cout << *num_verts << endl;

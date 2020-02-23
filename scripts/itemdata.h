@@ -1,3 +1,6 @@
+#ifndef ITEMDATA
+#define ITEMDATA
+
 #include <iostream>
 using std::cout;
 using std::endl;
@@ -6,6 +9,7 @@ using std::string;
 using std::ifstream;
 using std::ofstream;
 #include <sstream>
+#include "blocks.h"
 using std::stringstream;
 #include "win.h"
 
@@ -74,9 +78,10 @@ class Item {
         }
         
         
-        void ondig(World* world, int x, int y, int z) {
+        char ondig(World* world, int x, int y, int z) {
             char type = world->get(x,y,z);
             world->set(0,x,y,z);
+            return type;
             //double random = (rand()%1000/1000.0);
             //double prob = blocks->blocks[type]->hardness[tool];// - ((damage-1)-time)*0.2;
             //cout << prob << ' ' << random << endl;
@@ -145,4 +150,4 @@ class ItemStorage { public:
 
 ItemStorage* items;
     
-    
+#endif

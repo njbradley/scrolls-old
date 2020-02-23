@@ -68,6 +68,83 @@ class Menu { public:
     virtual void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) = 0;
 };
 
+class Inventory: public Menu { public:
+    string header;
+    pair<Item*,int> in_hand;
+    function<void()> after;
+    ItemContainer* other;
+    int button;
+    double xpos, ypos;
+    
+    Inventory(string head, ItemContainer* start_other, function<void()> after_func): header(head), after(after_func), other(start_other), in_hand(nullptr,0) {
+      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+    
+    void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
+      /////rendering
+      
+      glfwGetCursorPos(window, &xpos, &ypos);
+      xpos = xpos/screen_x*2-1;
+      ypos = 1-ypos/screen_y*2;
+      
+      player->inven.render(uivecs, -0.5f, -1);
+      player->backpack.render(uivecs, -0.5f, -0.5f);
+      if (in_hand.first != nullptr) {
+        draw_image_uv(uivecs, "items.bmp", float(xpos)-0.05f, float(ypos)-0.05f, 0.1f, 0.1f*aspect_ratio, in_hand.first->texture/64.0f, (in_hand.first->texture+1)/64.0f);
+        draw_text(uivecs, std::to_string(in_hand.second), float(xpos)-0.03, float(ypos)-0.03f);
+      }
+      
+      /////input precesseing
+      
+      
+      
+      int last_button = button;
+      button = 0;
+      if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+        button = 1;
+      } else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+        button = 2;
+      }
+      if (button != 0 and last_button == 0) {
+        ItemContainer* container = nullptr;
+        int index = -1;
+        pair<ItemContainer*,int> location(nullptr,-1);
+        if (ypos < -1+0.1f*aspect_ratio and ypos > -1) {
+          container = &player->inven;
+        } else if (ypos < -0.5f+0.1f*aspect_ratio and ypos > -0.5f) {
+          container = &player->backpack;
+        }
+        if (xpos < 0.5f and xpos > -0.5f) {
+          index = int(xpos*10+5);
+        }
+        if (container != nullptr and index != -1) {
+          if (button == 1) {
+            if (in_hand.first != container->items[index].first) {
+              pair<Item*, int> tmp = in_hand;
+              in_hand = container->items[index];
+              container->items[index] = tmp;
+            } else {
+              container->items[index].second += in_hand.second;
+              in_hand = pair<Item*,int>(nullptr, 0);
+            }
+          } else if (button == 2) {
+            if (in_hand.first == nullptr) {
+              in_hand = container->items[index];
+              int total = in_hand.second;
+              in_hand.second = total/2;
+              container->items[index].second = total/2 + total%2;
+            }
+          }
+        }
+      }
+      
+      if (glfwGetKey(window, GLFW_KEY_R ) == GLFW_PRESS) {
+        after();
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+      }
+    }
+};
+
 class Select : public Menu { public:
     string header;
     vector<string> options;
@@ -82,24 +159,20 @@ class Select : public Menu { public:
     
     void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
         int i = 0;
-        draw_image(uivecs, "popup.bmp", -0.75f, 0.75f, 1.5f, 1.5f);
-        draw_image(uivecs, "0popup7.bmp", -0.5f, 0, 1, 0.1f*aspect_ratio);
-        draw_text(uivecs, header, -0.75, 0.75f);
+        draw_text(uivecs, header, -0.25, 0.75f);
         for (string name : options) {
-            draw_text(uivecs, name, -0.5f, 0.5f - i*0.1f);
+            draw_text(uivecs, name, -0.2f, 0.5f - i*0.1f);
             i++;
         }
         
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-            cout << "mouse" << endl;
-			double xpos, ypos;
-			glfwGetCursorPos(window, &xpos, &ypos);
+			      double xpos, ypos;
+			      glfwGetCursorPos(window, &xpos, &ypos);
             int index = (int)((double)ypos/screen_y*20) - 4;
-            if (index >= 0 and index < worlds.size()) {
+            if (index >= 0 and index < options.size()) {
                 chosen = options[index];
-                cout << chosen << endl;
             }
-		}
+		    }
         
         if (chosen != "") {
             after(chosen);

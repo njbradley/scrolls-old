@@ -1,3 +1,5 @@
+#ifndef ITEMS
+#define ITEMS
 #include <iostream>
 using std::cout;
 using std::endl;
@@ -11,7 +13,6 @@ using std::function;
 
 
 
-
 class ItemContainer {
     public:
         
@@ -19,17 +20,26 @@ class ItemContainer {
         int size;
         
         ItemContainer(int newsize): size(newsize) {
-            
+            for (int i = 0; i < newsize; i ++) {
+                items.push_back(pair<Item*,int>(nullptr, 0));
+            }
         }
         
-        void add(Item* item, int num) {
+        bool add(Item* item, int num) {
             for (int i = 0; i < items.size(); i ++) {
                 if (item == items[i].first) {
                     items[i].second += num;
-                    return;
+                    return true;
                 }
             }
-            items.push_back(pair<Item*,int>(item,num));
+            for (int i = 0; i < items.size(); i ++) {
+                if (items[i].first == nullptr) {
+                    items[i] = pair<Item*, int>(item, num);
+                    return true;
+                }
+            }
+            return false;
+            //items.push_back(pair<Item*,int>(item,num));
         }
         
         Item* get(int index) {
@@ -39,18 +49,27 @@ class ItemContainer {
             return nullptr;
         }
         
-        Item* take(int index) {
-            items[index].second --;
-            if (items[index].second <= 0) {
-                
+        Item* use(int index) {
+            if (index < items.size()) {
+                Item* ret = items[index].first;
+                items[index].second--;
+                if (items[index].second <= 0) {
+                  items[index] = pair<Item*,int>(nullptr,0);
+                }
+                return ret;
             }
+            return nullptr;
         }
         
-        void render(RenderVecs* vecs) {
-			draw_image(vecs, "inven_select.bmp", -0.5f, -1, 1, 0.1f*aspect_ratio);
+        void render(RenderVecs* vecs, float x, float y) {
+            draw_image(vecs, "inven_select.bmp", x, y, 1, 0.1f*aspect_ratio);
             for (int i = 0; i < items.size(); i ++) {
-                draw_image_uv(vecs, "items.bmp", -0.5f + i*0.1f, -0.98f, 0.1f, 0.1f*aspect_ratio, items[i].first->texture/64.0f, (items[i].first->texture+1)/64.0f);
-                draw_text(vecs, std::to_string(items[i].second), -0.48f + i*0.1f, -0.98f);
+                if (items[i].first != nullptr) {
+                    draw_image_uv(vecs, "items.bmp", x + i*0.1f, y+0.02f, 0.1f, 0.1f*aspect_ratio, items[i].first->texture/64.0f, (items[i].first->texture+1)/64.0f);
+                    draw_text(vecs, std::to_string(items[i].second), x+0.02 + i*0.1f, y+0.02f);
+                }
             }
         }
 };
+
+#endif

@@ -32,7 +32,9 @@ int last_num_verts = 0;
 int last_num_ui_verts = 0;
 
 const int max_fps = 200;
-const double min_ms_per_frame = 1000.0/max_fps; 
+const double min_ms_per_frame = 1000.0/max_fps;
+
+bool debug_visible = true;
 
 
 Menu* menu;
@@ -86,13 +88,13 @@ int main( void )
 		getchar();
 		return -1;
 	}
-
+	
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
+	
 	// Open a window and create its OpenGL context
 	window = glfwCreateWindow( 1024, 768, "Scrolls - An Adventure Game", fullscreen ? glfwGetPrimaryMonitor() : nullptr, nullptr);
 	if( window == NULL ){
@@ -101,8 +103,8 @@ int main( void )
 		glfwTerminate();
 		return -1;
 	}
-    glfwMakeContextCurrent(window);
-
+  glfwMakeContextCurrent(window);
+		
 	// Initialize GLEW
 	glewExperimental = true; // Needed for core profile
 	if (glewInit() != GLEW_OK) {
@@ -111,25 +113,25 @@ int main( void )
 		glfwTerminate();
 		return -1;
 	}
-
+	
 	// Ensure we can capture the escape key being pressed below
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 	glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
-    // Hide the mouse and enable unlimited mouvement
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    
-    // Set the mouse at the center of the screen
-    glfwPollEvents();
-    glfwSetCursorPos(window, 1024/2, 768/2);
+  // Hide the mouse and enable unlimited mouvement
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	
+  // Set the mouse at the center of the screen
+  glfwPollEvents();
+  glfwSetCursorPos(window, 1024/2, 768/2);
 
 	// Dark blue background
 	glClearColor(0.0f, 0.0f, 0.3f, 0.0f);
-
+	
 	// Enable depth test
 	glEnable(GL_DEPTH_TEST);
 	// Accept fragment if it closer to the camera than the former one
-	glDepthFunc(GL_LESS); 
-
+	glDepthFunc(GL_LESS);
+	
 	// Cull triangles which normal is not towards the camera
 	glEnable(GL_CULL_FACE);
 	
@@ -143,7 +145,7 @@ int main( void )
 	// Create and compile our GLSL program from the shaders
 	GLuint programID = LoadShaders( "resources/shaders/block.vs", "resources/shaders/block.fs" );
 	GLuint uiProgram = LoadShaders( "resources/shaders/ui.vs", "resources/shaders/ui.fs" );
-
+	
 	// Get a handle for our "MVP" uniform
 	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
 	
@@ -228,21 +230,6 @@ int main( void )
 	//	return 0;
 	//}
 	
-	worlds.clear();
-	ifstream ifile("saves/saves.txt");
-	string name;
-	while (ifile >> name) {
-		worlds.push_back(name);
-	}
-	
-	bool debug_visible = false;
-	
-	menu = new Select("select your fate:", worlds, [&] (string result) {
-		cout << "RESULT: " << result << endl;
-		delete menu;
-		menu = nullptr;
-		debug_visible = true;
-	});
 	
 	world = new World("new-world");
 	world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
@@ -264,7 +251,7 @@ int main( void )
 	
 	
 	//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, &num_tris);
-	do{
+	do {
 		
 		
 		
@@ -351,18 +338,18 @@ int main( void )
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		
 		glBindVertexArray(VertexArrayID);
-	
-			
+		
+		
 		// Use our shader
 		glUseProgram(programID);
-
+		
 		// Compute the MVP matrix from keyboard and mouse input
 		glm::mat4 ProjectionMatrix = player.getProjectionMatrix();
 		glm::mat4 ViewMatrix = player.getViewMatrix();
 		glm::mat4 ModelMatrix = glm::mat4(1.0);
 		glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
-
-		// Send our transformation to the currently bound shader, 
+		
+		// Send our transformation to the currently bound shader,
 		// in the "MVP" uniform
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 		
@@ -391,7 +378,7 @@ int main( void )
 			0,                  // stride
 			(void*)0            // array buffer offset
 		);
-
+		
 		// 2nd attribute buffer : UVs
 		glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
@@ -428,7 +415,7 @@ int main( void )
 		
 		// Draw the triangle !
 		glDrawArrays(GL_TRIANGLES, 0, num_tris*3); // 12*3 indices starting at 0 -> 12 triangles
-
+		
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
 		glDisableVertexAttribArray(2);
@@ -471,7 +458,7 @@ int main( void )
 			0,                  // stride
 			(void*)0            // array buffer offset
 		);
-
+		
 		// 2nd attribute buffer : UVs
 		glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, uv_ui_buffer);
@@ -497,7 +484,7 @@ int main( void )
 		
 		// Draw the triangle !
 		glDrawArrays(GL_TRIANGLES, 0, num_ui_tris*3); // 12*3 indices starting at 0 -> 12 triangles
-
+		
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
 		glDisableVertexAttribArray(2);
@@ -513,10 +500,7 @@ int main( void )
 		glfwPollEvents();
 		
 		if (glfwGetKey(window, GLFW_KEY_M ) == GLFW_PRESS) {
-			world->close_world();
-			delete world;
-			player.position = vec3(10,52,10);
-			player.health = 10;
+			
 			
 			worlds.clear();
 			ifstream ifile("saves/saves.txt");
@@ -524,20 +508,35 @@ int main( void )
 			while (ifile >> name) {
 				worlds.push_back(name);
 			}
-			string level = "";
-			//string level = menu(window, vertexbuffer, uvbuffer, matbuffer, uiVertexArrayID, uiTextureID, ui_textures, num_uis, uiProgram, "Select World:", worlds );
-			if (level == "") {
-				break;
-			}
-			world = new World(level);
-			world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
-			render_flag = true;
+			
+			debug_visible = false;
+			
+			menu = new Select("select your fate:", worlds, [&] (string result) {
+				world->close_world();
+				delete world;
+				player.position = vec3(10,52,10);
+				player.health = 10;
+				world = new World(result);
+				world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
+				render_flag = true;
+				delete menu;
+				menu = nullptr;
+				//debug_visible = true;
+			});
+			
+			
+		} else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+			menu = new Inventory("hi", nullptr, [&] () {
+				cout << "done! " << endl;
+				delete menu;
+				menu = nullptr;
+			});
 		}
-
+		
 	} // Check if the ESC key was pressed or the window was closed
 	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
 		   glfwWindowShouldClose(window) == 0 );
-
+			 
 	// Cleanup VBO and shader
 	glDeleteBuffers(1, &vertexbuffer);
 	glDeleteBuffers(1, &uvbuffer);
@@ -552,7 +551,4 @@ int main( void )
 	glfwTerminate();
 	
 	
-	
-	return 0;
 }
-

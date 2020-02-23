@@ -15,7 +15,7 @@ using namespace glm;
 
 /*
 // Initial position : on +Z
-glm::vec3 position = glm::vec3( 25, 45, 5 ); 
+glm::vec3 position = glm::vec3( 25, 45, 5 );
 // Initial horizontal angle : toward -Z
 float horizontalAngle = 3.14f;
 // Initial vertical angle : none
@@ -57,13 +57,14 @@ class Player: public Entity {
 	vec3 pointing;
 	World* world;
 	int selitem;
-	ItemContainer inven;
 	
 	public:
+		ItemContainer inven;
+		ItemContainer backpack;
 		bool autojump = false;
 		
 		Player(vec3 pos, World* newworld):
-			Entity(pos, vec3(-0.8,-2.6,-0.8), vec3(0.8,1,0.8)), world(newworld), inven(10) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
+			Entity(pos, vec3(-0.8,-2.6,-0.8), vec3(0.8,1,0.8)), world(newworld), inven(10), backpack(10) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
 			glfwSetMouseButtonCallback(window, mouse_button_call);
 			glfwSetScrollCallback(window, scroll_callback);
 			//char arr[] = {1,0,1,0,1,0,1,0}
@@ -78,7 +79,7 @@ class Player: public Entity {
 			inven.add( items->items["stick"], 10 );
 			inven.add( items->items["iron-axe"], 10 );
 			inven.add( items->items["chips"], 10 );
-			inven.add( items->items["grass"], 10 );
+			inven.add( items->items["chest"], 10 );
 			inven.add( items->items["bricks"], 10 );
 			inven.add( items->items["stone"], 10 );
 			inven.add( items->items["iron-pickaxe"], 10 );
@@ -86,7 +87,7 @@ class Player: public Entity {
 			inven.add( items->items["stone"], 10 );
 			inven.add( items->items["lamp"], 10 );
 			
-			
+			backpack.add( items->items["stone"], 15 );
 			
 			
 			
@@ -125,7 +126,7 @@ class Player: public Entity {
 			int dz = (int)z - (z<0) - oz;
 			//cout << dx << ' ' << dy << ' ' << dz << endl;
 			//world->set(item, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
-			Item* item = inven.get(selitem);
+			Item* item = inven.use(selitem);
 			if (item != nullptr) {
 				CharArray* arr = item->onplace;
 				if (arr != nullptr) {
@@ -150,7 +151,13 @@ class Player: public Entity {
 			double time_needed = 1.1 - blocks->blocks[target->get()]->hardness[item->tool];
 			if (item != nullptr and timeout > time_needed) {
 				cout << timeout << ' ' << time_needed << endl;
-				item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+				char newitem = item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+				string item_name = blocks->blocks[newitem]->item;
+				if (item_name != "null") {
+					if (!inven.add(items->items[item_name], 1)) {
+						backpack.add(items->items[item_name], 1);
+					}
+				}
 				timeout = 0;
 			}
 			//world->mark_render_update(pair<int,int>((int)position.x/world->chunksize - (position.x<0), (int)position.z/world->chunksize - (position.z<0)));
@@ -201,19 +208,19 @@ class Player: public Entity {
 			
 			// Direction : Spherical coordinates to Cartesian coordinates conversion
 			glm::vec3 direction(
-				cos(angle.y) * sin(angle.x), 
+				cos(angle.y) * sin(angle.x),
 				sin(angle.y),
 				cos(angle.y) * cos(angle.x)
 			);
 			pointing = direction;
 			// Right vector
 			glm::vec3 right = glm::vec3(
-				sin(angle.x - 3.14f/2.0f), 
+				sin(angle.x - 3.14f/2.0f),
 				0,
 				cos(angle.x - 3.14f/2.0f)
 			);
 			vec3 forward = -glm::vec3(
-				-cos(angle.x - 3.14f/2.0f), 
+				-cos(angle.x - 3.14f/2.0f),
 				0,
 				sin(angle.x - 3.14f/2.0f)
 			);
@@ -291,7 +298,7 @@ class Player: public Entity {
 			float FoV = initialFoV;// - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a callback for this. It's a bit too complicated for this beginner's tutorial, so it's disabled instead.
 			
 			
-			// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+			// Projection matrix : 45ï¿½ Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
 			ProjectionMatrix = glm::perspective(glm::radians(FoV), 4.0f / 3.0f, 0.1f, 1000.0f);
 			// Camera matrix
 			ViewMatrix       = glm::lookAt(
@@ -314,7 +321,7 @@ class Player: public Entity {
 			for (; i < 10; i ++) {
 				draw_image(uivecs, "heart_empty.bmp", i*scale, 1-scale, scale, scale);
 			}
-			inven.render(uivecs);
+			inven.render(uivecs, -0.5f, -1.0f);
 			draw_text(uivecs, "\\/", -0.45f+selitem*0.1f, -0.85f);
 			Item* sel = inven.get(selitem);
 			if (sel != nullptr) {
@@ -324,8 +331,3 @@ class Player: public Entity {
 };
 
 Player* player;
-
-
-
-
-
