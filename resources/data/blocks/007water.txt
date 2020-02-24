@@ -1,3 +1,4 @@
 : axe pickaxe shovel sword null
 : 0   0       0      0     0
 : water 6 1 null 0 null
+0

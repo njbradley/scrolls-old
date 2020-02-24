@@ -61,7 +61,6 @@ class Player: public Entity {
 		void render_ui(RenderVecs * uivecs);
 };
 
-Player* player;
 
 
 #endif

@@ -1,3 +1,4 @@
 : axe pickaxe shovel sword null
 : 0.2 0.2     1.0    0.2   0.2
 : sand 4 1 null 0 null
+0

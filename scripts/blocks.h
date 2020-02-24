@@ -123,8 +123,13 @@ Block* Block::raycast(double* x, double* y, double* z, double dx, double dy, dou
 
 ///////////////////////////////// CLASS PIXEL /////////////////////////////////////
 
-Pixel::Pixel(int x, int y, int z, int nscale, Chunk* nparent):
-    Block(x, y, z, nscale, nparent), render_index(-1,0) {}
+Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent):
+  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val) {
+    if (value != 0 and blocks->blocks[value]->extras != nullptr) {
+      cout << "helsdfjl" << endl;
+      extras = new BlockExtras(*blocks->blocks[value]->extras);
+    }
+}
 
 bool Pixel::continues() {
     return false;
@@ -199,6 +204,10 @@ void Pixel::render_update() {
 
 void Pixel::del() {
     world->glvecs.del(render_index);
+    if (extras != nullptr) {
+      delete extras;
+      cout << "dleleted extras" << endl;
+    }
 }
 
 void Pixel::lighting_update() {
@@ -454,7 +463,7 @@ Chunk* Pixel::subdivide(function<void(int,int,int,Pixel*)> func) {
         for (int y = 0; y < csize; y ++) {
             for (int z = 0; z < csize; z ++) {
                 int gx, gy, gz;
-                Pixel * pix = new Pixel(x, y, z, scale/csize, newchunk);
+                Pixel * pix = new Pixel(x, y, z, value, scale/csize, newchunk);
                 pix->global_position(&gx, &gy, &gz);
                 newchunk->blocks[x][y][z] = pix;
                 func(gx,gy,gz,pix);

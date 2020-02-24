@@ -1,3 +1,4 @@
 : axe pickaxe shovel sword null
 : 1.0 0.2     0.2    0.2   0.05
 : crafting 10 2 crafting 0 crafting
+0

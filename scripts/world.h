@@ -111,7 +111,7 @@ void World::iter_gen(int gx, int gy, int gz, Pixel* pix) {
 }
  
 void World::generate(pair<int,int> pos) {
-    Pixel* pix = new Pixel(pos.first,0,pos.second,chunksize,nullptr);/*
+    Pixel* pix = new Pixel(pos.first,0,pos.second,0,chunksize,nullptr);/*
     tmparr = new char[chunksize*chunksize*chunksize];
     cout << 349 << endl;
     for (int x = 0; x < chunksize; x ++) {
@@ -179,23 +179,23 @@ return;
             minscale = place_block_minscale;
         }
     }
-while (newblock->scale > minscale) {
-char val = newblock->get();
-newblock->subdivide([=] (int x, int y, int z, Pixel* pix) {
-	pix->value = val;
-});
-delete newblock;
-newblock = get_global((int)x, (int)y, (int)z, 1);
-}
+    while (newblock->scale > minscale) {
+      char val = newblock->get();
+      newblock->subdivide([=] (int x, int y, int z, Pixel* pix) {
+      	pix->value = val;
+      });
+      delete newblock;
+      newblock = get_global((int)x, (int)y, (int)z, 1);
+    }
     while (newblock->scale < minscale) {
         Chunk* parent = newblock->parent;
         parent->del();
-        Pixel* newpix = new Pixel(parent->px, parent->py, parent->pz, parent->scale, parent->parent);
+        Pixel* newpix = new Pixel(parent->px, parent->py, parent->pz, 0, parent->scale, parent->parent);
         parent->parent->blocks[parent->px][parent->py][parent->pz] = newpix;
         delete parent;
-newblock = get_global((int)x, (int)y, (int)z, 1);
+        newblock = get_global((int)x, (int)y, (int)z, 1);
     }
-newblock->set(val);
+    newblock->set(val);
 }
 
 char World::get(int x, int y, int z) {
@@ -247,8 +247,7 @@ Block* World::parse_file(ifstream* ifile, int px, int py, int pz, int scale, Chu
         }
         return (Block*) chunk;
     } else {
-        Pixel* p = new Pixel(px, py, pz, scale, parent);
-        p->value = c;
+        Pixel* p = new Pixel(px, py, pz, c, scale, parent);
         return (Block*) p;
     }
 }

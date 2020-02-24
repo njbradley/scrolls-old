@@ -58,9 +58,10 @@ class Pixel: public Block { public:
     char value;
     pair<int,int> render_index;
     float lightlevel = 1;
+    BlockExtras* extras = nullptr;
     //ItemContainer* container;
     
-    Pixel(int x, int y, int z, int nscale, Chunk* nparent);
+    Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent);
     bool continues();
     char get();
     void all(function<void(Pixel*)> func);

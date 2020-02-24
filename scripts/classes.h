@@ -23,11 +23,15 @@ class ItemStorage;
 class ItemContainer;
 class RenderVecs;
 class GLVecs;
+class BlockExtras;
+class Menu;
+class InventoryMenu;
+class SelectMenu;
 
 //////////////////////// GLOBAL VARIABLES ////////////////////////
 bool render_flag;
 std::stringstream debugstream;
 GLFWwindow* window;
 World* world;
-
+Menu* menu;
 #endif

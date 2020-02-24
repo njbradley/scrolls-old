@@ -1,3 +1,6 @@
+#ifndef MENU_PREDEF
+#define MENU_PREDEF
+
 // Include standard headers
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,9 +29,11 @@ using namespace glm;
 
 class Menu { public:
     virtual void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) = 0;
+    void start();
+    void end();
 };
 
-class Inventory: public Menu { public:
+class InventoryMenu: public Menu { public:
     string header;
     pair<Item*,int> in_hand;
     function<void()> after;
@@ -36,17 +41,19 @@ class Inventory: public Menu { public:
     int button;
     double xpos, ypos;
     
-    Inventory(string head, ItemContainer* start_other, function<void()> after_func);
+    InventoryMenu(string head, ItemContainer* start_other, function<void()> after_func);
     void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs);
 };
 
-class Select : public Menu { public:
+class SelectMenu : public Menu { public:
     string header;
     vector<string> options;
     string chosen;
     function<void(string)> after;
     
-    Select(string head, vector<string> & opts, function<void(string)> after_func);
+    SelectMenu(string head, vector<string> & opts, function<void(string)> after_func);
     
     void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs);
 };
+
+#endif

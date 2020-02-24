@@ -1,3 +1,4 @@
 : axe pickaxe shovel sword null
 : 1.0 0.2     0.2    0.2   0.05
 : torch 11 1 null 1 lamp
+0

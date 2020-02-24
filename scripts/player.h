@@ -118,14 +118,18 @@ void Player::right_mouse() {
 	int dz = (int)z - (z<0) - oz;
 	//cout << dx << ' ' << dy << ' ' << dz << endl;
 	//world->set(item, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
-	Item* item = inven.use(selitem);
-	if (item != nullptr) {
-		CharArray* arr = item->onplace;
-		if (arr != nullptr) {
-			arr->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
+	Pixel* pix = target->get_pix();
+	if (blocks->blocks[pix->value]->rcaction != "null") {
+		blocks->blocks[pix->value]->do_rcaction(pix);
+	} else {
+		Item* item = inven.use(selitem);
+		if (item != nullptr) {
+			CharArray* arr = item->onplace;
+			if (arr != nullptr) {
+				arr->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
+			}
 		}
 	}
-	//world->mark_render_update(pair<int,int>((int)position.x/world->chunksize - (position.x<0), (int)position.z/world->chunksize - (position.z<0)));
 }
 
 void Player::left_mouse() {
@@ -142,7 +146,6 @@ void Player::left_mouse() {
 	Item* item = inven.get(selitem);
 	double time_needed = 1.1 - blocks->blocks[target->get()]->hardness[item->tool];
 	if (item != nullptr and timeout > time_needed) {
-		cout << timeout << ' ' << time_needed << endl;
 		char newitem = item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
 		string item_name = blocks->blocks[newitem]->item;
 		if (item_name != "null") {

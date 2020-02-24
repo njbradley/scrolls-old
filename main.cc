@@ -41,7 +41,6 @@ const double min_ms_per_frame = 1000.0/max_fps;
 bool debug_visible = true;
 
 
-Menu* menu;
 
 void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLuint uvbuffer, GLuint matbuffer, int * num_tris) {
 	RenderVecs vecs;
@@ -515,7 +514,7 @@ int main( void )
 			
 			debug_visible = false;
 			
-			menu = new Select("select your fate:", worlds, [&] (string result) {
+			menu = new SelectMenu("select your fate:", worlds, [&] (string result) {
 				world->close_world();
 				delete world;
 				player.position = vec3(10,52,10);
@@ -530,7 +529,7 @@ int main( void )
 			
 			
 		} else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-			menu = new Inventory("hi", nullptr, [&] () {
+			menu = new InventoryMenu("hi", nullptr, [&] () {
 				cout << "done! " << endl;
 				delete menu;
 				menu = nullptr;

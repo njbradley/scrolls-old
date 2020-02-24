@@ -1,3 +1,6 @@
+#ifndef MENU
+#define MENU
+
 // Include standard headers
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,13 +33,26 @@ int last_num_ui_verts_menu;
 
 vector<string> worlds;
 
-//////////////////////////////////// Inventory ////////////////////////////////////////
 
-Inventory::Inventory(string head, ItemContainer* start_other, function<void()> after_func): header(head), after(after_func), other(start_other), in_hand(nullptr,0) {
+void Menu::start() {
+  glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_FALSE);
+  glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
-void Inventory::render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
+void Menu::end() {
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetCursorPos(window, screen_x/2, screen_y/2);
+}
+
+
+//////////////////////////////////// InventoryMenu ////////////////////////////////////////
+
+InventoryMenu::InventoryMenu(string head, ItemContainer* start_other, function<void()> after_func): header(head), after(after_func), other(start_other), in_hand(nullptr,0) {
+  start();
+}
+
+void InventoryMenu::render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
   /////rendering
   
   glfwGetCursorPos(window, &xpos, &ypos);
@@ -45,6 +61,9 @@ void Inventory::render(GLFWwindow* window, World* world, Player* player, RenderV
   
   player->inven.render(uivecs, -0.5f, -1);
   player->backpack.render(uivecs, -0.5f, -0.5f);
+  if (other != nullptr) {
+    other->render(uivecs, -0.5f, 0);
+  }
   if (in_hand.first != nullptr) {
     draw_image_uv(uivecs, "items.bmp", float(xpos)-0.05f, float(ypos)-0.05f, 0.1f, 0.1f*aspect_ratio, in_hand.first->texture/64.0f, (in_hand.first->texture+1)/64.0f);
     draw_text(uivecs, std::to_string(in_hand.second), float(xpos)-0.03, float(ypos)-0.03f);
@@ -67,7 +86,10 @@ void Inventory::render(GLFWwindow* window, World* world, Player* player, RenderV
       container = &player->inven;
     } else if (ypos < -0.5f+0.1f*aspect_ratio and ypos > -0.5f) {
       container = &player->backpack;
+    } else if (ypos < 0.1f*aspect_ratio and ypos > 0) {
+      container = other;
     }
+    
     if (xpos < 0.5f and xpos > -0.5f) {
       index = int(xpos*10+5);
     }
@@ -93,21 +115,21 @@ void Inventory::render(GLFWwindow* window, World* world, Player* player, RenderV
   }
   
   if (glfwGetKey(window, GLFW_KEY_R ) == GLFW_PRESS) {
+    end();
     after();
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   }
 }
 
 
 ////////////////////////////////// select /////////////////////////////////////////////
 
-Select::Select(string head, vector<string> & opts, function<void(string)> after_func): header(head), after(after_func) {
+SelectMenu::SelectMenu(string head, vector<string> & opts, function<void(string)> after_func): header(head), after(after_func) {
     options.swap(opts);
     chosen = "";
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    start();
 }
 
-void Select::render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
+void SelectMenu::render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
     int i = 0;
     draw_text(uivecs, header, -0.25, 0.75f);
     for (string name : options) {
@@ -125,7 +147,17 @@ void Select::render(GLFWwindow* window, World* world, Player* player, RenderVecs
     }
     
     if (chosen != "") {
+        end();
         after(chosen);
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
 }
+
+
+
+
+
+
+
+
+
+#endif
