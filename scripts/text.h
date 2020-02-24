@@ -9,7 +9,8 @@
 #include <GLFW/glfw3.h>
 #include <map>
 
-#include "blocks.h"
+#include "blocks-predef.h"
+#include "rendervec.h"
 
 using std::string;
 using std::cout;
@@ -71,4 +72,4 @@ void draw_text(RenderVecs* vecs, string str, float x, float y) {
     draw_text(vecs, str, x, y, 1);
 }
 
-#endif  
+#endif

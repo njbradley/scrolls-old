@@ -19,10 +19,14 @@ using namespace glm;
 
 #include "scripts/shader.h"
 #include "scripts/texture.h"
-#include "scripts/controls.h"
-#include "scripts/terrain.h"
+#include "scripts/player.h"
+#include "scripts/entity.h"
 #include "scripts/win.h"
 #include "scripts/menu.h"
+#include "scripts/world.h"
+#include "scripts/blockdata.h"
+#include "scripts/blocks.h"
+#include "scripts/items.h"
 //#include "scripts/unix.h"
 
 int num_blocks;
@@ -284,7 +288,7 @@ int main( void )
 		
 		if ( render_flag) {
 			//cout << "rendering!!!!" << endl;
-			render_terrain();
+			world->render();
 			world->glvecs.clean();
 			num_tris = world->glvecs.num_verts/3;
 			//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, matbuffer, &num_tris, render_flag);

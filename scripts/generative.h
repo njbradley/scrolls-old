@@ -1,3 +1,6 @@
+#ifndef GENERATIVE
+#define GENERATIVE
+
 #include <iostream>
     using std::cout;
     using std::endl;
@@ -10,7 +13,7 @@ double lerp(double a0, double a1, double w) {
     return (1.0f - w)*a0 + w*a1;
 }
 
-int cash(int x, int y){   
+int cash(int x, int y){
     int h = seed + x*374761393 + y*668265263; //all constants are prime
     h = (h^(h >> 13))*1274126177;
     return h^(h >> 16);
@@ -109,3 +112,4 @@ char generative_function( int x, int y, int z ) {
 }
 
 
+#endif

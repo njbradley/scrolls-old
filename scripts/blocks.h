@@ -9,7 +9,9 @@
 #include <thread>
 #include "win.h"
 #include "rendervec.h"
-#include "blockdata.h"
+#include "blockdata-predef.h"
+#include "blocks-predef.h"
+#include "world-predef.h"
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
@@ -20,638 +22,24 @@ using std::thread;
 
 #define csize 2
 
+
 /*
  *this is the file with classes for storing blocks. the main idea is blocks are stored in power of two containers. Block is the base virtual class,
- *and Pixel and Chunk derive from Block. 
+ *and Pixel and Chunk derive from Block.
  *
  */
 
-const float M_PI = 3.1415f;
+//////////////////////////// class Block /////////////////////////////////////
 
-using namespace std;
+Block::Block(int x, int y, int z, int newscale, Chunk* newparent) :
+    px(x), py(y), pz(z), scale(newscale), parent(newparent) {}
 
-class Block; class Pixel; class Chunk; class World;
-
-
-bool render_flag;
-
-float fastSin( float x ){
-    x = fmod(x + M_PI, M_PI * 2) - M_PI; // restrict x so that -M_PI < x < M_PI
-    const float B = 4.0f/M_PI;
-    const float C = -4.0f/(M_PI*M_PI);
-
-    float y = B * x + C * x * std::abs(x);
-
-    const float P = 0.225f;
-
-    return P * (y * std::abs(y) - y) + y; 
+void Block::world_to_local(int x, int y, int z, int* lx, int* ly, int* lz) {
+    *lx = x-(x/scale*scale);
+    *ly = y-(y/scale*scale);
+    *lz = z-(z/scale*scale);
+    //cout << scale << " -----scale ------" << endl;
 }
-
-class Block { public:
-    
-    int px; // parent coordinates, bool because only need to go up to 1
-    int py;
-    int pz;
-    int scale; //scale of the block, number of units on one side length. 
-    Chunk * parent; //the parent of this block. if this block is the root block, then the parent should be set to nullptr.
-    virtual bool continues() = 0; // whether the block is a chunk or a pixel. a hacky way of telling, but nessicary because pixels can be at different depths
-    virtual Block * get(int, int, int) = 0; //get a block at coords
-    virtual char get() = 0;                 //get the value of the block. these two methods are exclusive for pixel/chunk, but same reaseon as above
-    virtual void set(char) = 0;             
-    virtual Chunk* subdivide(function<void(int,int,int,Pixel*)>) = 0; //same as get,
-    virtual void del() = 0;
-    virtual void calculate_light_level() = 0;
-    virtual Pixel* get_pix()  = 0;
-    virtual float get_lightlevel(int,int,int) = 0;
-    virtual void all(function<void(Pixel*)>) = 0;
-    
-    Block(int x, int y, int z, int newscale, Chunk* newparent) :
-        px(x), py(y), pz(z), scale(newscale), parent(newparent) {}
-    
-    void world_to_local(int x, int y, int z, int* lx, int* ly, int* lz) {
-        *lx = x-(x/scale*scale);
-        *ly = y-(y/scale*scale);
-        *lz = z-(z/scale*scale);
-        //cout << scale << " -----scale ------" << endl;
-    }
-    void global_position(int*, int*, int*);
-    
-    virtual void render(GLVecs*, int, int, int) = 0;
-        
-    virtual bool is_air(int, int, int) = 0;
-    
-    virtual Block * get_global(int,int,int,int) = 0;
-    
-    virtual void render_update() = 0;
-    
-    virtual void save_to_file(ofstream*) = 0;
-    
-    Block* raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time);
-    
-    Block* get_world();
-    
-    void update_chunk();
-}; 
-
-class Pixel: public Block { public:
-    char value;
-    pair<int,int> render_index;
-    float lightlevel = 1;
-    //ItemContainer* container;
-    
-    Pixel(int x, int y, int z, int nscale, Chunk* nparent):
-        Block(x, y, z, nscale, nparent), render_index(-1,0) {}
-    
-    bool continues() {
-        return false;
-    }
-    
-    char get() {
-        //cout << "pixel get px" << px << " py" << py << " pz" << pz << " s" << scale << " value" << value  << endl;
-        return value;
-    }
-    
-    void all(function<void(Pixel*)> func) {
-        func(this);
-    }
-    
-    Pixel* get_pix() {
-        return this;
-    }
-    
-    float get_lightlevel(int dx, int dy, int dz) {
-        return lightlevel;
-    }
-    
-    Block * get(int x, int y, int z) {
-        cout << "error: get(int,int,int) called on pixel" << endl;
-        return nullptr;
-    }
-    
-    void set(char val);
-    
-    void render_update();
-    
-    void del();
-    
-    void calculate_light_level();
-    
-    void lighting_update();
-    
-    bool is_air(int dx, int dy, int dz) {
-        //cout << "pix is air reaturning:" << (value == 0) << endl;
-        return value == 0;
-    }
-    
-    Block* get_global(int x, int y, int z, int scale) {
-        //cout << "get global at pixel retunring self\n\n";
-        return this;
-    }
-    
-    void render(GLVecs*, int, int,int);
-    
-    Chunk* subdivide(function<void(int,int,int,Pixel*)> func);
-    
-    void save_to_file(ofstream* of) {
-        *of << value;
-    }
-};
-
-class Chunk: public Block { public:
-    Block * blocks[csize][csize][csize];
-    
-    Chunk(int x, int y, int z, int nscale, Chunk* nparent):
-        Block(x, y, z, nscale, nparent) {}
-    
-    bool continues() {
-        return true;
-    }
-    
-    Block * get(int x, int y, int z) {
-        //cout << "chunk get px" << px << " py" << py << " pz" << pz << " s" << scale << " x" << x << " y" << y << " z" << z << endl;
-        return blocks[x][y][z];
-    }
-    
-    Pixel* get_pix() {
-        return nullptr;
-    }
-    
-    char get() {
-        cout << "error: get() called on chunk object" << endl;
-    }
-    void set(char c) {
-        cout << "error: set called on chunk object" << endl;
-    }
-    Chunk* subdivide(function<void(int,int,int,Pixel*)> func) {
-        cout << "error: subdividing already subdivided block" << endl;
-        return nullptr;
-    }
-    void calculate_light_level() {
-        for (int x = 0; x < csize; x ++) {
-            for (int y = csize-1; y >= 0; y --) {
-                for (int z = 0; z < csize; z ++) {
-                    blocks[x][y][z]->calculate_light_level();
-                }
-            }
-        }
-    }
-    void all(function<void(Pixel*)> func) {
-        for (int x = 0; x < csize; x ++) {
-            for (int y = csize-1; y >= 0; y --) {
-                for (int z = 0; z < csize; z ++) {
-                    blocks[x][y][z]->all(func);
-                }
-            }
-        }
-    }
-    
-    float get_lightlevel(int dx, int dy, int dz) {
-        int x_start = 0;
-        int x_end = csize;
-        int y_start = 0;
-        int y_end = csize;
-        int z_start = 0;
-        int z_end = csize;
-        if (dx != 0) {
-            x_start = (int)( dx/2.0f + 0.5f );
-            x_end = 1 + x_start;
-        }
-        if (dy != 0) {
-            y_start = (int)( dy/2.0f + 0.5f );
-            y_end = 1 + y_start;
-        }
-        if (dz != 0) {
-            z_start = (int)( dz/2.0f + 0.5f );
-            z_end = 1 + z_start;
-        }
-        
-        float lightlevel = 0;
-        int num = 0;
-        
-        //cout << "for loop:" << endl;
-        for (int x = x_start; x < x_end; x ++) {
-            for (int y = y_start; y < y_end; y ++) {
-                for (int z = z_start; z < z_end; z ++) {
-                    float level = blocks[x][y][z]->get_lightlevel(dx, dy, dz);
-                    if (level == -1) {
-                        exit(1);
-                        return -1;
-                    }
-                    if (blocks[x][y][z]->is_air(dx,dy,dz)) {
-                        if (level != 1) {
-                        cout << level << ' ' << x << ' ' << y << ' ' << z << endl;
-                    }
-                        lightlevel += level;
-                        num ++;
-                    }
-                }
-            }
-        }
-        if (num == 0) {
-            return 0;
-        } else {
-            return  lightlevel/num;
-        }
-    }
-    
-    void render(GLVecs* vecs, int gx, int gy, int gz) {
-        for (int x = 0; x < csize; x ++) {
-            for (int y = 0; y < csize; y ++) {
-                for (int z = 0; z < csize; z ++) {
-                    blocks[x][y][z]->render(vecs, gx + px*scale, gy + py*scale, gz + pz*scale);
-                }
-            }
-        }
-    }
-    
-    void del() {
-        for (int x = 0; x < csize; x ++) {
-            for (int y = 0; y < csize; y ++) {
-                for (int z = 0; z < csize; z ++) {
-                    blocks[x][y][z]->del();
-                    delete blocks[x][y][z];
-                }
-            }
-        }
-    }
-    
-    void render_update() {
-        for (int x = 0; x < csize; x ++) {
-            for (int y = 0; y < csize; y ++) {
-                for (int z = 0; z < csize; z ++) {
-                    blocks[x][y][z]->render_update();
-                }
-            }
-        }
-    }
-    
-    Block* get_global(int x, int y, int z, int nscale) {
-        //cout << "blocks get_global " << x << ' ' << y << ' ' << z << " scale:" << nscale << endl;
-        if (nscale == scale) {
-            //cout << " at scale return this\n\n";
-            return this;
-        } else {
-            if (x < 0 or x >= scale or y < 0 or y >= scale or z < 0 or z >= scale) {
-                //cout << "ret null ---s -- - - -- -" << endl;
-                //return nullptr;
-            }
-            int lx, ly, lz;
-            //cout << 206 << endl;
-            world_to_local(x, y, z, &lx, &ly, &lz);
-            //cout << lx << ' ' << ly << ' ' << lz << endl;
-            if (lx < 0 or lx >= csize*scale or ly < 0 or ly >= csize*scale or lz < 0 or lz >= csize*scale) {
-                //cout << "returning null -------------------------------\n\n";
-                return nullptr;
-            }
-            int nlx = lx/(scale/csize);
-            int nly = ly/(scale/csize);
-            int nlz = lz/(scale/csize);
-            //cout << nlx << ' ' << nly << ' ' << nlz << endl;
-            //cout << "sdfkhaskdfjhaksldfhalkjsdfhalksfh 229 ksjdfl;akjfd;alksdjf;alksdfja;sd" << endl;
-            return get(nlx, nly, nlz)->get_global(lx, ly, lz, nscale);
-        }
-    }
-                
-    
-    bool is_air(int dx, int dy, int dz) {
-        //cout << "is_air(dx" << dx << " dy" << dy << " dz" << dz << ")\n";
-        int gx, gy, gz;
-        global_position(&gx, &gy, &gz);
-        //cout << gx << ' ' << gy << ' ' << gz << endl;
-        bool air = false;
-        int x_start = 0;
-        int x_end = csize;
-        int y_start = 0;
-        int y_end = csize;
-        int z_start = 0;
-        int z_end = csize;
-        if (dx != 0) {
-            x_start = (int)( dx/2.0f + 0.5f );
-            x_end = 1 + x_start;
-        }
-        if (dy != 0) {
-            y_start = (int)( dy/2.0f + 0.5f );
-            y_end = 1 + y_start;
-        }
-        if (dz != 0) {
-            z_start = (int)( dz/2.0f + 0.5f );
-            z_end = 1 + z_start;
-        }
-        //cout << "for loop:" << endl;
-        for (int x = x_start; x < x_end; x ++) {
-            for (int y = y_start; y < y_end; y ++) {
-                for (int z = z_start; z < z_end; z ++) {
-                    //cout << x << ' ' << y << ' ' << z << ' ' << get(x, y, z)->is_air(dx, dy, dz) << endl;
-                    air = air or get(x, y, z)->is_air(dx, dy, dz);
-                }
-            }
-        }
-        //cout << "returning:" << air << endl << endl;
-        return air;
-    }
-    
-    void save_to_file(ofstream* of) {
-        *of << "{";
-        for (int x = 0; x < csize; x ++) {
-            for (int y = 0; y < csize; y ++) {
-                for (int z = 0; z < csize; z ++) {
-                    blocks[x][y][z]->save_to_file(of);
-                }
-            }
-        }
-        *of << "}";
-    }
-};
-
-class World {
-    map<pair<int,int>, Block*> chunks;
-    char* tmparr;
-    public:
-        int seed;
-        string name;
-        int view_dist = 3;
-        float sun = 0.0f;
-        static const int chunksize = 64;
-        function<void(int,int,int,Pixel*)> iter_gen_func;
-        GLVecs glvecs;
-        
-        
-        World(string newname, int newseed): seed(newseed), name(newname) {
-            setup_files();
-            startup();
-        }
-        
-        World(string oldname): name(oldname) {
-            load_data_file();
-            startup();
-        }
-        
-        void load_data_file() {
-            string path = "saves/" + name + "/worlddata.txt";
-            ifstream ifile(path);
-            string buff;
-            getline(ifile, buff);
-            while ( !ifile.eof() ) {
-                getline(ifile,buff,':');
-                if (buff == "seed") {
-                    ifile >> seed;
-                }
-                if (buff == "view_dist") {
-                    ifile >> view_dist;
-                }
-                getline(ifile, buff);
-            }
-        }
-        
-        void save_data_file() {
-            string path = "saves/" + name + "/worlddata.txt";
-            ofstream ofile(path);
-            ofile << "Scrolls data file of world '" + name + "'\n";
-            ofile << "seed:" << seed << endl;
-            ofile << "view_dist:" << view_dist << endl;
-            ofile.close();
-        }
-        
-        void setup_files() {
-            create_dir("saves/" + name);
-            ofstream ofile("saves/saves.txt", ios::app);
-            ofile << ' ' << name;
-        }    
-        
-        void startup() {
-            iter_gen_func = [&] (int x, int y, int z, Pixel* p) {
-                iter_gen(x, y, z, p);
-            };
-            for (int x = -1; x < 2; x ++) {
-                for (int y = -1; y < 2; y ++) {
-                    load_chunk(pair<int,int>(x,y));
-                }
-            }
-        }
-        
-        void render_chunks() {
-            
-        }
-        
-        char gen_func(int x, int y, int z) {
-            return generative_function(x, y, z);
-        }
-        
-        void iter_gen(int gx, int gy, int gz, Pixel* pix) {
-            //gx = gx%chunksize + (gx<0)*chunksize;
-            //gy = gy%chunksize + (gy<0)*chunksize;
-            //gz = gz%chunksize + (gz<0)*chunksize;
-            char value = gen_func(gx,gy,gz);///tmparr[gx*chunksize*chunksize + gy*chunksize + gz];
-            bool cont = true;
-            for (int x = gx; x < gx+pix->scale and cont; x ++) {
-                for (int y = gy; y < gy+pix->scale and cont; y ++) {
-                    for (int z = gz; z < gz+pix->scale and cont; z ++) {
-                        char newval = gen_func(x,y,z);//tmparr[x*chunksize*chunksize + y*chunksize + z];
-                        if (newval != value) {
-                            cont = false;
-                        }
-                        value = newval;
-                    }
-                }
-            }
-            if (cont) {
-                pix->value = value;
-            } else {
-                pix->subdivide(iter_gen_func);
-                delete pix;
-            }
-        }
-         
-        void generate(pair<int,int> pos) {
-            Pixel* pix = new Pixel(pos.first,0,pos.second,chunksize,nullptr);/*
-            tmparr = new char[chunksize*chunksize*chunksize];
-            cout << 349 << endl;
-            for (int x = 0; x < chunksize; x ++) {
-                for (int y = 0; y < chunksize; y ++) {
-                    for (int z = 0; z < chunksize; z ++) {
-                        tmparr[x*chunksize*chunksize + y*chunksize + z] = gen_func(pos.first*chunksize+x, y, pos.second*chunksize+z);
-                    }
-                }
-            }
-            cout << "half" << endl;*/
-            chunks[pos] = pix->subdivide(iter_gen_func);
-            delete pix;
-        }
-        
-        void render() {
-            for (pair<pair<int,int>, Block*> kvpair : chunks) {
-                //double before = clock();
-                //chunks[kvpair.first]->all([](Pixel* pix) {
-                //    pix->lightlevel = -1;
-                //});
-                //double during = clock();
-                //chunks[kvpair.first]->calculate_light_level();
-                //double after = clock();
-                //chunks[kvpair.first]->calculate_light_level();
-                chunks[kvpair.first]->render(&glvecs, 0, 0, 0);
-                //render_chunk_vectors(kvpair.first);
-                //cout << during - before << ' ' << after - during << ' ' << clock()-after << endl;
-            }
-        }
-        
-        Block* get_global(int x, int y, int z, int scale) {
-            //cout << "world::get global(" << x << ' ' << y << ' ' << z << ' ' << scale << endl;
-            int px = x/chunksize;
-            int pz = z/chunksize;
-            if (x < 0 and -x%chunksize != 0) {
-                px --;
-            } if (z < 0 and -z%chunksize != 0) {
-                pz --;
-            }
-            pair<int,int> pos(px, pz);
-            //cout << "pair<" << pos.first << ' ' << pos.second << endl;
-            if (chunks.find(pos) == chunks.end() or y >= chunksize or y < 0) {
-                //cout << "   returning null\n";
-                return nullptr;
-            }
-            //cout << endl;
-            int ox = ((x < 0) ? chunksize : 0) + x%chunksize;
-            int oz = ((z < 0) ? chunksize : 0) + z%chunksize;
-            //cout << ox << ' ' << y << ' ' << oz << endl;
-            return chunks[pos]->get_global(ox, y, oz, scale);
-        }
-        
-        void set(char val, int x, int y, int z) {
-            Block* newblock = get_global(x,y,z, 1);
-            int minscale = 1;
-			if (newblock == nullptr) {
-				return;
-			}
-            if (newblock->get() != 0) {
-                minscale = blocks->blocks[newblock->get()]->minscale;
-            }
-            if (val != 0) {
-                int place_block_minscale = blocks->blocks[val]->minscale;
-                if (place_block_minscale > minscale) {
-                    minscale = place_block_minscale;
-                }
-            }
-			while (newblock->scale > minscale) {
-				char val = newblock->get();
-				newblock->subdivide([=] (int x, int y, int z, Pixel* pix) {
-					pix->value = val;
-				});
-				delete newblock;
-				newblock = get_global((int)x, (int)y, (int)z, 1);
-			}
-            while (newblock->scale < minscale) {
-                Chunk* parent = newblock->parent;
-                parent->del();
-                Pixel* newpix = new Pixel(parent->px, parent->py, parent->pz, parent->scale, parent->parent);
-                parent->parent->blocks[parent->px][parent->py][parent->pz] = newpix;
-                delete parent;
-				newblock = get_global((int)x, (int)y, (int)z, 1);
-            }
-			newblock->set(val);
-        }
-        
-        char get(int x, int y, int z) {
-            return get_global(x, y, z, 1)->get();
-        }
-        
-        Block* raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time) {
-            //cout << "world raycast" << *x << ' ' << *y << ' ' << *z << ' ' << dx << ' ' << dy << ' ' << dz << endl;
-            Block* b = get_global((int)*x - (*x<0), (int)*y - (*y<0), (int)*z - (*z<0), 1);
-            //cout << b << endl;
-            if (b == nullptr) {
-                return b;
-            }
-            return b->raycast(x, y, z, dx, dy, dz, time);
-        }
-        
-        void save_chunk(pair<int,int> pos) {
-            stringstream path;
-            path << "saves/" << name << "/chunk" << pos.first << "x" << pos.second << "y.dat";
-            cout << "saving '" << path.str() << "' to file\n";
-            ofstream of(path.str(), ios::binary);
-            of << "scrolls chunk file:";
-            chunks[pos]->save_to_file(&of);
-            
-        }
-        
-        void del_chunk(pair<int,int> pos) {
-            save_chunk(pos);
-            chunks[pos]->del();
-            delete chunks[pos];
-            chunks.erase(pos);
-        }
-        
-        Block* parse_file(ifstream* ifile, int px, int py, int pz, int scale, Chunk* parent) {
-            char c;
-            ifile->read(&c,1);
-            if (c == '{') {
-                Chunk* chunk = new Chunk(px, py, pz, scale, parent);
-                for (int x = 0; x < csize; x ++) {
-                    for (int y = 0; y < csize; y ++) {
-                        for (int z = 0; z < csize; z ++) {
-                            chunk->blocks[x][y][z] = parse_file(ifile, x, y, z, scale/csize, chunk);
-                        }
-                    }
-                }
-                ifile->read(&c,1);
-                if (c != '}') {
-                    cout << "error, mismatched {} in save file" << endl;
-                }
-                return (Block*) chunk;
-            } else {
-                Pixel* p = new Pixel(px, py, pz, scale, parent);
-                p->value = c;
-                return (Block*) p;
-            }
-        }
-        
-        void load_chunk(pair<int,int> pos) {
-            stringstream path;
-            path << "saves/" << name << "/chunk" << pos.first << "x" << pos.second << "y.dat";
-            ifstream ifile(path.str(), ios::binary);
-            if (ifile.good()) {
-                cout << "loading '" << path.str() << "' from file\n";
-                string header;
-                getline(ifile, header, ':');
-                
-                chunks[pos] = parse_file(&ifile, pos.first, 0, pos.second, chunksize, nullptr);
-            } else {
-                cout << "generating '" << path.str() << "'\n";
-                
-                generate(pos);
-            }
-            //render_chunk_vectors(pos);
-        }
-        
-        void close_world() {
-            vector<pair<int,int> > poses;
-            for (pair<pair<int,int>, Block*> kvpair : chunks) {
-                poses.push_back(kvpair.first);
-            }
-            for (pair<int,int> pos : poses) {
-                del_chunk(pos);
-            }
-            save_data_file();
-        }
-};
-
-World* world;
-std::stringstream debugstream;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 void Block::global_position(int* gx, int* gy, int* gz) {
     //cout << px << ' ' << py << ' ' << pz << ' ' << scale << endl;
@@ -676,59 +64,103 @@ Block* Block::get_world() {
     }
 }
 
-
 Block* Block::raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time) {
-        //cout << "block raycast(" << *x << ' ' << *y << ' ' << *z << ' ' << dx << ' ' << dy << ' ' << dz << endl;
-        if (!continues() and get() != 0) {
-            //cout << "returning" << continues() << get() << endl;
-            return this;
-        }
-        
-        
-        double lx, ly, lz;
-        //world_to_local(*x, *y, *z, &lx, &ly, &lz);
-        int gx, gy, gz;
-        global_position(&gx, &gy, &gz);
-        
-        lx = *x - gx;
-        ly = *y - gy;
-        lz = *z - gz;
-        
-        //cout << "this " << px <<  ' ' << py << ' ' << pz << ' ' << scale << endl;
-        //cout << "local " << lx << ' ' << ly << ' ' << lz << endl;
-        //cout << "global " << gx << ' ' << gy << ' ' << gz << endl;
-        
-        double tx = (dx < 0) ? lx/(-dx) : (scale-lx)/dx;
-        double ty = (dy < 0) ? ly/(-dy) : (scale-ly)/dy;
-        double tz = (dz < 0) ? lz/(-dz) : (scale-lz)/dz;
-        
-        //cout << "ts " << tx << ' ' << ty << ' ' << tz << endl;
-        double extra = 0.0001;
-        
-        if (tx < ty and tx < tz) { // hits x wall first
-            *x += dx*(tx+extra);
-            *y += dy*(tx+extra);
-            *z += dz*(tx+extra);
-            time -= tx;
-        } else if (ty < tx and ty < tz) { // hits y wall first
-            *x += dx*(ty+extra);
-            *y += dy*(ty+extra);
-            *z += dz*(ty+extra);
-            time -= ty;
-        } else if (tz < tx and tz < ty) { // hits z wall first
-            *x += dx*(tz+extra);
-            *y += dy*(tz+extra);
-            *z += dz*(tz+extra);
-            time -= tz;
-        }
-        time -= 0.01;
-        //cout << "get(" << (int)*x - (*x<0) << ' ' << (int)*y - (*y<0) << ' ' << (int)*z - (*z<0) << ' ' << (*x < 0) << endl;
-        Block* b = world->get_global((int)*x - (*x<0), (int)*y - (*y<0), (int)*z - (*z<0), 1);
-        if (b == nullptr or time < 0) {
-            return nullptr;
-        }
-        return b->raycast(x, y, z, dx, dy, dz, time);
+    //cout << "block raycast(" << *x << ' ' << *y << ' ' << *z << ' ' << dx << ' ' << dy << ' ' << dz << endl;
+    if (!continues() and get() != 0) {
+        //cout << "returning" << continues() << get() << endl;
+        return this;
     }
+    
+    
+    double lx, ly, lz;
+    //world_to_local(*x, *y, *z, &lx, &ly, &lz);
+    int gx, gy, gz;
+    global_position(&gx, &gy, &gz);
+    
+    lx = *x - gx;
+    ly = *y - gy;
+    lz = *z - gz;
+    
+    //cout << "this " << px <<  ' ' << py << ' ' << pz << ' ' << scale << endl;
+    //cout << "local " << lx << ' ' << ly << ' ' << lz << endl;
+    //cout << "global " << gx << ' ' << gy << ' ' << gz << endl;
+    
+    double tx = (dx < 0) ? lx/(-dx) : (scale-lx)/dx;
+    double ty = (dy < 0) ? ly/(-dy) : (scale-ly)/dy;
+    double tz = (dz < 0) ? lz/(-dz) : (scale-lz)/dz;
+    
+    //cout << "ts " << tx << ' ' << ty << ' ' << tz << endl;
+    double extra = 0.0001;
+    
+    if (tx < ty and tx < tz) { // hits x wall first
+        *x += dx*(tx+extra);
+        *y += dy*(tx+extra);
+        *z += dz*(tx+extra);
+        time -= tx;
+    } else if (ty < tx and ty < tz) { // hits y wall first
+        *x += dx*(ty+extra);
+        *y += dy*(ty+extra);
+        *z += dz*(ty+extra);
+        time -= ty;
+    } else if (tz < tx and tz < ty) { // hits z wall first
+        *x += dx*(tz+extra);
+        *y += dy*(tz+extra);
+        *z += dz*(tz+extra);
+        time -= tz;
+    }
+    time -= 0.01;
+    //cout << "get(" << (int)*x - (*x<0) << ' ' << (int)*y - (*y<0) << ' ' << (int)*z - (*z<0) << ' ' << (*x < 0) << endl;
+    Block* b = world->get_global((int)*x - (*x<0), (int)*y - (*y<0), (int)*z - (*z<0), 1);
+    if (b == nullptr or time < 0) {
+        return nullptr;
+    }
+    return b->raycast(x, y, z, dx, dy, dz, time);
+}
+
+
+
+
+
+///////////////////////////////// CLASS PIXEL /////////////////////////////////////
+
+Pixel::Pixel(int x, int y, int z, int nscale, Chunk* nparent):
+    Block(x, y, z, nscale, nparent), render_index(-1,0) {}
+
+bool Pixel::continues() {
+    return false;
+}
+
+char Pixel::get() {
+    //cout << "pixel get px" << px << " py" << py << " pz" << pz << " s" << scale << " value" << value  << endl;
+    return value;
+}
+
+void Pixel::all(function<void(Pixel*)> func) {
+    func(this);
+}
+
+Pixel* Pixel::get_pix() {
+    return this;
+}
+
+float Pixel::get_lightlevel(int dx, int dy, int dz) {
+    return lightlevel;
+}
+
+Block * Pixel::get(int x, int y, int z) {
+    cout << "error: get(int,int,int) called on pixel" << endl;
+    return nullptr;
+}
+
+bool Pixel::is_air(int dx, int dy, int dz) {
+    //cout << "pix is air reaturning:" << (value == 0) << endl;
+    return value == 0;
+}
+
+Block* Pixel::get_global(int x, int y, int z, int scale) {
+    //cout << "get global at pixel retunring self\n\n";
+    return this;
+}
 
 void Pixel::set(char val) {
     
@@ -883,7 +315,7 @@ void Pixel::calculate_light_level() {
         render_update();
     }
     lightlevel = new_level;
-} 
+}
 
 void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
     if (value == 0 or render_index.first != -1) {
@@ -1040,6 +472,214 @@ Chunk* Pixel::subdivide(function<void(int,int,int,Pixel*)> func) {
     //cout << 678 << endl;
     return newchunk;
 }
- 
+
+void Pixel::save_to_file(ofstream* of) {
+    *of << value;
+}
+
+
+/////////////////////////////////////// CLASS CHUNK ///////////////////////////////////////
+
+Chunk::Chunk(int x, int y, int z, int nscale, Chunk* nparent):
+    Block(x, y, z, nscale, nparent) {}
+
+bool Chunk::continues() {
+    return true;
+}
+
+Block * Chunk::get(int x, int y, int z) {
+    //cout << "chunk get px" << px << " py" << py << " pz" << pz << " s" << scale << " x" << x << " y" << y << " z" << z << endl;
+    return blocks[x][y][z];
+}
+
+Pixel* Chunk::get_pix() {
+    return nullptr;
+}
+
+char Chunk::get() {
+    cout << "error: get() called on chunk object" << endl;
+}
+void Chunk::set(char c) {
+    cout << "error: set called on chunk object" << endl;
+}
+Chunk* Chunk::subdivide(function<void(int,int,int,Pixel*)> func) {
+    cout << "error: subdividing already subdivided block" << endl;
+    return nullptr;
+}
+void Chunk::calculate_light_level() {
+    for (int x = 0; x < csize; x ++) {
+        for (int y = csize-1; y >= 0; y --) {
+            for (int z = 0; z < csize; z ++) {
+                blocks[x][y][z]->calculate_light_level();
+            }
+        }
+    }
+}
+void Chunk::all(function<void(Pixel*)> func) {
+    for (int x = 0; x < csize; x ++) {
+        for (int y = csize-1; y >= 0; y --) {
+            for (int z = 0; z < csize; z ++) {
+                blocks[x][y][z]->all(func);
+            }
+        }
+    }
+}
+
+float Chunk::get_lightlevel(int dx, int dy, int dz) {
+    int x_start = 0;
+    int x_end = csize;
+    int y_start = 0;
+    int y_end = csize;
+    int z_start = 0;
+    int z_end = csize;
+    if (dx != 0) {
+        x_start = (int)( dx/2.0f + 0.5f );
+        x_end = 1 + x_start;
+    }
+    if (dy != 0) {
+        y_start = (int)( dy/2.0f + 0.5f );
+        y_end = 1 + y_start;
+    }
+    if (dz != 0) {
+        z_start = (int)( dz/2.0f + 0.5f );
+        z_end = 1 + z_start;
+    }
+    
+    float lightlevel = 0;
+    int num = 0;
+    
+    //cout << "for loop:" << endl;
+    for (int x = x_start; x < x_end; x ++) {
+        for (int y = y_start; y < y_end; y ++) {
+            for (int z = z_start; z < z_end; z ++) {
+                float level = blocks[x][y][z]->get_lightlevel(dx, dy, dz);
+                if (level == -1) {
+                    exit(1);
+                    return -1;
+                }
+                if (blocks[x][y][z]->is_air(dx,dy,dz)) {
+                    if (level != 1) {
+                    cout << level << ' ' << x << ' ' << y << ' ' << z << endl;
+                }
+                    lightlevel += level;
+                    num ++;
+                }
+            }
+        }
+    }
+    if (num == 0) {
+        return 0;
+    } else {
+        return  lightlevel/num;
+    }
+}
+
+void Chunk::render(GLVecs* vecs, int gx, int gy, int gz) {
+    for (int x = 0; x < csize; x ++) {
+        for (int y = 0; y < csize; y ++) {
+            for (int z = 0; z < csize; z ++) {
+                blocks[x][y][z]->render(vecs, gx + px*scale, gy + py*scale, gz + pz*scale);
+            }
+        }
+    }
+}
+
+void Chunk::del() {
+    for (int x = 0; x < csize; x ++) {
+        for (int y = 0; y < csize; y ++) {
+            for (int z = 0; z < csize; z ++) {
+                blocks[x][y][z]->del();
+                delete blocks[x][y][z];
+            }
+        }
+    }
+}
+
+void Chunk::render_update() {
+    for (int x = 0; x < csize; x ++) {
+        for (int y = 0; y < csize; y ++) {
+            for (int z = 0; z < csize; z ++) {
+                blocks[x][y][z]->render_update();
+            }
+        }
+    }
+}
+
+Block* Chunk::get_global(int x, int y, int z, int nscale) {
+    //cout << "blocks get_global " << x << ' ' << y << ' ' << z << " scale:" << nscale << endl;
+    if (nscale == scale) {
+        //cout << " at scale return this\n\n";
+        return this;
+    } else {
+        if (x < 0 or x >= scale or y < 0 or y >= scale or z < 0 or z >= scale) {
+            //cout << "ret null ---s -- - - -- -" << endl;
+            //return nullptr;
+        }
+        int lx, ly, lz;
+        //cout << 206 << endl;
+        world_to_local(x, y, z, &lx, &ly, &lz);
+        //cout << lx << ' ' << ly << ' ' << lz << endl;
+        if (lx < 0 or lx >= csize*scale or ly < 0 or ly >= csize*scale or lz < 0 or lz >= csize*scale) {
+            //cout << "returning null -------------------------------\n\n";
+            return nullptr;
+        }
+        int nlx = lx/(scale/csize);
+        int nly = ly/(scale/csize);
+        int nlz = lz/(scale/csize);
+        //cout << nlx << ' ' << nly << ' ' << nlz << endl;
+        //cout << "sdfkhaskdfjhaksldfhalkjsdfhalksfh 229 ksjdfl;akjfd;alksdjf;alksdfja;sd" << endl;
+        return get(nlx, nly, nlz)->get_global(lx, ly, lz, nscale);
+    }
+}
+            
+
+bool Chunk::is_air(int dx, int dy, int dz) {
+    //cout << "is_air(dx" << dx << " dy" << dy << " dz" << dz << ")\n";
+    int gx, gy, gz;
+    global_position(&gx, &gy, &gz);
+    //cout << gx << ' ' << gy << ' ' << gz << endl;
+    bool air = false;
+    int x_start = 0;
+    int x_end = csize;
+    int y_start = 0;
+    int y_end = csize;
+    int z_start = 0;
+    int z_end = csize;
+    if (dx != 0) {
+        x_start = (int)( dx/2.0f + 0.5f );
+        x_end = 1 + x_start;
+    }
+    if (dy != 0) {
+        y_start = (int)( dy/2.0f + 0.5f );
+        y_end = 1 + y_start;
+    }
+    if (dz != 0) {
+        z_start = (int)( dz/2.0f + 0.5f );
+        z_end = 1 + z_start;
+    }
+    //cout << "for loop:" << endl;
+    for (int x = x_start; x < x_end; x ++) {
+        for (int y = y_start; y < y_end; y ++) {
+            for (int z = z_start; z < z_end; z ++) {
+                //cout << x << ' ' << y << ' ' << z << ' ' << get(x, y, z)->is_air(dx, dy, dz) << endl;
+                air = air or get(x, y, z)->is_air(dx, dy, dz);
+            }
+        }
+    }
+    //cout << "returning:" << air << endl << endl;
+    return air;
+}
+
+void Chunk::save_to_file(ofstream* of) {
+    *of << "{";
+    for (int x = 0; x < csize; x ++) {
+        for (int y = 0; y < csize; y ++) {
+            for (int z = 0; z < csize; z ++) {
+                blocks[x][y][z]->save_to_file(of);
+            }
+        }
+    }
+    *of << "}";
+}
 
 #endif
