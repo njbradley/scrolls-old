@@ -147,6 +147,16 @@ ItemContainer::ItemContainer(int newsize): size(newsize) {
     }
 }
 
+ItemContainer::ItemContainer(ifstream& ifile) {
+  ifile >> size;
+  for (int i = 0; i < size; i ++) {
+    string name;
+    int count;
+    ifile >> name >> count;
+    items.push_back(pair<Item*,int>(itemstorage->items[name], count));
+  }
+}
+
 bool ItemContainer::add(Item* item, int num) {
     for (int i = 0; i < items.size(); i ++) {
         if (item == items[i].first) {
@@ -191,6 +201,14 @@ void ItemContainer::render(RenderVecs* vecs, float x, float y) {
             draw_text(vecs, std::to_string(items[i].second), x+0.02 + i*0.1f, y+0.02f);
         }
     }
+}
+
+void ItemContainer::to_file(ofstream& ofile) {
+  ofile << size << endl;
+  for (pair<Item*,int> itemstack : items) {
+    ofile << itemstack.first->name << ' ' << itemstack.second << ' ';
+  }
+  ofile << endl;
 }
 
 #endif

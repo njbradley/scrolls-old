@@ -1,3 +1,0 @@
-Scrolls data file of world 'tt'
-seed:5555
-view_dist:3

@@ -126,8 +126,7 @@ Block* Block::raycast(double* x, double* y, double* z, double dx, double dy, dou
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent):
   Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val) {
     if (value != 0 and blocks->blocks[value]->extras != nullptr) {
-      cout << "helsdfjl" << endl;
-      extras = new BlockExtras(*blocks->blocks[value]->extras);
+      //extras = new BlockExtras(this);
     }
 }
 

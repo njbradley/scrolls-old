@@ -1,3 +1,0 @@
-Scrolls data file of world 'testing'
-seed:198
-view_dist:3

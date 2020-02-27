@@ -1,3 +1,0 @@
-Scrolls data file of world ''
-seed:55433
-view_dist:3

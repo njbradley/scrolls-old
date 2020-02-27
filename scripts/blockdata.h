@@ -12,13 +12,22 @@ using std::map;
 #include "menu-predef.h"
 
 
-BlockExtras::BlockExtras(istream & inp) {
-  
+
+BlockExtras::BlockExtras(Pixel* pix) {
+  std::stringstream filename;
+  int gx, gy, gz;
+  pix->global_position(&gx, &gy, &gz);
+  filename << "saves/" << world->name << "/blockdata" << gx << 'x' << gy << 'y' << gz << "z.txt";
+  ifstream ifile(filename.str());
+  if (ifile.good()) {
+    cout << "loading " << filename.str() << " file for block data" << endl;
+    inven = new ItemContainer(ifile);
+  } else {
+    cout << "generating " << filename.str() << " file cause there is no file" << endl;
+    inven = new ItemContainer(blocks->blocks[pix->value]->extras->inven->size);
+  }
 }
 
-BlockExtras::BlockExtras(const BlockExtras & other) {
-  inven = new ItemContainer(other.inven->size);
-}
 
 BlockExtras::BlockExtras() {}
 

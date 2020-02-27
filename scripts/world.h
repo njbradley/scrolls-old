@@ -70,15 +70,74 @@ void World::startup() {
     iter_gen_func = [&] (int x, int y, int z, Pixel* p) {
         iter_gen(x, y, z, p);
     };
-    for (int x = -1; x < 2; x ++) {
-        for (int y = -1; y < 2; y ++) {
-            load_chunk(pair<int,int>(x,y));
-        }
-    }
 }
 
-void World::render_chunks() {
-    
+void World::load_nearby_chunks(Player* player) {
+  //for (int i = loading_chunks.size()-1; i >= 0; i --) {
+  if (loading_chunks.size() > 0) {
+    int i = 0;
+    if (loading_chunks[i].second.valid()) {
+      Block* result = loading_chunks[i].second.get();
+      chunks[loading_chunks[i].first] = result;
+      //render_flag = true;
+      loading_chunks.erase(loading_chunks.begin()+i);
+    }
+  }
+  for (int i = deleting_chunks.size()-1; i >= 0; i--) {
+    if (deleting_chunks[i].second.valid()) {
+      cout << 88 << endl;
+      deleting_chunks[i].second.get();
+      cout << i << deleting_chunks.size() << endl;
+      deleting_chunks.erase(deleting_chunks.begin()+i);
+      render_flag = true;
+    }
+  }
+  
+  int px = player->position.x/chunksize - (player->position.x<0);
+  int pz = player->position.z/chunksize - (player->position.z<0);
+  for (int x = px-1; x < px+2; x ++) {
+    for (int y = pz-1; y < pz+2; y ++) {
+      if (!chunks.count(pair<int,int>(x,y)) and loading_chunks.size() < 4) {
+        bool not_running = true;
+        for (int i = 0; i < loading_chunks.size(); i ++) {
+          if (loading_chunks[i].first == pair<int,int>(x,y)) {
+            not_running = false;
+            break;
+          }
+        }
+        if (not_running) {
+          loading_chunks.push_back( make_pair(pair<int,int>(x,y), std::async(std::launch::async, [&, x, y] () {
+            return load_chunk(pair<int,int>(x,y));
+          })));
+          //load_chunk(pair<int,int>(x,y));
+          //render_flag = true;
+        }
+      }
+    }
+  }
+  for (pair<pair<int,int>,Block*> kv : chunks) {
+    double distance = std::sqrt((px-kv.first.first)*(px-kv.first.first) + (pz-kv.first.second)*(pz-kv.first.second));
+    if (distance > 4) {
+      bool not_running = true;
+      for (int i = 0; i < deleting_chunks.size(); i ++) {
+        if (deleting_chunks[i].first == kv.first) {
+          not_running = false;
+          break;
+        }
+      }
+      if (not_running) {
+        cout << "starting deleting running pos" << kv.first.first << 'x' << kv.first.second << "y " << deleting_chunks.size() << endl;
+        deleting_chunks.push_back( make_pair( kv.first, std::async(std::launch::async, [&, kv] () {
+          cout << kv.first.first << '-' << kv.first.second << endl;
+          del_chunk(kv.first);
+          return true;
+        })));
+      } else {
+        cout << "was going to delete but its already running" << endl;
+        exit(1);
+      }
+    }
+  }
 }
 
 char World::gen_func(int x, int y, int z) {
@@ -109,21 +168,13 @@ void World::iter_gen(int gx, int gy, int gz, Pixel* pix) {
         delete pix;
     }
 }
- 
-void World::generate(pair<int,int> pos) {
-    Pixel* pix = new Pixel(pos.first,0,pos.second,0,chunksize,nullptr);/*
-    tmparr = new char[chunksize*chunksize*chunksize];
-    cout << 349 << endl;
-    for (int x = 0; x < chunksize; x ++) {
-        for (int y = 0; y < chunksize; y ++) {
-            for (int z = 0; z < chunksize; z ++) {
-                tmparr[x*chunksize*chunksize + y*chunksize + z] = gen_func(pos.first*chunksize+x, y, pos.second*chunksize+z);
-            }
-        }
-    }
-    cout << "half" << endl;*/
-    chunks[pos] = pix->subdivide(iter_gen_func);
+
+Block* World::generate(pair<int,int> pos) {
+    cout << chunksize << ' ' << pos.first << ',' << pos.second << endl;
+    Pixel* pix = new Pixel(pos.first,0,pos.second,0,chunksize,nullptr);
+    Block* result = pix->subdivide(iter_gen_func);
     delete pix;
+    return result;
 }
 
 void World::render() {
@@ -167,9 +218,9 @@ Block* World::get_global(int x, int y, int z, int scale) {
 void World::set(char val, int x, int y, int z) {
     Block* newblock = get_global(x,y,z, 1);
     int minscale = 1;
-if (newblock == nullptr) {
-return;
-}
+    if (newblock == nullptr) {
+        return;
+    }
     if (newblock->get() != 0) {
         minscale = blocks->blocks[newblock->get()]->minscale;
     }
@@ -252,7 +303,7 @@ Block* World::parse_file(ifstream* ifile, int px, int py, int pz, int scale, Chu
     }
 }
 
-void World::load_chunk(pair<int,int> pos) {
+Block* World::load_chunk(pair<int,int> pos) {
     stringstream path;
     path << "saves/" << name << "/chunk" << pos.first << "x" << pos.second << "y.dat";
     ifstream ifile(path.str(), ios::binary);
@@ -261,11 +312,12 @@ void World::load_chunk(pair<int,int> pos) {
         string header;
         getline(ifile, header, ':');
         
-        chunks[pos] = parse_file(&ifile, pos.first, 0, pos.second, chunksize, nullptr);
+        //chunks[pos] = parse_file(&ifile, pos.first, 0, pos.second, chunksize, nullptr);
+        return parse_file(&ifile, pos.first, 0, pos.second, chunksize, nullptr);
     } else {
         cout << "generating '" << path.str() << "'\n";
         
-        generate(pos);
+        return generate(pos);
     }
     //render_chunk_vectors(pos);
 }

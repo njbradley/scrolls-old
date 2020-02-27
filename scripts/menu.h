@@ -131,9 +131,9 @@ SelectMenu::SelectMenu(string head, vector<string> & opts, function<void(string)
 
 void SelectMenu::render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
     int i = 0;
-    draw_text(uivecs, header, -0.25, 0.75f);
+    draw_text(uivecs, header, -0.5, 0.75f, 3);
     for (string name : options) {
-        draw_text(uivecs, name, -0.2f, 0.5f - i*0.1f);
+        draw_text(uivecs, name, -0.4f, 0.5f - i*0.1f, 2);
         i++;
     }
     

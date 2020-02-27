@@ -81,7 +81,7 @@ int main( void )
 	bool fullscreen = false;
 	cout.precision(10);
 	
-	items = new ItemStorage();
+	itemstorage = new ItemStorage();
 	blocks = new BlockStorage();
 	
 	// Initialise GLFW
@@ -238,7 +238,7 @@ int main( void )
 	world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
 	
 	Player player( vec3(10,52,10), world);
-	player.flying = false;
+	player.flying = true;
 	player.autojump = true;
 	player.health = 10;
 	
@@ -285,6 +285,7 @@ int main( void )
 			}
 		}
 		
+		world->load_nearby_chunks(&player);
 		if ( render_flag) {
 			//cout << "rendering!!!!" << endl;
 			world->render();
@@ -514,7 +515,7 @@ int main( void )
 			
 			debug_visible = false;
 			
-			menu = new SelectMenu("select your fate:", worlds, [&] (string result) {
+			menu = new SelectMenu("Level Select:", worlds, [&] (string result) {
 				world->close_world();
 				delete world;
 				player.position = vec3(10,52,10);

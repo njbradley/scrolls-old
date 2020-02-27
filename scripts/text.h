@@ -29,7 +29,7 @@ void draw_text(RenderVecs* vecs, string str, float x, float y, int size) {
     for (char c : str) {
         if (c == '\n') {
             x = original_x;
-            y -= pix_y;
+            y -= pix_y*size;
             continue;
         }
         int index = 92;
@@ -64,7 +64,7 @@ void draw_text(RenderVecs* vecs, string str, float x, float y, int size) {
             vecs->mats.push_back(0);
         }
         vecs->num_verts += 6;
-        x += pix_x;
+        x += pix_x*size;
     }
 }
 

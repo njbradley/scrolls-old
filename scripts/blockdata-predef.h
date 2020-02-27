@@ -9,8 +9,7 @@ using std::map;
 class BlockExtras { public:
   ItemContainer* inven;
   BlockExtras();
-  BlockExtras(istream&);
-  BlockExtras(const BlockExtras&);
+  BlockExtras(Pixel*);
 };
 
 class BlockData { public:

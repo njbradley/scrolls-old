@@ -67,19 +67,19 @@ Player::Player(vec3 pos, World* newworld):
 	//inven.add( Item(3, new CharArray( new char[6] {1,1,1,1,1,1}, 6,1,1), 1, 1));
 	//inven.add( Item(4, new CharArray( new char[6] {1}, 1,1,1), 1, 1));
 	//inven.add( Item(5, nullptr, 1, 5));
-	inven.add( items->items["log"], 10 );
-	inven.add( items->items["stick"], 10 );
-	inven.add( items->items["iron-axe"], 10 );
-	inven.add( items->items["chips"], 10 );
-	inven.add( items->items["chest"], 10 );
-	inven.add( items->items["bricks"], 10 );
-	inven.add( items->items["stone"], 10 );
-	inven.add( items->items["iron-pickaxe"], 10 );
-	inven.add( items->items["iron-shovel"], 10 );
-	inven.add( items->items["stone"], 10 );
-	inven.add( items->items["lamp"], 10 );
+	inven.add( itemstorage->items["log"], 10 );
+	inven.add( itemstorage->items["stick"], 10 );
+	inven.add( itemstorage->items["iron-axe"], 10 );
+	inven.add( itemstorage->items["chips"], 10 );
+	inven.add( itemstorage->items["chest"], 10 );
+	inven.add( itemstorage->items["bricks"], 10 );
+	inven.add( itemstorage->items["stone"], 10 );
+	inven.add( itemstorage->items["iron-pickaxe"], 10 );
+	inven.add( itemstorage->items["iron-shovel"], 10 );
+	inven.add( itemstorage->items["stone"], 10 );
+	inven.add( itemstorage->items["lamp"], 10 );
 	
-	backpack.add( items->items["stone"], 15 );
+	backpack.add( itemstorage->items["stone"], 15 );
 	
 	
 	
@@ -149,8 +149,8 @@ void Player::left_mouse() {
 		char newitem = item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
 		string item_name = blocks->blocks[newitem]->item;
 		if (item_name != "null") {
-			if (!inven.add(items->items[item_name], 1)) {
-				backpack.add(items->items[item_name], 1);
+			if (!inven.add(itemstorage->items[item_name], 1)) {
+				backpack.add(itemstorage->items[item_name], 1);
 			}
 		}
 		timeout = 0;

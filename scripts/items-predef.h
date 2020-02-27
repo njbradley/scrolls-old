@@ -41,7 +41,7 @@ class ItemStorage { public:
     ItemStorage();
 };
 
-ItemStorage* items;
+ItemStorage* itemstorage;
 
 
 
@@ -51,10 +51,12 @@ class ItemContainer {
         int size;
         
         ItemContainer(int newsize);
+        ItemContainer(ifstream&);
         bool add(Item* item, int num);
         Item* get(int index);
         Item* use(int index);
         void render(RenderVecs* vecs, float x, float y);
+        void to_file(ofstream&);
 };
 
 #endif
