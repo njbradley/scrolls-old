@@ -73,69 +73,22 @@ void World::startup() {
 }
 
 void World::load_nearby_chunks(Player* player) {
-  //for (int i = loading_chunks.size()-1; i >= 0; i --) {
-  if (loading_chunks.size() > 0) {
-    int i = 0;
-    if (loading_chunks[i].second.valid()) {
-      Block* result = loading_chunks[i].second.get();
-      chunks[loading_chunks[i].first] = result;
-      //render_flag = true;
-      loading_chunks.erase(loading_chunks.begin()+i);
-    }
-  }
-  for (int i = deleting_chunks.size()-1; i >= 0; i--) {
-    if (deleting_chunks[i].second.valid()) {
-      cout << 88 << endl;
-      deleting_chunks[i].second.get();
-      cout << i << deleting_chunks.size() << endl;
-      deleting_chunks.erase(deleting_chunks.begin()+i);
-      render_flag = true;
-    }
-  }
   
   int px = player->position.x/chunksize - (player->position.x<0);
   int pz = player->position.z/chunksize - (player->position.z<0);
   for (int x = px-1; x < px+2; x ++) {
     for (int y = pz-1; y < pz+2; y ++) {
       if (!chunks.count(pair<int,int>(x,y)) and loading_chunks.size() < 4) {
-        bool not_running = true;
-        for (int i = 0; i < loading_chunks.size(); i ++) {
-          if (loading_chunks[i].first == pair<int,int>(x,y)) {
-            not_running = false;
-            break;
-          }
-        }
-        if (not_running) {
-          loading_chunks.push_back( make_pair(pair<int,int>(x,y), std::async(std::launch::async, [&, x, y] () {
-            return load_chunk(pair<int,int>(x,y));
-          })));
-          //load_chunk(pair<int,int>(x,y));
-          //render_flag = true;
-        }
+        chunks[pair<int,int>(x,y)] = load_chunk(pair<int,int>(x,y));
+        render_flag = true;
       }
     }
   }
   for (pair<pair<int,int>,Block*> kv : chunks) {
     double distance = std::sqrt((px-kv.first.first)*(px-kv.first.first) + (pz-kv.first.second)*(pz-kv.first.second));
     if (distance > 4) {
-      bool not_running = true;
-      for (int i = 0; i < deleting_chunks.size(); i ++) {
-        if (deleting_chunks[i].first == kv.first) {
-          not_running = false;
-          break;
-        }
-      }
-      if (not_running) {
-        cout << "starting deleting running pos" << kv.first.first << 'x' << kv.first.second << "y " << deleting_chunks.size() << endl;
-        deleting_chunks.push_back( make_pair( kv.first, std::async(std::launch::async, [&, kv] () {
-          cout << kv.first.first << '-' << kv.first.second << endl;
-          del_chunk(kv.first);
-          return true;
-        })));
-      } else {
-        cout << "was going to delete but its already running" << endl;
-        exit(1);
-      }
+      del_chunk(kv.first);
+      render_flag = true;
     }
   }
 }

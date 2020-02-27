@@ -21,8 +21,8 @@ using namespace glm;
 
 class World {
     map<pair<int,int>, Block*> chunks;
-    vector< pair<pair<int,int>, future<Block*> > > loading_chunks;
-    vector< pair<pair<int,int>, future<bool> > > deleting_chunks;
+    //vector< pair<pair<int,int>, future<Block*> > > loading_chunks;
+    //vector< pair<pair<int,int>, future<bool> > > deleting_chunks;
     char* tmparr;
     public:
         int seed;
