@@ -78,7 +78,7 @@ void World::load_nearby_chunks(Player* player) {
   int pz = player->position.z/chunksize - (player->position.z<0);
   for (int x = px-1; x < px+2; x ++) {
     for (int y = pz-1; y < pz+2; y ++) {
-      if (!chunks.count(pair<int,int>(x,y)) and loading_chunks.size() < 4) {
+      if (!chunks.count(pair<int,int>(x,y))) {
         chunks[pair<int,int>(x,y)] = load_chunk(pair<int,int>(x,y));
         render_flag = true;
       }

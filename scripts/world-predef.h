@@ -29,7 +29,7 @@ class World {
         string name;
         int view_dist = 3;
         float sun = 0.0f;
-        static const int chunksize = 64;
+        static int chunksize = 64;
         function<void(int,int,int,Pixel*)> iter_gen_func;
         GLVecs glvecs;
 				
