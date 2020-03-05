@@ -85,8 +85,10 @@ void GLVecs::clean() {
     for (pair<int,int> index : empty) {
         int start = index.first*6;
         int size = index.second*6;
-        GLfloat zerosf[size*3] = {0.0f};
-        GLint zerosi[size] = {0};
+        GLfloat zerosf[size*3];
+	memset(zerosf, 0.0f, size*3);
+        GLint zerosi[size];
+	memset(zerosi, 0, size);
         glNamedBufferSubData(vertexbuffer, start*3*sizeof(GLfloat), size*3*sizeof(GLfloat), zerosf);
         glNamedBufferSubData(uvbuffer, start*2*sizeof(GLfloat), size*2*sizeof(GLfloat), zerosf);
         glNamedBufferSubData(lightbuffer, start*sizeof(GLfloat), size*sizeof(GLfloat), zerosf);

@@ -21,13 +21,12 @@ using namespace glm;
 #include "scripts/texture.h"
 #include "scripts/player.h"
 #include "scripts/entity.h"
-#include "scripts/win.h"
 #include "scripts/menu.h"
 #include "scripts/world.h"
 #include "scripts/blockdata.h"
 #include "scripts/blocks.h"
 #include "scripts/items.h"
-//#include "scripts/unix.h"
+#include "scripts/cross-platform.h"
 
 int num_blocks;
 int num_uis;

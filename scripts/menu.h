@@ -24,7 +24,7 @@ using std::ifstream;
 #include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
 
-#include "win.h"
+#include "cross-platform.h"
 #include "ui.h"
 
 #include "menu-predef.h"
