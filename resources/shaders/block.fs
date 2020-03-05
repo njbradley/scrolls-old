@@ -21,7 +21,7 @@ void main(){
 			break;
 		}
 	}
-	if (lightLevel == 0) {
-		color = vec3(1,0,0);
-	}
+	//if (lightLevel == 0) {
+	//	color = vec3(1,0,0);
+	//}
 }

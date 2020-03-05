@@ -41,6 +41,7 @@ class Block { public:
     virtual Pixel* get_pix()  = 0;
     virtual float get_lightlevel(int,int,int) = 0;
     virtual void all(function<void(Pixel*)>) = 0;
+    virtual void all_side(function<void(Pixel*)>,int,int,int) = 0;
     Block(int x, int y, int z, int newscale, Chunk* newparent);
     void world_to_local(int x, int y, int z, int* lx, int* ly, int* lz);
     void global_position(int*, int*, int*);
@@ -65,6 +66,7 @@ class Pixel: public Block { public:
     bool continues();
     char get();
     void all(function<void(Pixel*)> func);
+    void all_side(function<void(Pixel*)>,int,int,int);
     Pixel* get_pix();
     float get_lightlevel(int dx, int dy, int dz);
     Block * get(int x, int y, int z);
@@ -92,6 +94,7 @@ class Chunk: public Block { public:
     Chunk* subdivide(function<void(int,int,int,Pixel*)> func);
     void calculate_light_level();
     void all(function<void(Pixel*)> func);
+    void all_side(function<void(Pixel*)>,int,int,int);
     float get_lightlevel(int dx, int dy, int dz);
     void render(GLVecs* vecs, int gx, int gy, int gz);
     void del();
