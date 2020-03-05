@@ -7,7 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <thread>
-#include "win.h"
+#include "cross-platform.h"
 #include "rendervec.h"
 #include "blockdata.h"
 #include "blocks-predef.h"

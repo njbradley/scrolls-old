@@ -9,7 +9,7 @@ using std::function;
 #include "items-predef.h"
 #include "world-predef.h"
 #include "blockdata-predef.h"
-#include "win.h"
+#include "cross-platform.h"
 
 
 //////////////////////////// CHARARRAY ////////////////////////////////////
