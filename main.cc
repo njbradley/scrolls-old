@@ -26,7 +26,11 @@ using namespace glm;
 #include "scripts/blockdata.h"
 #include "scripts/blocks.h"
 #include "scripts/items.h"
+
 #include "scripts/cross-platform.h"
+
+
+#include <future>
 
 int num_blocks;
 int num_uis;
@@ -99,6 +103,9 @@ int main( void )
 	
 	// Open a window and create its OpenGL context
 	window = glfwCreateWindow( 1024, 768, "Scrolls - An Adventure Game", fullscreen ? glfwGetPrimaryMonitor() : nullptr, nullptr);
+	
+	//launch_threads(window);
+	
 	if( window == NULL ){
 		fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
 		getchar();
@@ -237,7 +244,7 @@ int main( void )
 	world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
 	
 	Player player( vec3(10,52,10), world);
-	player.flying = true;
+	player.flying = false;
 	player.autojump = true;
 	player.health = 10;
 	
@@ -285,8 +292,9 @@ int main( void )
 		}
 		
 		world->load_nearby_chunks(&player);
-		if ( render_flag) {
+		if (render_flag) {
 			//cout << "rendering!!!!" << endl;
+			//auto fut =  std::async([&] () {world->render();});//();
 			world->render();
 			world->glvecs.clean();
 			num_tris = world->glvecs.num_verts/3;

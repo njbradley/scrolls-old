@@ -87,6 +87,10 @@ void World::load_nearby_chunks(Player* player) {
   for (pair<pair<int,int>,Block*> kv : chunks) {
     double distance = std::sqrt((px-kv.first.first)*(px-kv.first.first) + (pz-kv.first.second)*(pz-kv.first.second));
     if (distance > 4) {
+      threads_running.push_back(true);
+      //threads.push_back(new std::thread([&] (pair<int,int> pos, ) {
+        
+      //}, kv.first, kv.second));
       del_chunk(kv.first);
       render_flag = true;
     }
@@ -131,6 +135,8 @@ Block* World::generate(pair<int,int> pos) {
 }
 
 void World::render() {
+    //update_lighting();
+    cout << "back in render" << endl;
     for (pair<pair<int,int>, Block*> kvpair : chunks) {
         //double before = clock();
         //chunks[kvpair.first]->all([](Pixel* pix) {
@@ -141,9 +147,30 @@ void World::render() {
         //double after = clock();
         //chunks[kvpair.first]->calculate_light_level();
         chunks[kvpair.first]->render(&glvecs, 0, 0, 0);
+        cout << "rendered chunk " << kvpair.first.first << ' ' << kvpair.first.first << endl;
         //render_chunk_vectors(kvpair.first);
         //cout << during - before << ' ' << after - during << ' ' << clock()-after << endl;
     }
+}
+
+void World::update_lighting() {
+  for (pair<pair<int,int>,Block*> kvpair : chunks) {
+    pair<int,int> pos = kvpair.first;
+    Block* block = kvpair.second;
+    for (int x = pos.first*chunksize; x < pos.first*chunksize+chunksize; x ++) {
+      for (int z = pos.second*chunksize; z < pos.second*chunksize+chunksize; z ++) {
+        int y = chunksize-1;
+        while (y >= 0 and get(x,y,z) == 0) {
+          get_global(x,y,z,1)->get_pix()->lightlevel = 1;
+          y--;
+        }
+      }
+    }
+  }
+  for (pair<pair<int,int>,Block*> kvpair : chunks) {
+    kvpair.second->calculate_light_level();
+    cout << "calculated light of chunk " << kvpair.first.first << ' ' << kvpair.first.second << endl;
+  }
 }
 
 Block* World::get_global(int x, int y, int z, int scale) {
@@ -217,13 +244,16 @@ Block* World::raycast(double* x, double* y, double* z, double dx, double dy, dou
 }
 
 void World::save_chunk(pair<int,int> pos) {
-    stringstream path;
-    path << "saves/" << name << "/chunk" << pos.first << "x" << pos.second << "y.dat";
-    cout << "saving '" << path.str() << "' to file\n";
-    ofstream of(path.str(), ios::binary);
-    of << "scrolls chunk file:";
-    chunks[pos]->save_to_file(&of);
-    
+  save_chunk(pos, chunks[pos]);
+}
+
+void World::save_chunk(pair<int,int> pos, Block* block) {
+  stringstream path;
+  path << "saves/" << name << "/chunk" << pos.first << "x" << pos.second << "y.dat";
+  cout << "saving '" << path.str() << "' to file\n";
+  ofstream of(path.str(), ios::binary);
+  of << "scrolls chunk file:";
+  block->save_to_file(&of);
 }
 
 void World::del_chunk(pair<int,int> pos) {
@@ -232,6 +262,8 @@ void World::del_chunk(pair<int,int> pos) {
     delete chunks[pos];
     chunks.erase(pos);
 }
+
+
 
 Block* World::parse_file(ifstream* ifile, int px, int py, int pz, int scale, Chunk* parent) {
     char c;

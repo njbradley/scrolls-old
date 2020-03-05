@@ -14,6 +14,7 @@
 #include <map>
 #include "rendervec-predef.h"
 #include <future>
+#include <thread>
 using namespace glm;
 
 #define csize 2
@@ -21,6 +22,8 @@ using namespace glm;
 
 class World {
     map<pair<int,int>, Block*> chunks;
+    vector<bool> threads_running;
+    vector<std::thread*> threads;
     //vector< pair<pair<int,int>, future<Block*> > > loading_chunks;
     //vector< pair<pair<int,int>, future<bool> > > deleting_chunks;
     char* tmparr;
@@ -44,12 +47,14 @@ class World {
         void iter_gen(int gx, int gy, int gz, Pixel* pix);
         Block* generate(pair<int,int> pos);
         void render();
+        void update_lighting();
         void load_nearby_chunks(Player*);
         Block* get_global(int x, int y, int z, int scale);
         void set(char val, int x, int y, int z);
         char get(int x, int y, int z);
         Block* raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time);
         void save_chunk(pair<int,int> pos);
+        void save_chunk(pair<int,int> pos, Block* chunk);
         void del_chunk(pair<int,int> pos);
         Block* parse_file(ifstream* ifile, int px, int py, int pz, int scale, Chunk* parent);
         Block* load_chunk(pair<int,int> pos);
