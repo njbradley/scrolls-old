@@ -1,0 +1,4 @@
+: axe pickaxe shovel sword null
+: 1.0 0.2     0.2    0.2   0.05
+: paint 11 1 null 0 paint
+0
