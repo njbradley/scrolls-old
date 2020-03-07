@@ -1,5 +1,5 @@
 : axe pickaxe shovel sword null
 : 1.0 0.2     0.2    0.2   0.05
-: chest 12 2 chest 0 chest
+: chest 1 2 chest 0 chest
 1
 : 10

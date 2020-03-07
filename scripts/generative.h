@@ -6,6 +6,8 @@
     using std::endl;
 #include <math.h>
 
+//#include "texture.h"
+
 int rseed = 4094240;
 int seed = rseed;
 
@@ -87,13 +89,34 @@ double scaled_perlin(double x, double y, double height, double width) {
     return perlin((float)x/(width), (float)y/(width)) *height + height/2;
 }
 
+
 double get_height(int x, int y) {
     return (scaled_perlin(x,y,16,20) + scaled_perlin(x,y,8,10))*scaled_perlin(x,y,2,40) + scaled_perlin(x,y,4,5);
 }
 
+/*
+unsigned char* data;
+int width, height, channels;
+
+void load_image() {
+  data = stbi_load("resources/bbmaps/1.png", &width, &height, &channels, 0);
+}
+
+double get_height(int x, int y) {
+  if (x < 0 or x >= width or y < 0 or y >= height) {
+    return 0;
+  }
+  int r = data[x*height*channels + y*channels + 0];
+  int g = data[x*height*channels + y*channels + 1];
+  int b = data[x*height*channels + y*channels + 2];
+  
+  return g/10.0f;
+}*/
+
 char generative_function( int x, int y, int z ) {
     seed = rseed;
     double height = get_height(x, z);
+    int a = 5;
     //cout << height << endl;
     //double treepos = scaled_perlin(x,z,1,30);
     //if (treepos > 0.9f) {

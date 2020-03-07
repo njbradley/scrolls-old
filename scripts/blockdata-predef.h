@@ -5,11 +5,14 @@ using std::ifstream;
 #include <map>
 using std::map;
 #include "classes.h"
+using std::istream;
 
 class BlockExtras { public:
   ItemContainer* inven;
   BlockExtras();
   BlockExtras(Pixel*);
+  BlockExtras(istream* ifile);
+  void save_to_file(ostream* ofile);
 };
 
 class BlockData { public:

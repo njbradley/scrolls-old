@@ -51,12 +51,12 @@ class ItemContainer {
         int size;
         
         ItemContainer(int newsize);
-        ItemContainer(ifstream&);
+        ItemContainer(istream*);
         bool add(Item* item, int num);
         Item* get(int index);
         Item* use(int index);
         void render(RenderVecs* vecs, float x, float y);
-        void to_file(ofstream&);
+        void save_to_file(ostream*);
 };
 
 #endif

@@ -76,13 +76,32 @@ Player::Player(vec3 pos, World* newworld):
 	inven.add( itemstorage->items["stone"], 10 );
 	inven.add( itemstorage->items["iron-pickaxe"], 10 );
 	inven.add( itemstorage->items["iron-shovel"], 10 );
-	inven.add( itemstorage->items["stone"], 10 );
+	inven.add( itemstorage->items["paint"], 10 );
 	inven.add( itemstorage->items["lamp"], 10 );
 	
 	backpack.add( itemstorage->items["stone"], 15 );
 	
 	
 	
+}
+
+Player::Player(istream* ifile):
+	Entity(vec3(0,0,0), vec3(-0.8,-2.6,-0.8), vec3(0.8,1,0.8)), inven(ifile), backpack(ifile) {
+		*ifile >> selitem;
+		*ifile >> position.x >> position.y >> position.z;
+		*ifile >> vel.x >> vel.y >> vel.z >> angle.x >> angle.y;
+		*ifile >> health >> flying >> autojump;
+		glfwSetMouseButtonCallback(window, mouse_button_call);
+		glfwSetScrollCallback(window, scroll_callback);
+}
+
+void Player::save_to_file(ostream* ofile) {
+	inven.save_to_file(ofile);
+	backpack.save_to_file(ofile);
+	*ofile << selitem << ' ';
+	*ofile << position.x << ' ' << position.y << ' ' << position.z << ' ';
+	*ofile << vel.x << ' ' << vel.y << ' ' << vel.z << ' ' << angle.x << ' ' << angle.y << ' ';
+	*ofile << health << ' ' << flying << ' ' << autojump << ' ';
 }
 	
 mat4 Player::getViewMatrix(){

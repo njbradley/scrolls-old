@@ -147,13 +147,18 @@ ItemContainer::ItemContainer(int newsize): size(newsize) {
     }
 }
 
-ItemContainer::ItemContainer(ifstream& ifile) {
-  ifile >> size;
+ItemContainer::ItemContainer(istream* ifile) {
+  *ifile >> size;
   for (int i = 0; i < size; i ++) {
     string name;
     int count;
-    ifile >> name >> count;
-    items.push_back(pair<Item*,int>(itemstorage->items[name], count));
+    *ifile >> name;
+    if (name == "null") {
+      items.push_back(pair<Item*,int>(nullptr, 0));
+    } else {
+      *ifile >> count;
+      items.push_back(pair<Item*,int>(itemstorage->items[name], count));
+    }
   }
 }
 
@@ -203,12 +208,16 @@ void ItemContainer::render(RenderVecs* vecs, float x, float y) {
     }
 }
 
-void ItemContainer::to_file(ofstream& ofile) {
-  ofile << size << endl;
+void ItemContainer::save_to_file(ostream* ofile) {
+  *ofile << size << endl;
   for (pair<Item*,int> itemstack : items) {
-    ofile << itemstack.first->name << ' ' << itemstack.second << ' ';
+    if (itemstack.first == nullptr) {
+      *ofile << "null ";
+    } else {
+      *ofile << itemstack.first->name << ' ' << itemstack.second << ' ';
+    }
   }
-  ofile << endl;
+  *ofile << endl;
 }
 
 #endif

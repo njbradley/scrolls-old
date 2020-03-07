@@ -75,7 +75,19 @@ void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLu
 	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &vecs.mats.front(), GL_STATIC_DRAW);
 }
 
-
+void GLAPIENTRY
+MessageCallback( GLenum source,
+                 GLenum type,
+                 GLuint id,
+                 GLenum severity,
+                 GLsizei length,
+                 const GLchar* message,
+                 const void* userParam )
+{
+  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+            type, severity, message );
+}
 
 
 int main( void )
@@ -101,8 +113,10 @@ int main( void )
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	
+	
 	// Open a window and create its OpenGL context
 	window = glfwCreateWindow( 1024, 768, "Scrolls - An Adventure Game", fullscreen ? glfwGetPrimaryMonitor() : nullptr, nullptr);
+	
 	
 	//launch_threads(window);
 	
@@ -122,6 +136,14 @@ int main( void )
 		glfwTerminate();
 		return -1;
 	}
+	
+	int maxsize;
+	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxsize);
+	cout << "maxsize: " << maxsize << endl;
+	
+	glEnable              ( GL_DEBUG_OUTPUT );
+	glDebugMessageCallback( MessageCallback, 0 );
+	
 	
 	// Ensure we can capture the escape key being pressed below
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
@@ -173,10 +195,11 @@ int main( void )
 	// Load the texture
 	
 	
+	
 	for( int i = 0; i < num_blocks; i ++) {
 		string block = "resources/blocks/" + blocks[i];
 		const char* data = block.c_str();
-		block_textures[i] = loadBMP_custom(data, false);
+		block_textures[i] = loadBMP_array_custom(data);
 	}
 	
 	for( int i = 0; i < num_uis; i ++) {
@@ -240,13 +263,11 @@ int main( void )
 	//}
 	
 	
-	world = new World("new-world");
+	world = new World("bubu", 5583489);
 	world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
 	
-	Player player( vec3(10,52,10), world);
-	player.flying = false;
-	player.autojump = true;
-	player.health = 10;
+	Player* player = world->player;
+	
 	
 	
 	double lastTime = glfwGetTime();
@@ -259,6 +280,7 @@ int main( void )
 	double slow_frame = 0;
 	
 	
+	
 	//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, &num_tris);
 	do {
 		
@@ -266,8 +288,8 @@ int main( void )
 		
 		
 		if (menu == nullptr) {
-			player.timestep(world);
-			player.computeMatricesFromInputs(world);
+			player->timestep(world);
+			player->computeMatricesFromInputs(world);
 		}
 		
 		
@@ -275,10 +297,10 @@ int main( void )
 			debugstream.str("");
 			
 			debugstream << "fps: " << fps << endl;
-			debugstream << "x: " << player.position.x << "\ny: " << player.position.y << "\nz: " << player.position.z << endl;
-			debugstream << "dx: " << player.vel.x << "\ndy: " << player.vel.y << "\ndz: " << player.vel.z << endl;
+			debugstream << "x: " << player->position.x << "\ny: " << player->position.y << "\nz: " << player->position.z << endl;
+			debugstream << "dx: " << player->vel.x << "\ndy: " << player->vel.y << "\ndz: " << player->vel.z << endl;
 			debugstream << "consts: ";
-			for (bool b : player.consts) {
+			for (bool b : player->consts) {
 	            debugstream << b << ' ';
 	        }
 	        debugstream << endl;
@@ -291,7 +313,7 @@ int main( void )
 			}
 		}
 		
-		world->load_nearby_chunks(&player);
+		world->load_nearby_chunks();
 		if (render_flag) {
 			//cout << "rendering!!!!" << endl;
 			//auto fut =  std::async([&] () {world->render();});//();
@@ -355,8 +377,8 @@ int main( void )
 		glUseProgram(programID);
 		
 		// Compute the MVP matrix from keyboard and mouse input
-		glm::mat4 ProjectionMatrix = player.getProjectionMatrix();
-		glm::mat4 ViewMatrix = player.getViewMatrix();
+		glm::mat4 ProjectionMatrix = player->getProjectionMatrix();
+		glm::mat4 ViewMatrix = player->getViewMatrix();
 		glm::mat4 ModelMatrix = glm::mat4(1.0);
 		glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 		
@@ -368,8 +390,9 @@ int main( void )
 		for (int i = 0; i < num_blocks; i ++) {
 			ids[i] = i;
 			glActiveTexture(GL_TEXTURE0+i);
-			glBindTexture(GL_TEXTURE_2D, block_textures[i]);
+			glBindTexture(GL_TEXTURE_2D_ARRAY, block_textures[i]);
 		}
+		
 		
 		// Bind our texture in Texture Unit 0
 		//glActiveTexture(GL_TEXTURE0);
@@ -417,7 +440,7 @@ int main( void )
 		glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
 		glVertexAttribIPointer(
 			3,                                // attribute. No particular reason for 2, but must match the layout in the shader.
-			1,                                // size : 1
+			2,                                // size : 1
 			GL_INT,                         // type
 			                         // normalized?
 			0,                                // stride
@@ -436,7 +459,7 @@ int main( void )
 		//-----------------------------------------------------SECOND DRAW CALL------------------------------------------------------------------------------------------------------------------------//
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		
-		make_ui_buffer(&player, debugstream.str(), vertex_ui_buffer, uv_ui_buffer, mat_ui_buffer, &num_ui_tris);
+		make_ui_buffer(player, debugstream.str(), vertex_ui_buffer, uv_ui_buffer, mat_ui_buffer, &num_ui_tris);
 		
 		//allow trancaperancy
 		glDisable(GL_DEPTH_TEST);
@@ -525,9 +548,8 @@ int main( void )
 			menu = new SelectMenu("Level Select:", worlds, [&] (string result) {
 				world->close_world();
 				delete world;
-				player.position = vec3(10,52,10);
-				player.health = 10;
 				world = new World(result);
+				player = world->player;
 				world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
 				render_flag = true;
 				delete menu;

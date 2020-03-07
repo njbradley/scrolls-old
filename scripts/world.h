@@ -67,12 +67,23 @@ void World::setup_files() {
 }
 
 void World::startup() {
+    //load_image();
+    ifstream ifile("saves/" + name + "/player.txt");
+    if (ifile.good()) {
+      player = new Player(&ifile);
+    } else {
+      player = new Player( vec3(10,52,10), world);
+    	player->flying = true;
+    	player->autojump = true;
+    	player->health = 10;
+    }
     iter_gen_func = [&] (int x, int y, int z, Pixel* p) {
         iter_gen(x, y, z, p);
     };
+    lighting_flag = true;
 }
 
-void World::load_nearby_chunks(Player* player) {
+void World::load_nearby_chunks() {
   
   int px = player->position.x/chunksize - (player->position.x<0);
   int pz = player->position.z/chunksize - (player->position.z<0);
@@ -135,7 +146,10 @@ Block* World::generate(pair<int,int> pos) {
 }
 
 void World::render() {
-    //update_lighting();
+    if (lighting_flag) {
+      //update_lighting();
+      lighting_flag = false;
+    }
     cout << "back in render" << endl;
     for (pair<pair<int,int>, Block*> kvpair : chunks) {
         //double before = clock();
@@ -157,6 +171,10 @@ void World::update_lighting() {
   for (pair<pair<int,int>,Block*> kvpair : chunks) {
     pair<int,int> pos = kvpair.first;
     Block* block = kvpair.second;
+    block->all([=] (Pixel* pix) {
+      pix->reset_lightlevel();
+      //cout << pix->lightlevel << endl;
+    });
     for (int x = pos.first*chunksize; x < pos.first*chunksize+chunksize; x ++) {
       for (int z = pos.second*chunksize; z < pos.second*chunksize+chunksize; z ++) {
         int y = chunksize-1;
@@ -168,7 +186,7 @@ void World::update_lighting() {
     }
   }
   for (pair<pair<int,int>,Block*> kvpair : chunks) {
-    kvpair.second->calculate_light_level();
+    kvpair.second->calculate_lightlevel();
     cout << "calculated light of chunk " << kvpair.first.first << ' ' << kvpair.first.second << endl;
   }
 }
@@ -283,8 +301,15 @@ Block* World::parse_file(ifstream* ifile, int px, int py, int pz, int scale, Chu
         }
         return (Block*) chunk;
     } else {
-        Pixel* p = new Pixel(px, py, pz, c, scale, parent);
-        return (Block*) p;
+        if (c == '~') {
+          c = ifile->get();
+          BlockExtras* extra = new BlockExtras(ifile);
+          Pixel* p = new Pixel(px, py, pz, c, scale, parent, extra);
+          return (Block*) p;
+        } else {
+          Pixel* p = new Pixel(px, py, pz, c, scale, parent);
+          return (Block*) p;
+        }
     }
 }
 
@@ -308,6 +333,9 @@ Block* World::load_chunk(pair<int,int> pos) {
 }
 
 void World::close_world() {
+    ofstream ofile("saves/" + name + "/player.txt");
+    player->save_to_file(&ofile);
+    delete player;
     vector<pair<int,int> > poses;
     for (pair<pair<int,int>, Block*> kvpair : chunks) {
         poses.push_back(kvpair.first);

@@ -37,7 +37,7 @@ class Block { public:
     virtual void set(char) = 0;
     virtual Chunk* subdivide(function<void(int,int,int,Pixel*)>) = 0; //same as get,
     virtual void del() = 0;
-    virtual void calculate_light_level() = 0;
+    virtual void calculate_lightlevel() = 0;
     virtual Pixel* get_pix()  = 0;
     virtual float get_lightlevel(int,int,int) = 0;
     virtual void all(function<void(Pixel*)>) = 0;
@@ -63,6 +63,7 @@ class Pixel: public Block { public:
     //ItemContainer* container;
     
     Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent);
+    Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, BlockExtras* new_extra);
     bool continues();
     char get();
     void all(function<void(Pixel*)> func);
@@ -73,7 +74,8 @@ class Pixel: public Block { public:
     void set(char val);
     void render_update();
     void del();
-    void calculate_light_level();
+    void calculate_lightlevel();
+    void reset_lightlevel();
     void lighting_update();
     bool is_air(int dx, int dy, int dz);
     Block* get_global(int x, int y, int z, int scale);
@@ -92,7 +94,7 @@ class Chunk: public Block { public:
     char get();
     void set(char c);
     Chunk* subdivide(function<void(int,int,int,Pixel*)> func);
-    void calculate_light_level();
+    void calculate_lightlevel();
     void all(function<void(Pixel*)> func);
     void all_side(function<void(Pixel*)>,int,int,int);
     float get_lightlevel(int dx, int dy, int dz);

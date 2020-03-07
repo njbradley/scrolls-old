@@ -13,7 +13,7 @@ class RenderVecs {
     	vector<GLint> mats;
       int num_verts = 0;
       
-      void add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat newlight, GLint mat);
+      void add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat newlight, GLint minscale, GLint mat);
 };
 
 

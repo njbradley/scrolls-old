@@ -13,6 +13,7 @@
 #include <glm/glm.hpp>
 #include <map>
 #include "rendervec-predef.h"
+#include "entity-predef.h"
 #include <future>
 #include <thread>
 using namespace glm;
@@ -35,6 +36,8 @@ class World {
         static const int chunksize = 64;
         function<void(int,int,int,Pixel*)> iter_gen_func;
         GLVecs glvecs;
+        bool lighting_flag;
+        Player* player;
 				
         World(string newname, int newseed);
         World(string oldname);
@@ -48,7 +51,7 @@ class World {
         Block* generate(pair<int,int> pos);
         void render();
         void update_lighting();
-        void load_nearby_chunks(Player*);
+        void load_nearby_chunks();
         Block* get_global(int x, int y, int z, int scale);
         void set(char val, int x, int y, int z);
         char get(int x, int y, int z);

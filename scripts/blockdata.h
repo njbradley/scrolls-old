@@ -14,23 +14,32 @@ using std::map;
 
 
 BlockExtras::BlockExtras(Pixel* pix) {
-  std::stringstream filename;
-  int gx, gy, gz;
-  pix->global_position(&gx, &gy, &gz);
-  filename << "saves/" << world->name << "/blockdata" << gx << 'x' << gy << 'y' << gz << "z.txt";
-  ifstream ifile(filename.str());
-  if (ifile.good()) {
-    cout << "loading " << filename.str() << " file for block data" << endl;
-    inven = new ItemContainer(ifile);
-  } else {
-    cout << "generating " << filename.str() << " file cause there is no file" << endl;
+  // std::stringstream filename;
+  // int gx, gy, gz;
+  // pix->global_position(&gx, &gy, &gz);
+  // filename << "saves/" << world->name << "/blockdata" << gx << 'x' << gy << 'y' << gz << "z.txt";
+  // ifstream ifile(filename.str());
+  // if (ifile.good()) {
+  //   cout << "loading " << filename.str() << " file for block data" << endl;
+  //   inven = new ItemContainer(ifile);
+  // } else {
+    //cout << "generating " << filename.str() << " file cause there is no file" << endl;
     inven = new ItemContainer(blocks->blocks[pix->value]->extras->inven->size);
-  }
+  //}
 }
-
 
 BlockExtras::BlockExtras() {}
 
+BlockExtras::BlockExtras(istream* ifile) {
+  inven = new ItemContainer(ifile);
+  string buff;
+  getline(*ifile, buff, ':');
+}
+
+void BlockExtras::save_to_file(ostream* ofile) {
+  inven->save_to_file(ofile);
+  *ofile << ':';
+}
 
 BlockData::BlockData(ifstream & ifile) {
     string buff;

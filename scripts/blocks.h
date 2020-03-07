@@ -125,15 +125,17 @@ Block* Block::raycast(double* x, double* y, double* z, double dx, double dy, dou
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent):
   Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val) {
+    reset_lightlevel();
     if (value != 0) {
-      lightlevel = blocks->blocks[value]->lightlevel;
       if (blocks->blocks[value]->extras != nullptr) {
-        //extras = new BlockExtras(this);
+        extras = new BlockExtras(this);
       }
-    } else {
-      lightlevel = 0;
     }
-    lightlevel = 1;
+}
+
+Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, BlockExtras* new_extra):
+  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(new_extra) {
+    reset_lightlevel();
 }
 
 bool Pixel::continues() {
@@ -181,11 +183,12 @@ void Pixel::set(char val) {
     //cout << "render_indes: " << render_index << " val:" << (int)value <<  ' '<< (int)val << endl;
     //cout << "pixel(" << (int)value <<  " scale " << scale << ") set " << (int)val << endl;
     value = val;
-    render_flag = true;
+    //render_flag = true;
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);
     //cout << gx << ' ' << gy << ' ' << gz << "-----------------------------" << render_index.first << ' ' << render_index.second << endl;
     //cout << "global position " << gx << ' ' << gy << ' ' << gz << endl;
+    reset_lightlevel();
     render_update();
     world->get_global(gx+scale, gy, gz, scale)->render_update();
     world->get_global(gx-scale, gy, gz, scale)->render_update();
@@ -203,9 +206,11 @@ void Pixel::render_update() {
     //cout << render_index << endl;
     //cout << "render_update() " << render_index.first << ' ' << render_index.second << endl;
     //lightlevel = -1;
+    calculate_lightlevel();
     if (render_index.first > -1) {
         world->glvecs.del(render_index);
         render_index = pair<int,int>(-1,0);
+        render_flag = true;
         //cout << render_index.first << ' ' << render_index.second << " x" << endl;
         //render_index.first = -(render_index.first+2);
     }
@@ -223,8 +228,16 @@ void Pixel::lighting_update() {
     
 }
 
+void Pixel::reset_lightlevel() {
+  if (value != 0) {
+    lightlevel = blocks->blocks[value]->lightlevel;
+  } else {
+    lightlevel = 0;
+  }
+  lightlevel = 1;
+}
 
-void Pixel::calculate_light_level() {
+void Pixel::calculate_lightlevel() {
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
   //cout << gx << ' ' << gy << ' ' << gz << ' ' << scale << endl;
@@ -238,10 +251,10 @@ void Pixel::calculate_light_level() {
       }
       other->all_side([&] (Pixel* pix) {
         //cout << pix->get_lightlevel(-offset[0], -offset[1], -offset[2]) << ',' << lightlevel << endl;
-        if (pix->value == 0 and pix->get_lightlevel(-offset[0], -offset[1], -offset[2]) < lightlevel) {
-          pix->lightlevel = lightlevel*0.8f;
+        if (pix->value == 0 and pix->get_lightlevel(-offset[0], -offset[1], -offset[2]) < lightlevel*0.9f) {
+          pix->lightlevel = lightlevel*0.9f;
           //cout << "setting light level" << endl;
-          pix->calculate_light_level();
+          pix->render_update();
         }
       }, -offset[0], -offset[1], -offset[2]);
       //cout << offset[0] << ' ' << offset[1] << ' ' << offset[2] << endl;
@@ -262,8 +275,10 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
     //cout << x << ' ' << y << ' ' << z << "rendering call" << endl;
     GLfloat uv_start = 0.0f;// + (1/32.0f*(int)value);
     GLfloat uv_end = uv_start + 1.0f;///32.0f;
-    char mat = blocks->blocks[value]->texture;
+    int tex_index = blocks->blocks[value]->texture;
     int minscale = blocks->blocks[value]->minscale;
+    char mat = tex_index;
+    /*
     GLfloat new_uvs[] = {
         0.0f, 1.0f * scale/minscale,
         1.0f * scale/minscale, 1.0f * scale/minscale,
@@ -271,13 +286,35 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
         1.0f * scale/minscale, 0.0f,
         0.0f, 0.0f,
         0.0f, 1.0f * scale/minscale
+    };*/
+    GLfloat small = 0;//0.01;
+    GLfloat start_x = (tex_index*minscale/16)/16.0f + small;
+    GLfloat end_x = ((tex_index)*minscale/16 + minscale)/16.0f - small;
+    GLfloat start_y = (tex_index*minscale%16)/16.0f + small;
+    GLfloat end_y = ((tex_index)*minscale%16 + minscale)/16.0f - small;
+    //cout << start_x << ' ' << end_x << ' ' << start_y << ' ' << end_y  << ' ' << tex_index << ' ' << minscale << endl;
+    /*GLfloat new_uvs[] = {
+        start_x, end_y,
+        end_x, end_y,
+        end_x, start_y,
+        end_x, start_y,
+        start_x, start_y,
+        start_x, end_y
+    };*/
+    GLfloat new_uvs[] = {
+        0.0f, 1.0f,
+        1.0f, 1.0f,
+        1.0f, 0.0f,
+        1.0f, 0.0f,
+        0.0f, 0.0f,
+        0.0f, 1.0f
     };
     RenderVecs vecs;
     //cout << 85 << endl;
     Block* block;
     //cout << 87 << endl;
     
-    block = world->get_global(gx, gy, gz-scale, scale);
+    
     //exit(2);
     //if (block != nullptr) {
     //    cout << scale << ' ' << block->scale << " sd-------------------------------------\n";
@@ -285,83 +322,125 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
     //    block->global_position(&ox, &oy, &oz);
     //   cout << ox << ' ' << oy << ' ' << oz << ' ' << block->px << ' ' << block->py << ' ' << block->pz << endl;
     //    //exit(3);
-    //
-    if (block == nullptr or block->is_air(0, 0, 1)) {
-        GLfloat face[] = {
-            x + scale, y, z,
-            x, y, z,
-            x, y + scale, z,
-            x, y + scale, z,
-            x + scale, y + scale, z,
-            x + scale, y, z
-        };
-        vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(0,0,1) : 1 ), mat);//0.4f
+    
+    for (int ox = 0; ox < scale; ox += minscale) {
+      for (int oy = 0; oy < scale; oy += minscale) {
+        block = world->get_global(gx+ox, gy+oy, gz-minscale, minscale);
+        if (block == nullptr or block->is_air(0, 0, 1)) {
+          GLfloat nx = x+ox;
+          GLfloat ny = y+oy;
+          GLfloat nz = z;
+          GLfloat face[] = {
+              nx + minscale, ny, z,
+              nx, ny, z,
+              nx, ny + minscale, z,
+              nx, ny + minscale, z,
+              nx + minscale, ny + minscale, z,
+              nx + minscale, ny, z
+          };
+          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(0,0,1) : 1 ), minscale, mat);//0.4f
+         }
+      }
     }
     
-    block = world->get_global(gx, gy-scale, gz, scale);
-    if (block == nullptr or block->is_air(0, 1, 0)) {
-        GLfloat face[] = {
-            x, y, z,
-            x + scale, y, z,
-            x + scale, y, z + scale,
-            x + scale, y, z + scale,
-            x, y, z + scale,
-            x, y, z
-        };
-        
-        vecs.add_face(face, new_uvs, 0.5f * ( (block!=nullptr) ? block->get_lightlevel(0,1,0) : 1 ), mat);
+    for (int ox = 0; ox < scale; ox += minscale) {
+      for (int oz = 0; oz < scale; oz += minscale) {
+        block = world->get_global(gx+ox, gy-minscale, gz+oz, minscale);
+        if (block == nullptr or block->is_air(0, 1, 0)) {
+          GLfloat nx = x+ox;
+          GLfloat ny = y;
+          GLfloat nz = z+oz;
+          GLfloat face[] = {
+              nx, y, nz,
+              nx + minscale, y, nz,
+              nx + minscale, y, nz + minscale,
+              nx + minscale, y, nz + minscale,
+              nx, y, nz + minscale,
+              nx, y, nz
+          };
+          vecs.add_face(face, new_uvs, 0.5f * ( (block!=nullptr) ? block->get_lightlevel(0,1,0) : 1 ), minscale, mat);
+        }
+      }
     }
     
-    block = world->get_global(gx-scale, gy, gz, scale);
-    if (block == nullptr or block->is_air(1, 0, 0)) {
-        GLfloat face[] = {
-            x, y, z,
-            x, y, z + scale,
-            x, y + scale, z + scale,
-            x, y + scale, z + scale,
-            x, y + scale, z,
-            x, y, z
-        };
-        vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(1,0,0) : 1 ), mat);
+    for (int oy = 0; oy < scale; oy += minscale) {
+      for (int oz = 0; oz < scale; oz += minscale) {
+        block = world->get_global(gx-minscale, gy+oy, gz+oz, minscale);
+        if (block == nullptr or block->is_air(1, 0, 0)) {
+          GLfloat nx = x;
+          GLfloat ny = y+oy;
+          GLfloat nz = z+oz;
+          GLfloat face[] = {
+              x, ny, nz,
+              x, ny, nz + minscale,
+              x, ny + minscale, nz + minscale,
+              x, ny + minscale, nz + minscale,
+              x, ny + minscale, nz,
+              x, ny, nz
+          };
+          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(1,0,0) : 1 ), minscale, mat);
+        }
+      }
     }
     
-    block = world->get_global(gx, gy, gz+scale, scale);
-    if (block == nullptr or block->is_air(0, 0, -1)) {
-        GLfloat face[] = {
-            x, y, z + scale,
-            x + scale, y, z + scale,
-            x + scale, y + scale, z + scale,
-            x + scale, y + scale, z + scale,
-            x, y + scale, z + scale,
-            x, y, z + scale
-        };
-        vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(0,0,-1) : 1 ), mat);
+    for (int ox = 0; ox < scale; ox += minscale) {
+      for (int oy = 0; oy < scale; oy += minscale) {
+        block = world->get_global(gx+ox, gy+oy, gz+scale, minscale);
+        if (block == nullptr or block->is_air(0, 0, -1)) {
+          GLfloat nx = x+ox;
+          GLfloat ny = y+oy;
+          GLfloat nz = z;
+          GLfloat face[] = {
+              nx, ny, z + scale,
+              nx + minscale, ny, z + scale,
+              nx + minscale, ny + minscale, z + scale,
+              nx + minscale, ny + minscale, z + scale,
+              nx, ny + minscale, z + scale,
+              nx, ny, z + scale
+          };
+          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(0,0,-1) : 1 ), minscale, mat);
+        }
+      }
     }
     
-    block = world->get_global(gx, gy+scale, gz, scale);
-    if (block == nullptr or block->is_air(0, -1, 0)) {
-        GLfloat face[] = {
-            x + scale, y + scale, z + scale,
-            x + scale, y + scale, z,
-            x, y + scale, z,
-            x, y + scale, z,
-            x, y + scale, z + scale,
-            x + scale, y + scale, z + scale
-        };
-        vecs.add_face(face, new_uvs, 0.9f * ( (block!=nullptr) ? block->get_lightlevel(0,-1,0) : 1 ), mat);//top
+    for (int ox = 0; ox < scale; ox += minscale) {
+      for (int oz = 0; oz < scale; oz += minscale) {
+        block = world->get_global(gx+ox, gy+scale, gz+oz, minscale);
+        if (block == nullptr or block->is_air(0, -1, 0)) {
+          GLfloat nx = x+ox;
+          GLfloat ny = y;
+          GLfloat nz = z+oz;
+          GLfloat face[] = {
+              nx + minscale, y + scale, nz + minscale,
+              nx + minscale, y + scale, nz,
+              nx, y + scale, nz,
+              nx, y + scale, nz,
+              nx, y + scale, nz + minscale,
+              nx + minscale, y + scale, nz + minscale
+          };
+          vecs.add_face(face, new_uvs, 0.9f * ( (block!=nullptr) ? block->get_lightlevel(0,-1,0) : 1 ), minscale, mat);//top
+        }
+      }
     }
     
-    block = world->get_global(gx+scale, gy, gz, scale);
-    if (block == nullptr or block->is_air(-1, 0, 0)) {
-        GLfloat face[] = {
-            x + scale, y, z + scale,
-            x + scale, y, z,
-            x + scale, y + scale, z,
-            x + scale, y + scale, z,
-            x + scale, y + scale, z + scale,
-            x + scale, y, z + scale
-        };
-        vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(-1,0,0) : 1 ), mat); //0.4f
+    for (int oy = 0; oy < scale; oy += minscale) {
+      for (int oz = 0; oz < scale; oz += minscale) {
+        block = world->get_global(gx+scale, gy+oy, gz+oz, minscale);
+        if (block == nullptr or block->is_air(-1, 0, 0)) {
+          GLfloat nx = x;
+          GLfloat ny = y+oy;
+          GLfloat nz = z+oz;
+          GLfloat face[] = {
+              x + scale, ny, nz + minscale,
+              x + scale, ny, nz,
+              x + scale, ny + minscale, nz,
+              x + scale, ny + minscale, nz,
+              x + scale, ny + minscale, nz + minscale,
+              x + scale, ny, nz + minscale
+          };
+          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(-1,0,0) : 1 ), minscale, mat); //0.4f
+        }
+      }
     }
     render_index = allvecs->add(&vecs);
     
@@ -406,7 +485,12 @@ Chunk* Pixel::subdivide(function<void(int,int,int,Pixel*)> func) {
 }
 
 void Pixel::save_to_file(ofstream* of) {
-    *of << value;
+    if (extras == nullptr) {
+      *of << value;
+    } else {
+      *of << '~' << value;
+      extras->save_to_file(of);
+    }
 }
 
 
@@ -438,11 +522,11 @@ Chunk* Chunk::subdivide(function<void(int,int,int,Pixel*)> func) {
     cout << "error: subdividing already subdivided block" << endl;
     return nullptr;
 }
-void Chunk::calculate_light_level() {
+void Chunk::calculate_lightlevel() {
     for (int x = 0; x < csize; x ++) {
         for (int y = csize-1; y >= 0; y --) {
             for (int z = 0; z < csize; z ++) {
-                blocks[x][y][z]->calculate_light_level();
+                blocks[x][y][z]->calculate_lightlevel();
             }
         }
     }
