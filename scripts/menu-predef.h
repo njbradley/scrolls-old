@@ -26,6 +26,7 @@ using std::ifstream;
 #include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
 
+#include "crafting-predef.h"
 
 class Menu { public:
     virtual void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) = 0;
@@ -35,7 +36,7 @@ class Menu { public:
 
 class InventoryMenu: public Menu { public:
     string header;
-    pair<Item*,int> in_hand;
+    ItemStack in_hand;
     function<void()> after;
     ItemContainer* other;
     int button;
@@ -43,6 +44,19 @@ class InventoryMenu: public Menu { public:
     
     InventoryMenu(string head, ItemContainer* start_other, function<void()> after_func);
     void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs);
+};
+
+class CraftingMenu: public Menu { public:
+  ItemStack in_hand;
+  function<void()> after;
+  ItemContainer input;
+  ItemContainer output;
+  int button;
+  double xpos, ypos;
+  Recipe* displayed_recipe;
+  
+  CraftingMenu(function<void()> after_func);
+  void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs);
 };
 
 class SelectMenu : public Menu { public:

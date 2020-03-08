@@ -484,11 +484,11 @@ Chunk* Pixel::subdivide(function<void(int,int,int,Pixel*)> func) {
     return newchunk;
 }
 
-void Pixel::save_to_file(ofstream* of) {
+void Pixel::save_to_file(ofstream& of) {
     if (extras == nullptr) {
-      *of << value;
+      of << value;
     } else {
-      *of << '~' << value;
+      of << '~' << value;
       extras->save_to_file(of);
     }
 }
@@ -715,8 +715,8 @@ bool Chunk::is_air(int dx, int dy, int dz) {
     return air;
 }
 
-void Chunk::save_to_file(ofstream* of) {
-    *of << "{";
+void Chunk::save_to_file(ofstream& of) {
+    of << "{";
     for (int x = 0; x < csize; x ++) {
         for (int y = 0; y < csize; y ++) {
             for (int z = 0; z < csize; z ++) {
@@ -724,7 +724,7 @@ void Chunk::save_to_file(ofstream* of) {
             }
         }
     }
-    *of << "}";
+    of << "}";
 }
 
 #endif

@@ -59,7 +59,7 @@ class World {
         void save_chunk(pair<int,int> pos);
         void save_chunk(pair<int,int> pos, Block* chunk);
         void del_chunk(pair<int,int> pos);
-        Block* parse_file(ifstream* ifile, int px, int py, int pz, int scale, Chunk* parent);
+        Block* parse_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent);
         Block* load_chunk(pair<int,int> pos);
         void close_world();
 };

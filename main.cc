@@ -26,6 +26,7 @@ using namespace glm;
 #include "scripts/blockdata.h"
 #include "scripts/blocks.h"
 #include "scripts/items.h"
+#include "scripts/crafting.h"
 
 #include "scripts/cross-platform.h"
 
@@ -98,6 +99,7 @@ int main( void )
 	
 	itemstorage = new ItemStorage();
 	blocks = new BlockStorage();
+	recipestorage = new RecipeStorage();
 	
 	// Initialise GLFW
 	if( !glfwInit() )
@@ -263,7 +265,7 @@ int main( void )
 	//}
 	
 	
-	world = new World("bubu", 5583489);
+	world = new World("new-world");
 	world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
 	
 	Player* player = world->player;

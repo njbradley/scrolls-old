@@ -70,7 +70,7 @@ void World::startup() {
     //load_image();
     ifstream ifile("saves/" + name + "/player.txt");
     if (ifile.good()) {
-      player = new Player(&ifile);
+      player = new Player(ifile);
     } else {
       player = new Player( vec3(10,52,10), world);
     	player->flying = true;
@@ -271,7 +271,7 @@ void World::save_chunk(pair<int,int> pos, Block* block) {
   cout << "saving '" << path.str() << "' to file\n";
   ofstream of(path.str(), ios::binary);
   of << "scrolls chunk file:";
-  block->save_to_file(&of);
+  block->save_to_file(of);
 }
 
 void World::del_chunk(pair<int,int> pos) {
@@ -283,9 +283,9 @@ void World::del_chunk(pair<int,int> pos) {
 
 
 
-Block* World::parse_file(ifstream* ifile, int px, int py, int pz, int scale, Chunk* parent) {
+Block* World::parse_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent) {
     char c;
-    ifile->read(&c,1);
+    ifile.read(&c,1);
     if (c == '{') {
         Chunk* chunk = new Chunk(px, py, pz, scale, parent);
         for (int x = 0; x < csize; x ++) {
@@ -295,14 +295,14 @@ Block* World::parse_file(ifstream* ifile, int px, int py, int pz, int scale, Chu
                 }
             }
         }
-        ifile->read(&c,1);
+        ifile.read(&c,1);
         if (c != '}') {
             cout << "error, mismatched {} in save file" << endl;
         }
         return (Block*) chunk;
     } else {
         if (c == '~') {
-          c = ifile->get();
+          c = ifile.get();
           BlockExtras* extra = new BlockExtras(ifile);
           Pixel* p = new Pixel(px, py, pz, c, scale, parent, extra);
           return (Block*) p;
@@ -323,7 +323,7 @@ Block* World::load_chunk(pair<int,int> pos) {
         getline(ifile, header, ':');
         
         //chunks[pos] = parse_file(&ifile, pos.first, 0, pos.second, chunksize, nullptr);
-        return parse_file(&ifile, pos.first, 0, pos.second, chunksize, nullptr);
+        return parse_file(ifile, pos.first, 0, pos.second, chunksize, nullptr);
     } else {
         cout << "generating '" << path.str() << "'\n";
         
@@ -334,7 +334,7 @@ Block* World::load_chunk(pair<int,int> pos) {
 
 void World::close_world() {
     ofstream ofile("saves/" + name + "/player.txt");
-    player->save_to_file(&ofile);
+    player->save_to_file(ofile);
     delete player;
     vector<pair<int,int> > poses;
     for (pair<pair<int,int>, Block*> kvpair : chunks) {

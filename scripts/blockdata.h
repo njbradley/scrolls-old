@@ -30,15 +30,15 @@ BlockExtras::BlockExtras(Pixel* pix) {
 
 BlockExtras::BlockExtras() {}
 
-BlockExtras::BlockExtras(istream* ifile) {
+BlockExtras::BlockExtras(istream& ifile) {
   inven = new ItemContainer(ifile);
   string buff;
-  getline(*ifile, buff, ':');
+  getline(ifile, buff, ':');
 }
 
-void BlockExtras::save_to_file(ostream* ofile) {
+void BlockExtras::save_to_file(ostream& ofile) {
   inven->save_to_file(ofile);
-  *ofile << ':';
+  ofile << ':';
 }
 
 BlockData::BlockData(ifstream & ifile) {
@@ -72,7 +72,14 @@ BlockData::BlockData(ifstream & ifile) {
 
 void BlockData::do_rcaction(Pixel* pix) {
     if (rcaction == "crafting") {
-        
+      if (menu == nullptr) {
+        cout << "setting menu" << endl;
+        menu = new CraftingMenu( [&] () {
+          cout << "done! " << endl;
+          delete menu;
+          menu = nullptr;
+        });
+      }
     } else if (rcaction == "chest") {
       if (menu == nullptr) {
         cout << "setting menu" << endl;

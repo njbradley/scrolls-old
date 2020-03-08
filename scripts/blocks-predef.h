@@ -49,7 +49,7 @@ class Block { public:
     virtual bool is_air(int, int, int) = 0;
     virtual Block * get_global(int,int,int,int) = 0;
     virtual void render_update() = 0;
-    virtual void save_to_file(ofstream*) = 0;
+    virtual void save_to_file(ofstream&) = 0;
     Block* raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time);
     Block* get_world();
     void update_chunk();
@@ -81,7 +81,7 @@ class Pixel: public Block { public:
     Block* get_global(int x, int y, int z, int scale);
     void render(GLVecs*, int, int,int);
     Chunk* subdivide(function<void(int,int,int,Pixel*)> func);
-    void save_to_file(ofstream* of);
+    void save_to_file(ofstream& of);
 };
 
 class Chunk: public Block { public:
@@ -103,7 +103,7 @@ class Chunk: public Block { public:
     void render_update();
     Block* get_global(int x, int y, int z, int nscale);
     bool is_air(int dx, int dy, int dz);
-    void save_to_file(ofstream* of);
+    void save_to_file(ofstream& of);
 };
 
 

@@ -52,8 +52,8 @@ class Player: public Entity {
 		bool autojump = false;
 		
 		Player(vec3 pos, World* newworld);
-    Player(istream* ifile);
-    void save_to_file(ostream* ofile);
+    Player(istream& ifile);
+    void save_to_file(ostream& ofile);
 		mat4 getViewMatrix();
 		mat4 getProjectionMatrix();
 		void right_mouse();

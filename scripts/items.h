@@ -122,6 +122,18 @@ void Item::dig_pickaxe(World* world, int x, int y, int z, int time, double rando
     }
 }
 
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+ItemStack::ItemStack(Item* newitem, int newcount): item(newitem), count(newcount) {
+  
+}
+
+void ItemStack::render(RenderVecs* vecs, float x, float y) {
+  draw_image_uv(vecs, "items.bmp", x, y, 0.1f, 0.1f*aspect_ratio, item->texture/64.0f, (item->texture+1)/64.0f);
+  draw_text(vecs, std::to_string(count), x+0.02, y+0.02f);
+}
+
 /////////////////////////////// ITEMSTRAGE//////////////////////////////////////
 
     ItemStorage::ItemStorage() {
@@ -143,35 +155,35 @@ void Item::dig_pickaxe(World* world, int x, int y, int z, int time, double rando
 
 ItemContainer::ItemContainer(int newsize): size(newsize) {
     for (int i = 0; i < newsize; i ++) {
-        items.push_back(pair<Item*,int>(nullptr, 0));
+        items.push_back(ItemStack(nullptr,0));
     }
 }
 
-ItemContainer::ItemContainer(istream* ifile) {
-  *ifile >> size;
+ItemContainer::ItemContainer(istream& ifile) {
+  ifile >> size;
   for (int i = 0; i < size; i ++) {
     string name;
     int count;
-    *ifile >> name;
+    ifile >> name;
     if (name == "null") {
-      items.push_back(pair<Item*,int>(nullptr, 0));
+      items.push_back(ItemStack(nullptr,0));
     } else {
-      *ifile >> count;
-      items.push_back(pair<Item*,int>(itemstorage->items[name], count));
+      ifile >> count;
+      items.push_back(ItemStack(itemstorage->items[name], count));
     }
   }
 }
 
 bool ItemContainer::add(Item* item, int num) {
     for (int i = 0; i < items.size(); i ++) {
-        if (item == items[i].first) {
-            items[i].second += num;
+        if (item == items[i].item) {
+            items[i].count += num;
             return true;
         }
     }
     for (int i = 0; i < items.size(); i ++) {
-        if (items[i].first == nullptr) {
-            items[i] = pair<Item*, int>(item, num);
+        if (items[i].item == nullptr) {
+            items[i] = ItemStack(item, num);
             return true;
         }
     }
@@ -181,43 +193,79 @@ bool ItemContainer::add(Item* item, int num) {
 
 Item* ItemContainer::get(int index) {
     if (index < items.size()) {
-        return items[index].first;
+        return items[index].item;
     }
     return nullptr;
 }
 
 Item* ItemContainer::use(int index) {
     if (index < items.size()) {
-        Item* ret = items[index].first;
-        items[index].second--;
-        if (items[index].second <= 0) {
-          items[index] = pair<Item*,int>(nullptr,0);
+        Item* ret = items[index].item;
+        items[index].count--;
+        if (items[index].count <= 0) {
+          items[index] = ItemStack(nullptr,0);
         }
         return ret;
     }
     return nullptr;
 }
 
+bool ItemContainer::contains(ItemStack itemstack) {
+  for (ItemStack is : items) {
+    if (is.item == itemstack.item) {
+      if (is.count >= itemstack.count) {
+        return true;
+      } else {
+        itemstack.count -= is.count;
+      }
+    }
+  }
+  return false;
+}
+
+bool ItemContainer::take(ItemStack itemstack) {
+  for (int i = 0; i < items.size(); i ++) {
+    if (items[i].item == itemstack.item) {
+      if (items[i].count > itemstack.count) {
+        items[i].count -= itemstack.count;
+        return true;
+      } else if (items[i].count == itemstack.count) {
+        items[i] = ItemStack(nullptr, 0);
+        return true;
+      } else {
+        itemstack.count -= items[i].count;
+        items[i] = ItemStack(nullptr, 0);
+      }
+    }
+  }
+  return false;
+}
+
 void ItemContainer::render(RenderVecs* vecs, float x, float y) {
     draw_image(vecs, "inven_select.bmp", x, y, 1, 0.1f*aspect_ratio);
     for (int i = 0; i < items.size(); i ++) {
-        if (items[i].first != nullptr) {
-            draw_image_uv(vecs, "items.bmp", x + i*0.1f, y+0.02f, 0.1f, 0.1f*aspect_ratio, items[i].first->texture/64.0f, (items[i].first->texture+1)/64.0f);
-            draw_text(vecs, std::to_string(items[i].second), x+0.02 + i*0.1f, y+0.02f);
+        if (items[i].item != nullptr) {
+            items[i].render(vecs, x + i*0.1f, y+0.02f);
         }
     }
 }
 
-void ItemContainer::save_to_file(ostream* ofile) {
-  *ofile << size << endl;
-  for (pair<Item*,int> itemstack : items) {
-    if (itemstack.first == nullptr) {
-      *ofile << "null ";
+void ItemContainer::clear() {
+  for (int i = 0; i < size; i ++) {
+    items[i] = ItemStack(nullptr, 0);
+  }
+}
+
+void ItemContainer::save_to_file(ostream& ofile) {
+  ofile << size << ' ';
+  for (ItemStack itemstack : items) {
+    if (itemstack.item == nullptr) {
+      ofile << "null ";
     } else {
-      *ofile << itemstack.first->name << ' ' << itemstack.second << ' ';
+      ofile << itemstack.item->name << ' ' << itemstack.count << ' ';
     }
   }
-  *ofile << endl;
+  ofile << endl;
 }
 
 #endif

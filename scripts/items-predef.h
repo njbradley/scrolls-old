@@ -36,6 +36,14 @@ class Item {
         void dig_pickaxe(World* world, int x, int y, int z, int time, double random);
 };
 
+class ItemStack {
+public:
+  Item* item;
+  int count;
+  ItemStack(Item*,int);
+  void render(RenderVecs* vecs, float x, float y);
+};
+
 class ItemStorage { public:
     map<string,Item*> items;
     ItemStorage();
@@ -47,16 +55,19 @@ ItemStorage* itemstorage;
 
 class ItemContainer {
     public:
-        vector<pair<Item*,int> > items;
+        vector<ItemStack> items;
         int size;
         
         ItemContainer(int newsize);
-        ItemContainer(istream*);
+        ItemContainer(istream&);
         bool add(Item* item, int num);
         Item* get(int index);
         Item* use(int index);
+        bool contains(ItemStack);
+        bool take(ItemStack);
         void render(RenderVecs* vecs, float x, float y);
-        void save_to_file(ostream*);
+        void save_to_file(ostream&);
+        void clear();
 };
 
 #endif
