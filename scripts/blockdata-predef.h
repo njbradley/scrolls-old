@@ -32,7 +32,7 @@ class BlockData { public:
 
 class BlockStorage { public:
     map<char,BlockData*> blocks;
-    map<string, char> names_to_chars;
+    map<string, char> names;
     
     BlockStorage();
 };

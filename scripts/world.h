@@ -68,6 +68,7 @@ void World::setup_files() {
 
 void World::startup() {
     //load_image();
+    generative_setup_world(seed);
     ifstream ifile("saves/" + name + "/player.txt");
     if (ifile.good()) {
       player = new Player(ifile);
@@ -81,14 +82,16 @@ void World::startup() {
         iter_gen(x, y, z, p);
     };
     lighting_flag = true;
+    load_nearby_chunks();
 }
 
 void World::load_nearby_chunks() {
   
   int px = player->position.x/chunksize - (player->position.x<0);
   int pz = player->position.z/chunksize - (player->position.z<0);
-  for (int x = px-1; x < px+2; x ++) {
-    for (int y = pz-1; y < pz+2; y ++) {
+  int range = 0;
+  for (int x = px-range; x < px+range+1; x ++) {
+    for (int y = pz-range; y < pz+range+1; y ++) {
       if (!chunks.count(pair<int,int>(x,y))) {
         chunks[pair<int,int>(x,y)] = load_chunk(pair<int,int>(x,y));
         render_flag = true;
@@ -161,7 +164,7 @@ void World::render() {
         //double after = clock();
         //chunks[kvpair.first]->calculate_light_level();
         chunks[kvpair.first]->render(&glvecs, 0, 0, 0);
-        cout << "rendered chunk " << kvpair.first.first << ' ' << kvpair.first.first << endl;
+        cout << "rendered chunk " << kvpair.first.first << ' ' << kvpair.first.second << endl;
         //render_chunk_vectors(kvpair.first);
         //cout << during - before << ' ' << after - during << ' ' << clock()-after << endl;
     }
@@ -326,12 +329,111 @@ Block* World::load_chunk(pair<int,int> pos) {
         return parse_file(ifile, pos.first, 0, pos.second, chunksize, nullptr);
     } else {
         cout << "generating '" << path.str() << "'\n";
-        
-        return generate(pos);
+        generate_chunk(pos);
+        return load_chunk(pos);
+        //return generate(pos);
     }
     //render_chunk_vectors(pos);
 }
 
+void World::generate_chunk(pair<int,int> pos) {
+  generative_setup_chunk(pos.first, pos.second);
+  stringstream path;
+  path << "saves/" << name << "/chunk" << pos.first << "x" << pos.second << "y.dat";
+  cout << "generating '" << path.str() << "' to file\n";
+  ofstream of(path.str(), ios::binary);
+  of << "scrolls chunk file:";
+  char val = gen_block(of, 0, 0, 0, chunksize);
+  //cout << (int)val << int(char(0xff)) << endl;
+}
+
+char World::gen_block(ostream& ofile, int gx, int gy, int gz, int scale) {
+  if (scale == 1) {
+    char val = gen_func(gx, gy, gz);
+    ofile << val;
+    return val;
+  } else {
+    stringstream ss;
+    ss << '{';
+    char val = gen_block(ss, gx, gy, gz, scale/2);
+    bool all_same = val != -1;
+    for (int x = 0; x < csize; x ++) {
+      for (int y = 0; y < csize; y ++) {
+        for (int z = 0; z < csize; z ++) {
+          if (x > 0 or y > 0 or z > 0) {
+            char newval = gen_block(ss, gx+x*(scale/2), gy+y*(scale/2), gz+z*(scale/2), scale/2);
+            all_same = all_same and newval == val;
+          }
+        }
+      }
+    }
+    if (all_same) {
+      ofile << val;
+      return -1;
+    } else {
+      ss << '}';
+      ofile << ss.rdbuf();
+      return 0xff;
+    }
+  }
+}
+/*
+int World::gen_get_chunk_size(int gx, int gy, int gz) {
+  char val = gen_func(gx, gy, gz);
+  bool all_same = true;
+  int scale = 1
+  int scale_max;
+  
+  int max = 1;
+  int tmp = gx;
+  while (tmp%2 == 0) {
+    tmp /= 2;
+    max ++;
+  }
+  scale_max = max;
+  
+  int max = 1;
+  int tmp = gy;
+  while (tmp%2 == 0) {
+    tmp /= 2;
+    max ++;
+  }
+  if (max < scale_max) scale_max = max;
+  
+  int max = 1;
+  int tmp = gz;
+  while (tmp%2 == 0) {
+    tmp /= 2;
+    max ++;
+  }
+  if (max < scale_max) scale_max = max;
+  
+  while (all_same and scale < max_scale) {
+    all_same = true;
+    for (int x = 0; x < csize and all_same; x ++) {
+      for (int y = 0; y < csize and all_same; y ++) {
+        for (int z = 0; z < csize and all_same; z ++) {
+          if (x > 0 or y > 0 or z > 0) {
+            for (int ox = 0; ox < scale and all_same; ox ++) {
+              for (int oy = 0; oy < scale and all_same; oy ++) {
+                for (int oz = 0; oz < scale and all_same; oz ++) {
+                  if (gen_func(gx+x+ox, gy+y+oy, gz+z+oz) != val) {
+                    all_same = false;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    if (all_same) {
+      scale *= 2;
+    }
+  }
+  return scale;
+}
+*/
 void World::close_world() {
     ofstream ofile("saves/" + name + "/player.txt");
     player->save_to_file(ofile);

@@ -265,7 +265,7 @@ int main( void )
 	//}
 	
 	
-	world = new World("new-world");
+	world = new World("big");
 	world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
 	
 	Player* player = world->player;
@@ -315,7 +315,7 @@ int main( void )
 			}
 		}
 		
-		world->load_nearby_chunks();
+		//world->load_nearby_chunks();
 		if (render_flag) {
 			//cout << "rendering!!!!" << endl;
 			//auto fut =  std::async([&] () {world->render();});//();

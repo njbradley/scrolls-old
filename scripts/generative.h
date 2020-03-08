@@ -5,11 +5,11 @@
     using std::cout;
     using std::endl;
 #include <math.h>
-
+#include "blockdata-predef.h"
 //#include "texture.h"
 
-int rseed = 4094240;
-int seed = rseed;
+int worldseed;
+int seed;
 
 double lerp(double a0, double a1, double w) {
     return (1.0f - w)*a0 + w*a1;
@@ -113,22 +113,44 @@ double get_height(int x, int y) {
   return g/10.0f;
 }*/
 
+void generative_setup_world(int nseed) {
+  worldseed = nseed;
+  seed = nseed;
+}
+
+void generative_setup_chunk(int x, int y) {
+  
+}
+
 char generative_function( int x, int y, int z ) {
-    seed = rseed;
     double height = get_height(x, z);
     int a = 5;
     //cout << height << endl;
     //double treepos = scaled_perlin(x,z,1,30);
     //if (treepos > 0.9f) {
+    
+    int treex = x/20;
+    int treez = z/20;
+    double x_off = randfloat(x*2, z);
+    double z_off = randfloat(x*2+1, z);
+    treex = treex*20 + int(x_off*10)+5;
+    treez = treez*20 + int(z_off*10)+5;
+    
+    
     if (y < 4) {
-        return 7;
+        return blocks->names["water"];
     } if (y < 8 and y < height) {
-        return 5;
+        return blocks->names["rock"];
     } if (y < height-1) {
-        return 2;
+        return blocks->names["dirt"];
     } if (y < height) {
-        return 3;
-    } //if (y < trees+height+10 and y > height + 10) {
+        return blocks->names["grass"];
+    } if (x == treex and z == treez and y < height + 10) {
+      return blocks->names["wood"];
+    } if (abs(x-treex) < 3 and abs(z-treez) < 3 and y < height+13) {
+      //return blocks->names["bark"];
+    }
+     //if (y < trees+height+10 and y > height + 10) {
       //  return 4;
     //}
     return 0;

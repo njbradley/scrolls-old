@@ -33,7 +33,7 @@ class World {
         string name;
         int view_dist = 3;
         float sun = 0.0f;
-        static const int chunksize = 64;
+        int chunksize = 256;
         function<void(int,int,int,Pixel*)> iter_gen_func;
         GLVecs glvecs;
         bool lighting_flag;
@@ -61,6 +61,8 @@ class World {
         void del_chunk(pair<int,int> pos);
         Block* parse_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent);
         Block* load_chunk(pair<int,int> pos);
+        void generate_chunk(pair<int,int> pos);
+        char gen_block(ostream&, int, int, int, int);
         void close_world();
 };
 

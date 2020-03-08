@@ -103,7 +103,7 @@ BlockStorage::BlockStorage() {
         ifstream ifile("resources/data/blocks/" + filename);
         BlockData* data = new BlockData(ifile);
         blocks[(char)i] = data;
-        names_to_chars[data->name] = (char)i;
+        names[data->name] = (char)i;
         cout << "loading blockdata " << data->name << " from file" << endl;
     }
 }

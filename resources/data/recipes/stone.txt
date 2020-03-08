@@ -1,0 +1,2 @@
+1 rock 4
+1 stone 1
