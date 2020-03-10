@@ -13,6 +13,7 @@ using namespace glm;
 #include "items-predef.h"
 #include "blockdata-predef.h"
 #include "world-predef.h"
+#include "menu-predef.h"
 #include "ui.h"
 
 
@@ -177,6 +178,21 @@ void Player::left_mouse() {
 	//world->mark_render_update(pair<int,int>((int)position.x/world->chunksize - (position.x<0), (int)position.z/world->chunksize - (position.z<0)));
 }
 
+void Player::die() {
+	if (menu == nullptr) {
+		vector<string> options = {"Respawn"};
+		menu = new SelectMenu("You Died", options, [&] (string result) {
+			if (result == "Respawn") {
+				delete world->player;
+				world->spawn_player();
+			} else if (result == "Quit") {
+				cout << "you dead" << endl;
+			}
+			delete menu;
+			menu = nullptr;
+		});
+	}
+}
 
 void Player::mouse_button() {
 	cout << "hello" << endl;
@@ -185,6 +201,10 @@ void Player::mouse_button() {
 	} else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
 		
 	}
+}
+
+void Player::drop_ticks() {
+	lastTime = glfwGetTime();
 }
 
 void Player::computeMatricesFromInputs(World* nworld){
@@ -306,6 +326,10 @@ void Player::computeMatricesFromInputs(World* nworld){
 			selitem = 9;
 		}
 		scroll = 0;
+	}
+	
+	if (health <= 0 or position.y < -50) {
+		die();
 	}
 	
 	

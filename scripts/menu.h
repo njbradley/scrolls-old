@@ -40,7 +40,10 @@ void Menu::start() {
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
-void Menu::end() {
+void Menu::end(World* world) {
+  world->player->drop_ticks();
+  glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_FALSE);
+  glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPos(window, screen_x/2, screen_y/2);
 }
@@ -112,13 +115,12 @@ void InventoryMenu::render(GLFWwindow* window, World* world, Player* player, Ren
       }
     }
   }
-  
-  if (glfwGetKey(window, GLFW_KEY_R ) == GLFW_PRESS) {
-    end();
-    after();
-  }
 }
 
+void InventoryMenu::close(World* world) {
+  end(world);
+  after();
+}
 /////////////////////////////////////////craftingh ///////////////////////////////////////
 
 CraftingMenu::CraftingMenu(function<void()> after_func): after(after_func), input(8), output(4), in_hand(nullptr, 0) {
@@ -243,17 +245,16 @@ void CraftingMenu::render(GLFWwindow* window, World* world, Player* player, Rend
       }
     }
   }
-  
-  if (glfwGetKey(window, GLFW_KEY_R ) == GLFW_PRESS) {
-    for (ItemStack is : input.items) {
-      player->backpack.add(is.item, is.count);
-    }
-    end();
-    after();
-  }
 }
 
-
+void CraftingMenu::close(World* world) {
+  for (ItemStack is : input.items) {
+    world->player->backpack.add(is.item, is.count);
+  }
+  end(world);
+  after();
+  end(world);
+}
 
 ////////////////////////////////// select /////////////////////////////////////////////
 
@@ -261,6 +262,7 @@ SelectMenu::SelectMenu(string head, vector<string> & opts, function<void(string)
     options.swap(opts);
     chosen = "";
     start();
+    click = true;
 }
 
 void SelectMenu::render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
@@ -270,8 +272,9 @@ void SelectMenu::render(GLFWwindow* window, World* world, Player* player, Render
         draw_text(uivecs, name, -0.4f, 0.5f - i*0.1f, 2);
         i++;
     }
-    
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+    bool last_click = click;
+    click = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+    if (click and !last_click) {
 	      double xpos, ypos;
 	      glfwGetCursorPos(window, &xpos, &ypos);
         int index = (int)((double)ypos/screen_y*20) - 4;
@@ -279,15 +282,50 @@ void SelectMenu::render(GLFWwindow* window, World* world, Player* player, Render
             chosen = options[index];
         }
     }
-    
+    last_click = click;
     if (chosen != "") {
-        end();
-        after(chosen);
+        close(world);
     }
 }
 
+void SelectMenu::close(World* world) {
+  end(world);
+  after(chosen);
+}
 
+///////////////////////////////////////////////////////////
 
+string text_buff;
+
+void key_callback(GLFWwindow* window, unsigned int codepoint)
+{
+  char lett(codepoint);
+  if ((codepoint >= 65 and codepoint <= 90) or (codepoint >= 97 and codepoint <= 122)) {
+    text_buff += lett;
+  }
+}
+
+TextInputMenu::TextInputMenu(string head, function<void(string)> after_func): header(head), after(after_func) {
+  start();
+  glfwSetCharCallback(window, key_callback);
+}
+
+void TextInputMenu::render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
+  draw_text(uivecs, header, -0.5, 0.75f, 3);
+  draw_text(uivecs, text + '|', -0.5, 0.0f, 2);
+  if (text_buff != "") {
+    text += text_buff;
+    text_buff = "";
+  }
+  if (glfwGetKey(window, GLFW_KEY_ENTER ) == GLFW_PRESS) {
+    close(world);
+  }
+}
+
+void TextInputMenu::close(World* world) {
+  end(world);
+  after(text);
+}
 
 
 

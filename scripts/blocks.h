@@ -124,18 +124,25 @@ Block* Block::raycast(double* x, double* y, double* z, double dx, double dy, dou
 ///////////////////////////////// CLASS PIXEL /////////////////////////////////////
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent):
-  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val) {
+  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(nullptr) {
     reset_lightlevel();
-    if (value != 0) {
-      if (blocks->blocks[value]->extras != nullptr) {
-        extras = new BlockExtras(this);
-      }
-    }
+    generate_extras();
 }
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, BlockExtras* new_extra):
   Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(new_extra) {
     reset_lightlevel();
+}
+
+void Pixel::generate_extras() {
+  if (extras != nullptr) {
+    delete extras;
+  }
+  if (value != 0) {
+    if (blocks->blocks[value]->extras != nullptr) {
+      extras = new BlockExtras(this);
+    }
+  }
 }
 
 bool Pixel::continues() {
@@ -183,6 +190,7 @@ void Pixel::set(char val) {
     //cout << "render_indes: " << render_index << " val:" << (int)value <<  ' '<< (int)val << endl;
     //cout << "pixel(" << (int)value <<  " scale " << scale << ") set " << (int)val << endl;
     value = val;
+    generate_extras();
     //render_flag = true;
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);
@@ -326,7 +334,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
     for (int ox = 0; ox < scale; ox += minscale) {
       for (int oy = 0; oy < scale; oy += minscale) {
         block = world->get_global(gx+ox, gy+oy, gz-minscale, minscale);
-        if (block == nullptr or block->is_air(0, 0, 1)) {
+        if (block != nullptr and block->is_air(0, 0, 1)) {
           GLfloat nx = x+ox;
           GLfloat ny = y+oy;
           GLfloat nz = z;
@@ -346,7 +354,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
     for (int ox = 0; ox < scale; ox += minscale) {
       for (int oz = 0; oz < scale; oz += minscale) {
         block = world->get_global(gx+ox, gy-minscale, gz+oz, minscale);
-        if (block == nullptr or block->is_air(0, 1, 0)) {
+        if (block != nullptr and block->is_air(0, 1, 0)) {
           GLfloat nx = x+ox;
           GLfloat ny = y;
           GLfloat nz = z+oz;
@@ -366,7 +374,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
     for (int oy = 0; oy < scale; oy += minscale) {
       for (int oz = 0; oz < scale; oz += minscale) {
         block = world->get_global(gx-minscale, gy+oy, gz+oz, minscale);
-        if (block == nullptr or block->is_air(1, 0, 0)) {
+        if (block != nullptr and block->is_air(1, 0, 0)) {
           GLfloat nx = x;
           GLfloat ny = y+oy;
           GLfloat nz = z+oz;
@@ -386,7 +394,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
     for (int ox = 0; ox < scale; ox += minscale) {
       for (int oy = 0; oy < scale; oy += minscale) {
         block = world->get_global(gx+ox, gy+oy, gz+scale, minscale);
-        if (block == nullptr or block->is_air(0, 0, -1)) {
+        if (block != nullptr and block->is_air(0, 0, -1)) {
           GLfloat nx = x+ox;
           GLfloat ny = y+oy;
           GLfloat nz = z;
@@ -406,7 +414,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
     for (int ox = 0; ox < scale; ox += minscale) {
       for (int oz = 0; oz < scale; oz += minscale) {
         block = world->get_global(gx+ox, gy+scale, gz+oz, minscale);
-        if (block == nullptr or block->is_air(0, -1, 0)) {
+        if (block != nullptr and block->is_air(0, -1, 0)) {
           GLfloat nx = x+ox;
           GLfloat ny = y;
           GLfloat nz = z+oz;
@@ -426,7 +434,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
     for (int oy = 0; oy < scale; oy += minscale) {
       for (int oz = 0; oz < scale; oz += minscale) {
         block = world->get_global(gx+scale, gy+oy, gz+oz, minscale);
-        if (block == nullptr or block->is_air(-1, 0, 0)) {
+        if (block != nullptr and block->is_air(-1, 0, 0)) {
           GLfloat nx = x;
           GLfloat ny = y+oy;
           GLfloat nz = z+oz;

@@ -30,8 +30,9 @@ using namespace glm;
 
 class Menu { public:
     virtual void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) = 0;
+    virtual void close(World*) = 0;
     void start();
-    void end();
+    void end(World*);
 };
 
 class InventoryMenu: public Menu { public:
@@ -44,6 +45,7 @@ class InventoryMenu: public Menu { public:
     
     InventoryMenu(string head, ItemContainer* start_other, function<void()> after_func);
     void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs);
+    void close(World*);
 };
 
 class CraftingMenu: public Menu { public:
@@ -57,6 +59,7 @@ class CraftingMenu: public Menu { public:
   
   CraftingMenu(function<void()> after_func);
   void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs);
+  void close(World*);
 };
 
 class SelectMenu : public Menu { public:
@@ -64,10 +67,21 @@ class SelectMenu : public Menu { public:
     vector<string> options;
     string chosen;
     function<void(string)> after;
+    bool click;
     
     SelectMenu(string head, vector<string> & opts, function<void(string)> after_func);
-    
     void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs);
+    void close(World*);
+};
+
+class TextInputMenu: public Menu { public:
+  string header;
+  string text;
+  function<void(string)> after;
+  
+  TextInputMenu(string head, function<void(string)> after_func);
+  void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs);
+  void close(World*);
 };
 
 #endif

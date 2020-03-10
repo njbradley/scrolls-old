@@ -64,6 +64,7 @@ class Pixel: public Block { public:
     
     Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent);
     Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, BlockExtras* new_extra);
+    void generate_extras();
     bool continues();
     char get();
     void all(function<void(Pixel*)> func);

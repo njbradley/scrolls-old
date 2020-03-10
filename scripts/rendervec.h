@@ -64,6 +64,7 @@ pair<int,int> GLVecs::add(RenderVecs* newvecs) {
     }
     if (num_verts+newvecs->light.size() > size_alloc) {
         cout << "ran out of memory!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+        cout << num_verts << ' ' << size_alloc << endl;
         exit(1);
     }
     glNamedBufferSubData(vertexbuffer, num_verts*3*sizeof(GLfloat), newvecs->verts.size()*sizeof(GLfloat), &newvecs->verts.front());

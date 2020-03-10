@@ -28,6 +28,7 @@ class Entity { public:
     vec3 dirs[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
     bool old_consts[7];
     bool consts[7]; // constraints for entity, posx, pos y, pos z, neg x, neg y, neg z
+    bool immunity = true;
     
     Entity(vec3 pos, vec3 hitbox1, vec3 hitbox2);
     void timestep(World* world);
@@ -54,10 +55,12 @@ class Player: public Entity {
 		Player(vec3 pos, World* newworld);
     Player(istream& ifile);
     void save_to_file(ostream& ofile);
+    void die();
 		mat4 getViewMatrix();
 		mat4 getProjectionMatrix();
 		void right_mouse();
 		void left_mouse();
+    void drop_ticks();
 		void mouse_button();
 		void computeMatricesFromInputs(World* nworld);
 		void render_ui(RenderVecs * uivecs);

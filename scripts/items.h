@@ -242,12 +242,13 @@ bool ItemContainer::take(ItemStack itemstack) {
 }
 
 void ItemContainer::render(RenderVecs* vecs, float x, float y) {
-    draw_image(vecs, "inven_select.bmp", x, y, 1, 0.1f*aspect_ratio);
-    for (int i = 0; i < items.size(); i ++) {
-        if (items[i].item != nullptr) {
-            items[i].render(vecs, x + i*0.1f, y+0.02f);
-        }
+  //draw_image(vecs, "inven_select.bmp", x, y, 1, 0.1f*aspect_ratio);
+  for (int i = 0; i < items.size(); i ++) {
+    draw_image(vecs, "inven_select.bmp", x + i*0.1f, y, 0.1f, 0.1f*aspect_ratio);
+    if (items[i].item != nullptr) {
+      items[i].render(vecs, x + i*0.1f, y+0.02f);
     }
+  }
 }
 
 void ItemContainer::clear() {

@@ -27,6 +27,10 @@ class BlockExtras;
 class Menu;
 class InventoryMenu;
 class SelectMenu;
+class CraftingMenu;
+class ItemStack;
+class TerrainObject;
+class ChunkLoader;
 
 //////////////////////// GLOBAL VARIABLES ////////////////////////
 bool render_flag;

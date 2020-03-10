@@ -27,6 +27,7 @@ using namespace glm;
 #include "scripts/blocks.h"
 #include "scripts/items.h"
 #include "scripts/crafting.h"
+#include "scripts/terrain.h"
 
 #include "scripts/cross-platform.h"
 
@@ -41,6 +42,16 @@ int last_num_ui_verts = 0;
 
 const int max_fps = 200;
 const double min_ms_per_frame = 1000.0/max_fps;
+
+GLuint vertexbuffer;
+GLuint uvbuffer;
+GLuint lightbuffer;
+GLuint matbuffer;
+GLuint vertex_ui_buffer;
+GLuint uv_ui_buffer;
+GLuint mat_ui_buffer;
+
+int allocated_memory = 3600000*6;
 
 bool debug_visible = true;
 
@@ -76,18 +87,65 @@ void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLu
 	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &vecs.mats.front(), GL_STATIC_DRAW);
 }
 
-void GLAPIENTRY
-MessageCallback( GLenum source,
-                 GLenum type,
-                 GLuint id,
-                 GLenum severity,
-                 GLsizei length,
-                 const GLchar* message,
-                 const void* userParam )
-{
-  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
-            type, severity, message );
+
+void inven_menu() {
+	menu = new InventoryMenu("hi", nullptr, [&] () {
+		cout << "done! " << endl;
+		delete menu;
+		menu = nullptr;
+	});
+}
+
+void level_select_menu() {
+	worlds.clear();
+	ifstream ifile("saves/saves.txt");
+	string name;
+	while (ifile >> name) {
+		worlds.push_back(name);
+	}
+	
+	menu = new SelectMenu("Level Select:", worlds, [&] (string result) {
+		if (result != "") {
+			world->close_world();
+			delete world;
+			world = new World(result);
+			world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+			render_flag = true;
+			//debug_visible = true;
+		}
+		delete menu;
+		menu = nullptr;
+	});
+}
+
+void new_world_menu() {
+	menu = new TextInputMenu("Enter your new name:", [&] (string result) {
+		if (result != "") {
+			world->close_world();
+			delete world;
+			world = new World(result, rand());
+			world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+			render_flag = true;
+		}
+		delete menu;
+		menu = nullptr;
+	});
+}
+
+void main_menu() {
+	vector<string> options = {"Level Select", "New World"};
+	menu = new SelectMenu("Scrolls: an adventure game", options, [&] (string result) {
+		if (result == "Level Select") {
+			delete menu;
+			level_select_menu();
+		} else if (result == "New World") {
+			delete menu;
+			new_world_menu();
+		} else {
+			delete menu;
+			menu = nullptr;
+		}
+	});
 }
 
 
@@ -143,9 +201,6 @@ int main( void )
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxsize);
 	cout << "maxsize: " << maxsize << endl;
 	
-	glEnable              ( GL_DEBUG_OUTPUT );
-	glDebugMessageCallback( MessageCallback, 0 );
-	
 	
 	// Ensure we can capture the escape key being pressed below
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
@@ -158,7 +213,8 @@ int main( void )
   glfwSetCursorPos(window, 1024/2, 768/2);
 
 	// Dark blue background
-	glClearColor(0.0f, 0.0f, 0.3f, 0.0f);
+	vec3 clearcolor(0.4f, 0.7f, 1.0f);
+	glClearColor(clearcolor.x, clearcolor.y, clearcolor.z, 0.0f);
 	
 	// Enable depth test
 	glEnable(GL_DEPTH_TEST);
@@ -217,16 +273,8 @@ int main( void )
 	// Get a handle for our "myTextureSampler" uniform
 	GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
 	GLuint uiTextureID  = glGetUniformLocation(uiProgram, "myTextureSampler");
-	
-	
-	GLuint vertexbuffer;
-	GLuint uvbuffer;
-	GLuint lightbuffer;
-	GLuint matbuffer;
-	
-	GLuint vertex_ui_buffer;
-	GLuint uv_ui_buffer;
-	GLuint mat_ui_buffer;
+	GLuint viewdistID = glGetUniformLocation(programID, "view_distance");
+	GLuint clearcolorID = glGetUniformLocation(programID, "clear_color");
 	
 	int num_tris;
 	int num_ui_tris;
@@ -265,10 +313,26 @@ int main( void )
 	//}
 	
 	
-	world = new World("big");
-	world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
 	
-	Player* player = world->player;
+	ifstream ifile("saves/latest.txt");
+	string latest;
+	ifile >> latest;
+	if (latest != "") {
+		world = new World(latest);
+		world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+	} else {
+		ifstream ifile2("saves/saves.txt");
+		ifile2 >> latest;
+		if (latest != "") {
+			world = new World(latest);
+			world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+		} else {
+			world = new World("Starting-World", 12345);
+			world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+		}
+	}
+	
+	debug_visible = false;
 	
 	
 	
@@ -276,22 +340,23 @@ int main( void )
 	double currentTime = lastTime;
 	double lastFrameTime = lastTime;
 	int nbFrames = 0;
-	render_flag = true;
 	int fps;
+	render_flag = true;
 	bool reaching_max_fps = true;
 	double slow_frame = 0;
+	int view_distance = 1000;
 	
-	
+	bool playing = true;
 	
 	//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, &num_tris);
-	do {
+	while (playing) {
 		
 		
 		
 		
 		if (menu == nullptr) {
-			player->timestep(world);
-			player->computeMatricesFromInputs(world);
+			world->player->timestep(world);
+			world->player->computeMatricesFromInputs(world);
 		}
 		
 		
@@ -299,10 +364,10 @@ int main( void )
 			debugstream.str("");
 			
 			debugstream << "fps: " << fps << endl;
-			debugstream << "x: " << player->position.x << "\ny: " << player->position.y << "\nz: " << player->position.z << endl;
-			debugstream << "dx: " << player->vel.x << "\ndy: " << player->vel.y << "\ndz: " << player->vel.z << endl;
+			debugstream << "x: " << world->player->position.x << "\ny: " << world->player->position.y << "\nz: " << world->player->position.z << endl;
+			debugstream << "dx: " << world->player->vel.x << "\ndy: " << world->player->vel.y << "\ndz: " << world->player->vel.z << endl;
 			debugstream << "consts: ";
-			for (bool b : player->consts) {
+			for (bool b : world->player->consts) {
 	            debugstream << b << ' ';
 	        }
 	        debugstream << endl;
@@ -379,14 +444,17 @@ int main( void )
 		glUseProgram(programID);
 		
 		// Compute the MVP matrix from keyboard and mouse input
-		glm::mat4 ProjectionMatrix = player->getProjectionMatrix();
-		glm::mat4 ViewMatrix = player->getViewMatrix();
+		glm::mat4 ProjectionMatrix = world->player->getProjectionMatrix();
+		glm::mat4 ViewMatrix = world->player->getViewMatrix();
 		glm::mat4 ModelMatrix = glm::mat4(1.0);
 		glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 		
 		// Send our transformation to the currently bound shader,
 		// in the "MVP" uniform
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+		glUniform3f(clearcolorID, clearcolor.x, clearcolor.y, clearcolor.z);
+		glUniform1i(viewdistID, view_distance);
+		
 		
 		int ids[num_blocks];
 		for (int i = 0; i < num_blocks; i ++) {
@@ -461,7 +529,7 @@ int main( void )
 		//-----------------------------------------------------SECOND DRAW CALL------------------------------------------------------------------------------------------------------------------------//
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		
-		make_ui_buffer(player, debugstream.str(), vertex_ui_buffer, uv_ui_buffer, mat_ui_buffer, &num_ui_tris);
+		make_ui_buffer(world->player, debugstream.str(), vertex_ui_buffer, uv_ui_buffer, mat_ui_buffer, &num_ui_tris);
 		
 		//allow trancaperancy
 		glDisable(GL_DEPTH_TEST);
@@ -535,42 +603,27 @@ int main( void )
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 		
-		if (glfwGetKey(window, GLFW_KEY_M ) == GLFW_PRESS) {
-			
-			
-			worlds.clear();
-			ifstream ifile("saves/saves.txt");
-			string name;
-			while (ifile >> name) {
-				worlds.push_back(name);
+		if (menu == nullptr) {
+			if (glfwGetKey(window, GLFW_KEY_M ) == GLFW_PRESS) {
+				main_menu();
+			} else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+				inven_menu();
 			}
-			
-			debug_visible = false;
-			
-			menu = new SelectMenu("Level Select:", worlds, [&] (string result) {
-				world->close_world();
-				delete world;
-				world = new World(result);
-				player = world->player;
-				world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 600000*6);
-				render_flag = true;
+		} else {
+			if (glfwGetKey(window, GLFW_KEY_ESCAPE ) == GLFW_PRESS) {
+				menu->close(world);
 				delete menu;
 				menu = nullptr;
-				//debug_visible = true;
-			});
-			
-			
-		} else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-			menu = new InventoryMenu("hi", nullptr, [&] () {
-				cout << "done! " << endl;
-				delete menu;
-				menu = nullptr;
-			});
+			}
+		}
+		if (glfwGetKey(window, GLFW_KEY_Q ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
+			playing = false;
+		} else if (glfwWindowShouldClose(window)) {
+			playing = false;
 		}
 		
-	} // Check if the ESC key was pressed or the window was closed
-	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
-		   glfwWindowShouldClose(window) == 0 );
+	}
+
 			 
 	// Cleanup VBO and shader
 	glDeleteBuffers(1, &vertexbuffer);
@@ -579,8 +632,9 @@ int main( void )
 	glDeleteTextures(1, &TextureID);
 	glDeleteVertexArrays(1, &VertexArrayID);
 	
-	world->close_world();
-	
+	if (world != nullptr) {
+		world->close_world();
+	}
 	
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();

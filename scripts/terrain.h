@@ -1,83 +1,117 @@
-#include "blocks.h"
-#include <iostream>
-#include <time.h>
+#ifndef TERRAIN
+#define TERRAIN
 
-using namespace std;
+#include "terrain-predef.h"
+#include "blockdata-predef.h"
+#include "generative.h"
 
-void iterative(int x, int y, int z, Pixel* pix) {
-    if (rand()%2 == 0 and pix->scale > 2) {
-        pix->subdivide(iterative);
-    } else {
-        pix->value = (rand()%2)*(rand()%5);
-    }
+
+int Island::get_height(int x, int y) {
+	pair<int,int> bounds = get_bounds(x, y);
+	if (bounds.first > bounds.second) {
+		return bounds.first;
+	} else {
+		return -1;
+	}
 }
 
-void init() {
-    
-    int seed = 1577333634;//time(NULL);//1577057246;
-    /*
-    srand(seed);
-    cout << "seed: " << seed << endl;
-    
-    c = new Chunk;
-    c->scale = 8;
-    c->px = 0;
-    c->py = 0;
-    c->pz = 0;
-    c->parent = NULL;
-    int * index = new int(0);
-    for (int x = 0; x < csize; x ++) {
-        for (int y = 0; y < csize; y ++) {
-            for (int z = 0; z < csize; z ++) {
-                Pixel * pix = new Pixel;
-                pix->scale = 4;
-                pix->px = x;
-                pix->py = y;
-                pix->pz = z;
-                pix->parent = c;
-                pix->set(0);
-                c->blocks[x][y][z] = pix;
-                if (!false){//(x==0 and y==0 and z==0)) {
-                    
-                    pix->subdivide([=] (int x, int y, int z, Pixel* pix) {
-                        if (rand()%2 == 0) {
-                            pix->subdivide([=] (int x, int y, int z, Pixel* pix) {
-                                pix->value = rand()%5;
-                            });
-                        } else {
-                            pix->value = rand()%2;
-                        }
-                    });
-                }
-                
-            }
-        }
-    }
-    //cout << c << endl;
-    int lx, ly, lz;
-    //c->world_to_local(11,9,2,&lx,&ly,&lz);
-    //cout << lx << ' ' << ly << ' ' << lz << ' ' << c->scale << endl;
-    //exit(5);
-    //c->get(0,1,0)->set('h');
-    Block * b = c->blocks[0][0][0];
-    
-    //b->subdivide([] (int x, int y, int z) { return 0; });
-    b = c->get(0,0,0);
-    
-    Pixel* p = new Pixel(0, 0, 0, 128, NULL);
-    c = p->subdivide(iterative);
-    cout << (int)c->get_global(0,0,0,1)->get() << endl;
-    cout << "competed without errors" << endl;
-    */
-    //world = new World("scrolls/save.world");
-    world = new World("terrain");//, seed);
-    //world->load_chunk(make_pair(0,0));
-    //world->save_chunk(make_pair(0,0));
-    
+pair<int,int> Island::get_bounds(int x, int y) {
+  int ix = x-128;
+  int iy = y-128;
+  int top = get_heightmap(x, y)-(ix*ix+iy*iy)*0.004+height;
+  int bottom = (scaled_perlin(x,y,32,80) + scaled_perlin(x,y,16,20) + scaled_perlin(x,y,4,5));// + (ix*ix+iy*iy)*0.01;
+  bottom = bottom * bottom/20;
+  bottom = -bottom + (ix*ix+iy*iy)*0.01 + 120;
+  return pair<int,int>(top, bottom);
 }
 
-void render_terrain() {
-    
-    world->render();
-    
+char Island::gen_func(int x, int y, int z) {
+	set_seed(seed);
+	pair<int,int> island = get_bounds(x, z);
+	double height = island.first;
+	double base = island.second;
+	
+	if (y > base and y < height-5) {
+			return blocks->names["rock"];
+	} if (y < height-1 and y > base) {
+			return blocks->names["dirt"];
+	} if (y < height and y > base) {
+			return blocks->names["grass"];
+	}
+	return -1;
 }
+
+int Island::priority() {
+	return 1;
+}
+
+
+
+
+
+
+Trees::Trees(ChunkLoader* chunk, int nseed, string ntype): TerrainObject(chunk,nseed), type(ntype) {
+	for (int i = 0; i < 20; i ++) {
+		set_seed(seed+i*2);
+		int x = randfloat(parent->xpos, parent->ypos) * 255;
+		set_seed(seed+i*2+1);
+		int y = randfloat(parent->xpos, parent->ypos) * 255;
+		if (parent->get_height(x, y) != -1) {
+			trees.push_back(pair<int,int>(x,y));
+		}
+	}
+}
+
+char Trees::gen_func(int x, int y, int z) {
+	for (pair<int,int> pos : trees) {
+		int height = parent->get_height(pos.first, pos.second);
+		if (x == pos.first and y > height and y < height + 10 and z == pos.second) {
+			return blocks->names["wood"];
+		}
+	}
+	return -1;
+}
+
+int Trees::priority() {
+	return 2;
+}
+
+
+
+ChunkLoader::ChunkLoader(int nseed, int x, int y): seed(nseed), xpos(x), ypos(y) {
+	terrain.push_back(new Island(this, seed, 0, 0, 100, 100));
+	//objs.push_back(new Trees(this, seed, "oak"));
+}
+
+int ChunkLoader::get_height(int x, int y) {
+	int height = -1;
+	for (TerrainBase* base : terrain) {
+		if (base->get_height(x,y)) {
+			height = base->get_height(x,y);
+		}
+	}
+	return height;
+}
+
+char ChunkLoader::gen_func(int x, int y, int z) {
+	char val = 0;
+	int priority = 0;
+	for (TerrainBase* base : terrain) {
+		char newval = base->gen_func(x,y,z);
+		if (newval != -1 and base->priority() > priority) {
+			val = newval;
+			priority = base->priority();
+		}
+	}
+	for (TerrainObject* obj : objs) {
+		char newval = obj->gen_func(x,y,z);
+		if (newval != -1 and obj->priority() > priority) {
+			val = newval;
+			priority = obj->priority();
+		}
+	}
+	return val;
+}
+
+
+#endif

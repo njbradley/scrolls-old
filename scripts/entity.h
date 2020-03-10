@@ -162,6 +162,10 @@ void Entity::move(vec3 change, float deltaTime) {
 }
 
 void Entity::fall_damage(float velocity) {
+    if (immunity) {
+      immunity = false;
+      return;
+    }
     if (velocity > 20) {
         health -= (int)(velocity-20)/2;
     }

@@ -45,6 +45,7 @@ class World {
         void save_data_file();
         void setup_files();
         void startup();
+        void spawn_player();
         void render_chunks();
         char gen_func(int x, int y, int z);
         void iter_gen(int gx, int gy, int gz, Pixel* pix);
@@ -62,7 +63,7 @@ class World {
         Block* parse_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent);
         Block* load_chunk(pair<int,int> pos);
         void generate_chunk(pair<int,int> pos);
-        char gen_block(ostream&, int, int, int, int);
+        char gen_block(ostream&, ChunkLoader*, int, int, int, int);
         void close_world();
 };
 

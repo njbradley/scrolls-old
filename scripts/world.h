@@ -18,7 +18,7 @@
 #include <map>
 using namespace glm;
 using std::thread;
-#include "generative.h"
+#include "terrain-predef.h"
 
 #define csize 2
 
@@ -68,15 +68,12 @@ void World::setup_files() {
 
 void World::startup() {
     //load_image();
-    generative_setup_world(seed);
+    //generative_setup_world(seed);
     ifstream ifile("saves/" + name + "/player.txt");
     if (ifile.good()) {
       player = new Player(ifile);
     } else {
-      player = new Player( vec3(10,52,10), world);
-    	player->flying = true;
-    	player->autojump = true;
-    	player->health = 10;
+      spawn_player();
     }
     iter_gen_func = [&] (int x, int y, int z, Pixel* p) {
         iter_gen(x, y, z, p);
@@ -85,10 +82,19 @@ void World::startup() {
     load_nearby_chunks();
 }
 
+void World::spawn_player() {
+  player = new Player( vec3(127,255,127), world);
+  player->flying = false;
+  player->autojump = true;
+  player->health = 10;
+}
+
 void World::load_nearby_chunks() {
   
   int px = player->position.x/chunksize - (player->position.x<0);
   int pz = player->position.z/chunksize - (player->position.z<0);
+  px = 0;
+  pz = 0;
   int range = 0;
   for (int x = px-range; x < px+range+1; x ++) {
     for (int y = pz-range; y < pz+range+1; y ++) {
@@ -112,7 +118,7 @@ void World::load_nearby_chunks() {
 }
 
 char World::gen_func(int x, int y, int z) {
-    return generative_function(x, y, z);
+    return 0;//generative_function(x, y, z);
 }
 
 void World::iter_gen(int gx, int gy, int gz, Pixel* pix) {
@@ -337,31 +343,32 @@ Block* World::load_chunk(pair<int,int> pos) {
 }
 
 void World::generate_chunk(pair<int,int> pos) {
-  generative_setup_chunk(pos.first, pos.second);
+  //generative_setup_chunk(pos.first, pos.second);
+  ChunkLoader loader(seed, pos.first, pos.second);
   stringstream path;
   path << "saves/" << name << "/chunk" << pos.first << "x" << pos.second << "y.dat";
   cout << "generating '" << path.str() << "' to file\n";
   ofstream of(path.str(), ios::binary);
   of << "scrolls chunk file:";
-  char val = gen_block(of, 0, 0, 0, chunksize);
+  char val = gen_block(of, &loader, 0, 0, 0, chunksize);
   //cout << (int)val << int(char(0xff)) << endl;
 }
 
-char World::gen_block(ostream& ofile, int gx, int gy, int gz, int scale) {
+char World::gen_block(ostream& ofile, ChunkLoader* loader, int gx, int gy, int gz, int scale) {
   if (scale == 1) {
-    char val = gen_func(gx, gy, gz);
+    char val = loader->gen_func(gx, gy, gz);
     ofile << val;
     return val;
   } else {
     stringstream ss;
     ss << '{';
-    char val = gen_block(ss, gx, gy, gz, scale/2);
+    char val = gen_block(ss, loader, gx, gy, gz, scale/2);
     bool all_same = val != -1;
     for (int x = 0; x < csize; x ++) {
       for (int y = 0; y < csize; y ++) {
         for (int z = 0; z < csize; z ++) {
           if (x > 0 or y > 0 or z > 0) {
-            char newval = gen_block(ss, gx+x*(scale/2), gy+y*(scale/2), gz+z*(scale/2), scale/2);
+            char newval = gen_block(ss, loader, gx+x*(scale/2), gy+y*(scale/2), gz+z*(scale/2), scale/2);
             all_same = all_same and newval == val;
           }
         }
@@ -446,6 +453,8 @@ void World::close_world() {
         del_chunk(pos);
     }
     save_data_file();
+    ofstream ofile2("saves/latest.txt");
+    ofile2 << name;
 }
 
 #endif
