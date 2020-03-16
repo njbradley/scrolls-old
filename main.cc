@@ -64,7 +64,9 @@ void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLu
 		vecs.uvs.reserve(last_num_ui_verts*2);
 		vecs.mats.reserve(last_num_ui_verts);
 	}
-	render_debug(&vecs, debugstream);
+	if (debug_visible) {
+		render_debug(&vecs, debugstream);
+	}
 	player->render_ui(&vecs);
 	if (menu != nullptr) {
 		menu->render(window, world, player, &vecs);
@@ -315,20 +317,28 @@ int main( void )
 	
 	
 	ifstream ifile("saves/latest.txt");
-	string latest;
-	ifile >> latest;
-	if (latest != "") {
-		world = new World(latest);
+	if (!ifile.good()) {
+		create_dir("saves");
+		ofstream ofile("saves/saves.txt");
+		ofile << "";
+		world = new World("Starting-World", 12345);
 		world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
 	} else {
-		ifstream ifile2("saves/saves.txt");
-		ifile2 >> latest;
+		string latest;
+		ifile >> latest;
 		if (latest != "") {
 			world = new World(latest);
 			world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
 		} else {
-			world = new World("Starting-World", 12345);
-			world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+			ifstream ifile2("saves/saves.txt");
+			ifile2 >> latest;
+			if (latest != "") {
+				world = new World(latest);
+				world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+			} else {
+				world = new World("Starting-World", 12345);
+				world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+			}
 		}
 	}
 	
@@ -603,6 +613,8 @@ int main( void )
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 		
+		
+		
 		if (menu == nullptr) {
 			if (glfwGetKey(window, GLFW_KEY_M ) == GLFW_PRESS) {
 				main_menu();
@@ -616,7 +628,9 @@ int main( void )
 				menu = nullptr;
 			}
 		}
-		if (glfwGetKey(window, GLFW_KEY_Q ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
+		if (glfwGetKey(window, GLFW_KEY_P ) == GLFW_PRESS) {
+			debug_visible = !debug_visible;
+		} else if (glfwGetKey(window, GLFW_KEY_Q ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
 			playing = false;
 		} else if (glfwWindowShouldClose(window)) {
 			playing = false;

@@ -3,6 +3,8 @@
 
 #include "classes.h"
 
+const int chunksize = 256;
+
 class TerrainObject {
 public:
 	int seed;
@@ -24,9 +26,12 @@ public:
 	int height;
 	int xpos;
 	int ypos;
-	Island(ChunkLoader* chunk, int nseed, int x, int y, int nwidth, int nheight): TerrainBase(chunk, nseed), xpos(x), ypos(y), width(nwidth), height(nheight) { }
-	pair<int,int> get_bounds(int,int);
+	int height_array[chunksize][chunksize];
+	int base_array[chunksize][chunksize];
+	Island(ChunkLoader* chunk, int nseed, int x, int y, int nwidth, int nheight);
+	pair<int,int> generate_bounds(int,int);
 	int get_height(int,int);
+	void generate_arrays();
 	char gen_func(int x, int y, int z);
 	int priority();
 };
@@ -34,8 +39,20 @@ public:
 class Trees: public TerrainObject {
 public:
 	string type;
-	vector<pair<int,int> > trees;
+	int num_trees = 16;
+	vector<pair<int,int> > positions;
+	int (*tree_data)[20][20][20];
 	Trees(ChunkLoader* chunk, int nseed, string ntype);
+	void generate_tree(int);
+	char gen_func(int x, int y, int z);
+	int priority();
+};
+
+class Path: public TerrainObject {
+public:
+	vector<pair<int,int> > path_points;
+	int height;
+	Path(ChunkLoader* chunk, int nseed);
 	char gen_func(int x, int y, int z);
 	int priority();
 };
