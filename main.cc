@@ -66,6 +66,8 @@ void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLu
 	}
 	if (debug_visible) {
 		render_debug(&vecs, debugstream);
+	} else {
+		render_debug(&vecs, "");
 	}
 	player->render_ui(&vecs);
 	if (menu != nullptr) {
@@ -354,7 +356,7 @@ int main( void )
 	render_flag = true;
 	bool reaching_max_fps = true;
 	double slow_frame = 0;
-	int view_distance = 1000;
+	int view_distance = 200;
 	
 	bool playing = true;
 	
@@ -391,11 +393,10 @@ int main( void )
 		}
 		
 		//world->load_nearby_chunks();
-		if (render_flag) {
+		if (true) {
 			//cout << "rendering!!!!" << endl;
 			//auto fut =  std::async([&] () {world->render();});//();
 			world->render();
-			world->glvecs.clean();
 			num_tris = world->glvecs.num_verts/3;
 			//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, matbuffer, &num_tris, render_flag);
 			render_flag = false;

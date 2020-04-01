@@ -17,7 +17,7 @@ int screen_y = 768;
 float aspect_ratio = (float)screen_x/screen_y;
 
 void render_debug(RenderVecs * vecs, string message) {
-	draw_text(vecs, "-----debug message: game scrolls-----\n" + message, -1, 1-pix_y);
+	draw_text(vecs, message, -1, 1-pix_y);
 	draw_text(vecs, "X", -pix_x/2, -pix_y/2);
 }
 

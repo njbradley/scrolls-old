@@ -159,7 +159,8 @@ void World::render() {
       //update_lighting();
       lighting_flag = false;
     }
-    cout << "back in render" << endl;
+    bool changed = false;
+    //cout << "back in render" << endl;
     for (pair<pair<int,int>, Block*> kvpair : chunks) {
         //double before = clock();
         //chunks[kvpair.first]->all([](Pixel* pix) {
@@ -169,10 +170,15 @@ void World::render() {
         //chunks[kvpair.first]->calculate_light_level();
         //double after = clock();
         //chunks[kvpair.first]->calculate_light_level();
+        changed = changed or chunks[kvpair.first]->render_flag;
         chunks[kvpair.first]->render(&glvecs, 0, 0, 0);
-        cout << "rendered chunk " << kvpair.first.first << ' ' << kvpair.first.second << endl;
+        //cout << "rendered chunk " << kvpair.first.first << ' ' << kvpair.first.second << endl;
         //render_chunk_vectors(kvpair.first);
         //cout << during - before << ' ' << after - during << ' ' << clock()-after << endl;
+    }
+    if (changed) {
+			cout << "changed" << endl;
+      world->glvecs.clean();
     }
 }
 

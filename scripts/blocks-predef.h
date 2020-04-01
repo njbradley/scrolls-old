@@ -31,6 +31,8 @@ class Block { public:
     int pz;
     int scale; //scale of the block, number of units on one side length.
     Chunk * parent; //the parent of this block. if this block is the root block, then the parent should be set to nullptr.
+    bool render_flag = true;
+    void set_render_flag();
     virtual bool continues() = 0; // whether the block is a chunk or a pixel. a hacky way of telling, but nessicary because pixels can be at different depths
     virtual Block * get(int, int, int) = 0; //get a block at coords
     virtual char get() = 0;                 //get the value of the block. these two methods are exclusive for pixel/chunk, but same reaseon as above

@@ -32,7 +32,16 @@ using std::thread;
 //////////////////////////// class Block /////////////////////////////////////
 
 Block::Block(int x, int y, int z, int newscale, Chunk* newparent) :
-    px(x), py(y), pz(z), scale(newscale), parent(newparent) {}
+    px(x), py(y), pz(z), scale(newscale), parent(newparent) {
+    set_render_flag();
+}
+
+void Block::set_render_flag() {
+  render_flag = true;
+  if (parent != nullptr and !parent->render_flag) {
+    parent->set_render_flag();
+  }
+}
 
 void Block::world_to_local(int x, int y, int z, int* lx, int* ly, int* lz) {
     *lx = x-(x/scale*scale);
@@ -217,8 +226,11 @@ void Pixel::render_update() {
     calculate_lightlevel();
     if (render_index.first > -1) {
         world->glvecs.del(render_index);
-        render_index = pair<int,int>(-1,0);
-        render_flag = true;
+        //render_index = pair<int,int>(-1,0);
+        //render_flag = true;
+        if (!render_flag) {
+          set_render_flag();
+        }
         //cout << render_index.first << ' ' << render_index.second << " x" << endl;
         //render_index.first = -(render_index.first+2);
     }
@@ -271,9 +283,10 @@ void Pixel::calculate_lightlevel() {
 }
 
 void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
-    if (value == 0 or render_index.first != -1) {
+    if (value == 0 or !render_flag) {
         return;
     }
+    render_flag = false;
     gx += px*scale;
     gy += py*scale;
     gz += pz*scale;
@@ -628,10 +641,13 @@ float Chunk::get_lightlevel(int dx, int dy, int dz) {
 }
 
 void Chunk::render(GLVecs* vecs, int gx, int gy, int gz) {
-    for (int x = 0; x < csize; x ++) {
-        for (int y = 0; y < csize; y ++) {
-            for (int z = 0; z < csize; z ++) {
-                blocks[x][y][z]->render(vecs, gx + px*scale, gy + py*scale, gz + pz*scale);
+    if (render_flag) {
+        render_flag = false;
+        for (int x = 0; x < csize; x ++) {
+            for (int y = 0; y < csize; y ++) {
+                for (int z = 0; z < csize; z ++) {
+                    blocks[x][y][z]->render(vecs, gx + px*scale, gy + py*scale, gz + pz*scale);
+                }
             }
         }
     }
