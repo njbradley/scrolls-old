@@ -1,0 +1,7 @@
+: axe pickaxe shovel sword null
+: dig times, 1.2 is fastest, null is hand
+: name texture-index minimum-scale action light-level-emitted item-dropped
+extra?
+(if extra? is 1 add the next line)
+: size-of-inven
+
