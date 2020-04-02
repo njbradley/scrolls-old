@@ -1,0 +1,2 @@
+1 9 chips
+1 1 chest
