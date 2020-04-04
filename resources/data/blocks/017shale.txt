@@ -1,0 +1,4 @@
+: axe pickaxe shovel sword null
+: 0.2 0.6     0.2    0.1   0.01
+: shale 16 1 null 0 shale
+0
