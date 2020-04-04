@@ -40,8 +40,8 @@ int num_uis;
 int last_num_verts = 0;
 int last_num_ui_verts = 0;
 
-const int max_fps = 200;
-const double min_ms_per_frame = 1000.0/max_fps;
+int max_fps;
+double min_ms_per_frame;
 
 GLuint vertexbuffer;
 GLuint uvbuffer;
@@ -54,8 +54,40 @@ GLuint mat_ui_buffer;
 int allocated_memory = 3600000*6;
 
 bool debug_visible = true;
+bool fullscreen = true;
 
 
+void load_settings() {
+	ifstream ifile("saves/settings.txt");
+	if (ifile.good()) {
+		string name;
+		while (!ifile.eof()) {
+			getline(ifile, name, ':');
+			cout << name << ';' << endl;
+			if (name == "fov") {
+				ifile >> initialFoV;
+			} else if (name == "fullscreen") {
+				ifile >> name;
+				fullscreen = name == "true";
+			} else if (name == "max_fps") {
+				ifile >> max_fps;
+			} else if (name == "") {
+				break;
+			} else {
+				cout << "error reading settings file" << endl;
+				cout << "no setting '" << name << "'" << endl;
+				exit(1);
+			}
+			getline(ifile, name);
+		}
+	} else {
+		ofstream ofile("saves/settings.txt");
+		ofile << "fov: 90" << endl;
+		ofile << "fullscreen: false" << endl;
+		ofile << "max_fps: 120" << endl;
+		load_settings();
+	}
+}
 
 void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLuint uvbuffer, GLuint matbuffer, int * num_tris) {
 	RenderVecs vecs;
@@ -123,7 +155,7 @@ void level_select_menu() {
 }
 
 void new_world_menu() {
-	menu = new TextInputMenu("Enter your new name:", [&] (string result) {
+	menu = new TextInputMenu("Enter your new name:", true, [&] (string result) {
 		if (result != "") {
 			world->close_world();
 			delete world;
@@ -156,6 +188,9 @@ void main_menu() {
 int main( void )
 {
 	
+	load_settings();
+	min_ms_per_frame = 1000.0/max_fps;
+	
 	bool fullscreen = false;
 	cout.precision(10);
 	
@@ -179,7 +214,7 @@ int main( void )
 	
 	
 	// Open a window and create its OpenGL context
-	window = glfwCreateWindow( 1024, 768, "Scrolls - An Adventure Game", fullscreen ? glfwGetPrimaryMonitor() : nullptr, nullptr);
+	window = glfwCreateWindow( screen_x, screen_y, "Scrolls - An Adventure Game", fullscreen ? glfwGetPrimaryMonitor() : nullptr, nullptr);
 	
 	
 	//launch_threads(window);
@@ -214,7 +249,7 @@ int main( void )
 	
   // Set the mouse at the center of the screen
   glfwPollEvents();
-  glfwSetCursorPos(window, 1024/2, 768/2);
+  glfwSetCursorPos(window, screen_x/2, screen_y/2);
 
 	// Dark blue background
 	vec3 clearcolor(0.4f, 0.7f, 1.0f);

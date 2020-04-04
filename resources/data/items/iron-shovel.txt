@@ -1,2 +1,2 @@
 0
-: iron-shovel 4 shovel 5
+: iron-shovel 15 shovel 5

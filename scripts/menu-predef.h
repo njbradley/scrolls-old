@@ -79,7 +79,7 @@ class TextInputMenu: public Menu { public:
   string text;
   function<void(string)> after;
   
-  TextInputMenu(string head, function<void(string)> after_func);
+  TextInputMenu(string head, bool is_filter, function<void(string)> after_func);
   void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs);
   void close(World*);
 };

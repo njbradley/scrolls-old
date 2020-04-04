@@ -296,17 +296,22 @@ void SelectMenu::close(World* world) {
 ///////////////////////////////////////////////////////////
 
 string text_buff;
+bool filter;
 
 void key_callback(GLFWwindow* window, unsigned int codepoint)
 {
   char lett(codepoint);
+  cout << codepoint << endl;
   if ((codepoint >= 65 and codepoint <= 90) or (codepoint >= 97 and codepoint <= 122)) {
+    text_buff += lett;
+  } else if (!filter) {
     text_buff += lett;
   }
 }
 
-TextInputMenu::TextInputMenu(string head, function<void(string)> after_func): header(head), after(after_func) {
+TextInputMenu::TextInputMenu(string head, bool have_filter, function<void(string)> after_func): header(head), after(after_func) {
   start();
+  filter = have_filter;
   glfwSetCharCallback(window, key_callback);
 }
 
