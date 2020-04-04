@@ -1,0 +1,2 @@
+1 grass 10
+1 rope 1

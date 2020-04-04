@@ -34,6 +34,8 @@ class Item {
         char ondig(World* world, int x, int y, int z);
         void dig_area(World* world, int x, int y, int z, double random);
         void dig_pickaxe(World* world, int x, int y, int z, int time, double random);
+        
+        static char ondig_null(World* world, int x, int y, int z);
 };
 
 class ItemStack {

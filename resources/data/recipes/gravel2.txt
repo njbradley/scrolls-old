@@ -1,0 +1,2 @@
+2 stone 1 flint-pickaxe 1
+1 gravel 4

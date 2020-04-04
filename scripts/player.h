@@ -62,28 +62,8 @@ Player::Player(vec3 pos, World* newworld):
 	glfwSetScrollCallback(window, scroll_callback);
 	//char arr[] = {1,0,1,0,1,0,1,0}
 	selitem = 3;
-	//item = Item(
-	//inven.add( Item(1, new CharArray( new char[6*3*3] {1,1,1,1,8,1,1,1,1, 1,1,1,1,8,1,1,1,1, 1,1,1,1,8,1,1,1,1, 1,1,1,1,8,1,1,1,1, 1,1,1,1,8,1,1,1,1, 1,1,1,1,8,1,1,1,1 }, 6,3,3), 1, 1));
-	//inven.add( Item(2, new CharArray( new char[8] {3,3,3,3,3,3,3,3}, 2,2,2), 1, 1));
-	//inven.add( Item(3, new CharArray( new char[6] {1,1,1,1,1,1}, 6,1,1), 1, 1));
-	//inven.add( Item(4, new CharArray( new char[6] {1}, 1,1,1), 1, 1));
-	//inven.add( Item(5, nullptr, 1, 5));
-	inven.add( itemstorage->items["log"], 10 );
-	inven.add( itemstorage->items["stick"], 10 );
-	inven.add( itemstorage->items["iron-axe"], 10 );
 	inven.add( itemstorage->items["chips"], 10 );
-	inven.add( itemstorage->items["chest"], 10 );
-	inven.add( itemstorage->items["bricks"], 10 );
-	inven.add( itemstorage->items["stone"], 10 );
-	inven.add( itemstorage->items["iron-pickaxe"], 10 );
-	inven.add( itemstorage->items["iron-shovel"], 10 );
-	inven.add( itemstorage->items["paint"], 10 );
-	backpack.add( itemstorage->items["crafting"], 10 );
-	
-	backpack.add( itemstorage->items["stone"], 15 );
-	
-	
-	
+	inven.add( itemstorage->items["crafting"], 1);
 }
 
 Player::Player(istream& ifile):
@@ -142,11 +122,13 @@ void Player::right_mouse() {
 	if (blocks->blocks[pix->value]->rcaction != "null") {
 		blocks->blocks[pix->value]->do_rcaction(pix);
 	} else {
-		Item* item = inven.use(selitem);
-		if (item != nullptr) {
-			CharArray* arr = item->onplace;
-			if (arr != nullptr) {
-				arr->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
+		if (inven.get(selitem)->onplace != nullptr) {
+			Item* item = inven.use(selitem);
+			if (item != nullptr) {
+				CharArray* arr = item->onplace;
+				if (arr != nullptr) {
+					arr->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
+				}
 			}
 		}
 	}
@@ -164,9 +146,21 @@ void Player::left_mouse() {
 		return;
 	}
 	Item* item = inven.get(selitem);
-	double time_needed = 1.1 - blocks->blocks[target->get()]->hardness[item->tool];
-	if (item != nullptr and timeout > time_needed) {
-		char newitem = item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+	string tool = "null";
+	if (item != nullptr) {
+		tool = item->tool;
+	}
+	double time_needed = blocks->blocks[target->get()]->hardness[tool];
+	if (timeout > time_needed) {
+		if (tool != "null") {
+			inven.use(selitem);
+		}
+		char newitem;
+		if (item == nullptr) {
+			newitem = Item::ondig_null(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+		} else {
+			newitem = item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+		}
 		string item_name = blocks->blocks[newitem]->item;
 		if (item_name != "null") {
 			if (!inven.add(itemstorage->items[item_name], 1)) {

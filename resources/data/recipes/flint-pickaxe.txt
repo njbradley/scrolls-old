@@ -1,0 +1,2 @@
+3 stick 1 rope 1 flint 1
+1 flint-pickaxe 30

@@ -83,6 +83,12 @@ char Item::ondig(World* world, int x, int y, int z) {
     //dig_pickaxe(world, x, y, z, random);
 }
 
+char Item::ondig_null(World* world, int x, int y, int z) {
+    char type = world->get(x,y,z);
+    world->set(0,x,y,z);
+    return type;
+}
+
 void Item::dig_area(World* world, int x, int y, int z, double random) {
     int size = damage/2;
     for (int ox = -size; ox <= size; ox ++) {

@@ -213,8 +213,8 @@ int Path::priority() {
 
 ChunkLoader::ChunkLoader(int nseed, int x, int y): seed(nseed), xpos(x), ypos(y) {
 	terrain.push_back(new Island(this, seed, 0, 0, 100, 100));
-	//objs.push_back(new Path(this, seed));
-	//objs.push_back(new Trees(this, seed, "oak"));
+	objs.push_back(new Path(this, seed));
+	objs.push_back(new Trees(this, seed, "oak"));
 }
 
 int ChunkLoader::get_height(int x, int y) {

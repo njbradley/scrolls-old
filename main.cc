@@ -82,7 +82,7 @@ void load_settings() {
 		}
 	} else {
 		ofstream ofile("saves/settings.txt");
-		ofile << "fov: 90" << endl;
+		ofile << "fov: 110" << endl;
 		ofile << "fullscreen: false" << endl;
 		ofile << "max_fps: 120" << endl;
 		load_settings();
