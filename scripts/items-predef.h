@@ -62,6 +62,7 @@ class ItemContainer {
         
         ItemContainer(int newsize);
         ItemContainer(istream&);
+        ItemContainer(ItemContainer*, ItemContainer*);
         bool add(Item* item, int num);
         Item* get(int index);
         Item* use(int index);

@@ -51,7 +51,7 @@ void Menu::end(World* world) {
 
 //////////////////////////////////// InventoryMenu ////////////////////////////////////////
 
-InventoryMenu::InventoryMenu(string head, ItemContainer* start_other, function<void()> after_func): header(head), after(after_func), other(start_other), in_hand(nullptr, 0) {
+InventoryMenu::InventoryMenu(string head, ItemContainer* start_other, function<void()> after_func): header(head), after(after_func), other(start_other), in_hand(nullptr, 0), button(1) {
   start();
 }
 
@@ -123,8 +123,45 @@ void InventoryMenu::close(World* world) {
 }
 /////////////////////////////////////////craftingh ///////////////////////////////////////
 
-CraftingMenu::CraftingMenu(function<void()> after_func): after(after_func), input(8), output(4), in_hand(nullptr, 0) {
+CraftingMenu::CraftingMenu(function<void()> after_func): after(after_func), in_hand(nullptr, 0), page(0), button(1) {
   start();
+  get_recipes();
+  render_page();
+}
+
+void CraftingMenu::get_recipes() {
+  vector<Recipe*> possible;
+  vector<Recipe*> others;
+  recipes.clear();
+  ItemContainer inven(&world->player->inven, &world->player->backpack);
+  for (Recipe* recipe : recipestorage->recipes) {
+    if (recipe->display(&inven, nullptr)) {
+      possible.push_back(recipe);
+    } else {
+      others.push_back(recipe);
+    }
+  }
+  num_possible = possible.size();
+  for (Recipe* recipe : possible) {
+    recipes.push_back(recipe);
+  }
+  for (Recipe* recipe : others) {
+    recipes.push_back(recipe);
+  }
+}
+
+void CraftingMenu::render_page() {
+  ItemContainer inven(&world->player->inven, &world->player->backpack);
+  for (int i = 0; i < len_page; i ++) {
+    if (i+page*len_page < recipes.size()) {
+      outputs[i] = recipes[i+page*len_page]->output;//ItemContainer(4);
+      //cout << recipes[i+page*len_page]->display(&inven, &outputs[i]) << endl;
+      inputs[i] = recipes[i+page*len_page]->input;
+    } else {
+      inputs[i] = ItemContainer(0);
+      outputs[i] = ItemContainer(0);
+    }
+  }
 }
 
 void CraftingMenu::render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
@@ -136,8 +173,16 @@ void CraftingMenu::render(GLFWwindow* window, World* world, Player* player, Rend
   
   player->inven.render(uivecs, -0.5f, -1);
   player->backpack.render(uivecs, -0.5f, -0.5f);
-  input.render(uivecs, -0.5f, 0.5f);
-  output.render(uivecs, -0.5f, 0.0f);
+  for (int i = 0; i < len_page; i ++) {
+    if (inputs[i].size > 0) {
+      outputs[i].render(uivecs, -0.5f+(inputs[i].size+1)*0.1f, 0.8f-0.12f*i*aspect_ratio);
+      inputs[i].render(uivecs, -0.5f, 0.8f-0.12f*i*aspect_ratio);
+      draw_icon(uivecs, 0, -0.5f+(inputs[i].size)*0.1f, 0.8f-0.12f*i*aspect_ratio, 0.1f, 0.1f*aspect_ratio);
+      if (page*len_page + i >= num_possible) {
+        draw_icon(uivecs, 5, -0.5f, 0.83f-0.12f*i*aspect_ratio, (inputs[i].size+outputs[i].size+1)*0.1f);
+      }
+    }
+  }
   
   if (in_hand.item != nullptr) {
     in_hand.render(uivecs, float(xpos)-0.05f, float(ypos)-0.05f);
@@ -160,50 +205,26 @@ void CraftingMenu::render(GLFWwindow* window, World* world, Player* player, Rend
       container = &player->inven;
     } else if (ypos < -0.5f+0.1f*aspect_ratio and ypos > -0.5f) {
       container = &player->backpack;
-    } else if (ypos < 0.1f*aspect_ratio and ypos > 0) {
-      container = &output;
-    } else if (ypos < 0.5f+0.1f*aspect_ratio and ypos > 0.5f) {
-      container = &input;
     }
     
     if (xpos < 0.5f and xpos > -0.5f) {
       index = int(xpos*10+5);
     }
+    bool changed = false;
     if (container != nullptr and index != -1) {
-      bool changed = false;
       if (button == 1) {
-        
-        if (container == &output) {
-          if (container->items[index].item != nullptr and (in_hand.item == nullptr or in_hand.item == container->items[index].item)) {
-            if (displayed_recipe != nullptr) {
-              output.clear();
-              displayed_recipe->craft(&input, &output);
-              displayed_recipe = nullptr;
-            }
-            if (in_hand.item == nullptr) {
-              in_hand = container->items[index];
-            } else {
-              in_hand.count += container->items[index].count;
-            }
-            container->items[index] = ItemStack(nullptr, 0);
-            changed = true;
-          }
+        if (in_hand.item != container->items[index].item) {
+          ItemStack tmp = in_hand;
+          in_hand = container->items[index];
+          container->items[index] = tmp;
+          changed = true;
         } else {
-          
-          if (in_hand.item != container->items[index].item) { // swap in hand and in container
-            ItemStack tmp = in_hand;
-            in_hand = container->items[index];
-            container->items[index] = tmp;
-            changed = true;
-          } else { // merge hand into container
-            container->items[index].count += in_hand.count;
-            in_hand = ItemStack(nullptr, 0);
-            changed = true;
-          }
+          container->items[index].count += in_hand.count;
+          in_hand = ItemStack(nullptr, 0);
+          changed = true;
         }
-        
       } else if (button == 2) {
-        if (in_hand.item == nullptr) { // get half of items
+        if (in_hand.item == nullptr) {
           in_hand = container->items[index];
           int total = in_hand.count;
           in_hand.count = total/2;
@@ -211,46 +232,42 @@ void CraftingMenu::render(GLFWwindow* window, World* world, Player* player, Rend
           changed = true;
         }
       }
-      
-      if ( (container == &input or container == &output) and changed) {
-        bool clear = true;
-        for (ItemStack is : output.items) {
-          if (is.item != nullptr) {
-            clear = false;
+    }
+    if (container == nullptr and index != -1) {
+      for (int i = 0; i < len_page; i ++) {
+        if (ypos >  0.8f-0.12f*i*aspect_ratio and ypos <=  (0.8f-0.12f*i+0.1f)*aspect_ratio) {
+          ItemContainer inven(&world->player->inven, &world->player->backpack);
+          if (recipes[page*len_page+i]->display(&inven, nullptr)) {
+            recipes[page*len_page+i]->craft(&inven, &inven);
+            for (int i = 0; i < world->player->inven.size; i ++) {
+              world->player->inven.items[i] = inven.items[i];
+            }
+            for (int i = 0; i < world->player->backpack.size; i ++) {
+              world->player->backpack.items[i] = inven.items[world->player->backpack.size + i];
+            }
+            changed = true;
             break;
           }
         }
-        if (clear or displayed_recipe != nullptr) {
-          displayed_recipe = nullptr;
-          int best_num_items = 0;
-          output.clear();
-          for (Recipe* recipe : recipestorage->recipes) {
-            if (recipe->display(&input, nullptr)) {
-              int num_items = 0;
-              for (ItemStack is : recipe->input.items) {
-                if (is.item != nullptr) {
-                  num_items ++;
-                }
-              }
-              if (best_num_items < num_items) {
-                displayed_recipe = recipe;
-                best_num_items = num_items;
-              }
-            }
-          }
-          if (displayed_recipe != nullptr) {
-            displayed_recipe->display(&input, &output);
-          }
-        }
       }
+    }
+    if (container == nullptr and index == -1) {
+      if (xpos < -0.5f and page > 0) {
+        page --;
+        changed = true;
+      } else if (xpos > 0.5f) {
+        page ++;
+        changed = true;
+      }
+    }
+    if (changed) {
+      get_recipes();
+      render_page();
     }
   }
 }
 
 void CraftingMenu::close(World* world) {
-  for (ItemStack is : input.items) {
-    world->player->backpack.add(is.item, is.count);
-  }
   end(world);
   after();
   end(world);
@@ -298,13 +315,26 @@ void SelectMenu::close(World* world) {
 string text_buff;
 bool filter;
 
+void special_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+  if (key == GLFW_KEY_BACKSPACE && action == GLFW_PRESS) {
+    cout << "backspace" << endl;
+    text_buff += '\b';
+  }
+}
+
 void key_callback(GLFWwindow* window, unsigned int codepoint)
 {
   char lett(codepoint);
   cout << codepoint << endl;
-  if ((codepoint >= 65 and codepoint <= 90) or (codepoint >= 97 and codepoint <= 122)) {
-    text_buff += lett;
-  } else if (!filter) {
+  if (filter) {
+    if ((codepoint >= 65 and codepoint <= 90) or (codepoint >= 97 and codepoint <= 122)) {
+      text_buff += lett;
+    }
+    if (lett == ' ') {
+      text_buff += '-';
+    }
+  } else {
     text_buff += lett;
   }
 }
@@ -313,13 +343,20 @@ TextInputMenu::TextInputMenu(string head, bool have_filter, function<void(string
   start();
   filter = have_filter;
   glfwSetCharCallback(window, key_callback);
+  glfwSetKeyCallback(window, special_callback);
 }
 
 void TextInputMenu::render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
   draw_text(uivecs, header, -0.5, 0.75f, 3);
   draw_text(uivecs, text + '|', -0.5, 0.0f, 2);
   if (text_buff != "") {
-    text += text_buff;
+    for (char c : text_buff) {
+      if (c == '\b') {
+        text = text.substr(0, text.length()-1);
+      } else {
+        text += c;
+      }
+    }
     text_buff = "";
   }
   if (glfwGetKey(window, GLFW_KEY_ENTER ) == GLFW_PRESS) {
@@ -328,6 +365,8 @@ void TextInputMenu::render(GLFWwindow* window, World* world, Player* player, Ren
 }
 
 void TextInputMenu::close(World* world) {
+  glfwSetCharCallback(window, NULL);
+  glfwSetKeyCallback(window, NULL);
   end(world);
   after(text);
 }

@@ -159,7 +159,7 @@ void ItemStack::render(RenderVecs* vecs, float x, float y) {
 ////////////////////////////////////// ITEMKCINTAINER ///////////////////////////////////
 
 
-ItemContainer::ItemContainer(int newsize): size(newsize) {
+ItemContainer::ItemContainer(int newsize = 10): size(newsize) {
     for (int i = 0; i < newsize; i ++) {
         items.push_back(ItemStack(nullptr,0));
     }
@@ -178,6 +178,12 @@ ItemContainer::ItemContainer(istream& ifile) {
       items.push_back(ItemStack(itemstorage->items[name], count));
     }
   }
+}
+
+ItemContainer::ItemContainer(ItemContainer* first, ItemContainer* second) {
+  size = first->size + second->size;
+  items.insert(items.end(), first->items.begin(), first->items.end());
+  items.insert(items.end(), second->items.begin(), second->items.end());
 }
 
 bool ItemContainer::add(Item* item, int num) {
@@ -250,7 +256,7 @@ bool ItemContainer::take(ItemStack itemstack) {
 void ItemContainer::render(RenderVecs* vecs, float x, float y) {
   //draw_image(vecs, "inven_select.bmp", x, y, 1, 0.1f*aspect_ratio);
   for (int i = 0; i < items.size(); i ++) {
-    draw_image(vecs, "inven_select.bmp", x + i*0.1f, y, 0.1f, 0.1f*aspect_ratio);
+    draw_icon(vecs, 4, x + i*0.1f, y);
     if (items[i].item != nullptr) {
       items[i].render(vecs, x + i*0.1f, y+0.02f);
     }

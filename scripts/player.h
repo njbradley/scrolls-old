@@ -348,10 +348,10 @@ void Player::render_ui(RenderVecs * uivecs) {
 	float scale = 0.1f;
 	int i;
 	for (i = 0; i < health; i ++) {
-		draw_image(uivecs, "heart_full.bmp", i*scale, 1-scale, scale, scale);
+		draw_icon(uivecs, 3, i*scale, 1-scale, scale, scale);
 	}
 	for (; i < 10; i ++) {
-		draw_image(uivecs, "heart_empty.bmp", i*scale, 1-scale, scale, scale);
+		draw_icon(uivecs, 2, i*scale, 1-scale, scale, scale);
 	}
 	inven.render(uivecs, -0.5f, -1.0f);
 	draw_text(uivecs, "\\/", -0.45f+selitem*0.1f, -0.85f);

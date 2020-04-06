@@ -11,10 +11,10 @@ using std::endl;
 
 map<string,int> ui_names;
 
-int screen_x = 1024;
-int screen_y = 768;
+const int screen_x = 1024;
+const int screen_y = 768;
 
-float aspect_ratio = (float)screen_x/screen_y;
+const float aspect_ratio = (float)screen_x/screen_y;
 
 void render_debug(RenderVecs * vecs, string message) {
 	draw_text(vecs, message, -1, 1-pix_y);
@@ -52,6 +52,10 @@ void draw_image_uv(RenderVecs * vecs, string texture, float x, float y, float x_
 
 void draw_image(RenderVecs * vecs, string texture, float x, float y, float x_scale, float y_scale) {
 	draw_image_uv(vecs, texture, x, y, x_scale, y_scale, 0, 1);
+}
+
+void draw_icon(RenderVecs* vecs, int index, float x, float y, float x_scale = 0.1f, float y_scale = 0.1f*aspect_ratio) {
+	draw_image_uv(vecs, "icons.bmp", x, y, x_scale, y_scale, index/32.0f, (index+1)/32.0f);
 }
 
 #endif

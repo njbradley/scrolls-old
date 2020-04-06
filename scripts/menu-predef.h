@@ -51,13 +51,18 @@ class InventoryMenu: public Menu { public:
 class CraftingMenu: public Menu { public:
   ItemStack in_hand;
   function<void()> after;
-  ItemContainer input;
-  ItemContainer output;
   int button;
   double xpos, ypos;
-  Recipe* displayed_recipe;
+  vector<Recipe*> recipes;
+  int num_possible;
+  int page;
+  static const int len_page = 8;
+  ItemContainer outputs[len_page];
+  ItemContainer inputs[len_page];
   
   CraftingMenu(function<void()> after_func);
+  void get_recipes();
+  void render_page();
   void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs);
   void close(World*);
 };
