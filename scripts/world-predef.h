@@ -10,46 +10,46 @@
 #include <thread>
 
 #include <GL/glew.h>
-#include <glm/glm.hpp>
 #include <map>
 #include "rendervec-predef.h"
 #include "entity-predef.h"
 #include <future>
 #include <thread>
-using namespace glm;
 
 #define csize 2
 
+struct ivec3_comparator {
+  bool operator() (const ivec3& lhs, const ivec3& rhs) const
+  {
+      return lhs.x < rhs.x || lhs.x == rhs.x && (lhs.y < rhs.y || lhs.y == rhs.y && lhs.z < rhs.z);
+  }
+};
 
 class World {
-    map<pair<int,int>, Block*> chunks;
+    map<ivec3, Tile*, ivec3_comparator> tiles;
     vector<bool> threads_running;
     vector<std::thread*> threads;
-    //vector< pair<pair<int,int>, future<Block*> > > loading_chunks;
-    //vector< pair<pair<int,int>, future<bool> > > deleting_chunks;
+    //vector< pair<ivec3, future<Block*> > > loading_chunks;
+    //vector< pair<ivec3, future<bool> > > deleting_chunks;
     char* tmparr;
     public:
         int seed;
         string name;
         int view_dist = 3;
         float sun = 0.0f;
-        int chunksize = 256;
-        function<void(int,int,int,Pixel*)> iter_gen_func;
+        int chunksize = 64;
         GLVecs glvecs;
         bool lighting_flag;
         Player* player;
 				
         World(string newname, int newseed);
         World(string oldname);
+        void unzip();
         void load_data_file();
         void save_data_file();
         void setup_files();
         void startup();
         void spawn_player();
-        void render_chunks();
-        char gen_func(int x, int y, int z);
-        void iter_gen(int gx, int gy, int gz, Pixel* pix);
-        Block* generate(pair<int,int> pos);
         void render();
         void update_lighting();
         void load_nearby_chunks();
@@ -57,14 +57,11 @@ class World {
         void set(char val, int x, int y, int z);
         char get(int x, int y, int z);
         Block* raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time);
-        void save_chunk(pair<int,int> pos);
-        void save_chunk(pair<int,int> pos, Block* chunk);
-        void del_chunk(pair<int,int> pos);
-        Block* parse_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent);
-        Block* load_chunk(pair<int,int> pos);
-        void generate_chunk(pair<int,int> pos);
-        char gen_block(ostream&, ChunkLoader*, int, int, int, int);
+        void save_chunk(ivec3 pos);
+        void del_chunk(ivec3 pos);
+        void load_chunk(ivec3 pos);
         void close_world();
+        void zip();
 };
 
 #endif

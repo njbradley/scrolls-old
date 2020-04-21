@@ -4,10 +4,6 @@
 // Include GLFW
 #include <GLFW/glfw3.h>
 
-// Include GLM
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-using namespace glm;
 #include "entity-predef.h"
 #include "blocks-predef.h"
 #include "items-predef.h"

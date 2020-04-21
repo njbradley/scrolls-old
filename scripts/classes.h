@@ -4,6 +4,10 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <string>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+using glm::vec3;
+using glm::ivec3;
 using std::cout;
 using std::endl;
 using std::string;
@@ -31,6 +35,8 @@ class CraftingMenu;
 class ItemStack;
 class TerrainObject;
 class ChunkLoader;
+class Mob;
+class Tile;
 
 //////////////////////// GLOBAL VARIABLES ////////////////////////
 bool render_flag;

@@ -28,6 +28,8 @@ using namespace glm;
 #include "scripts/items.h"
 #include "scripts/crafting.h"
 #include "scripts/terrain.h"
+#include "scripts/tiles.h"
+
 
 #include "scripts/cross-platform.h"
 
@@ -72,7 +74,7 @@ void load_settings() {
 			} else if (name == "max_fps") {
 				ifile >> max_fps;
 			} else if (name == "") {
-				break;
+				continue;
 			} else {
 				cout << "error reading settings file" << endl;
 				cout << "no setting '" << name << "'" << endl;
@@ -391,7 +393,7 @@ int main( void )
 	render_flag = true;
 	bool reaching_max_fps = true;
 	double slow_frame = 0;
-	int view_distance = 200;
+	int view_distance = 800;
 	
 	bool playing = true;
 	
@@ -427,7 +429,7 @@ int main( void )
 			}
 		}
 		
-		//world->load_nearby_chunks();
+		world->load_nearby_chunks();
 		if (true) {
 			//cout << "rendering!!!!" << endl;
 			//auto fut =  std::async([&] () {world->render();});//();

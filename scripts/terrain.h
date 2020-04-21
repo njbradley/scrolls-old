@@ -63,6 +63,54 @@ int Island::priority() {
 
 
 
+Land::Land(ChunkLoader* chunk, int nseed): TerrainBase(chunk, nseed) {
+	generate_arrays();
+}
+
+int Land::generate_height(int x, int y) {
+	set_seed(seed);
+  int ix = x-128;
+  int iy = y-128;
+  int top = get_heightmap(x, y) + 30;
+  return top;
+}
+
+int Land::get_height(int x, int y) {
+	return height_array[x][y];
+}
+
+void Land::generate_arrays() {
+	for (int x = 0; x < chunksize; x ++) {
+		for (int y = 0; y < chunksize; y ++) {
+			height_array[x][y] = generate_height(x+parent->xpos*chunksize, y+parent->zpos*chunksize);
+		}
+	}
+}
+
+char Land::gen_func(int x, int y, int z) {
+	double height = height_array[(x%chunksize+chunksize)%chunksize][(z%chunksize+chunksize)%chunksize];
+	//cout << x << ' ' << z << ' ' << chunksize << endl;
+	if (y < height-5) {
+			return blocks->names["rock"];
+	} if (y < height-1) {
+			return blocks->names["dirt"];
+	} if (y < height) {
+			return blocks->names["grass"];
+	}
+	return -1;
+}
+
+int Land::priority() {
+	return 1;
+}
+
+
+
+
+
+
+
+
 Trees::Trees(ChunkLoader* chunk, int nseed, string ntype): TerrainObject(chunk,nseed), type(ntype) {
 	tree_data = new int[num_trees][20][20][20];
 	//memset(tree_data, -1, num_trees*20*20*20);
@@ -211,10 +259,10 @@ int Path::priority() {
 
 
 
-ChunkLoader::ChunkLoader(int nseed, int x, int y): seed(nseed), xpos(x), ypos(y) {
-	terrain.push_back(new Island(this, seed, 0, 0, 100, 100));
-	objs.push_back(new Path(this, seed));
-	objs.push_back(new Trees(this, seed, "oak"));
+ChunkLoader::ChunkLoader(int nseed, int x, int y, int z): seed(nseed), xpos(x), ypos(y), zpos(z) {
+	terrain.push_back(new Land(this, seed));
+	//objs.push_back(new Path(this, seed));
+	//objs.push_back(new Trees(this, seed, "oak"));
 }
 
 int ChunkLoader::get_height(int x, int y) {

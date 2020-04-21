@@ -10,9 +10,7 @@
 #include <thread>
 
 #include <GL/glew.h>
-#include <glm/glm.hpp>
 #include <map>
-using namespace glm;
 
 #define csize 2
 
@@ -37,7 +35,7 @@ class Block { public:
     virtual Block * get(int, int, int) = 0; //get a block at coords
     virtual char get() = 0;                 //get the value of the block. these two methods are exclusive for pixel/chunk, but same reaseon as above
     virtual void set(char) = 0;
-    virtual Chunk* subdivide(function<void(int,int,int,Pixel*)>) = 0; //same as get,
+    virtual Chunk* subdivide() = 0;
     virtual void del() = 0;
     virtual void calculate_lightlevel() = 0;
     virtual Pixel* get_pix()  = 0;
@@ -62,10 +60,11 @@ class Pixel: public Block { public:
     pair<int,int> render_index;
     float lightlevel = 1;
     BlockExtras* extras = nullptr;
+    Tile* tile;
     //ItemContainer* container;
     
-    Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent);
-    Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, BlockExtras* new_extra);
+    Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* tile);
+    Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* tile, BlockExtras* new_extra);
     void generate_extras();
     bool continues();
     char get();
@@ -83,7 +82,8 @@ class Pixel: public Block { public:
     bool is_air(int dx, int dy, int dz);
     Block* get_global(int x, int y, int z, int scale);
     void render(GLVecs*, int, int,int);
-    Chunk* subdivide(function<void(int,int,int,Pixel*)> func);
+    Chunk* subdivide();
+    Chunk* resolve();
     void save_to_file(ofstream& of);
 };
 
@@ -96,7 +96,7 @@ class Chunk: public Block { public:
     Pixel* get_pix();
     char get();
     void set(char c);
-    Chunk* subdivide(function<void(int,int,int,Pixel*)> func);
+    Chunk* subdivide();
     void calculate_lightlevel();
     void all(function<void(Pixel*)> func);
     void all_side(function<void(Pixel*)>,int,int,int);

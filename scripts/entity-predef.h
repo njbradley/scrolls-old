@@ -66,6 +66,10 @@ class Player: public Entity {
 		void render_ui(RenderVecs * uivecs);
 };
 
-
+class Mob: public Entity {
+public:
+  int entity_id;
+  
+};
 
 #endif

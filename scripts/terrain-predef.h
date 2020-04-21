@@ -3,7 +3,7 @@
 
 #include "classes.h"
 
-const int chunksize = 256;
+const int chunksize = 64;
 
 class TerrainObject {
 public:
@@ -30,6 +30,17 @@ public:
 	int base_array[chunksize][chunksize];
 	Island(ChunkLoader* chunk, int nseed, int x, int y, int nwidth, int nheight);
 	pair<int,int> generate_bounds(int,int);
+	int get_height(int,int);
+	void generate_arrays();
+	char gen_func(int x, int y, int z);
+	int priority();
+};
+
+class Land: public TerrainBase {
+public:
+	int height_array[chunksize][chunksize];
+	Land(ChunkLoader* chunk, int nseed);
+	int generate_height(int,int);
 	int get_height(int,int);
 	void generate_arrays();
 	char gen_func(int x, int y, int z);
@@ -63,8 +74,9 @@ public:
 	vector<TerrainBase*> terrain;
 	int xpos;
 	int ypos;
+	int zpos;
 	int seed;
-	ChunkLoader(int, int, int);
+	ChunkLoader(int, int, int, int);
 	char gen_func(int x, int y, int z);
 	int get_height(int, int);
 };

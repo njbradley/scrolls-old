@@ -1,6 +1,7 @@
 #ifndef WIN
 #define WIN
 #include <Windows.h>
+#include <direct.h>
 //#include <windows.h>
 using std::string;
 
@@ -29,6 +30,9 @@ void create_dir(string path) {
     CreateDirectory(path.c_str(), NULL);
 }
 
+void delete_dir(string path) {
+  _rmdir(path.c_str());
+}
 
 
 

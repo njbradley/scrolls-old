@@ -14,9 +14,7 @@
 #include "world-predef.h"
 
 #include <GL/glew.h>
-#include <glm/glm.hpp>
 #include <map>
-using namespace glm;
 using std::thread;
 #include "generative.h"
 
@@ -132,14 +130,14 @@ Block* Block::raycast(double* x, double* y, double* z, double dx, double dy, dou
 
 ///////////////////////////////// CLASS PIXEL /////////////////////////////////////
 
-Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent):
-  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(nullptr) {
+Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile):
+  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(nullptr), tile(ntile) {
     reset_lightlevel();
     generate_extras();
 }
 
-Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, BlockExtras* new_extra):
-  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(new_extra) {
+Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile, BlockExtras* new_extra):
+  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(new_extra), tile(ntile) {
     reset_lightlevel();
 }
 
@@ -307,7 +305,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
       int tex_index = blocks->blocks[value]->texture;
       int minscale = blocks->blocks[value]->minscale;
       char mat = tex_index;
-      
+      /*
       GLfloat new_uvs[] = {
           0.0f, 1.0f * scale/minscale,
           1.0f * scale/minscale, 1.0f * scale/minscale,
@@ -315,21 +313,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
           1.0f * scale/minscale, 0.0f,
           0.0f, 0.0f,
           0.0f, 1.0f * scale/minscale
-      };
-      GLfloat small = 0;//0.01;
-      GLfloat start_x = (tex_index*minscale/16)/16.0f + small;
-      GLfloat end_x = ((tex_index)*minscale/16 + minscale)/16.0f - small;
-      GLfloat start_y = (tex_index*minscale%16)/16.0f + small;
-      GLfloat end_y = ((tex_index)*minscale%16 + minscale)/16.0f - small;
-      //cout << start_x << ' ' << end_x << ' ' << start_y << ' ' << end_y  << ' ' << tex_index << ' ' << minscale << endl;
-      /*GLfloat new_uvs[] = {
-          start_x, end_y,
-          end_x, end_y,
-          end_x, start_y,
-          end_x, start_y,
-          start_x, start_y,
-          start_x, end_y
-      };
+      };*/
       GLfloat new_uvs[] = {
           0.0f, 1.0f,
           1.0f, 1.0f,
@@ -337,7 +321,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
           1.0f, 0.0f,
           0.0f, 0.0f,
           0.0f, 1.0f
-      };*/
+      };
       //cout << 85 << endl;
       Block* block;
       //cout << 87 << endl;
@@ -435,8 +419,7 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
     //exit(1);
 }
 
-Chunk* Pixel::subdivide(function<void(int,int,int,Pixel*)> func) {
-    //cout << "subdivide " << endl;
+Chunk* Pixel::subdivide() {
     //render_update();
     if (render_index.first != -1) {
         world->glvecs.del(render_index);
@@ -445,15 +428,23 @@ Chunk* Pixel::subdivide(function<void(int,int,int,Pixel*)> func) {
         cout << "error: block alreasy at scale 1" << endl;
         return nullptr;
     }
+    int gx, gy, gz;
+    global_position(&gx, &gy, &gz);
+    //cout << "subdivideing " << gx << ' ' << gy << ' ' << gz << ' ' << scale  << endl;
     Chunk * newchunk = new Chunk(px, py, pz, scale, parent);
     for (int x = 0; x < csize; x ++) {
         for (int y = 0; y < csize; y ++) {
             for (int z = 0; z < csize; z ++) {
-                int gx, gy, gz;
-                Pixel * pix = new Pixel(x, y, z, value, scale/csize, newchunk);
-                pix->global_position(&gx, &gy, &gz);
-                newchunk->blocks[x][y][z] = pix;
-                func(gx,gy,gz,pix);
+                char val = tile->loader.gen_func(gx+x*scale/csize, gy+y*scale/csize, gz+z*scale/csize);
+                Pixel* pix = new Pixel(x, y, z, val, scale/csize, newchunk, tile);
+                //cout << gx+x*scale/csize << ' ' << gy+y*scale/csize << ' ' << gz+z*scale/csize << endl;
+                Chunk* subdivided = pix->resolve();
+                if (subdivided == nullptr) {
+                   newchunk->blocks[x][y][z] = pix;
+                } else {
+                  delete pix;
+                  newchunk->blocks[x][y][z] = subdivided;
+                }
             }
         }
     }
@@ -467,6 +458,40 @@ Chunk* Pixel::subdivide(function<void(int,int,int,Pixel*)> func) {
     //delete this;
     //cout << 678 << endl;
     return newchunk;
+}
+
+Chunk* Pixel::resolve() {
+  int gx, gy, gz;
+  global_position(&gx, &gy, &gz);
+  //cout << gx << ' ' << gy << ' ' << gz << "res" << endl;
+  bool shell = true;
+  bool full = true;
+  char val = tile->loader.gen_func(gx, gy, gz);
+  for (int ox = 0; ox < scale and shell; ox ++) {
+    for (int oy = 0; oy < scale and shell; oy ++) {
+      for (int oz = 0; oz < scale and shell; oz ++) {
+        char newval = tile->loader.gen_func(gx+ox, gy+oy, gz+oz);
+        if (newval != val) {
+          if (ox == 0 or ox == scale-1 or oy == 0 or oy == scale-1 or oz == 0 or oz == scale-1) {
+            shell = false;
+          }
+          full = false;
+        }
+      }
+    }
+  }
+  if (shell) {
+    if (val == 0 and !full) {
+      //cout << "subdivide again" << endl;
+      //cout << newchunk->blocks[x][y][z] << '-' << endl;
+      return subdivide();
+    }
+  } else {
+    //cout << "subdivide again" << endl;
+    //cout << newchunk->blocks[x][y][z] << '-' << endl;
+    return subdivide();
+  }
+  return nullptr;
 }
 
 void Pixel::save_to_file(ofstream& of) {
@@ -503,8 +528,9 @@ char Chunk::get() {
 void Chunk::set(char c) {
     cout << "error: set called on chunk object" << endl;
 }
-Chunk* Chunk::subdivide(function<void(int,int,int,Pixel*)> func) {
+Chunk* Chunk::subdivide() {
     cout << "error: subdividing already subdivided block" << endl;
+    exit(16758912);
     return nullptr;
 }
 void Chunk::calculate_lightlevel() {
