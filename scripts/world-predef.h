@@ -26,13 +26,13 @@ struct ivec3_comparator {
 };
 
 class World {
-    map<ivec3, Tile*, ivec3_comparator> tiles;
     vector<bool> threads_running;
     vector<std::thread*> threads;
     //vector< pair<ivec3, future<Block*> > > loading_chunks;
     //vector< pair<ivec3, future<bool> > > deleting_chunks;
     char* tmparr;
     public:
+        map<ivec3, Tile*, ivec3_comparator> tiles;
         int seed;
         string name;
         int view_dist = 3;

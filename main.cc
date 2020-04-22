@@ -381,7 +381,7 @@ int main( void )
 		}
 	}
 	
-	debug_visible = false;
+	debug_visible = true;
 	
 	
 	
@@ -415,12 +415,18 @@ int main( void )
 			debugstream << "fps: " << fps << endl;
 			debugstream << "x: " << world->player->position.x << "\ny: " << world->player->position.y << "\nz: " << world->player->position.z << endl;
 			debugstream << "dx: " << world->player->vel.x << "\ndy: " << world->player->vel.y << "\ndz: " << world->player->vel.z << endl;
+			debugstream << "chunk: "
+				<< int((world->player->position.x/world->chunksize) - (world->player->position.x<0)) << ' '
+				<< int((world->player->position.y/world->chunksize) - (world->player->position.y<0)) << ' '
+				<< int((world->player->position.z/world->chunksize) - (world->player->position.z<0)) << endl;
+			debugstream << "loaded chunks: " << world->tiles.size() << endl;
 			debugstream << "consts: ";
 			for (bool b : world->player->consts) {
 	            debugstream << b << ' ';
 	        }
 	        debugstream << endl;
 			world->glvecs.status(debugstream);
+			
 			////////////////////////// error handling:
 			debugstream << "-----opengl errors-----" << endl;
 			GLenum err;
