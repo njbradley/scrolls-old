@@ -85,6 +85,7 @@ void load_settings() {
 			getline(ifile, name);
 		}
 	} else {
+		create_dir("saves");
 		ofstream ofile("saves/settings.txt");
 		ofile << "fov: 110" << endl;
 		ofile << "fullscreen: false" << endl;
