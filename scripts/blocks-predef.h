@@ -36,7 +36,7 @@ class Block { public:
     virtual char get() = 0;                 //get the value of the block. these two methods are exclusive for pixel/chunk, but same reaseon as above
     virtual void set(char) = 0;
     virtual Chunk* subdivide() = 0;
-    virtual void del() = 0;
+    virtual void del(bool remove_faces) = 0;
     virtual void calculate_lightlevel() = 0;
     virtual Pixel* get_pix()  = 0;
     virtual float get_lightlevel(int,int,int) = 0;
@@ -75,7 +75,7 @@ class Pixel: public Block { public:
     Block * get(int x, int y, int z);
     void set(char val);
     void render_update();
-    void del();
+    void del(bool remove_faces);
     void calculate_lightlevel();
     void reset_lightlevel();
     void lighting_update();
@@ -102,7 +102,7 @@ class Chunk: public Block { public:
     void all_side(function<void(Pixel*)>,int,int,int);
     float get_lightlevel(int dx, int dy, int dz);
     void render(GLVecs* vecs, int gx, int gy, int gz);
-    void del();
+    void del(bool remove_faces);
     void render_update();
     Block* get_global(int x, int y, int z, int nscale);
     bool is_air(int dx, int dy, int dz);

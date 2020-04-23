@@ -35,6 +35,7 @@ class CraftingMenu;
 class ItemStack;
 class TerrainObject;
 class ChunkLoader;
+class ThreadManager;
 class Mob;
 class Tile;
 

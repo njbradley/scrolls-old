@@ -26,8 +26,8 @@ struct ivec3_comparator {
 };
 
 class World {
-    vector<bool> threads_running;
-    vector<std::thread*> threads;
+    vector<ivec3> loading_chunks;
+    vector<ivec3> deleting_chunks;
     //vector< pair<ivec3, future<Block*> > > loading_chunks;
     //vector< pair<ivec3, future<bool> > > deleting_chunks;
     char* tmparr;
@@ -53,12 +53,13 @@ class World {
         void render();
         void update_lighting();
         void load_nearby_chunks();
+        void get_async_loaded_chunks();
         Block* get_global(int x, int y, int z, int scale);
         void set(char val, int x, int y, int z);
         char get(int x, int y, int z);
         Block* raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time);
         void save_chunk(ivec3 pos);
-        void del_chunk(ivec3 pos);
+        void del_chunk(ivec3 pos, bool remove_faces);
         void load_chunk(ivec3 pos);
         void close_world();
         void zip();

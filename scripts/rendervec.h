@@ -48,11 +48,18 @@ pair<int,int> GLVecs::add(RenderVecs* newvecs) {
     
     for (int i = 0; i < empty.size(); i ++) {
         int num_faces = empty[i].second;
-        if (num_faces == newvecs->num_verts/6) {
+        if (num_faces >= newvecs->num_verts/6) {
             location = empty[i].first*6;
-            pair<int,int> index = empty[i];
-            //cout << "used: " << empty[i].first << ' ' << empty[i].second << " for " << newvecs->num_verts << endl;
-            empty.erase(empty.begin()+i);
+            pair<int,int> index(empty[i].first, newvecs->num_verts/6);
+            pair<int,int> new_empty(index.first+index.second, empty[i].second - index.second);
+            //cout << "used: " << empty[i].first << ' ' << empty[i].second << " for " << newvecs->num_verts/6 << endl;
+            //cout << "returned " << index.first << ' ' << index.second << "empty left is " << new_empty.first << ' ' << new_empty.second << endl;
+            if (new_empty.second <= 0) {
+              //cout << "removing empty" << endl;
+              empty.erase(empty.begin()+i);
+            } else {
+              empty[i] = new_empty;
+            }
             
             glNamedBufferSubData(vertexbuffer, location*3*sizeof(GLfloat), newvecs->verts.size()*sizeof(GLfloat), &newvecs->verts.front());
             glNamedBufferSubData(uvbuffer, location*2*sizeof(GLfloat), newvecs->uvs.size()*sizeof(GLfloat), &newvecs->uvs.front());
@@ -78,6 +85,34 @@ pair<int,int> GLVecs::add(RenderVecs* newvecs) {
 
 void GLVecs::del(pair<int,int> index) {
     //cout << "del: " << index.first << ' ' << index.second << endl;
+    for (int i = 0; i < empty.size(); i ++) {
+      if (empty[i].first + empty[i].second == index.first) {
+        //cout << "combined " << empty[i].first << ' ' << empty[i].second << " with " << index.first << ' ' << index.second;
+        empty[i] = pair<int,int>(empty[i].first, empty[i].second + index.second);
+        //cout << " result " << empty[i].first << ' ' << empty[i].second << endl;
+        if (empty[i].first + empty[i].second == num_verts) {
+          cout << "empty " << empty[i].first << ' ' << empty[i].second << " merged out old num " << num_verts;
+          num_verts -= empty[i].second;
+          cout << ' ' << num_verts << endl;
+          empty.erase(empty.begin()+i);
+          exit(1);
+        }
+        return;
+      }
+      if (index.first + index.second == empty[i].first) {
+        //cout << "combined " << empty[i].first << ' ' << empty[i].second << " with " << index.first << ' ' << index.second;
+        empty[i] = pair<int,int>(index.first, index.second + empty[i].second);
+        //cout << " result " << empty[i].first << ' ' << empty[i].second << endl;
+        if (empty[i].first + empty[i].second == num_verts) {
+          cout << "empty " << empty[i].first << ' ' << empty[i].second << " merged out old num " << num_verts;
+          num_verts -= empty[i].second;
+          cout << ' ' << num_verts << endl;
+          empty.erase(empty.begin()+i);
+          exit(2);
+        }
+        return;
+      }
+    }
     if ( index.second != 0) {
         empty.push_back(index);
     }
@@ -115,7 +150,7 @@ void GLVecs::status(std::stringstream & message) {
     for (pair<int,int> f : empty) {
         sum += f.second;
     }
-    message << "empty: " << sum << endl;
+    message << "empty: " << sum << " in " << empty.size() << "emptys" << endl;
 }
 
 #endif

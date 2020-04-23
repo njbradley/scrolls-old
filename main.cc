@@ -29,6 +29,7 @@ using namespace glm;
 #include "scripts/crafting.h"
 #include "scripts/terrain.h"
 #include "scripts/tiles.h"
+#include "scripts/multithreading.h"
 
 
 #include "scripts/cross-platform.h"
@@ -52,6 +53,7 @@ GLuint matbuffer;
 GLuint vertex_ui_buffer;
 GLuint uv_ui_buffer;
 GLuint mat_ui_buffer;
+
 
 int allocated_memory = 3600000*6;
 
@@ -218,6 +220,7 @@ int main( void )
 	// Open a window and create its OpenGL context
 	window = glfwCreateWindow( screen_x, screen_y, "Scrolls - An Adventure Game", fullscreen ? glfwGetPrimaryMonitor() : nullptr, nullptr);
 	
+	threadmanager = new ThreadManager(window);
 	
 	//launch_threads(window);
 	
@@ -396,7 +399,7 @@ int main( void )
 	int view_distance = 800;
 	
 	bool playing = true;
-	
+	threadmanager->rendering = true;
 	//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, &num_tris);
 	while (playing) {
 		
@@ -426,7 +429,24 @@ int main( void )
 	        }
 	        debugstream << endl;
 			world->glvecs.status(debugstream);
-			
+			debugstream << "------threads-------" << endl;
+			for (int i = 0; i < threadmanager->num_threads; i ++) {
+				debugstream << "load" << i;
+				if (threadmanager->loading[i] == nullptr) {
+					debugstream << " idle" << endl;
+				} else {
+					ivec3 pos = threadmanager->loading[i]->pos;
+					debugstream << " (" << pos.x << ' ' << pos.y << ' ' << pos.z << ")" << endl;
+				}
+				debugstream << "del " << i;
+				if (threadmanager->deleting[i] == nullptr) {
+					debugstream << " idle" << endl;
+				} else {
+					ivec3 pos = *threadmanager->deleting[i];
+					debugstream << " (" << pos.x << ' ' << pos.y << ' ' << pos.z << ")" << endl;
+				}
+				
+			}
 			////////////////////////// error handling:
 			debugstream << "-----opengl errors-----" << endl;
 			GLenum err;
@@ -439,8 +459,8 @@ int main( void )
 		if (true) {
 			//cout << "rendering!!!!" << endl;
 			//auto fut =  std::async([&] () {world->render();});//();
-			world->render();
-			num_tris = world->glvecs.num_verts/3;
+			//world->render();
+			num_tris = threadmanager->render_num_verts/3;//world->glvecs.num_verts/3;
 			//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, matbuffer, &num_tris, render_flag);
 			render_flag = false;
 		}
@@ -570,7 +590,7 @@ int main( void )
 			0,                                // stride
 			(void*)0                          // array buffer offset
 		);
-		
+		//cout << num_tris << endl;
 		// Draw the triangle !
 		glDrawArrays(GL_TRIANGLES, 0, num_tris*3); // 12*3 indices starting at 0 -> 12 triangles
 		
@@ -697,5 +717,5 @@ int main( void )
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
 	
-	
+	cout << "completed without errors" << endl;
 }

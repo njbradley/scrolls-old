@@ -230,8 +230,10 @@ void Pixel::render_update() {
         //render_index.first = -(render_index.first+2);
 }
 
-void Pixel::del() {
-    world->glvecs.del(render_index);
+void Pixel::del(bool remove_faces) {
+    if (remove_faces) {
+      world->glvecs.del(render_index);
+    }
     if (extras != nullptr) {
       delete extras;
       cout << "dleleted extras" << endl;
@@ -410,8 +412,12 @@ void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
       }
     }
     
-    world->glvecs.del(render_index);
-    render_index = allvecs->add(&vecs);
+    if (render_index != pair<int,int>(-1,0)) {
+      world->glvecs.del(render_index);
+    }
+    if (vecs.num_verts != 0) {
+      render_index = allvecs->add(&vecs);
+    }
     
     //cout << render_index << endl;
     //cout << "done rendering" << endl;
@@ -643,11 +649,11 @@ void Chunk::render(GLVecs* vecs, int gx, int gy, int gz) {
     }
 }
 
-void Chunk::del() {
+void Chunk::del(bool remove_faces) {
     for (int x = 0; x < csize; x ++) {
         for (int y = 0; y < csize; y ++) {
             for (int z = 0; z < csize; z ++) {
-                blocks[x][y][z]->del();
+                blocks[x][y][z]->del(remove_faces);
                 delete blocks[x][y][z];
             }
         }

@@ -92,10 +92,11 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
 			//chunk = generate(pos);
 	}
 	//render_chunk_vectors(pos);
+	//render(&world->glvecs);
 }
 
-void Tile::del() {
-	chunk->del();
+void Tile::del(bool remove_faces) {
+	chunk->del(remove_faces);
 }
 
 /*

@@ -5,7 +5,11 @@
 #include <GL/glew.h>
 #include <ctime>
 
-class RenderVecs {
+class RenderVecs {/*
+      this is a class that encapsulates all of the vectors needed for rendering a face,
+      vertices, uv coords, the lightlevel, and the material. values are pushed onto the
+      vectors for every face.
+    */
     public:
       vector<GLfloat> verts;
     	vector<GLfloat> uvs;
@@ -13,7 +17,9 @@ class RenderVecs {
     	vector<GLint> mats;
       int num_verts = 0;
       
-      void add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat newlight, GLint minscale, GLint mat);
+      void add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat newlight, GLint minscale, GLint mat);/*
+        adds a face to the vectors, newverts and newuvs are arrays, 3 and 2 length respectivly
+      */
 };
 
 
@@ -34,4 +40,6 @@ class GLVecs {
         void edit( pair<int,int> index, RenderVecs* newvecs);
         void status(std::stringstream & message);
 };
+
+
 #endif

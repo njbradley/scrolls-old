@@ -20,7 +20,7 @@ class Tile {
 		void save();
 		void update_lighting();
 		Block* generate(ivec3 pos);
-		void del();
+		void del(bool remove_faces);
 };
 
 #endif

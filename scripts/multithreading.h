@@ -1,4 +1,8 @@
-#include <thread>
+#ifndef MULITTHREADING
+#define MULITTHREADING
+
+#include "multithreading-predef.h"
+
 #include "classes.h"
 #include "ui.h"
 #include "rendervec-predef.h"
@@ -6,14 +10,137 @@
 #include <atomic>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <vector>
-#include <cmath>
-#include <cstdio>
-#include <limits>
-#include <chrono>
-#include <thread>
-#include <mutex>
 
+ThreadJob::ThreadJob(ivec3 npos): pos(npos), result(nullptr), complete(false) {
+	
+}
+
+ThreadManager::ThreadManager(GLFWwindow* window) {
+	rendering = false;
+	render_running = true;
+	cout << "main window " << window << endl;
+	glfwWindowHint(GLFW_SAMPLES, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+	GLFWwindow* renderwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
+	
+	rendering_thread = thread(RenderingThread(renderwindow, this));
+	
+	for (int i = 0; i < num_threads; i ++) {
+		loading[i] = nullptr;
+		deleting[i] = nullptr;
+		load_running[i] = true;
+		del_running[i] = true;
+		glfwWindowHint(GLFW_SAMPLES, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+		GLFWwindow* loadingwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
+		
+		glfwWindowHint(GLFW_SAMPLES, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+		GLFWwindow* deletingwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
+		cout << loadingwindow << ' ' << deletingwindow << endl;
+		loading_threads[i] = thread(LoadingThread(loadingwindow, i, this));
+		deleting_threads[i] = thread(DeletingThread(deletingwindow, i, this));
+	}
+}
+
+bool ThreadManager::add_loading_job(ivec3 pos) {
+	for (int i = 0; i < num_threads; i ++) {
+		if (loading[i] == nullptr) {
+			loading[i] = new ThreadJob(pos);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool ThreadManager::add_deleting_job(ivec3 pos) {
+	for (int i = 0; i < num_threads; i ++) {
+		if (deleting[i] == nullptr) {
+			deleting[i] = new ivec3(pos);
+			return true;
+		}
+	}
+	return false;
+}
+
+vector<Tile*> ThreadManager::get_loaded_tiles() {
+	vector<Tile*> tiles;
+	for ( int i = 0; i < num_threads; i ++) {
+		if (loading[i] != nullptr and loading[i]->complete) {
+			tiles.push_back(loading[i]->result);
+			loading[i] = nullptr;
+		}
+	}
+	return tiles;
+}
+
+
+LoadingThread::LoadingThread(GLFWwindow* nwindow, int newindex, ThreadManager* newparent): window(nwindow), index(newindex), parent(newparent) {
+	
+}
+
+void LoadingThread::operator()() {
+	cout << "context " << window << endl;
+	glfwMakeContextCurrent(window);
+	while (parent->load_running[index]) {
+		if (parent->loading[index] != nullptr) {
+			parent->loading[index]->result = new Tile(parent->loading[index]->pos, world);
+			parent->loading[index]->complete = true;
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		//cout << "hello from thread " << index << endl;
+	}
+}
+
+
+DeletingThread::DeletingThread(GLFWwindow* nwindow, int newindex, ThreadManager* newparent): window(nwindow), index(newindex), parent(newparent) {
+	
+}
+
+void DeletingThread::operator()() {
+	glfwMakeContextCurrent(window);
+	while (parent->del_running[index]) {
+		if (parent->deleting[index] != nullptr) {
+			world->del_chunk(*parent->deleting[index], true);
+			parent->deleting[index] = nullptr;
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+}
+
+
+
+RenderingThread::RenderingThread(GLFWwindow* nwindow, ThreadManager* newparent): window(nwindow), parent(newparent) {
+	
+	
+}
+
+void RenderingThread::operator()() {
+	glfwMakeContextCurrent(window);
+	while (parent->render_running) {
+		if (parent->rendering) {
+			world->render();
+			parent->render_num_verts = world->glvecs.num_verts;
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+}
+
+
+
+/*
 atomic<bool> thread_render_flag;
 
 GLFWwindow* background_window;
@@ -46,7 +173,7 @@ GLuint rb[2] = {std::numeric_limits<GLuint>::max(), std::numeric_limits<GLuint>:
 
 
 
-/********************************************** TEST *********************************/
+/********************************************** TEST ********************************
 static void thread_____() {
 	glfwMakeContextCurrent(window_slave);
 	//create new shared framebuffer object
@@ -117,3 +244,6 @@ void other_thread() {
   glfwTerminate();
   return 0;
 }
+*/
+
+#endif

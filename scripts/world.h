@@ -14,6 +14,7 @@
 
 #include "world-predef.h"
 #include "tiles-predef.h"
+#include "multithreading-predef.h"
 #include <GL/glew.h>
 #include <map>
 using std::thread;
@@ -35,7 +36,11 @@ World::World(string oldname): name(oldname) {
 }
 
 void World::unzip() {
-  string command = "cd saves & unzip " + name + ".scrollsworld.zip";
+  ifstream ifile("saves/world/worlddata.txt");
+  if (ifile.good()) {
+    return;
+  }
+  string command = "cd saves & unzip " + name + ".scrollsworld.zip > NUL";
   system(command.c_str());
 }
 
@@ -99,26 +104,47 @@ void World::load_nearby_chunks() {
   //px = 0;
   py = 1;
   //pz = 0;
-  int range = 1;
+  const int range = 1;
   for (int x = px-range; x < px+range+1; x ++) {
     for (int y = py-range; y < py+range+1; y ++) {
       for (int z = pz-range; z < pz+range+1; z ++) {
-        if (!tiles.count(ivec3(x,y,z))) {
-          load_chunk(ivec3(x,y,z));
+        ivec3 pos(x,y,z);
+        if (!tiles.count(pos) and std::find(loading_chunks.begin(), loading_chunks.end(), pos) == loading_chunks.end()) {
+          //load_chunk(ivec3(x,y,z));
+          if (threadmanager->add_loading_job(pos)) {
+            loading_chunks.push_back(pos);
+          }
         }
       }
     }
   }
+  const double max_distance = std::sqrt((range+1)*(range+1)*2);
   for (pair<ivec3,Tile*> kv : tiles) {
     double distance = std::sqrt((px-kv.first.x)*(px-kv.first.x) + (py-kv.first.y)*(py-kv.first.y) + (pz-kv.first.z)*(pz-kv.first.z));
-    if (distance > 6) {
-      del_chunk(kv.first);
+    if (distance > max_distance and std::find(deleting_chunks.begin(), deleting_chunks.end(), kv.first) == deleting_chunks.end()) {
+      //del_chunk(kv.first, true);
+      if (threadmanager->add_deleting_job(kv.first)) {
+        deleting_chunks.push_back(kv.first);
+      }
       render_flag = true;
     }
   }
+  get_async_loaded_chunks();
 }
 
-
+void World::get_async_loaded_chunks() {
+  vector<Tile*> loaded_chunks = threadmanager->get_loaded_tiles();
+  for (Tile* tile : loaded_chunks) {
+    ivec3 pos = tile->pos;
+    tiles[pos] = tile;
+    for (int i = 0; i < loading_chunks.size(); i ++) {
+      if (loading_chunks[i] == pos) {
+        loading_chunks.erase(loading_chunks.begin()+i);
+        break;
+      }
+    }
+  }
+}
 
 
 void World::render() {
@@ -138,6 +164,9 @@ void World::render() {
         //double after = clock();
         //chunks[kvpair.first]->calculate_light_level();
         changed = changed or tiles[kvpair.first]->chunk->render_flag;
+        if (tiles[kvpair.first]->chunk->render_flag) {
+          cout << kvpair.first.x << ' ' << kvpair.first.y << ' ' << kvpair.first.z << endl;
+        }
         tiles[kvpair.first]->render(&glvecs);
         //cout << "rendered chunk " << kvpair.first.first << ' ' << kvpair.first.second << endl;
         //render_chunk_vectors(kvpair.first);
@@ -204,7 +233,7 @@ void World::set(char val, int x, int y, int z) {
     }
     while (newblock->scale < minscale) {
         Chunk* parent = newblock->parent;
-        parent->del();
+        parent->del(true);
         Pixel* newpix = new Pixel(parent->px, parent->py, parent->pz, 0, parent->scale, parent->parent, newblock->get_pix()->tile);
         parent->parent->blocks[parent->px][parent->py][parent->pz] = newpix;
         delete parent;
@@ -228,22 +257,26 @@ Block* World::raycast(double* x, double* y, double* z, double dx, double dy, dou
 }
 
 void World::save_chunk(ivec3 pos) {
+  //cout << "saving chunk ..." << endl;
   tiles[pos]->save();
+  //cout << "done" << endl;
 }
 
-void World::del_chunk(ivec3 pos) {
+void World::del_chunk(ivec3 pos, bool remove_faces) {
     save_chunk(pos);
-    tiles[pos]->del();
+    tiles[pos]->del(remove_faces);
     delete tiles[pos];
     tiles.erase(pos);
 }
 
 void World::load_chunk(ivec3 pos) {
+    //cout << "loading chunk ..." << endl;
     tiles[pos] = new Tile(pos, this);
+    //cout << "done" << endl;
 }
 
 void World::zip() {
-  string command = "cd saves & zip -r -m " + name + ".scrollsworld.zip world";
+  string command = "cd saves & zip -r -m " + name + ".scrollsworld.zip world > NUL";
   //remove(("saves/" + name + ".scrollsworld.zip").c_str());
   system(command.c_str());
 }
@@ -258,7 +291,7 @@ void World::close_world() {
         poses.push_back(kvpair.first);
     }
     for (ivec3 pos : poses) {
-        del_chunk(pos);
+        del_chunk(pos, false);
     }
     save_data_file();
     zip();
