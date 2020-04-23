@@ -4,6 +4,8 @@
 #include <iostream>
 #include <GL/glew.h>
 #include <ctime>
+#include <mutex>
+#include <chrono>
 
 class RenderVecs {/*
       this is a class that encapsulates all of the vectors needed for rendering a face,
@@ -32,6 +34,7 @@ class GLVecs {
         vector<pair<int,int>> empty;
         int size_alloc;
         int num_verts = 0;
+        std::timed_mutex writelock;
         
         void set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size);
         pair<int,int> add(RenderVecs* newvecs);

@@ -24,7 +24,7 @@ public:
 
 class ThreadManager {
 public:
-	static const int num_threads = 2;
+	static const int num_threads = 1;
 	ThreadJob* loading[num_threads];
 	ivec3* deleting[num_threads];
 	bool load_running[num_threads];

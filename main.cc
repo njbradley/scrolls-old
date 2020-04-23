@@ -55,7 +55,7 @@ GLuint uv_ui_buffer;
 GLuint mat_ui_buffer;
 
 
-int allocated_memory = 3600000*6;
+int allocated_memory = 200000*6;
 
 bool debug_visible = true;
 bool fullscreen = true;
@@ -538,6 +538,9 @@ int main( void )
 			glBindTexture(GL_TEXTURE_2D_ARRAY, block_textures[i]);
 		}
 		
+		if (!world->glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
+			exit(1);
+		}
 		
 		// Bind our texture in Texture Unit 0
 		//glActiveTexture(GL_TEXTURE0);
@@ -599,6 +602,8 @@ int main( void )
 		glDisableVertexAttribArray(1);
 		glDisableVertexAttribArray(2);
 		glDisableVertexAttribArray(3);
+		
+		world->glvecs.writelock.unlock();
 		
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		//-----------------------------------------------------SECOND DRAW CALL------------------------------------------------------------------------------------------------------------------------//

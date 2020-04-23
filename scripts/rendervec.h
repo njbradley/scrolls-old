@@ -43,6 +43,7 @@ void GLVecs::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, in
 }
 
 pair<int,int> GLVecs::add(RenderVecs* newvecs) {
+  if (writelock.try_lock_for(std::chrono::seconds(1))) {
     int old_num_verts = num_verts;
     int location = num_verts;
     
@@ -61,11 +62,16 @@ pair<int,int> GLVecs::add(RenderVecs* newvecs) {
               empty[i] = new_empty;
             }
             
-            glNamedBufferSubData(vertexbuffer, location*3*sizeof(GLfloat), newvecs->verts.size()*sizeof(GLfloat), &newvecs->verts.front());
-            glNamedBufferSubData(uvbuffer, location*2*sizeof(GLfloat), newvecs->uvs.size()*sizeof(GLfloat), &newvecs->uvs.front());
-            glNamedBufferSubData(lightbuffer, location*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
-            glNamedBufferSubData(matbuffer, location*2*sizeof(GLint), newvecs->mats.size()*sizeof(GLfloat), &newvecs->mats.front());
+            glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+            glBufferSubData(GL_ARRAY_BUFFER, location*3*sizeof(GLfloat), newvecs->verts.size()*sizeof(GLfloat), &newvecs->verts.front());
+            glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+            glBufferSubData(GL_ARRAY_BUFFER, location*2*sizeof(GLfloat), newvecs->uvs.size()*sizeof(GLfloat), &newvecs->uvs.front());
+            glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
+            glBufferSubData(GL_ARRAY_BUFFER, location*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
+            glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
+            glBufferSubData(GL_ARRAY_BUFFER, location*2*sizeof(GLint), newvecs->mats.size()*sizeof(GLfloat), &newvecs->mats.front());
             
+            writelock.unlock();
             return index;
         }
     }
@@ -74,16 +80,23 @@ pair<int,int> GLVecs::add(RenderVecs* newvecs) {
         cout << num_verts << ' ' << size_alloc << endl;
         exit(1);
     }
-    glNamedBufferSubData(vertexbuffer, num_verts*3*sizeof(GLfloat), newvecs->verts.size()*sizeof(GLfloat), &newvecs->verts.front());
-    glNamedBufferSubData(uvbuffer, num_verts*2*sizeof(GLfloat), newvecs->uvs.size()*sizeof(GLfloat), &newvecs->uvs.front());
-    glNamedBufferSubData(lightbuffer, num_verts*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
-    glNamedBufferSubData(matbuffer, num_verts*2*sizeof(GLint), newvecs->mats.size()*sizeof(GLfloat), &newvecs->mats.front());
+    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+    glBufferSubData(GL_ARRAY_BUFFER, num_verts*3*sizeof(GLfloat), newvecs->verts.size()*sizeof(GLfloat), &newvecs->verts.front());
+    glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+    glBufferSubData(GL_ARRAY_BUFFER, num_verts*2*sizeof(GLfloat), newvecs->uvs.size()*sizeof(GLfloat), &newvecs->uvs.front());
+    glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
+    glBufferSubData(GL_ARRAY_BUFFER, num_verts*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
+    glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
+    glBufferSubData(GL_ARRAY_BUFFER, num_verts*2*sizeof(GLint), newvecs->mats.size()*sizeof(GLfloat), &newvecs->mats.front());
     
     num_verts += newvecs->num_verts;
+    writelock.unlock();
     return pair<int,int>(old_num_verts/6, newvecs->num_verts/6);
+  }
 }
 
 void GLVecs::del(pair<int,int> index) {
+  if (writelock.try_lock_for(std::chrono::seconds(1))) {
     //cout << "del: " << index.first << ' ' << index.second << endl;
     for (int i = 0; i < empty.size(); i ++) {
       if (empty[i].first + empty[i].second == index.first) {
@@ -97,6 +110,7 @@ void GLVecs::del(pair<int,int> index) {
           empty.erase(empty.begin()+i);
           exit(1);
         }
+        writelock.unlock();
         return;
       }
       if (index.first + index.second == empty[i].first) {
@@ -110,15 +124,19 @@ void GLVecs::del(pair<int,int> index) {
           empty.erase(empty.begin()+i);
           exit(2);
         }
+        writelock.unlock();
         return;
       }
     }
     if ( index.second != 0) {
         empty.push_back(index);
     }
+    writelock.unlock();
+  }
 }
 
 void GLVecs::clean() {
+  if (writelock.try_lock_for(std::chrono::seconds(1))) {
     for (pair<int,int> index : empty) {
         int start = index.first*6;
         int size = index.second*6;
@@ -131,6 +149,8 @@ void GLVecs::clean() {
         glNamedBufferSubData(lightbuffer, start*sizeof(GLfloat), size*sizeof(GLfloat), zerosf);
         glNamedBufferSubData(matbuffer, start*2*sizeof(GLint), size*sizeof(GLint), zerosi);
     }
+    writelock.unlock();
+  }
 }
 
 void GLVecs::edit( pair<int,int> index, RenderVecs* newvecs) {
