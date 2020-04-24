@@ -133,7 +133,6 @@ void RenderingThread::operator()() {
 		if (parent->rendering) {
 			world->render();
 			parent->render_num_verts = world->glvecs.num_verts;
-			world->glvecs.clean();
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}

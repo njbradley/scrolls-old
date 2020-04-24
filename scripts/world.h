@@ -175,6 +175,10 @@ void World::render() {
     if (changed) {
 			cout << "changed" << endl;
       world->glvecs.clean();
+      if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
+        glFinish();
+        glvecs.writelock.unlock();
+      }
     }
 }
 
