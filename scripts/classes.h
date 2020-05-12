@@ -20,12 +20,14 @@ class World;
 class Item;
 class BlockData;
 class Entity;
+class DisplayEntity;
 class Player;
 class BlockStorage;
 class CharArray;
 class ItemStorage;
 class ItemContainer;
 class RenderVecs;
+class MemVecs;
 class GLVecs;
 class BlockExtras;
 class Menu;
@@ -36,7 +38,6 @@ class ItemStack;
 class TerrainObject;
 class ChunkLoader;
 class ThreadManager;
-class Mob;
 class Tile;
 
 //////////////////////// GLOBAL VARIABLES ////////////////////////

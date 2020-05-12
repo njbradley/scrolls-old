@@ -29,7 +29,7 @@ using namespace glm;
 #include "crafting-predef.h"
 
 class Menu { public:
-    virtual void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) = 0;
+    virtual void render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs) = 0;
     virtual void close(World*) = 0;
     void start();
     void end(World*);
@@ -44,7 +44,7 @@ class InventoryMenu: public Menu { public:
     double xpos, ypos;
     
     InventoryMenu(string head, ItemContainer* start_other, function<void()> after_func);
-    void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs);
+    void render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs);
     void close(World*);
 };
 
@@ -63,7 +63,7 @@ class CraftingMenu: public Menu { public:
   CraftingMenu(function<void()> after_func);
   void get_recipes();
   void render_page();
-  void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs);
+  void render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs);
   void close(World*);
 };
 
@@ -75,7 +75,7 @@ class SelectMenu : public Menu { public:
     bool click;
     
     SelectMenu(string head, vector<string> & opts, function<void(string)> after_func);
-    void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs);
+    void render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs);
     void close(World*);
 };
 
@@ -85,7 +85,7 @@ class TextInputMenu: public Menu { public:
   function<void(string)> after;
   
   TextInputMenu(string head, bool is_filter, function<void(string)> after_func);
-  void render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs);
+  void render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs);
   void close(World*);
 };
 

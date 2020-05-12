@@ -135,7 +135,7 @@ ItemStack::ItemStack(Item* newitem, int newcount): item(newitem), count(newcount
   
 }
 
-void ItemStack::render(RenderVecs* vecs, float x, float y) {
+void ItemStack::render(MemVecs* vecs, float x, float y) {
   draw_image_uv(vecs, "items.bmp", x, y, 0.1f, 0.1f*aspect_ratio, item->texture/64.0f, (item->texture+1)/64.0f);
   draw_text(vecs, std::to_string(count), x+0.02, y+0.02f);
 }
@@ -253,7 +253,7 @@ bool ItemContainer::take(ItemStack itemstack) {
   return false;
 }
 
-void ItemContainer::render(RenderVecs* vecs, float x, float y) {
+void ItemContainer::render(MemVecs* vecs, float x, float y) {
   //draw_image(vecs, "inven_select.bmp", x, y, 1, 0.1f*aspect_ratio);
   for (int i = 0; i < items.size(); i ++) {
     draw_icon(vecs, 4, x + i*0.1f, y);

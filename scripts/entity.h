@@ -33,12 +33,12 @@ position(pos), box1(hitbox1), box2(hitbox2-vec3(1,1,1))
 }
 
 void Entity::timestep(World* world) {
-    
-
-// Compute time difference between current and last frame
-float currentTime(glfwGetTime());
-deltaTime = (currentTime - lastTime);
-if (deltaTime > 0.2f) {
+        
+    on_timestep(world);
+    // Compute time difference between current and last frame
+    float currentTime(glfwGetTime());
+    deltaTime = (currentTime - lastTime);
+    if (deltaTime > 0.2f) {
         deltaTime = 0.2f;
         cout << "warning: had to drop ticks" << endl;
     }
@@ -184,6 +184,199 @@ void Entity::drag(bool do_drag, float deltaTime) {
         float air_drag = 1-3*deltaTime;
         vel *= vec3(air_drag, 1, air_drag);
     }
+}
+
+void Entity::on_timestep(World* world) {
+  
+}
+
+
+
+
+
+
+DisplayEntity::DisplayEntity(vec3 starting_pos, Block* newblock): Entity(starting_pos, vec3(0.2,0.2,0.2), vec3(1,1,1)), block(newblock), render_index(-1,0) {
+  int size = block->scale;
+  box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
+  block->render(&vecs, 0, 0, 0);
+}
+
+void DisplayEntity::render() {
+  // vecs.clear();
+  // block->all([=] (Pixel* pix) {
+  //   pix->set_render_flag();
+  //   pix->render_index = pair<int,int>(1,0);
+  // });
+  // block->render(&vecs, int(position.x), int(position.y), int(position.z));
+  //
+  MemVecs translated;
+  translated.add(&vecs);
+  for (int i = 0; i < translated.num_verts; i++) {
+    translated.verts[i*3+0] += position.x;
+    translated.verts[i*3+1] += position.y;
+    translated.verts[i*3+2] += position.z;
+  }
+  
+  if (render_index == pair<int,int>(-1,0)) {
+    render_index = world->glvecs.add(&translated);
+  } else {
+    world->glvecs.edit(render_index, &translated);
+  }
+  
+  
+  // cout << position.x << ' ' << position.y << ' ' << position.z << endl;
+  // for (bool b : consts) {
+  //   cout << b << ' ';
+  // }
+  // cout << endl;
+}
+
+void DisplayEntity::on_timestep(World* world) {
+  render();
+  //vel += vec3(0.0,0,-0.08);
+}
+
+void DisplayEntity::calc_constraints(World* world) {
+    float axis_gap = 0.2;
+    
+    vec3 coords_array[3] = {{0,1,1}, {1,0,1}, {1,1,0}};
+    vec3 dir_array[3] =    {{1,0,0}, {0,1,0}, {0,0,1}};
+    
+    vec3 newpos(position);
+    
+    bool new_consts[7] = {0,0,0,0,0,0,0};
+    
+    //box2 = vec3(0,0,0);
+    
+    //this system works by creating a slice of blocks that define each side of collision. the sides all share either the most positive point or the most negative point
+    //the shlice is tested to see if any blocks are int it (2) and if there are blocks, the players location is rounded to outside the block (3)
+    //axis gap make sure a side detects the collision of blocks head on before the side detectors sense the blocks. Each slice is moved out from the player by axis_gap
+    //cout << "----------------------------------" << endl;
+    //print(position);
+    
+    block->all([&] (Pixel* pix) {
+      if (!pix->is_air(0,0,0)) {
+        int bx, by, bz;
+        pix->global_position(&bx, &by, &bz);
+        vec3 block_box1(bx+axis_gap, by+axis_gap, bz+axis_gap);
+        vec3 block_box2(bx+pix->scale-axis_gap-1, by+pix->scale-axis_gap-1, bz+pix->scale-axis_gap-1);
+        for (int axis = 0; axis < 3; axis ++) {
+          vec3 coords = coords_array[axis];
+          vec3 dir = dir_array[axis];
+          
+          // pos is the positive point of the hitbox rounded up to the nearest block. neg is the negative most point rounded down
+          vec3 neg = floor( position + block_box1 - axis_gap*dir );// + vec3(0,1,0);
+          vec3 pos = ceil( position + block_box2 + axis_gap*dir );
+          //cout << '-' << endl;
+          // print(neg);
+          // print(pos);
+          Block* side;
+          int gx, gy, gz;
+          
+          //positive side
+          //pos2 is the other point for the face
+          gx = bx+int(dir.x)*pix->scale;
+          gy = by+int(dir.y)*pix->scale;
+          gz = bz+int(dir.z)*pix->scale;
+          //cout << gx << ' ' << gy << ' ' << gz << endl;
+          side = block->get_global(gx, gy, gz, pix->scale);
+          bool out_bounds = gx >= block->scale or gy >= block->scale or gz >= block->scale;
+          //cout << out_bounds << endl;
+          if (side == nullptr or out_bounds or side->is_air(-dir.x, -dir.y, -dir.z)) {
+            vec3 pos2 = pos*dir + neg*coords;
+            bool constraint = false;
+            //cout << "pos2 ";
+            //print(pos2);
+            //cout << pos2.x << ' ' << pos.x+1 << ' ' << pos2.y << ' ' << pos.y+1 << ' ' << pos2.z << ' ' << pos.z+1 << endl;
+            for (int x = (int)pos2.x; x < pos.x+1; x ++) {
+              for (int y = (int)pos2.y; y < pos.y+1; y ++) {
+                for (int z = (int)pos2.z; z < pos.z+1; z ++) {
+                  //exit(1);
+                  Block* pix = world->get_global(x,y,z,1);
+                  constraint = constraint or (pix != NULL and pix->get() != 0);
+                }
+              }
+            }
+            new_consts[axis] = new_consts[axis] or constraint;
+            if (constraint) {
+              //cout << "move pos" << endl;
+              newpos[axis] = floor(position[axis] + block_box2[axis] + axis_gap) - block_box2[axis] - axis_gap;
+            }
+          }
+          
+          gx = bx-int(dir.x)*pix->scale;
+          gy = by-int(dir.y)*pix->scale;
+          gz = bz-int(dir.z)*pix->scale;
+          //cout << gx << ' ' << gy << ' ' << gz << endl;
+          side = block->get_global(gx, gy, gz, pix->scale);
+          out_bounds = gx < 0 or gy < 0 or gz < 0;
+          if (side == nullptr or out_bounds or side->is_air(dir.x, dir.y, dir.z)) {
+            vec3 neg2 = neg*dir + pos*coords;
+            //cout << "neg2 ";
+            //print(neg2);
+            bool constraint = false;
+            for (int x = (int)neg.x; x < neg2.x+1; x ++) {
+              for (int y = (int)neg.y; y < neg2.y+1; y ++) {
+                for (int z = (int)neg.z; z < neg2.z+1; z ++) {
+                  Block* pix = world->get_global(x,y,z,1);
+                  constraint = constraint or (pix != NULL and pix->get() != 0);
+                }
+              }
+            }
+            new_consts[axis+3] = new_consts[axis+3] or constraint;
+            if (constraint) {
+              //cout << "move neg" << endl;
+              newpos[axis] = ceil(position[axis] + block_box1[axis] - axis_gap) - block_box1[axis] + axis_gap;
+            }
+          }
+        }
+      }
+    });
+    
+    for (int i = 0; i < 7; i ++) {
+        consts[i] = old_consts[i] or new_consts[i];
+        old_consts[i] = new_consts[i];
+    }
+    
+    position = newpos;
+}
+
+
+
+
+
+
+
+NamedEntity::NamedEntity(vec3 starting_pos, string name): DisplayEntity(starting_pos, loadblock(name)), nametype(name)  {
+  
+}
+
+Block* NamedEntity::loadblock(string name) {
+  std::ifstream ifile(entitystorage->blocks[name]);
+  if (!ifile.good()) {
+    cout << "file error code s9d8f0s98d0f9s80f98sd0" << endl;
+  }
+  int size;
+  ifile >> size;
+  box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
+  char buff;
+  ifile.read(&buff,1);
+  return Block::from_file(ifile, 0, 0, 0, size, nullptr, nullptr);
+}
+
+
+
+EntityStorage::EntityStorage() {
+  vector<string> paths;
+  get_files_folder("resources/data/entities", &paths);
+  for (string path : paths) {
+    ifstream ifile(path);
+    std::stringstream ss(path);
+    string name;
+    std::getline(ss, name, '.');
+    blocks[name] = "resources/data/entities/" + path;
+    cout << "loaded " << name << " from file" << endl;
+  }
 }
 
 #endif

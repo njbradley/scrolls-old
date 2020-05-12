@@ -93,7 +93,7 @@ double scaled_perlin(double x, double y, double height, double width) {
 
 
 double get_heightmap(int x, int y) {
-    return (scaled_perlin(x,y,16,20) + scaled_perlin(x,y,8,10))*scaled_perlin(x,y,2,40) + scaled_perlin(x,y,4,5);
+    return (scaled_perlin(x,y,16*2,20*2) + scaled_perlin(x,y,8*2,10*2))*scaled_perlin(x,y,2*2,40*2) + scaled_perlin(x,y,4*2,5*2);
 }
 
 void set_seed(int nseed) {

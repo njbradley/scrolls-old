@@ -1,4 +1,4 @@
- placeable?
+placeable?
 (if placable include next two lines)
 : x y z dims of placed object
 : block indexes of the object

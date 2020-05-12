@@ -43,7 +43,7 @@ public:
   Item* item;
   int count;
   ItemStack(Item*,int);
-  void render(RenderVecs* vecs, float x, float y);
+  void render(MemVecs* vecs, float x, float y);
 };
 
 class ItemStorage { public:
@@ -68,7 +68,7 @@ class ItemContainer {
         Item* use(int index);
         bool contains(ItemStack);
         bool take(ItemStack);
-        void render(RenderVecs* vecs, float x, float y);
+        void render(MemVecs* vecs, float x, float y);
         void save_to_file(ostream&);
         void clear();
 };

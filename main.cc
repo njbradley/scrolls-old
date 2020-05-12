@@ -55,7 +55,7 @@ GLuint uv_ui_buffer;
 GLuint mat_ui_buffer;
 
 
-int allocated_memory = 200000*6;
+int allocated_memory = 2000000*6;
 
 bool debug_visible = true;
 bool fullscreen = true;
@@ -95,7 +95,7 @@ void load_settings() {
 }
 
 void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLuint uvbuffer, GLuint matbuffer, int * num_tris) {
-	RenderVecs vecs;
+	MemVecs vecs;
 	if (last_num_ui_verts != 0) {
 		vecs.verts.reserve(last_num_ui_verts*3);
 		vecs.uvs.reserve(last_num_ui_verts*2);
@@ -202,6 +202,7 @@ int main( void )
 	itemstorage = new ItemStorage();
 	blocks = new BlockStorage();
 	recipestorage = new RecipeStorage();
+	entitystorage = new EntityStorage();
 	
 	// Initialise GLFW
 	if( !glfwInit() )
@@ -388,6 +389,8 @@ int main( void )
 	debug_visible = true;
 	
 	
+	Entity* test = new NamedEntity(vec3(0.5, 50, 0), "test");
+	
 	
 	double lastTime = glfwGetTime();
 	double currentTime = lastTime;
@@ -406,9 +409,9 @@ int main( void )
 		
 		
 		
-		
 		if (menu == nullptr) {
 			world->player->timestep(world);
+			test->timestep(world);
 			world->player->computeMatricesFromInputs(world);
 		}
 		
@@ -690,6 +693,12 @@ int main( void )
 				main_menu();
 			} else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
 				inven_menu();
+			} else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+				world->glvecs.clean();
+			} else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
+				world->player->flying = true;
+			} else if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
+				world->player->flying = false;
 			}
 		} else {
 			if (glfwGetKey(window, GLFW_KEY_ESCAPE ) == GLFW_PRESS) {

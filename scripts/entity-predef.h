@@ -7,6 +7,7 @@
 //#include "items.h"
 //#include "rendervec.h"
 #include "items-predef.h"
+#include "rendervec-predef.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <GLFW/glfw3.h>
@@ -32,10 +33,11 @@ class Entity { public:
     
     Entity(vec3 pos, vec3 hitbox1, vec3 hitbox2);
     void timestep(World* world);
-    void calc_constraints(World* world);
+    virtual void calc_constraints(World* world);
     void move(vec3 change, float deltaTime);
     void fall_damage(float velocity);
     void drag(bool do_drag, float deltaTime);
+    virtual void on_timestep(World* world);
 };
 
 
@@ -63,13 +65,39 @@ class Player: public Entity {
     void drop_ticks();
 		void mouse_button();
 		void computeMatricesFromInputs(World* nworld);
-		void render_ui(RenderVecs * uivecs);
+		void render_ui(MemVecs * uivecs);
 };
 
-class Mob: public Entity {
+
+class DisplayEntity: public Entity {
 public:
-  int entity_id;
-  
+  Block* block;
+  MemVecs vecs;
+  pair<int,int> render_index;
+  DisplayEntity(vec3 starting_pos, Block* newblock);
+  void render();
+  void calc_constraints(World* world);
+  void on_timestep(World* world);
 };
+
+class NamedEntity: public DisplayEntity {
+public:
+  string nametype;
+  NamedEntity(vec3 starting_pos, string name);
+  Block* loadblock(string name);
+};
+
+class EntityGroup {
+  vector<Entity*> entities;
+  void render(GLVecs* vecs);
+  void add(Entity*);
+};
+
+class EntityStorage { public:
+  std::map<string,string> blocks;
+  EntityStorage();
+};
+
+EntityStorage* entitystorage;
 
 #endif

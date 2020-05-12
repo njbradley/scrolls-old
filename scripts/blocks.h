@@ -124,7 +124,35 @@ Block* Block::raycast(double* x, double* y, double* z, double dx, double dy, dou
     return b->raycast(x, y, z, dx, dy, dz, time);
 }
 
-
+Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent, Tile* tile) {
+    char c;
+    ifile.read(&c,1);
+    if (c == '{') {
+        Chunk* chunk = new Chunk(px, py, pz, scale, parent);
+        for (int x = 0; x < csize; x ++) {
+            for (int y = 0; y < csize; y ++) {
+                for (int z = 0; z < csize; z ++) {
+                    chunk->blocks[x][y][z] = Block::from_file(ifile, x, y, z, scale/csize, chunk, tile);
+                }
+            }
+        }
+        ifile.read(&c,1);
+        if (c != '}') {
+            cout << "error, mismatched {} in save file" << endl;
+        }
+        return (Block*) chunk;
+    } else {
+        if (c == '~') {
+          c = ifile.get();
+          BlockExtras* extra = new BlockExtras(ifile);
+          Pixel* p = new Pixel(px, py, pz, c, scale, parent, tile, extra);
+          return (Block*) p;
+        } else {
+          Pixel* p = new Pixel(px, py, pz, c, scale, parent, tile);
+          return (Block*) p;
+        }
+    }
+}
 
 
 
@@ -278,12 +306,12 @@ void Pixel::calculate_lightlevel() {
   }
 }
 
-void Pixel::render(GLVecs* allvecs, int gx, int gy, int gz) {
+void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
     if (!render_flag) {
         return;
     }
     
-    RenderVecs vecs;
+    MemVecs vecs;
     
     gx += px*scale;
     gy += py*scale;
@@ -636,7 +664,7 @@ float Chunk::get_lightlevel(int dx, int dy, int dz) {
     }
 }
 
-void Chunk::render(GLVecs* vecs, int gx, int gy, int gz) {
+void Chunk::render(RenderVecs* vecs, int gx, int gy, int gz) {
     if (render_flag) {
         render_flag = false;
         for (int x = 0; x < csize; x ++) {

@@ -15,7 +15,6 @@ class Tile {
 		World* world;
 		ChunkLoader loader;
 		Tile(ivec3 position, World* world);
-		Block* parse_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent);
 		void render(GLVecs*);
 		void save();
 		void update_lighting();

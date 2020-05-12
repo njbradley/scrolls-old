@@ -7,36 +7,6 @@
 
 //#include <ZipLib/ZipFile.h>
 
-Block* Tile::parse_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent) {
-    char c;
-    ifile.read(&c,1);
-    if (c == '{') {
-        Chunk* chunk = new Chunk(px, py, pz, scale, parent);
-        for (int x = 0; x < csize; x ++) {
-            for (int y = 0; y < csize; y ++) {
-                for (int z = 0; z < csize; z ++) {
-                    chunk->blocks[x][y][z] = parse_file(ifile, x, y, z, scale/csize, chunk);
-                }
-            }
-        }
-        ifile.read(&c,1);
-        if (c != '}') {
-            cout << "error, mismatched {} in save file" << endl;
-        }
-        return (Block*) chunk;
-    } else {
-        if (c == '~') {
-          c = ifile.get();
-          BlockExtras* extra = new BlockExtras(ifile);
-          Pixel* p = new Pixel(px, py, pz, c, scale, parent, this, extra);
-          return (Block*) p;
-        } else {
-          Pixel* p = new Pixel(px, py, pz, c, scale, parent, this);
-          return (Block*) p;
-        }
-    }
-}
-
 Block* Tile::generate(ivec3 pos) {
     cout << chunksize << ' ' << pos.x << ',' << pos.y << ' ' << pos.z << endl;
     Pixel* pix = new Pixel(pos.x,pos.y,pos.z,0,chunksize,nullptr,this);
@@ -84,7 +54,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
 	if (ifile.good()) {
 			cout << "loading '" << path.str() << "' from file\n";
 			//chunks[pos] = parse_file(&ifile, pos.first, 0, pos.second, chunksize, nullptr);
-			chunk = parse_file(ifile, pos.x, pos.y, pos.z, chunksize, nullptr);
+			chunk = Block::from_file(ifile, pos.x, pos.y, pos.z, chunksize, nullptr, this);
 	} else {
 			cout << "generating '" << path.str() << "'\n";
 			chunk = generate(pos);

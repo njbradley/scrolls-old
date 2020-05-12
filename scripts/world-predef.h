@@ -37,11 +37,12 @@ class World {
         string name;
         int view_dist = 3;
         float sun = 0.0f;
-        int chunksize = 64;
         GLVecs glvecs;
         bool lighting_flag;
         Player* player;
 				
+        static const int chunksize = 128;
+        
         World(string newname, int newseed);
         World(string oldname);
         void unzip();

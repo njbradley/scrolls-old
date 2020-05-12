@@ -3,7 +3,7 @@
 
 #include "classes.h"
 
-const int chunksize = 64;
+const int chunksize = World::chunksize;
 
 class TerrainObject {
 public:

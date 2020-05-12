@@ -24,7 +24,7 @@ const char letters[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234
 const float pix_x = 5/200.0f;
 const float pix_y = pix_x*2;
 
-void draw_text(RenderVecs* vecs, string str, float x, float y, int size) {
+void draw_text(MemVecs* vecs, string str, float x, float y, int size) {
     float original_x = x;
     for (char c : str) {
         if (c == '\n') {
@@ -68,7 +68,7 @@ void draw_text(RenderVecs* vecs, string str, float x, float y, int size) {
     }
 }
 
-void draw_text(RenderVecs* vecs, string str, float x, float y) {
+void draw_text(MemVecs* vecs, string str, float x, float y) {
     draw_text(vecs, str, x, y, 1);
 }
 

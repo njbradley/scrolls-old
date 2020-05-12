@@ -8,7 +8,7 @@ using std::endl;
 #include "rendervec-predef.h"
 
 
-void RenderVecs::add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat newlight, GLint minscale, GLint mat) {
+void MemVecs::add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat newlight, GLint minscale, GLint mat) {
     verts.insert(verts.end(), newverts, newverts+6*3);
     uvs.insert(uvs.end(), newuvs, newuvs+6*2);
     for (int i = 0; i < 6; i ++) {
@@ -17,7 +17,35 @@ void RenderVecs::add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat newlight, 
         mats.push_back(mat);
     }
     num_verts += 6;
+    if ( verts.size()/3 != num_verts or uvs.size()/2 != num_verts or light.size() != num_verts or mats.size()/2 != num_verts) {
+      cout << "ERR: unbalanced vectors in MemVecs::add_face err code 6asd67547565e75sdr6" << endl;
+      exit(1);
+    }
 }
+
+pair<int,int> MemVecs::add(MemVecs* newvecs) {
+  verts.insert(verts.end(), newvecs->verts.begin(), newvecs->verts.end());
+  uvs.insert(uvs.end(), newvecs->uvs.begin(), newvecs->uvs.end());
+  light.insert(light.end(), newvecs->light.begin(), newvecs->light.end());
+  mats.insert(mats.end(), newvecs->mats.begin(), newvecs->mats.end());
+  num_verts += newvecs->num_verts;
+  if ( verts.size()/3 != num_verts or uvs.size()/2 != num_verts or light.size() != num_verts or mats.size()/2 != num_verts) {
+    cout << "ERR: unbalanced vectors in MemVecs::add err code 490897w9e7r98we" << endl;
+    exit(1);
+  }
+  return pair<int,int>((num_verts - newvecs->num_verts)/6, newvecs->num_verts/6);
+}
+
+void MemVecs::clear() {
+  verts.clear();
+  uvs.clear();
+  light.clear();
+  mats.clear();
+  num_verts = 0;
+}
+
+
+
 
 
 
@@ -37,12 +65,10 @@ void GLVecs::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, in
     glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
     glBufferData(GL_ARRAY_BUFFER, start_size*2*sizeof(GLint), NULL, GL_STATIC_DRAW);
     
-    
-    
     //cout << "err: " << std::hex << glGetError() << std::dec << endl;
 }
 
-pair<int,int> GLVecs::add(RenderVecs* newvecs) {
+pair<int,int> GLVecs::add(MemVecs* newvecs) {
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
     int old_num_verts = num_verts;
     int location = num_verts;
@@ -141,25 +167,39 @@ void GLVecs::clean() {
         int start = index.first*6;
         int size = index.second*6;
         GLfloat zerosf[size*3];
-	memset(zerosf, 0.0f, size*3);
-        GLint zerosi[size];
-	memset(zerosi, 0, size);
-        glNamedBufferSubData(vertexbuffer, start*3*sizeof(GLfloat), size*3*sizeof(GLfloat), zerosf);
-        glNamedBufferSubData(uvbuffer, start*2*sizeof(GLfloat), size*2*sizeof(GLfloat), zerosf);
-        glNamedBufferSubData(lightbuffer, start*sizeof(GLfloat), size*sizeof(GLfloat), zerosf);
-        glNamedBufferSubData(matbuffer, start*2*sizeof(GLint), size*sizeof(GLint), zerosi);
+        memset(zerosf, 0.0f, size*3);
+        GLint zerosi[size*2];
+	      memset(zerosi, 0, size*2);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+        glBufferSubData(GL_ARRAY_BUFFER, start*3*sizeof(GLfloat), size*3*sizeof(GLfloat), zerosf);
+        glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+        glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLfloat), size*2*sizeof(GLfloat), zerosf);
+        glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
+        glBufferSubData(GL_ARRAY_BUFFER, start*sizeof(GLfloat), size*sizeof(GLfloat), zerosf);
+        glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
+        glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLint), size*2*sizeof(GLint), zerosi);
     }
     writelock.unlock();
   }
 }
 
-void GLVecs::edit( pair<int,int> index, RenderVecs* newvecs) {
-    cout << "editing!" << endl;
+void GLVecs::edit( pair<int,int> index, MemVecs* newvecs) {
+  if (writelock.try_lock_for(std::chrono::seconds(1))) {
+    //cout << "editing!" << endl;
     int location = index.first*6;
-    glNamedBufferSubData(vertexbuffer, location*3*sizeof(GLfloat), newvecs->verts.size()*sizeof(GLfloat), &newvecs->verts.front());
-    glNamedBufferSubData(uvbuffer, location*2*sizeof(GLfloat), newvecs->uvs.size()*sizeof(GLfloat), &newvecs->uvs.front());
-    glNamedBufferSubData(lightbuffer, location*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
-    glNamedBufferSubData(matbuffer, location*2*sizeof(GLint), newvecs->mats.size()*sizeof(GLfloat), &newvecs->mats.front());
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+    glBufferSubData(GL_ARRAY_BUFFER, location*3*sizeof(GLfloat), newvecs->verts.size()*sizeof(GLfloat), &newvecs->verts.front());
+    glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+    glBufferSubData(GL_ARRAY_BUFFER, location*2*sizeof(GLfloat), newvecs->uvs.size()*sizeof(GLfloat), &newvecs->uvs.front());
+    glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
+    glBufferSubData(GL_ARRAY_BUFFER, location*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
+    glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
+    glBufferSubData(GL_ARRAY_BUFFER, location*2*sizeof(GLint), newvecs->mats.size()*sizeof(GLfloat), &newvecs->mats.front());
+    
+    writelock.unlock();
+  }
 }
 
 void GLVecs::status(std::stringstream & message) {

@@ -21,7 +21,6 @@
  *
  */
 
-
 class Block { public:
     
     int px; // parent coordinates, bool because only need to go up to 1
@@ -45,7 +44,7 @@ class Block { public:
     Block(int x, int y, int z, int newscale, Chunk* newparent);
     void world_to_local(int x, int y, int z, int* lx, int* ly, int* lz);
     void global_position(int*, int*, int*);
-    virtual void render(GLVecs*, int, int, int) = 0;
+    virtual void render(RenderVecs*, int, int, int) = 0;
     virtual bool is_air(int, int, int) = 0;
     virtual Block * get_global(int,int,int,int) = 0;
     virtual void render_update() = 0;
@@ -53,6 +52,8 @@ class Block { public:
     Block* raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time);
     Block* get_world();
     void update_chunk();
+    
+    static Block* from_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent, Tile* tile);
 };
 
 class Pixel: public Block { public:
@@ -81,7 +82,7 @@ class Pixel: public Block { public:
     void lighting_update();
     bool is_air(int dx, int dy, int dz);
     Block* get_global(int x, int y, int z, int scale);
-    void render(GLVecs*, int, int,int);
+    void render(RenderVecs*, int, int,int);
     Chunk* subdivide();
     Chunk* resolve();
     void save_to_file(ofstream& of);
@@ -101,7 +102,7 @@ class Chunk: public Block { public:
     void all(function<void(Pixel*)> func);
     void all_side(function<void(Pixel*)>,int,int,int);
     float get_lightlevel(int dx, int dy, int dz);
-    void render(GLVecs* vecs, int gx, int gy, int gz);
+    void render(RenderVecs* vecs, int gx, int gy, int gz);
     void del(bool remove_faces);
     void render_update();
     Block* get_global(int x, int y, int z, int nscale);

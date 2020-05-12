@@ -90,43 +90,57 @@ void World::startup() {
 }
 
 void World::spawn_player() {
-  player = new Player( vec3(0,64,0), world);
+  player = new Player( vec3(0,126,0), world);
   player->flying = false;
   player->autojump = true;
   player->health = 10;
 }
 
 void World::load_nearby_chunks() {
-  
-  int px = player->position.x/chunksize - (player->position.x<0);
-  int py = player->position.y/chunksize - (player->position.y<0);
-  int pz = player->position.z/chunksize - (player->position.z<0);
-  //px = 0;
-  py = 1;
-  //pz = 0;
-  const int range = 1;
-  for (int x = px-range; x < px+range+1; x ++) {
-    for (int y = py-range; y < py+range+1; y ++) {
-      for (int z = pz-range; z < pz+range+1; z ++) {
-        ivec3 pos(x,y,z);
-        if (!tiles.count(pos) and std::find(loading_chunks.begin(), loading_chunks.end(), pos) == loading_chunks.end()) {
-          //load_chunk(ivec3(x,y,z));
-          if (threadmanager->add_loading_job(pos)) {
-            loading_chunks.push_back(pos);
+  if (!player->flying) {
+    int px = player->position.x/chunksize - (player->position.x<0);
+    int py = player->position.y/chunksize - (player->position.y<0);
+    int pz = player->position.z/chunksize - (player->position.z<0);
+    //px = 0;
+    //pz = 0;
+    const int maxrange = 2;
+    // ivec3 pos(px,py,pz);
+    // if (!tiles.count(pos) and std::find(loading_chunks.begin(), loading_chunks.end(), pos) == loading_chunks.end()) {
+    //   //load_chunk(ivec3(x,y,z));
+    //   if (threadmanager->add_loading_job(pos)) {
+    //     loading_chunks.push_back(pos);
+    //   }
+    // }
+    //
+    for (int range = 0; range < maxrange; range ++) {
+      for (int x = px-range; x < px+range+1; x ++) {
+        for (int y = py-range; y < py+range+1; y ++) {
+          for (int z = pz-range; z < pz+range+1; z ++) {
+            if (x == px-range or x == px+range or y == py-range or y == py+range or z == pz-range or z == pz+range) {
+              //cout << range << ' ' << x << ' ' << y << ' ' << z << endl;
+              ivec3 pos(x,y,z);
+              if (!tiles.count(pos) and std::find(loading_chunks.begin(), loading_chunks.end(), pos) == loading_chunks.end()) {
+                //load_chunk(ivec3(x,y,z));
+                if (threadmanager->add_loading_job(pos)) {
+                  loading_chunks.push_back(pos);
+                }
+              }
+            }
           }
         }
       }
     }
-  }
-  const double max_distance = std::sqrt((range+1)*(range+1)*2);
-  for (pair<ivec3,Tile*> kv : tiles) {
-    double distance = std::sqrt((px-kv.first.x)*(px-kv.first.x) + (py-kv.first.y)*(py-kv.first.y) + (pz-kv.first.z)*(pz-kv.first.z));
-    if (distance > max_distance and std::find(deleting_chunks.begin(), deleting_chunks.end(), kv.first) == deleting_chunks.end()) {
-      //del_chunk(kv.first, true);
-      if (threadmanager->add_deleting_job(kv.first)) {
-        deleting_chunks.push_back(kv.first);
+    //exit(1);
+    const double max_distance = std::sqrt((maxrange+1)*(maxrange+1)*2);
+    for (pair<ivec3,Tile*> kv : tiles) {
+      double distance = std::sqrt((px-kv.first.x)*(px-kv.first.x) + (py-kv.first.y)*(py-kv.first.y) + (pz-kv.first.z)*(pz-kv.first.z));
+      if (distance > max_distance and std::find(deleting_chunks.begin(), deleting_chunks.end(), kv.first) == deleting_chunks.end()) {
+        //del_chunk(kv.first, true);
+        if (threadmanager->add_deleting_job(kv.first)) {
+          deleting_chunks.push_back(kv.first);
+        }
+        render_flag = true;
       }
-      render_flag = true;
     }
   }
   get_async_loaded_chunks();

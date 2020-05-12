@@ -55,7 +55,7 @@ InventoryMenu::InventoryMenu(string head, ItemContainer* start_other, function<v
   start();
 }
 
-void InventoryMenu::render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
+void InventoryMenu::render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs) {
   /////rendering
   
   glfwGetCursorPos(window, &xpos, &ypos);
@@ -164,7 +164,7 @@ void CraftingMenu::render_page() {
   }
 }
 
-void CraftingMenu::render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
+void CraftingMenu::render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs) {
   /////rendering
   
   glfwGetCursorPos(window, &xpos, &ypos);
@@ -282,7 +282,7 @@ SelectMenu::SelectMenu(string head, vector<string> & opts, function<void(string)
     click = true;
 }
 
-void SelectMenu::render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
+void SelectMenu::render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs) {
     int i = 0;
     draw_text(uivecs, header, -0.5, 0.75f, 3);
     for (string name : options) {
@@ -346,7 +346,7 @@ TextInputMenu::TextInputMenu(string head, bool have_filter, function<void(string
   glfwSetKeyCallback(window, special_callback);
 }
 
-void TextInputMenu::render(GLFWwindow* window, World* world, Player* player, RenderVecs* uivecs) {
+void TextInputMenu::render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs) {
   draw_text(uivecs, header, -0.5, 0.75f, 3);
   draw_text(uivecs, text + '|', -0.5, 0.0f, 2);
   if (text_buff != "") {

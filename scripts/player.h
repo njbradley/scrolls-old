@@ -339,7 +339,7 @@ void Player::computeMatricesFromInputs(World* nworld){
 	lastTime = currentTime;
 }
 
-void Player::render_ui(RenderVecs * uivecs) {
+void Player::render_ui(MemVecs * uivecs) {
 	///hearts
 	float scale = 0.1f;
 	int i;
