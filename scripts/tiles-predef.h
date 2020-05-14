@@ -13,7 +13,6 @@ class Tile {
 		Block* chunk;
 		int chunksize;
 		World* world;
-		ChunkLoader loader;
 		Tile(ivec3 position, World* world);
 		void render(GLVecs*);
 		void save();

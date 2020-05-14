@@ -8,8 +8,7 @@
 #include "blockdata-predef.h"
 //#include "texture.h"
 
-int rseed = 4354345;
-int seed = rseed;
+
 
 vector<pair<int,int> > paths;
 
@@ -17,23 +16,29 @@ double lerp(double a0, double a1, double w) {
     return (1.0f - w)*a0 + w*a1;
 }
 
-int cash(int x, int y){
-    int h = seed + x*374761393 + y*668265263; //all constants are prime
-    h = (h^(h >> 13))*1274126177;
-    return h^(h >> 16);
+// int cash(int x, int y){
+//     int h = seed + x*374761393 + y*668265263; //all constants are prime
+//     h = (h^(h >> 13))*1274126177;
+//     return h^(h >> 16);
+// }
+
+int hash4(int seed, int a, int b, int c, int d) {
+	int sum = seed + 13680553*a + 47563643*b + 84148333*c + 80618477*d;
+	sum = (sum ^ (sum >> 13)) * 750490907;
+  return sum ^ (sum >> 16);
 }
 
-double randfloat(int x, int y) {
-    return (double)cash(x,y) / INT_MAX;
+double randfloat(int seed, int x, int y, int a, int b) {
+    return (double)(hash4(seed,x,y,a,b)%1000000) / 1000000;
 }
 
 // Computes the dot product of the distance and gradient vectors.
-double dotGridGradient(int ix, int iy, double x, double y) {
+double dotGridGradient(int ix, int iy, double x, double y, int seed, int layer) {
 
     // Precomputed (or otherwise) gradient vectors at each grid node
     //extern float Gradient[IYMAX][IXMAX][2];
-    double pvecx = randfloat(ix*2, iy)*2-1;
-    double pvecy = randfloat(ix*2+1, iy)*2-1;
+    double pvecx = randfloat(seed, ix, iy, layer, 0)*2-1;
+    double pvecy = randfloat(seed, ix, iy, layer, 1)*2-1;
     
     //cout << pvecx << '-' << pvecy << endl;
     double dist = sqrt( pvecx*pvecx + pvecy*pvecy );
@@ -49,7 +54,7 @@ double dotGridGradient(int ix, int iy, double x, double y) {
 }
 
 // Compute Perlin noise at coordinates x, y
-double perlin(double x, double y) {
+double perlin(double x, double y, int seed, int layer) {
     
     x += INT_MAX/2;
     y += INT_MAX/2;
@@ -70,34 +75,33 @@ double perlin(double x, double y) {
     // Interpolate between grid point gradients
     double n0, n1, ix0, ix1, value;
     
-    n0 = dotGridGradient(x0, y0, x, y);
-    n1 = dotGridGradient(x1, y0, x, y);
+    n0 = dotGridGradient(x0, y0, x, y, seed, layer);
+    n1 = dotGridGradient(x1, y0, x, y, seed, layer);
     ix0 = lerp(n0, n1, sx);
     
     //cout << n0 << ' ' << n1 << endl;
     
-    n0 = dotGridGradient(x0, y1, x, y);
-    n1 = dotGridGradient(x1, y1, x, y);
+    n0 = dotGridGradient(x0, y1, x, y, seed, layer);
+    n1 = dotGridGradient(x1, y1, x, y, seed, layer);
     ix1 = lerp(n0, n1, sx);
     
     value = lerp(ix0, ix1, sy);
     //cout << value << endl;
     //exit(0);
-    seed ++;
     return value;
 }
 
-double scaled_perlin(double x, double y, double height, double width) {
-    return perlin((float)x/(width), (float)y/(width)) *height + height/2;
+double scaled_perlin(double x, double y, double height, double width, int seed, int layer) {
+    return perlin((float)x/(width), (float)y/(width), seed, layer) *height + height/2;
 }
 
 
-double get_heightmap(int x, int y) {
-    return (scaled_perlin(x,y,16*2,20*2) + scaled_perlin(x,y,8*2,10*2))*scaled_perlin(x,y,2*2,40*2) + scaled_perlin(x,y,4*2,5*2);
+double get_heightmap(int x, int y, int seed) {
+    return (scaled_perlin(x,y,16*2,20*2,seed,0) + scaled_perlin(x,y,8*2,10*2,seed,1))*scaled_perlin(x,y,2*2,40*2,seed,2) + scaled_perlin(x,y,4*2,5*2,seed,3);
 }
 
 void set_seed(int nseed) {
-  seed = nseed;
+  //seed = nseed;
 }
 
 #endif

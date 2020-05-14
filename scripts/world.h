@@ -24,14 +24,15 @@ using std::thread;
 
 
 
-World::World(string newname, int newseed): seed(newseed), name(newname) {
+World::World(string newname, int newseed): loader(seed), seed(newseed), name(newname) {
     setup_files();
     startup();
 }
 
-World::World(string oldname): name(oldname) {
+World::World(string oldname): loader(seed), name(oldname) {
     unzip();
     load_data_file();
+    loader.seed = seed;
     startup();
 }
 
@@ -90,7 +91,7 @@ void World::startup() {
 }
 
 void World::spawn_player() {
-  player = new Player( vec3(0,126,0), world);
+  player = new Player( vec3(10,loader.terrain->get_height(ivec2(10,10))+7,10), world);
   player->flying = false;
   player->autojump = true;
   player->health = 10;

@@ -469,7 +469,7 @@ Chunk* Pixel::subdivide() {
     for (int x = 0; x < csize; x ++) {
         for (int y = 0; y < csize; y ++) {
             for (int z = 0; z < csize; z ++) {
-                char val = tile->loader.gen_func(gx+x*scale/csize, gy+y*scale/csize, gz+z*scale/csize);
+                char val = world->loader.gen_func(ivec3(gx+x*scale/csize, gy+y*scale/csize, gz+z*scale/csize));
                 Pixel* pix = new Pixel(x, y, z, val, scale/csize, newchunk, tile);
                 //cout << gx+x*scale/csize << ' ' << gy+y*scale/csize << ' ' << gz+z*scale/csize << endl;
                 Chunk* subdivided = pix->resolve();
@@ -500,11 +500,11 @@ Chunk* Pixel::resolve() {
   //cout << gx << ' ' << gy << ' ' << gz << "res" << endl;
   bool shell = true;
   bool full = true;
-  char val = tile->loader.gen_func(gx, gy, gz);
+  char val = world->loader.gen_func(ivec3(gx, gy, gz));
   for (int ox = 0; ox < scale and shell; ox ++) {
     for (int oy = 0; oy < scale and shell; oy ++) {
       for (int oz = 0; oz < scale and shell; oz ++) {
-        char newval = tile->loader.gen_func(gx+ox, gy+oy, gz+oz);
+        char newval = world->loader.gen_func(ivec3(gx+ox, gy+oy, gz+oz));
         if (newval != val) {
           if (ox == 0 or ox == scale-1 or oy == 0 or oy == scale-1 or oz == 0 or oz == scale-1) {
             shell = false;

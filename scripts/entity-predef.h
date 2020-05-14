@@ -29,7 +29,6 @@ class Entity { public:
     vec3 dirs[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
     bool old_consts[7];
     bool consts[7]; // constraints for entity, posx, pos y, pos z, neg x, neg y, neg z
-    bool immunity = true;
     
     Entity(vec3 pos, vec3 hitbox1, vec3 hitbox2);
     void timestep(World* world);

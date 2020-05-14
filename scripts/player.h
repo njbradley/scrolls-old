@@ -295,6 +295,13 @@ void Player::computeMatricesFromInputs(World* nworld){
 		}
 	}
 	
+	for (int i = 0; i < 10; i ++) {
+		if (glfwGetKey(window, (i != 9) ? GLFW_KEY_1 + i : GLFW_KEY_0)) {
+			selitem = i;
+			break;
+		}
+	}
+	
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
 		left_mouse();
 		timeout += deltaTime;
@@ -327,7 +334,7 @@ void Player::computeMatricesFromInputs(World* nworld){
 	
 	
 	// Projection matrix : 45 Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-	ProjectionMatrix = glm::perspective(glm::radians(FoV), 4.0f / 3.0f, 0.1f, 1000.0f);
+	ProjectionMatrix = glm::perspective(glm::radians(FoV), aspect_ratio, 0.1f, 1000.0f);
 	// Camera matrix
 	ViewMatrix       = glm::lookAt(
 								position,           // Camera is here

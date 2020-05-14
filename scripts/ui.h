@@ -11,10 +11,16 @@ using std::endl;
 
 map<string,int> ui_names;
 
-const int screen_x = 1024;
-const int screen_y = 768;
+int screen_x = 1600;
+int screen_y = 900;
 
-const float aspect_ratio = (float)screen_x/screen_y;
+float aspect_ratio = (float)screen_x/screen_y;
+
+void set_screen_dims(int x, int y) {
+	screen_x = x;
+	screen_y = y;
+	aspect_ratio = (float)screen_x/screen_y;
+}
 
 void render_debug(MemVecs * vecs, string message) {
 	draw_text(vecs, message, -1, 1-pix_y);

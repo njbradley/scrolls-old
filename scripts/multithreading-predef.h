@@ -24,7 +24,7 @@ public:
 
 class ThreadManager {
 public:
-	static const int num_threads = 1;
+	static const int num_threads = 3;
 	ThreadJob* loading[num_threads];
 	ivec3* deleting[num_threads];
 	bool load_running[num_threads];
@@ -39,6 +39,7 @@ public:
 	bool add_loading_job(ivec3 pos);
 	bool add_deleting_job(ivec3 pos);
 	vector<Tile*> get_loaded_tiles();
+	void close();
 };
 
 ThreadManager* threadmanager;

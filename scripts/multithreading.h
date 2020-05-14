@@ -86,6 +86,23 @@ vector<Tile*> ThreadManager::get_loaded_tiles() {
 	return tiles;
 }
 
+void ThreadManager::close() {
+	render_running = false;
+	cout << "joining rendering thread" << endl;
+	rendering_thread.join();
+	for (int i = 0; i < num_threads; i ++) {
+		load_running[i] = false;
+		cout << "joining load " << i << endl;
+		loading_threads[i].join();
+		del_running[i] = false;
+		cout << "joining del " << i << endl;
+		deleting_threads[i].join();
+	}
+}
+		
+
+
+
 
 LoadingThread::LoadingThread(GLFWwindow* nwindow, int newindex, ThreadManager* newparent): window(nwindow), index(newindex), parent(newparent) {
 	
@@ -102,6 +119,7 @@ void LoadingThread::operator()() {
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		//cout << "hello from thread " << index << endl;
 	}
+	cout << "loading thread " << index << " exited" << endl;
 }
 
 
@@ -118,6 +136,7 @@ void DeletingThread::operator()() {
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
+	cout << "deleting thread " << index << " exited" << endl;
 }
 
 
@@ -136,6 +155,7 @@ void RenderingThread::operator()() {
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
+	cout << "rendering thread exited" << endl;
 }
 
 

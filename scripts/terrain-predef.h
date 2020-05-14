@@ -3,82 +3,67 @@
 
 #include "classes.h"
 
-const int chunksize = World::chunksize;
+
+class TerrainBase {
+public:
+	virtual int get_height(ivec2) = 0;
+	virtual char gen_func(ivec3) = 0;
+};
 
 class TerrainObject {
 public:
-	int seed;
-	ChunkLoader* parent;
-	TerrainObject(ChunkLoader* chunk, int nseed): seed(nseed), parent(chunk) { }
-	virtual char gen_func(int x, int y, int z) = 0;
+	ivec3 size;
+	int radius;
+	TerrainLoader* parent;
+	TerrainObject(TerrainLoader* loader, ivec3 nsize, int nradius);
+	virtual char gen_func(ivec3) = 0;
+	virtual ivec3 get_nearest(ivec3);
 	virtual int priority() = 0;
+	ivec3 get_nearest_3d(ivec3);
+	ivec2 get_nearest_2d(ivec2);
 };
 
-class TerrainBase: public TerrainObject {
+class TerrainObjectMerger {
 public:
-	TerrainBase(ChunkLoader* chunk, int nseed): TerrainObject(chunk, nseed) { }
-	virtual int get_height(int,int) = 0;
+	vector<TerrainObject*> objs;
+	TerrainLoader* parent;
+	TerrainObjectMerger(TerrainLoader* newparent);
+	char gen_func(ivec3);
 };
 
-class Island: public TerrainBase {
+class TerrainLoader {
 public:
-	int width;
-	int height;
-	int xpos;
-	int ypos;
-	int height_array[chunksize][chunksize];
-	int base_array[chunksize][chunksize];
-	Island(ChunkLoader* chunk, int nseed, int x, int y, int nwidth, int nheight);
-	pair<int,int> generate_bounds(int,int);
-	int get_height(int,int);
-	void generate_arrays();
-	char gen_func(int x, int y, int z);
-	int priority();
+	int seed;
+	TerrainObjectMerger objmerger;
+	TerrainBase* terrain;
+	TerrainLoader(int nseed);
+	char gen_func(ivec3);
 };
+	
+	
 
 class Land: public TerrainBase {
 public:
-	int height_array[chunksize][chunksize];
-	Land(ChunkLoader* chunk, int nseed);
-	int generate_height(int,int);
-	int get_height(int,int);
-	void generate_arrays();
-	char gen_func(int x, int y, int z);
+	TerrainLoader* parent;
+	Land(TerrainLoader*);
+	int get_height(ivec2);
+	char gen_func(ivec3);
+};
+
+class Tree: public TerrainObject {
+public:
+	Tree(TerrainObjectMerger*);
+	char gen_func(ivec3);
+	ivec3 get_nearest(ivec3);
 	int priority();
 };
 
-class Trees: public TerrainObject {
+class Cave: public TerrainObject {
 public:
-	string type;
-	int num_trees = 16;
-	vector<pair<int,int> > positions;
-	int (*tree_data)[20][20][20];
-	Trees(ChunkLoader* chunk, int nseed, string ntype);
-	void generate_tree(int);
-	char gen_func(int x, int y, int z);
+	Cave(TerrainObjectMerger*);
+	char gen_func(ivec3);
+	ivec3 get_nearest(ivec3);
 	int priority();
-};
-
-class Path: public TerrainObject {
-public:
-	vector<pair<int,int> > path_points;
-	int height;
-	Path(ChunkLoader* chunk, int nseed);
-	char gen_func(int x, int y, int z);
-	int priority();
-};
-
-class ChunkLoader {
-public:
-	vector<TerrainObject*> objs;
-	vector<TerrainBase*> terrain;
-	int xpos;
-	int ypos;
-	int zpos;
-	int seed;
-	ChunkLoader(int, int, int, int);
-	char gen_func(int x, int y, int z);
-	int get_height(int, int);
 };
 
 #endif

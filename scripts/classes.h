@@ -8,6 +8,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 using glm::vec3;
 using glm::ivec3;
+using glm::vec2;
+using glm::ivec2;
 using std::cout;
 using std::endl;
 using std::string;
@@ -39,6 +41,9 @@ class TerrainObject;
 class ChunkLoader;
 class ThreadManager;
 class Tile;
+class TerrainLoader;
+class TerrainObject;
+class TerrainObjectMerger;
 
 //////////////////////// GLOBAL VARIABLES ////////////////////////
 bool render_flag;

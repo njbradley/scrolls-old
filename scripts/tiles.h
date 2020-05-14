@@ -46,7 +46,7 @@ void Tile::save() {
   chunk->save_to_file(of);
 }
 
-Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize), loader(nworld->seed, newpos.x, newpos.y, newpos.z) {
+Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize) {
 	
 	stringstream path;
 	path << "saves/world/chunk" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";

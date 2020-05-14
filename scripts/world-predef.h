@@ -13,6 +13,7 @@
 #include <map>
 #include "rendervec-predef.h"
 #include "entity-predef.h"
+#include "terrain-predef.h"
 #include <future>
 #include <thread>
 
@@ -38,10 +39,11 @@ class World {
         int view_dist = 3;
         float sun = 0.0f;
         GLVecs glvecs;
+        TerrainLoader loader;
         bool lighting_flag;
         Player* player;
 				
-        static const int chunksize = 128;
+        static const int chunksize = 64;
         
         World(string newname, int newseed);
         World(string oldname);

@@ -57,8 +57,8 @@ GLuint mat_ui_buffer;
 
 int allocated_memory = 2000000*6;
 
-bool debug_visible = true;
-bool fullscreen = true;
+bool debug_visible = false;
+bool fullscreen = false;
 
 
 void load_settings() {
@@ -75,6 +75,10 @@ void load_settings() {
 				fullscreen = name == "true";
 			} else if (name == "max_fps") {
 				ifile >> max_fps;
+			} else if (name == "dims") {
+				int x,y;
+				ifile >> x >> y;
+				set_screen_dims(x, y);
 			} else if (name == "") {
 				continue;
 			} else {
@@ -89,6 +93,7 @@ void load_settings() {
 		ofstream ofile("saves/settings.txt");
 		ofile << "fov: 110" << endl;
 		ofile << "fullscreen: false" << endl;
+		ofile << "dims: 1600 900" << endl;
 		ofile << "max_fps: 120" << endl;
 		load_settings();
 	}
@@ -164,7 +169,7 @@ void new_world_menu() {
 		if (result != "") {
 			world->close_world();
 			delete world;
-			world = new World(result, rand());
+			world = new World(result, time(NULL));
 			world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
 			render_flag = true;
 		}
@@ -196,7 +201,6 @@ int main( void )
 	load_settings();
 	min_ms_per_frame = 1000.0/max_fps;
 	
-	bool fullscreen = false;
 	cout.precision(10);
 	
 	itemstorage = new ItemStorage();
@@ -218,9 +222,15 @@ int main( void )
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	
-	
-	// Open a window and create its OpenGL context
-	window = glfwCreateWindow( screen_x, screen_y, "Scrolls - An Adventure Game", fullscreen ? glfwGetPrimaryMonitor() : nullptr, nullptr);
+	if (fullscreen) {
+		const GLFWvidmode* return_struct = glfwGetVideoMode( glfwGetPrimaryMonitor() );
+		set_screen_dims(return_struct->width, return_struct->height);
+		window = glfwCreateWindow( screen_x, screen_y, "Scrolls - An Adventure Game", glfwGetPrimaryMonitor(), nullptr);
+	} else {
+		// Open a window and create its OpenGL context
+		window = glfwCreateWindow( screen_x, screen_y, "Scrolls - An Adventure Game", fullscreen ? glfwGetPrimaryMonitor() : nullptr, nullptr);
+	}
+	glfwSetWindowPos(window, 100, 40);
 	
 	threadmanager = new ThreadManager(window);
 	
@@ -386,10 +396,9 @@ int main( void )
 		}
 	}
 	
-	debug_visible = true;
 	
 	
-	Entity* test = new NamedEntity(vec3(0.5, 50, 0), "test");
+	//Entity* test = new NamedEntity(vec3(0.5, 50, 0), "test");
 	
 	
 	double lastTime = glfwGetTime();
@@ -411,7 +420,7 @@ int main( void )
 		
 		if (menu == nullptr) {
 			world->player->timestep(world);
-			test->timestep(world);
+			//test->timestep(world);
 			world->player->computeMatricesFromInputs(world);
 		}
 		
@@ -707,8 +716,10 @@ int main( void )
 				menu = nullptr;
 			}
 		}
-		if (glfwGetKey(window, GLFW_KEY_P ) == GLFW_PRESS) {
-			debug_visible = !debug_visible;
+		if (glfwGetKey(window, GLFW_KEY_O ) == GLFW_PRESS) {
+			debug_visible = true;
+		} else if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
+			debug_visible = false;
 		} else if (glfwGetKey(window, GLFW_KEY_Q ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
 			playing = false;
 		} else if (glfwWindowShouldClose(window)) {
@@ -716,8 +727,10 @@ int main( void )
 		}
 		
 	}
-
-			 
+	
+	threadmanager->close();
+	delete threadmanager;
+	
 	// Cleanup VBO and shader
 	glDeleteBuffers(1, &vertexbuffer);
 	glDeleteBuffers(1, &uvbuffer);
