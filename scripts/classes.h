@@ -17,6 +17,8 @@ using std::string;
 void crash(long long);
 void hard_crash(long long);
 
+void print(vec3 v);
+
 ////////////////// CLASSES ///////////////////////////
 class Block;
 class Collider;

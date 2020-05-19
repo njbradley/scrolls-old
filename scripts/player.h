@@ -100,9 +100,10 @@ void Player::right_mouse() {
 	double y = position.y;
 	double z = position.z;
 	Block* target = world->raycast(&x, &y, &z, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 8);
-	
+	//cout << "ksjdflajsdfklajsd" << endl;
 	vector<DisplayEntity*> entities;
 	get_nearby_entities(&entities);
+	//cout << entities.size() << endl;
 	int bx, by, bz;
 	float dist;
 	if (target != nullptr) {
@@ -110,19 +111,54 @@ void Player::right_mouse() {
 	} else {
 		dist = -1;
 	}
+	//cout << dist << endl;
 	DisplayEntity* target_entity = nullptr;
+	//print(pointing);
 	for (DisplayEntity* entity : entities) {
-		double ex = position.x - entity->position.x;
-		double ey = position.y - entity->position.y;
-		double ez = position.z - entity->position.z;
-		Block* start = entity->block->get_global(int(ex) - (ex<0), int(ey) - (ey<0), int(ez) - (ez<0), 1);
-		Block* newtarget = start->raycast(&ex, &ey, &ez, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 8);
+		vec3 start = position-entity->position;
+		//cout << entity << endl;
+		//print(start);
+		float dt = 0;
+		bool ray_valid = true;
+		for (int axis = 0; axis < 3 and ray_valid; axis ++) {
+			float time;
+			if (start[axis] < 0) {
+				time = start[axis] * -1 / pointing[axis];
+			} else if (start[axis] >= entity->block->scale) {
+				time = (start[axis] - entity->block->scale) * -1 / pointing[axis] + 0.001f;
+			} else {
+				continue;
+			}
+			//cout << time << ' ';
+			if ( time < 0 ) {
+				ray_valid = false;
+				continue;
+			} else if (time > dt) {
+				dt = time;
+			}
+		}// cout << endl;
+		if (!ray_valid or glm::length(pointing*dt) > 8) {
+			continue;
+		}
+		start += pointing*dt;
+		//print (start);
+		double ex = start.x;
+		double ey = start.y;
+		double ez = start.z;
+		if (ex < 0 or ex >= entity->block->scale or ey < 0 or ey >= entity->block->scale or ez < 0 or ez >= entity->block->scale) {
+			continue;
+		}
+		//cout << "made it" << endl;
+		Block* start_block = entity->block->get_global(int(ex) - (ex<0), int(ey) - (ey<0), int(ez) - (ez<0), 1);
+		
+		Block* newtarget = start_block->raycast(&ex, &ey, &ez, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 8);
 		float newdist;
 		if (newtarget != nullptr) {
-			newdist = glm::length(position-vec3(ex,ey,ez));
+			newdist = glm::length(position-entity->position-vec3(ex,ey,ez));
 		} else {
 			newdist = -1;
 		}
+		//cout << newdist << endl;
 		if ((dist == -1 and newdist != -1) or (newdist < dist)) {
 			dist = newdist;
 			target = newtarget;
@@ -134,7 +170,7 @@ void Player::right_mouse() {
 	}
 	if (target_entity != nullptr) {
 		cout << "hit" << endl;
-		target_entity->vel.y += 1;
+		target_entity->vel += pointing * 4.0f + vec3(0,5,0);
 		return;
 	}
 	
@@ -174,9 +210,83 @@ void Player::left_mouse() {
 	double y = position.y;
 	double z = position.z;
 	Block* target = world->raycast(&x, &y, &z, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 8);
-	if (target == nullptr) {
+	
+	vector<DisplayEntity*> entities;
+	get_nearby_entities(&entities);
+	//cout << entities.size() << endl;
+	int bx, by, bz;
+	float dist;
+	if (target != nullptr) {
+		dist = glm::length(position-vec3(x,y,z));
+	} else {
+		dist = -1;
+	}
+	
+	// entity checking -----------
+	//cout << dist << endl;
+	DisplayEntity* target_entity = nullptr;
+	//print(pointing);
+	for (DisplayEntity* entity : entities) {
+		vec3 start = position-entity->position;
+		//cout << entity << endl;
+		//print(start);
+		float dt = 0;
+		bool ray_valid = true;
+		for (int axis = 0; axis < 3 and ray_valid; axis ++) {
+			float time;
+			if (start[axis] < 0) {
+				time = start[axis] * -1 / pointing[axis];
+			} else if (start[axis] >= entity->block->scale) {
+				time = (start[axis] - entity->block->scale) * -1 / pointing[axis] + 0.001f;
+			} else {
+				continue;
+			}
+			//cout << time << ' ';
+			if ( time < 0 ) {
+				ray_valid = false;
+				continue;
+			} else if (time > dt) {
+				dt = time;
+			}
+		}// cout << endl;
+		if (!ray_valid or glm::length(pointing*dt) > 8) {
+			continue;
+		}
+		start += pointing*dt;
+		//print (start);
+		double ex = start.x;
+		double ey = start.y;
+		double ez = start.z;
+		if (ex < 0 or ex >= entity->block->scale or ey < 0 or ey >= entity->block->scale or ez < 0 or ez >= entity->block->scale) {
+			continue;
+		}
+		//cout << "made it" << endl;
+		Block* start_block = entity->block->get_global(int(ex) - (ex<0), int(ey) - (ey<0), int(ez) - (ez<0), 1);
+		
+		Block* newtarget = start_block->raycast(&ex, &ey, &ez, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 8);
+		float newdist;
+		if (newtarget != nullptr) {
+			newdist = glm::length(position-entity->position-vec3(ex,ey,ez));
+		} else {
+			newdist = -1;
+		}
+		//cout << newdist << endl;
+		if ((dist == -1 and newdist != -1) or (newdist < dist)) {
+			dist = newdist;
+			target = newtarget;
+			target_entity = entity;
+		}
+	}
+	if (dist == -1) {
 		return;
 	}
+	if (target_entity != nullptr) {
+		cout << "hit" << endl;
+		target_entity->vel += pointing * 4.0f + vec3(0,5,0);
+		return;
+	}
+	
+	
 	Item* item = inven.get(selitem);
 	string tool = "null";
 	if (item != nullptr) {

@@ -57,7 +57,7 @@ GLuint mat_ui_buffer;
 
 int allocated_memory = 2000000*6;
 
-bool debug_visible = false;
+bool debug_visible = true;
 bool fullscreen = false;
 
 bool playing = true;

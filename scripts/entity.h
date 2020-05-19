@@ -62,7 +62,6 @@ void Entity::timestep(World* world) {
 void Entity::get_nearby_entities(vector<DisplayEntity*>* colliders) {
   ivec3 chunk = ivec3(position)/world->chunksize - ivec3(position.x<0, position.y<0, position.z<0);
   //std::map<ivec3,Tile*>::iterator it = world->tiles.find(chunk);
-  
   for (pair<ivec3, Tile*> kvpair : world->tiles) {
     if (glm::length(vec3(kvpair.first-chunk)) <= 1.5) {
       //print (kvpair.first);
@@ -77,12 +76,12 @@ void Entity::find_colliders(vector<Collider*>* colliders) {
   colliders->push_back(world);
   ivec3 chunk = ivec3(position)/world->chunksize - ivec3(position.x<0, position.y<0, position.z<0);
   //std::map<ivec3,Tile*>::iterator it = world->tiles.find(chunk);
-  //vector<DisplayEntity*> entities;
-  //get_nearby_entities(&entities);
-  for (pair<ivec3, Tile*> kvpair : world->tiles) {
-    if (glm::length(vec3(kvpair.first-chunk)) <= 1.5) {
-      //print (kvpair.first);
-      for (DisplayEntity* e : kvpair.second->entities) {
+  vector<DisplayEntity*> entities;
+  get_nearby_entities(&entities);
+  // for (pair<ivec3, Tile*> kvpair : world->tiles) {
+  //   if (glm::length(vec3(kvpair.first-chunk)) <= 1.5) {
+  //     //print (kvpair.first);
+      for (DisplayEntity* e : entities) {
         if (e != this) {
           vec3 dist = e->position - position;
           vec3 box_dist = e->box1*-1.0f + box2 + 2.0f;
@@ -108,8 +107,8 @@ void Entity::find_colliders(vector<Collider*>* colliders) {
           }
         }
       }
-    }
-  }
+    //}
+  //}
 }
 
 void Entity::calc_constraints(World* world) {

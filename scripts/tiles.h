@@ -55,12 +55,22 @@ void Tile::save() {
 void Tile::timestep() {
   for (int i = entities.size()-1; i >= 0; i --) {
     entities[i]->timestep(world);
+    vec3 epos = entities[i]->position;
+    ivec3 chunk = ivec3(epos)/world->chunksize - ivec3(epos.x<0,epos.y<0,epos.z<0);
+    if (chunk != pos) {
+      if (world->tiles.find(pos) != world->tiles.end()) {
+        world->tiles[pos]->entities.push_back(entities[i]);
+      } else {
+        delete entities[i];
+      }
+      entities.erase(entities.begin()+i);
+    }
   }
 }
 
 Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize) {
 	if (writelock.try_lock_for(std::chrono::seconds(1))) {
-    if (pos.y == 2) {
+    if (pos == ivec3(0,2,15)) {
       entities.push_back(new NamedEntity(pos*chunksize+32, "test"));
   	}
     stringstream path;
