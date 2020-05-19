@@ -76,6 +76,7 @@ class Pixel: public Block { public:
     Block * get(int x, int y, int z);
     void set(char val);
     void render_update();
+    void tick();
     void del(bool remove_faces);
     void calculate_lightlevel();
     void reset_lightlevel();

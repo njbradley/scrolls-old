@@ -131,14 +131,15 @@ void World::load_nearby_chunks() {
         }
       }
     }
-    //exit(1);
-    const double max_distance = std::sqrt((maxrange+1)*(maxrange+1)*2);
+    //crash(17658654574687);
+    const double max_distance = std::sqrt((maxrange/2+1)*(maxrange/2+1)*2);
     for (pair<ivec3,Tile*> kv : tiles) {
       double distance = std::sqrt((px-kv.first.x)*(px-kv.first.x) + (py-kv.first.y)*(py-kv.first.y) + (pz-kv.first.z)*(pz-kv.first.z));
       if (distance > max_distance and std::find(deleting_chunks.begin(), deleting_chunks.end(), kv.first) == deleting_chunks.end()) {
         //del_chunk(kv.first, true);
         if (threadmanager->add_deleting_job(kv.first)) {
           deleting_chunks.push_back(kv.first);
+          cout << deleting_chunks.size() << "-------------------" << endl;
         }
         render_flag = true;
       }
@@ -159,8 +160,53 @@ void World::get_async_loaded_chunks() {
       }
     }
   }
+  for (int i = deleting_chunks.size()-1; i >= 0; i --) {
+    if (tiles.find(deleting_chunks[i]) == tiles.end()) {
+      deleting_chunks.erase(deleting_chunks.begin()+i);
+    }
+  }
 }
 
+void World::timestep() {
+  for (pair<ivec3, Tile*> kvpair : tiles) {
+    tiles[kvpair.first]->timestep();
+  }
+}
+
+void World::tick() {
+  //cout << "world tick" << endl;
+  if (writelock.try_lock_for(std::chrono::seconds(1))) {
+    for (ivec3 pos : block_updates) {
+      //cout << pos.x << endl;
+      Block* block = get_global(pos.x, pos.y, pos.z, 1);
+      if (block != nullptr and block->get_pix() != nullptr) {
+        block->get_pix()->tick();
+      }
+    }
+    block_updates.clear();
+    for (int i = 0; i < 3; i ++) {
+      std::map<ivec3,Tile*>::iterator item = tiles.begin();
+      if (tiles.size() > 0) {
+        //cout << 827349 << endl;
+        std::advance( item, rand()%tiles.size() );
+        Tile* tile = item->second;
+        Block* block = tile->chunk->get_global(rand()%chunksize, rand()%chunksize, rand()%chunksize, 1);
+        if (block != nullptr and block->get_pix() != nullptr) {
+          block->get_pix()->tick();
+        }
+      }
+    }
+    writelock.unlock();
+  }
+  //cout << "end world tick" << endl;
+}
+
+void World::block_update(int x, int y, int z) {
+  if (writelock.try_lock_for(std::chrono::seconds(1))) {
+    block_updates.push_back(ivec3(x,y,z));
+    writelock.unlock();
+  }
+}
 
 void World::render() {
     if (lighting_flag) {

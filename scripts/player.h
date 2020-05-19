@@ -100,9 +100,44 @@ void Player::right_mouse() {
 	double y = position.y;
 	double z = position.z;
 	Block* target = world->raycast(&x, &y, &z, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 8);
-	if (target == nullptr) {
+	
+	vector<DisplayEntity*> entities;
+	get_nearby_entities(&entities);
+	int bx, by, bz;
+	float dist;
+	if (target != nullptr) {
+		dist = glm::length(position-vec3(x,y,z));
+	} else {
+		dist = -1;
+	}
+	DisplayEntity* target_entity = nullptr;
+	for (DisplayEntity* entity : entities) {
+		double ex = position.x - entity->position.x;
+		double ey = position.y - entity->position.y;
+		double ez = position.z - entity->position.z;
+		Block* start = entity->block->get_global(int(ex) - (ex<0), int(ey) - (ey<0), int(ez) - (ez<0), 1);
+		Block* newtarget = start->raycast(&ex, &ey, &ez, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 8);
+		float newdist;
+		if (newtarget != nullptr) {
+			newdist = glm::length(position-vec3(ex,ey,ez));
+		} else {
+			newdist = -1;
+		}
+		if ((dist == -1 and newdist != -1) or (newdist < dist)) {
+			dist = newdist;
+			target = newtarget;
+			target_entity = entity;
+		}
+	}
+	if (dist == -1) {
 		return;
 	}
+	if (target_entity != nullptr) {
+		cout << "hit" << endl;
+		target_entity->vel.y += 1;
+		return;
+	}
+	
 	int ox = (int)x - (x<0);
 	int oy = (int)y - (y<0);
 	int oz = (int)z - (z<0);
@@ -118,7 +153,8 @@ void Player::right_mouse() {
 	if (blocks->blocks[pix->value]->rcaction != "null") {
 		blocks->blocks[pix->value]->do_rcaction(pix);
 	} else {
-		if (inven.get(selitem)->onplace != nullptr) {
+		Item* inhand = inven.get(selitem);
+		if (inhand != nullptr and inhand->onplace != nullptr) {
 			Item* item = inven.use(selitem);
 			if (item != nullptr) {
 				CharArray* arr = item->onplace;

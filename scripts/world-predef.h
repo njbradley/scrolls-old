@@ -14,8 +14,10 @@
 #include "rendervec-predef.h"
 #include "entity-predef.h"
 #include "terrain-predef.h"
+#include "blocks-predef.h"
 #include <future>
 #include <thread>
+#include <mutex>
 
 #define csize 2
 
@@ -26,9 +28,11 @@ struct ivec3_comparator {
   }
 };
 
-class World {
+class World: public Collider {
     vector<ivec3> loading_chunks;
     vector<ivec3> deleting_chunks;
+    vector<ivec3> block_updates;
+    std::timed_mutex writelock;
     //vector< pair<ivec3, future<Block*> > > loading_chunks;
     //vector< pair<ivec3, future<bool> > > deleting_chunks;
     char* tmparr;
@@ -54,6 +58,9 @@ class World {
         void startup();
         void spawn_player();
         void render();
+        void timestep();
+        void tick();
+        void block_update(int,int,int);
         void update_lighting();
         void load_nearby_chunks();
         void get_async_loaded_chunks();

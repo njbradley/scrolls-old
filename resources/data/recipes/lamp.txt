@@ -1,0 +1,2 @@
+2 chips 1 grass 1
+1 lamp 2

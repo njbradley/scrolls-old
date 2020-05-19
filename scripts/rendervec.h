@@ -8,6 +8,7 @@ using std::endl;
 #include "rendervec-predef.h"
 
 
+
 void MemVecs::add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat newlight, GLint minscale, GLint mat) {
     verts.insert(verts.end(), newverts, newverts+6*3);
     uvs.insert(uvs.end(), newuvs, newuvs+6*2);
@@ -18,8 +19,8 @@ void MemVecs::add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat newlight, GLi
     }
     num_verts += 6;
     if ( verts.size()/3 != num_verts or uvs.size()/2 != num_verts or light.size() != num_verts or mats.size()/2 != num_verts) {
-      cout << "ERR: unbalanced vectors in MemVecs::add_face err code 6asd67547565e75sdr6" << endl;
-      exit(1);
+      cout << "ERR: unbalanced vectors in MemVecs::add_face" << endl;
+      crash(8327490283652347);
     }
 }
 
@@ -30,8 +31,8 @@ pair<int,int> MemVecs::add(MemVecs* newvecs) {
   mats.insert(mats.end(), newvecs->mats.begin(), newvecs->mats.end());
   num_verts += newvecs->num_verts;
   if ( verts.size()/3 != num_verts or uvs.size()/2 != num_verts or light.size() != num_verts or mats.size()/2 != num_verts) {
-    cout << "ERR: unbalanced vectors in MemVecs::add err code 490897w9e7r98we" << endl;
-    exit(1);
+    cout << "ERR: unbalanced vectors in MemVecs::add" << endl;
+    crash(3928657839029036);
   }
   return pair<int,int>((num_verts - newvecs->num_verts)/6, newvecs->num_verts/6);
 }
@@ -87,7 +88,7 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
             } else {
               empty[i] = new_empty;
             }
-            
+        
             glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
             glBufferSubData(GL_ARRAY_BUFFER, location*3*sizeof(GLfloat), newvecs->verts.size()*sizeof(GLfloat), &newvecs->verts.front());
             glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
@@ -96,7 +97,7 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
             glBufferSubData(GL_ARRAY_BUFFER, location*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
             glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
             glBufferSubData(GL_ARRAY_BUFFER, location*2*sizeof(GLint), newvecs->mats.size()*sizeof(GLfloat), &newvecs->mats.front());
-            
+        
             writelock.unlock();
             return index;
         }
@@ -104,7 +105,7 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
     if (num_verts+newvecs->light.size() > size_alloc) {
         cout << "ran out of memory!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
         cout << num_verts << ' ' << size_alloc << endl;
-        exit(1);
+        crash(2);
     }
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     glBufferSubData(GL_ARRAY_BUFFER, num_verts*3*sizeof(GLfloat), newvecs->verts.size()*sizeof(GLfloat), &newvecs->verts.front());
@@ -117,6 +118,10 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
     
     num_verts += newvecs->num_verts;
     writelock.unlock();
+    //cout << "add " << old_num_verts/6 << ' ' << newvecs->num_verts/6 << endl;
+    // del(pair<int,int>(3,2));
+    // clean();
+    // dump_buffers();
     return pair<int,int>(old_num_verts/6, newvecs->num_verts/6);
   }
 }
@@ -124,31 +129,51 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
 void GLVecs::del(pair<int,int> index) {
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
     //cout << "del: " << index.first << ' ' << index.second << endl;
+    // if (index.second > 0) {
+    //   int start = index.first*6;
+    //   int size = index.second*6;
+    //   GLfloat zerosf[size*3];
+    //   memset(zerosf, 0.0f, size*3);
+    //   for (int i = 0; i < size*3; i ++) {
+    //     cout << zerosf[i] << endl;
+    //   }
+    //   glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+    //   glBufferSubData(GL_ARRAY_BUFFER, start*3*sizeof(GLfloat), size*3*sizeof(GLfloat), zerosf);
+    // }
     for (int i = 0; i < empty.size(); i ++) {
+      if ((index.first <= empty[i].first and index.first+index.second > empty[i].first) or
+        (empty[i].first <= index.first and empty[i].first+empty[i].second > index.first)) {
+        if (index.second > 0) {
+          cout << index.first << ' ' << index.second << ' ' << empty[i].first << ' '<< empty[i].second << " problem" << endl;
+          crash(1567483904356848390);
+        }
+      }
       if (empty[i].first + empty[i].second == index.first) {
-        //cout << "combined " << empty[i].first << ' ' << empty[i].second << " with " << index.first << ' ' << index.second;
+        //cout << "combined " << empty[i].first << ' ' << empty[i].second << ':' << empty[i].first + empty[i].second
+        //  << " with " << index.first << ' ' << index.second << ':' << index.first + index.second;
         empty[i] = pair<int,int>(empty[i].first, empty[i].second + index.second);
         //cout << " result " << empty[i].first << ' ' << empty[i].second << endl;
-        if (empty[i].first + empty[i].second == num_verts) {
-          cout << "empty " << empty[i].first << ' ' << empty[i].second << " merged out old num " << num_verts;
-          num_verts -= empty[i].second;
-          cout << ' ' << num_verts << endl;
+        if (empty[i].first + empty[i].second == num_verts/6) {
+          cout << "empty " << empty[i].first << ' ' << empty[i].second << " merged out old num " << num_verts/6;
+          num_verts -= empty[i].second*6;
+          cout << ' ' << num_verts/6 << endl;
           empty.erase(empty.begin()+i);
-          exit(1);
+          //crash(1178656827093404);
         }
         writelock.unlock();
         return;
       }
       if (index.first + index.second == empty[i].first) {
-        //cout << "combined " << empty[i].first << ' ' << empty[i].second << " with " << index.first << ' ' << index.second;
+        //cout << "combined " << empty[i].first << ' ' << empty[i].second << ':' << empty[i].first + empty[i].second
+        //  << " with " << index.first << ' ' << index.second << ':' << index.first + index.second;
         empty[i] = pair<int,int>(index.first, index.second + empty[i].second);
         //cout << " result " << empty[i].first << ' ' << empty[i].second << endl;
-        if (empty[i].first + empty[i].second == num_verts) {
-          cout << "empty " << empty[i].first << ' ' << empty[i].second << " merged out old num " << num_verts;
-          num_verts -= empty[i].second;
-          cout << ' ' << num_verts << endl;
+        if (empty[i].first + empty[i].second == num_verts/6) {
+          cout << "empty " << empty[i].first << ' ' << empty[i].second << " merged out old num " << num_verts/6;
+          num_verts -= empty[i].second*6;
+          cout << ' ' << num_verts/6 << endl;
           empty.erase(empty.begin()+i);
-          exit(2);
+          //crash(829578937180496782);
         }
         writelock.unlock();
         return;
@@ -163,22 +188,26 @@ void GLVecs::del(pair<int,int> index) {
 
 void GLVecs::clean() {
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
+		int max = 0;
+    for (pair<int,int> index : empty) {
+			if (index.second*6 > max) {
+				max = index.second*6;
+			}
+		}
+		vector<GLfloat> zerosf(max*3, 1.91f);
+		vector<GLint> zerosi(max*2, 0);
     for (pair<int,int> index : empty) {
         int start = index.first*6;
         int size = index.second*6;
-        GLfloat zerosf[size*3];
-        memset(zerosf, 0.0f, size*3);
-        GLint zerosi[size*2];
-	      memset(zerosi, 0, size*2);
         
         glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-        glBufferSubData(GL_ARRAY_BUFFER, start*3*sizeof(GLfloat), size*3*sizeof(GLfloat), zerosf);
+        glBufferSubData(GL_ARRAY_BUFFER, start*3*sizeof(GLfloat), size*3*sizeof(GLfloat), &zerosf.front());
         glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-        glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLfloat), size*2*sizeof(GLfloat), zerosf);
+        glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLfloat), size*2*sizeof(GLfloat), &zerosf.front());
         glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-        glBufferSubData(GL_ARRAY_BUFFER, start*sizeof(GLfloat), size*sizeof(GLfloat), zerosf);
+        glBufferSubData(GL_ARRAY_BUFFER, start*sizeof(GLfloat), size*sizeof(GLfloat), &zerosf.front());
         glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
-        glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLint), size*2*sizeof(GLint), zerosi);
+        glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLint), size*2*sizeof(GLint), &zerosi.front());
     }
     writelock.unlock();
   }

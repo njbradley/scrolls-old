@@ -15,9 +15,14 @@ using namespace glm;
 
 using namespace std;
 
+struct Collider {
+  virtual Block * get_global(int,int,int,int) = 0;
+};
 
 class Entity { public:
+    static constexpr float axis_gap = 0.2f;
     vec3 position;
+		bool autojump = false;
     vec3 vel;
     vec2 angle;
     vec3 box1;
@@ -33,6 +38,8 @@ class Entity { public:
     Entity(vec3 pos, vec3 hitbox1, vec3 hitbox2);
     void timestep(World* world);
     virtual void calc_constraints(World* world);
+    void find_colliders(vector<Collider*>* colliders);
+    void get_nearby_entities(vector<DisplayEntity*>* colliders);
     void move(vec3 change, float deltaTime);
     void fall_damage(float velocity);
     void drag(bool do_drag, float deltaTime);
@@ -51,7 +58,6 @@ class Player: public Entity {
 	public:
 		ItemContainer inven;
 		ItemContainer backpack;
-		bool autojump = false;
 		
 		Player(vec3 pos, World* newworld);
     Player(istream& ifile);
@@ -68,12 +74,13 @@ class Player: public Entity {
 };
 
 
-class DisplayEntity: public Entity {
+class DisplayEntity: public Entity, public Collider {
 public:
   Block* block;
   MemVecs vecs;
   pair<int,int> render_index;
   DisplayEntity(vec3 starting_pos, Block* newblock);
+  Block * get_global(int,int,int,int);
   void render();
   void calc_constraints(World* world);
   void on_timestep(World* world);

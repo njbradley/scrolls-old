@@ -4,6 +4,7 @@
 #include "classes.h"
 #include <vector>
 #include "terrain-predef.h"
+#include <mutex>
 
 
 class Tile {
@@ -13,7 +14,10 @@ class Tile {
 		Block* chunk;
 		int chunksize;
 		World* world;
+		std::timed_mutex writelock;
+		vector<DisplayEntity*> entities;
 		Tile(ivec3 position, World* world);
+		void timestep();
 		void render(GLVecs*);
 		void save();
 		void update_lighting();

@@ -87,7 +87,7 @@ double perlin(double x, double y, int seed, int layer) {
     
     value = lerp(ix0, ix1, sy);
     //cout << value << endl;
-    //exit(0);
+    //crash(0);
     return value;
 }
 

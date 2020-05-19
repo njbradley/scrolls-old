@@ -202,6 +202,7 @@ Pixel* Pixel::get_pix() {
 }
 
 float Pixel::get_lightlevel(int dx, int dy, int dz) {
+  return 1;
     return lightlevel;
 }
 
@@ -233,6 +234,7 @@ void Pixel::set(char val) {
     //cout << "global position " << gx << ' ' << gy << ' ' << gz << endl;
     reset_lightlevel();
     render_update();
+    tile->world->block_update(gx, gy, gz);
     world->get_global(gx+scale, gy, gz, scale)->render_update();
     world->get_global(gx-scale, gy, gz, scale)->render_update();
     world->get_global(gx, gy+scale, gz, scale)->render_update();
@@ -240,6 +242,31 @@ void Pixel::set(char val) {
     world->get_global(gx, gy, gz+scale, scale)->render_update();
     world->get_global(gx, gy, gz-scale, scale)->render_update();
     
+}
+
+void Pixel::tick() {
+  int gx, gy, gz;
+  global_position(&gx, &gy, &gz);
+  //cout << gx << ' ' << gy << ' ' << gz << "-----------------------------" << render_index.first << ' ' << render_index.second << endl;
+  //cout << "global position " << gx << ' ' << gy << ' ' << gz << endl;
+  /*
+  if (parent != nullptr and extras == nullptr) {
+    bool cont = true;
+    for (int x = 0; x < csize; x ++) {
+      for (int y = 0; y < csize; y ++) {
+        for (int z = 0; z < csize; z ++) {
+          cont = cont and (!parent->get(x,y,z)->continues()) and parent->get(x,y,z)->get() == value;
+        }
+      }
+    }
+    if (cont) {
+      if (parent->parent != nullptr) {
+        render_update();
+        parent->parent->blocks[parent->px][parent->py][parent->pz] = new Pixel(parent->px, parent->py, parent->pz, value, parent->scale, parent->parent, tile);
+        parent->del(true);
+      }
+    }
+  }*/
 }
 
 void Pixel::render_update() {
@@ -278,7 +305,6 @@ void Pixel::reset_lightlevel() {
   } else {
     lightlevel = 0;
   }
-  lightlevel = 1;
 }
 
 void Pixel::calculate_lightlevel() {
@@ -335,8 +361,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
       int tex_index = blocks->blocks[value]->texture;
       int minscale = blocks->blocks[value]->minscale;
       char mat = tex_index;
-      /*
-      GLfloat new_uvs[] = {
+      /*GLfloat new_uvs[] = {
           0.0f, 1.0f * scale/minscale,
           1.0f * scale/minscale, 1.0f * scale/minscale,
           1.0f * scale/minscale, 0.0f,
@@ -442,6 +467,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
     
     if (render_index != pair<int,int>(-1,0)) {
       world->glvecs.del(render_index);
+      render_index = pair<int,int>(-1,0);
     }
     if (vecs.num_verts != 0) {
       render_index = allvecs->add(&vecs);
@@ -450,7 +476,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
     //cout << render_index << endl;
     //cout << "done rendering" << endl;
     //cout << *num_verts << endl;
-    //exit(1);
+    //crash(1);
 }
 
 Chunk* Pixel::subdivide() {
@@ -564,7 +590,7 @@ void Chunk::set(char c) {
 }
 Chunk* Chunk::subdivide() {
     cout << "error: subdividing already subdivided block" << endl;
-    exit(16758912);
+    crash(16758912);
     return nullptr;
 }
 void Chunk::calculate_lightlevel() {
@@ -643,8 +669,8 @@ float Chunk::get_lightlevel(int dx, int dy, int dz) {
             for (int z = z_start; z < z_end; z ++) {
                 float level = blocks[x][y][z]->get_lightlevel(dx, dy, dz);
                 if (level == -1) {
-                    cout << "blocks.h error no: 4859347592579493845748395766" << endl;
-                    exit(1);
+                    cout << "blocks.h error" << endl;
+                    crash(485934759257949384);
                     return -1;
                 }
                 if (blocks[x][y][z]->is_air(dx,dy,dz)) {

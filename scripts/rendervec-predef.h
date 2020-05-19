@@ -34,7 +34,7 @@ class MemVecs: public RenderVecs {/*
 
 class GLVecs: public RenderVecs {
     public:
-        GLuint vertexbuffer = 4545;
+        GLuint vertexbuffer;
         GLuint uvbuffer;
         GLuint lightbuffer;
         GLuint matbuffer;

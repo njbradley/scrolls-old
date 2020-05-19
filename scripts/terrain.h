@@ -98,7 +98,11 @@ char Land::gen_func(ivec3 pos) {
 	} if (pos.y < height-1) {
 			return blocks->names["dirt"];
 	} if (pos.y < height) {
-			return blocks->names["grass"];
+			if (pos.y > 80) {
+				return blocks->names["snow"];
+			} else {
+				return blocks->names["grass"];
+			}
 	}
 	return 0;
 }

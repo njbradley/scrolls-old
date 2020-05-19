@@ -23,11 +23,11 @@ void Tile::update_lighting() {
     pix->reset_lightlevel();
     //cout << pix->lightlevel << endl;
   });
-  for (int x = pos.x*chunksize; x < pos.x*chunksize+chunksize; x ++) {
-    for (int z = pos.z*chunksize; z < pos.z*chunksize+chunksize; z ++) {
-      int y = pos.y+chunksize-1;
-      while (y >= pos.y and world->get(x,y,z) == 0) {
-        world->get_global(x,y,z,1)->get_pix()->lightlevel = 1;
+  for (int x = 0; x < chunksize; x ++) {
+    for (int z = 0; z < chunksize; z ++) {
+      int y = chunksize-1;
+      while (y >= pos.y and chunk->get_global(x,y,z,1)->get() == 0) {
+        chunk->get_global(x,y,z,1)->get_pix()->lightlevel = 1;
         y--;
       }
     }
@@ -35,7 +35,13 @@ void Tile::update_lighting() {
 }
 
 void Tile::render(GLVecs* glvecs) {
-	chunk->render(glvecs, 0, 0, 0);
+  if (writelock.try_lock_for(std::chrono::seconds(1))) {
+    //update_lighting();
+    //chunk->calculate_lightlevel();
+	   chunk->render(glvecs, 0, 0, 0);
+     //cout << chunk->render_flag << endl;
+     writelock.unlock();
+   }
 }
 
 void Tile::save() {
@@ -46,27 +52,44 @@ void Tile::save() {
   chunk->save_to_file(of);
 }
 
+void Tile::timestep() {
+  for (int i = entities.size()-1; i >= 0; i --) {
+    entities[i]->timestep(world);
+  }
+}
+
 Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize) {
-	
-	stringstream path;
-	path << "saves/world/chunk" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
-	ifstream ifile(path.str(), ios::binary);
-	if (ifile.good()) {
-			cout << "loading '" << path.str() << "' from file\n";
-			//chunks[pos] = parse_file(&ifile, pos.first, 0, pos.second, chunksize, nullptr);
-			chunk = Block::from_file(ifile, pos.x, pos.y, pos.z, chunksize, nullptr, this);
-	} else {
-			cout << "generating '" << path.str() << "'\n";
-			chunk = generate(pos);
-			//return load_chunk(pos);
-			//chunk = generate(pos);
-	}
-	//render_chunk_vectors(pos);
-	//render(&world->glvecs);
+	if (writelock.try_lock_for(std::chrono::seconds(1))) {
+    if (pos.y == 2) {
+      entities.push_back(new NamedEntity(pos*chunksize+32, "test"));
+  	}
+    stringstream path;
+  	path << "saves/world/chunk" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
+  	ifstream ifile(path.str(), ios::binary);
+  	if (ifile.good()) {
+  			cout << "loading '" << path.str() << "' from file\n";
+  			//chunks[pos] = parse_file(&ifile, pos.first, 0, pos.second, chunksize, nullptr);
+  			chunk = Block::from_file(ifile, pos.x, pos.y, pos.z, chunksize, nullptr, this);
+  	} else {
+  			cout << "generating '" << path.str() << "'\n";
+  			chunk = generate(pos);
+  			//return load_chunk(pos);
+  			//chunk = generate(pos);
+  	}
+  	//render_chunk_vectors(pos);
+  	//render(&world->glvecs);
+    writelock.unlock();
+  } else {
+    cout << "tile locked when created?" << endl;
+    crash(1188188839499);
+  }
 }
 
 void Tile::del(bool remove_faces) {
-	chunk->del(remove_faces);
+  if (writelock.try_lock_for(std::chrono::seconds(1))) {
+	  chunk->del(remove_faces);
+    writelock.unlock();
+  }
 }
 
 /*

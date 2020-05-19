@@ -10,6 +10,7 @@
 #include <GLFW/glfw3.h>
 
 #include "entity-predef.h"
+#include "tiles-predef.h"
 
 using namespace glm;
 
@@ -58,8 +59,60 @@ void Entity::timestep(World* world) {
     lastTime = currentTime;
 }
 
+void Entity::get_nearby_entities(vector<DisplayEntity*>* colliders) {
+  ivec3 chunk = ivec3(position)/world->chunksize - ivec3(position.x<0, position.y<0, position.z<0);
+  //std::map<ivec3,Tile*>::iterator it = world->tiles.find(chunk);
+  
+  for (pair<ivec3, Tile*> kvpair : world->tiles) {
+    if (glm::length(vec3(kvpair.first-chunk)) <= 1.5) {
+      //print (kvpair.first);
+      for (DisplayEntity* e : kvpair.second->entities) {
+        colliders->push_back(e);
+      }
+    }
+  }
+}
+
+void Entity::find_colliders(vector<Collider*>* colliders) {
+  colliders->push_back(world);
+  ivec3 chunk = ivec3(position)/world->chunksize - ivec3(position.x<0, position.y<0, position.z<0);
+  //std::map<ivec3,Tile*>::iterator it = world->tiles.find(chunk);
+  //vector<DisplayEntity*> entities;
+  //get_nearby_entities(&entities);
+  for (pair<ivec3, Tile*> kvpair : world->tiles) {
+    if (glm::length(vec3(kvpair.first-chunk)) <= 1.5) {
+      //print (kvpair.first);
+      for (DisplayEntity* e : kvpair.second->entities) {
+        if (e != this) {
+          vec3 dist = e->position - position;
+          vec3 box_dist = e->box1*-1.0f + box2 + 2.0f;
+          vec3 box2_dist = box1*-1.0f + e->box2 + 2.0f;
+          if (dist.x < 0) {
+            box_dist.x = box2_dist.x;
+            dist.x *= -1;
+          } if (dist.y < 0) {
+            box_dist.y = box2_dist.y;
+            dist.y *= -1;
+          } if (dist.z < 0) {
+            box_dist.z = box2_dist.z;
+            dist.z *= -1;
+          }
+          if (dist.x < box_dist.x and dist.y < box_dist.y and dist.z < box_dist.z) {
+            colliders->push_back(e);
+            // cout << e << ' ' << endl;
+            // print(e->position);
+            // print(position);
+            // print(box_dist);
+            // print(dist);
+            // cout << ';' << endl;
+          }
+        }
+      }
+    }
+  }
+}
+
 void Entity::calc_constraints(World* world) {
-    float axis_gap = 0.2;
     
     vec3 coords_array[3] = {{0,1,1}, {1,0,1}, {1,1,0}};
     vec3 dir_array[3] =    {{1,0,0}, {0,1,0}, {0,0,1}};
@@ -67,7 +120,12 @@ void Entity::calc_constraints(World* world) {
     vec3 newpos(position);
     
     bool new_consts[7];
+    for (int i = 0; i < 7; i ++) {
+      new_consts[i] = false;
+    }
     
+    vector<Collider*> colliders;
+    find_colliders(&colliders);
     //box2 = vec3(0,0,0);
     
     //this system works by creating a slice of blocks that define each side of collision. the sides all share either the most positive point or the most negative point
@@ -75,14 +133,17 @@ void Entity::calc_constraints(World* world) {
     //axis gap make sure a side detects the collision of blocks head on before the side detectors sense the blocks. Each slice is moved out from the player by axis_gap
     //cout << "----------------------------------" << endl;
     //print(position);
-    for (int axis = 0; axis < 3; axis ++) {
+    
+    
+    
+    for (Collider* collider : colliders) {
+      for (int axis = 0; axis < 3; axis ++) {
         vec3 coords = coords_array[axis];
         vec3 dir = dir_array[axis];
         
         // pos is the positive point of the hitbox rounded up to the nearest block. neg is the negative most point rounded down
         vec3 neg = floor( position + box1 - axis_gap*dir );// + vec3(0,1,0);
         vec3 pos = ceil( position + box2 + axis_gap*dir );
-        
         
         
         //positive side
@@ -92,12 +153,12 @@ void Entity::calc_constraints(World* world) {
         for (int x = (int)pos2.x; x < pos.x+1; x ++) {
             for (int y = (int)pos2.y; y < pos.y+1; y ++) {
                 for (int z = (int)pos2.z; z < pos.z+1; z ++) {
-                    Block* pix = world->get_global(x,y,z,1);
+                    Block* pix = collider->get_global(x,y,z,1);
                     constraint = constraint or (pix != NULL and pix->get() != 0);
                 }
             }
         }
-        new_consts[axis] = constraint;
+        new_consts[axis] = new_consts[axis] or constraint;
         if (constraint) {
             newpos[axis] = floor(newpos[axis] + box2[axis] + axis_gap) - box2[axis] - axis_gap;
         }
@@ -106,31 +167,32 @@ void Entity::calc_constraints(World* world) {
         for (int x = (int)neg.x; x < neg2.x+1; x ++) {
             for (int y = (int)neg.y; y < neg2.y+1; y ++) {
                 for (int z = (int)neg.z; z < neg2.z+1; z ++) {
-                    Block* pix = world->get_global(x,y,z,1);
-                    constraint = constraint or (pix != NULL and pix->get() != 0);
+                    Block* pix = collider->get_global(x,y,z,1);
+                    bool new_const = (pix != NULL and pix->get() != 0);
+                    constraint = constraint or new_const;
                 }
             }
         }
-        new_consts[axis+3] = constraint;
+        new_consts[axis+3] = new_consts[axis+3] or constraint;
         if (constraint) {
-            newpos[axis] = ceil(newpos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
-            
+          newpos[axis] = ceil(newpos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
         }
-    }
-    /// torso check: to tell if the constraints are only on the feet
-    
-    vec3 neg = floor( position + box1 - axis_gap + vec3(0,1.2,0)) ;
-    vec3 pos = ceil( position + box2 + axis_gap );
-    bool constraint = false;
-    for (int x = (int)neg.x; x < pos.x+1; x ++) {
+      }
+      /// torso check: to tell if the constraints are only on the feet
+      
+      vec3 neg = floor( position + box1 - axis_gap + vec3(0,1.2,0)) ;
+      vec3 pos = ceil( position + box2 + axis_gap );
+      bool constraint = false;
+      for (int x = (int)neg.x; x < pos.x+1; x ++) {
         for (int y = (int)neg.y; y < pos.y+1; y ++) {
-            for (int z = (int)neg.z; z < pos.z+1; z ++) {
-                Block* pix = world->get_global(x,y,z,1);
-                constraint = constraint or (pix != NULL and pix->get() != 0);
-            }
+          for (int z = (int)neg.z; z < pos.z+1; z ++) {
+            Block* pix = collider->get_global(x,y,z,1);
+            constraint = constraint or (pix != NULL and pix->get() != 0);
+          }
         }
+      }
+      new_consts[6] =  new_consts[6] or constraint;
     }
-    new_consts[6] = constraint;
     for (int i = 0; i < 7; i ++) {
         consts[i] = old_consts[i] or new_consts[i];
         old_consts[i] = new_consts[i];
@@ -195,6 +257,21 @@ DisplayEntity::DisplayEntity(vec3 starting_pos, Block* newblock): Entity(startin
   int size = block->scale;
   box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
   block->render(&vecs, 0, 0, 0);
+}
+
+Block * DisplayEntity::get_global(int x, int y, int z, int size) {
+  ivec3 index(x,y,z);
+  //print (index);
+  index -= ivec3(glm::round(position) + box1-axis_gap);
+  //print (position);
+  //print (index);
+  int scale = block->scale;
+  //cout << ';' << endl;
+  if ( index.x >= 0 and index.x < scale and index.y >= 0 and index.y < scale and index.z >= 0 and index.z < scale ) {
+    return block->get_global(index.x, index.y, index.z,size);
+  } else {
+    return nullptr;
+  }
 }
 
 void DisplayEntity::render() {
@@ -287,7 +364,7 @@ void DisplayEntity::calc_constraints(World* world) {
             for (int x = (int)pos2.x; x < pos.x+1; x ++) {
               for (int y = (int)pos2.y; y < pos.y+1; y ++) {
                 for (int z = (int)pos2.z; z < pos.z+1; z ++) {
-                  //exit(1);
+                  //crash(1);
                   Block* pix = world->get_global(x,y,z,1);
                   constraint = constraint or (pix != NULL and pix->get() != 0);
                 }

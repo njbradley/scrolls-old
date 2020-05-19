@@ -60,6 +60,55 @@ int allocated_memory = 2000000*6;
 bool debug_visible = false;
 bool fullscreen = false;
 
+bool playing = true;
+bool errors = false;
+
+void wait() {
+	return;
+	std::cout << "Press ENTER to continue...";
+	std::cin.ignore( std::numeric_limits <std::streamsize> ::max(), '\n' );
+}
+
+void dump_buffers() {
+	float* data = (float*)glMapNamedBuffer( world->glvecs.vertexbuffer, GL_READ_ONLY);
+	int len = allocated_memory*3;
+	ofstream ofile("dump_buffers.txt");
+	for (int i = 0; i < len; i ++) {
+		if (data[i] > 100000 or i%(len/100) == 0 or i < 1000) {
+			ofile << i/6/3 << ' ' << data[i] << endl;
+		}
+	}
+	ofile << "numverts" << world->glvecs.num_verts/6 << endl;
+	//char* dat = (char*)data;
+	//ofstream ofile("datadump.dat");
+	//ofile.write(dat, len*sizeof(float));
+	glUnmapNamedBuffer( world->glvecs.vertexbuffer );
+}
+
+void dump_emptys() {
+	ofstream ofile("dump_emptys.txt");
+	for (pair<int,int> index : world->glvecs.empty) {
+		ofile << index.first << ' ' << index.second << endl;
+	}
+}
+
+
+void crash(long long err_code) {
+	cout << "fatal error encountered! shutting down cleanly: err code: " << err_code << endl;
+	dump_buffers();
+	dump_emptys();
+	errors = true;
+	playing = false;
+}
+
+void hard_crash(long long err_code) {
+	cout << "fatal error encountered! unable to close cleanly: err code: " << err_code << endl;
+	dump_buffers();
+	dump_emptys();
+	errors = true;
+	wait();
+	exit(1);
+}
 
 void load_settings() {
 	ifstream ifile("saves/settings.txt");
@@ -397,7 +446,6 @@ int main( void )
 	}
 	
 	
-	
 	//Entity* test = new NamedEntity(vec3(0.5, 50, 0), "test");
 	
 	
@@ -411,7 +459,7 @@ int main( void )
 	double slow_frame = 0;
 	int view_distance = 800;
 	
-	bool playing = true;
+	
 	threadmanager->rendering = true;
 	//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, &num_tris);
 	while (playing) {
@@ -420,6 +468,7 @@ int main( void )
 		
 		if (menu == nullptr) {
 			world->player->timestep(world);
+			world->timestep();
 			//test->timestep(world);
 			world->player->computeMatricesFromInputs(world);
 		}
@@ -720,6 +769,8 @@ int main( void )
 			debug_visible = true;
 		} else if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
 			debug_visible = false;
+		} else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
+			dump_buffers();
 		} else if (glfwGetKey(window, GLFW_KEY_Q ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
 			playing = false;
 		} else if (glfwWindowShouldClose(window)) {
@@ -745,5 +796,9 @@ int main( void )
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
 	
-	cout << "completed without errors" << endl;
+	if (errors) {
+		wait();
+	} else {
+		cout << "completed without errors" << endl;
+	}
 }

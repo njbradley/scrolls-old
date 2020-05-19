@@ -19,6 +19,7 @@ public:
 	ivec3 pos;
 	Tile* result;
 	bool complete;
+	std::timed_mutex lock;
 	ThreadJob(ivec3 npos);
 };
 
@@ -34,6 +35,7 @@ public:
 	std::thread loading_threads[num_threads];
 	std::thread deleting_threads[num_threads];
 	std::thread rendering_thread;
+	std::thread tick_thread;
 	int render_num_verts = 0;
 	ThreadManager(GLFWwindow* window);
 	bool add_loading_job(ivec3 pos);
@@ -70,5 +72,12 @@ public:
 	RenderingThread(GLFWwindow* window, ThreadManager* newparent);
 	void operator()();
 };
-		
+
+class TickThread {
+	ThreadManager* parent;
+public:
+	TickThread(ThreadManager* newparent);
+	void operator()();
+};
+
 #endif

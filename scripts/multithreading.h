@@ -28,6 +28,7 @@ ThreadManager::ThreadManager(GLFWwindow* window) {
 	GLFWwindow* renderwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
 	
 	rendering_thread = thread(RenderingThread(renderwindow, this));
+	tick_thread = thread(TickThread(this));
 	
 	for (int i = 0; i < num_threads; i ++) {
 		loading[i] = nullptr;
@@ -90,6 +91,7 @@ void ThreadManager::close() {
 	render_running = false;
 	cout << "joining rendering thread" << endl;
 	rendering_thread.join();
+	tick_thread.join();
 	for (int i = 0; i < num_threads; i ++) {
 		load_running[i] = false;
 		cout << "joining load " << i << endl;
@@ -112,7 +114,9 @@ void LoadingThread::operator()() {
 	cout << "context " << window << endl;
 	glfwMakeContextCurrent(window);
 	while (parent->load_running[index]) {
+		//cout << parent->loading[index] << endl;
 		if (parent->loading[index] != nullptr) {
+			//cout << parent->loading[index] << endl;
 			parent->loading[index]->result = new Tile(parent->loading[index]->pos, world);
 			parent->loading[index]->complete = true;
 		}
@@ -156,6 +160,20 @@ void RenderingThread::operator()() {
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 	cout << "rendering thread exited" << endl;
+}
+
+TickThread::TickThread( ThreadManager* newparent): parent(newparent) {
+	
+}
+
+void TickThread::operator()() {
+	while (parent->render_running) {
+		if (world != nullptr) {
+			world->tick();
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+	cout << "tick thread exited" << endl;
 }
 
 

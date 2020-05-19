@@ -14,8 +14,12 @@ using std::cout;
 using std::endl;
 using std::string;
 
+void crash(long long);
+void hard_crash(long long);
+
 ////////////////// CLASSES ///////////////////////////
 class Block;
+class Collider;
 class Chunk;
 class Pixel;
 class World;
