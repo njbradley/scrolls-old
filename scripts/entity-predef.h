@@ -67,7 +67,7 @@ class Player: public Entity {
 		mat4 getProjectionMatrix();
 		void right_mouse();
 		void left_mouse();
-    vec3 raycast(Pixel* hit, DisplayEntity* entity);
+    void raycast(Pixel** hit, vec3* hitpos, DisplayEntity** entity);
     void drop_ticks();
 		void mouse_button();
 		void computeMatricesFromInputs(World* nworld);

@@ -71,7 +71,7 @@ Block* Block::get_world() {
     }
 }
 
-Block* Block::raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time) {
+Block* Block::raycast(Collider* this_world, double* x, double* y, double* z, double dx, double dy, double dz, double time) {
     //cout << "block raycast(" << *x << ' ' << *y << ' ' << *z << ' ' << dx << ' ' << dy << ' ' << dz << endl;
     if (!continues() and get() != 0) {
         //cout << "returning" << continues() << get() << endl;
@@ -117,11 +117,11 @@ Block* Block::raycast(double* x, double* y, double* z, double dx, double dy, dou
     }
     time -= 0.01;
     //cout << "get(" << (int)*x - (*x<0) << ' ' << (int)*y - (*y<0) << ' ' << (int)*z - (*z<0) << ' ' << (*x < 0) << endl;
-    Block* b = world->get_global((int)*x - (*x<0), (int)*y - (*y<0), (int)*z - (*z<0), 1);
+    Block* b = this_world->get_global((int)*x - (*x<0), (int)*y - (*y<0), (int)*z - (*z<0), 1);
     if (b == nullptr or time < 0) {
         return nullptr;
     }
-    return b->raycast(x, y, z, dx, dy, dz, time);
+    return b->raycast(this_world, x, y, z, dx, dy, dz, time);
 }
 
 Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent, Tile* tile) {
@@ -148,7 +148,15 @@ Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk
           Pixel* p = new Pixel(px, py, pz, c, scale, parent, tile, extra);
           return (Block*) p;
         } else {
+          int direction = -1;
+          if (c >= 100) {
+            direction = c - 100;
+            c = ifile.get();
+          }
           Pixel* p = new Pixel(px, py, pz, c, scale, parent, tile);
+          if (direction != -1) {
+            p->direction = direction;
+          }
           return (Block*) p;
         }
     }
@@ -159,14 +167,20 @@ Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk
 ///////////////////////////////// CLASS PIXEL /////////////////////////////////////
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile):
-  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(nullptr), tile(ntile) {
+  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(nullptr), tile(ntile), direction(0) {
     reset_lightlevel();
     generate_extras();
+    if (value != 0) {
+      direction = blocks->blocks[value]->default_direction;
+    }
 }
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile, BlockExtras* new_extra):
-  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(new_extra), tile(ntile) {
+  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(new_extra), tile(ntile), direction(0) {
     reset_lightlevel();
+    if (value != 0) {
+      direction = blocks->blocks[value]->default_direction;
+    }
 }
 
 void Pixel::generate_extras() {
@@ -358,9 +372,16 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
       //cout << x << ' ' << y << ' ' << z << "rendering call" << endl;
       GLfloat uv_start = 0.0f;// + (1/32.0f*(int)value);
       GLfloat uv_end = uv_start + 1.0f;///32.0f;
-      int tex_index = blocks->blocks[value]->texture;
+      int mat[6];
+      for (int i = 0; i < 6; i ++) {
+        if (i+direction >= 6) {
+          mat[i+direction-6] =  blocks->blocks[value]->texture[i];
+        } else {
+          mat[i+direction] =  blocks->blocks[value]->texture[i];
+        }
+      }
       int minscale = blocks->blocks[value]->minscale;
-      char mat = tex_index;
+      // /char mat = tex_index;
       /*GLfloat new_uvs[] = {
           0.0f, 1.0f * scale/minscale,
           1.0f * scale/minscale, 1.0f * scale/minscale,
@@ -395,7 +416,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
               x + scale, y + scale, z,
               x + scale, y, z
           };
-          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(0,0,1) : 1 ), minscale, mat);//0.4f
+          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(0,0,1) : 1 ), minscale, mat[5]);//0.4f
       }
       
       block = world->get_global(gx, gy-scale, gz, scale);
@@ -409,7 +430,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
               x, y, z
           };
           
-          vecs.add_face(face, new_uvs, 0.5f * ( (block!=nullptr) ? block->get_lightlevel(0,1,0) : 1 ), minscale, mat);
+          vecs.add_face(face, new_uvs, 0.5f * ( (block!=nullptr) ? block->get_lightlevel(0,1,0) : 1 ), minscale, mat[4]);
       }
       
       block = world->get_global(gx-scale, gy, gz, scale);
@@ -422,7 +443,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
               x, y + scale, z,
               x, y, z
           };
-          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(1,0,0) : 1 ), minscale, mat);
+          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(1,0,0) : 1 ), minscale, mat[3]);
       }
       
       block = world->get_global(gx, gy, gz+scale, scale);
@@ -435,7 +456,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
               x, y + scale, z + scale,
               x, y, z + scale
           };
-          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(0,0,-1) : 1 ), minscale, mat);
+          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(0,0,-1) : 1 ), minscale, mat[2]);
       }
       
       block = world->get_global(gx, gy+scale, gz, scale);
@@ -448,7 +469,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
               x, y + scale, z + scale,
               x + scale, y + scale, z + scale
           };
-          vecs.add_face(face, new_uvs, 0.9f * ( (block!=nullptr) ? block->get_lightlevel(0,-1,0) : 1 ), minscale, mat);//top
+          vecs.add_face(face, new_uvs, 0.9f * ( (block!=nullptr) ? block->get_lightlevel(0,-1,0) : 1 ), minscale, mat[1]);//top
       }
       
       block = world->get_global(gx+scale, gy, gz, scale);
@@ -461,7 +482,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
               x + scale, y + scale, z + scale,
               x + scale, y, z + scale
           };
-          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(-1,0,0) : 1 ), minscale, mat); //0.4f
+          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(-1,0,0) : 1 ), minscale, mat[0]); //0.4f
       }
     }
     
@@ -556,6 +577,9 @@ Chunk* Pixel::resolve() {
 
 void Pixel::save_to_file(ofstream& of) {
     if (extras == nullptr) {
+      if (value != 0 and direction != blocks->blocks[value]->default_direction) {
+        of << char(100 + direction);
+      }
       of << value;
     } else {
       of << '~' << value;

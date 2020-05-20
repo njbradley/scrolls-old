@@ -21,7 +21,7 @@
  *
  */
 
-class Block { public:
+class Block: public Collider { public:
     
     int px; // parent coordinates, bool because only need to go up to 1
     int py;
@@ -49,7 +49,7 @@ class Block { public:
     virtual Block * get_global(int,int,int,int) = 0;
     virtual void render_update() = 0;
     virtual void save_to_file(ofstream&) = 0;
-    Block* raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time);
+    Block* raycast(Collider* world, double* x, double* y, double* z, double dx, double dy, double dz, double time);
     Block* get_world();
     void update_chunk();
     
@@ -58,6 +58,7 @@ class Block { public:
 
 class Pixel: public Block { public:
     char value;
+    char direction;
     pair<int,int> render_index;
     float lightlevel = 1;
     BlockExtras* extras = nullptr;

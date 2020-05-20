@@ -275,7 +275,7 @@ Block* World::get_global(int x, int y, int z, int scale) {
     return tiles[pos]->chunk->get_global(ox, oy, oz, scale);
 }
 
-void World::set(char val, int x, int y, int z) {
+void World::set(char val, int x, int y, int z, int direction) {
     Block* newblock = get_global(x,y,z, 1);
     int minscale = 1;
     if (newblock == nullptr) {
@@ -305,6 +305,9 @@ void World::set(char val, int x, int y, int z) {
         newblock = get_global((int)x, (int)y, (int)z, 1);
     }
     newblock->set(val);
+    if (val != 0 and blocks->blocks[val]->rotation_enabled) {
+      newblock->get_pix()->direction = direction;
+    }
 }
 
 char World::get(int x, int y, int z) {
@@ -318,7 +321,7 @@ Block* World::raycast(double* x, double* y, double* z, double dx, double dy, dou
     if (b == nullptr) {
         return b;
     }
-    return b->raycast(x, y, z, dx, dy, dz, time);
+    return b->raycast(this, x, y, z, dx, dy, dz, time);
 }
 
 void World::save_chunk(ivec3 pos) {

@@ -54,6 +54,7 @@ void Tile::save() {
 
 void Tile::timestep() {
   for (int i = entities.size()-1; i >= 0; i --) {
+    //cout << i << endl;
     entities[i]->timestep(world);
     vec3 epos = entities[i]->position;
     ivec3 chunk = ivec3(epos)/world->chunksize - ivec3(epos.x<0,epos.y<0,epos.z<0);

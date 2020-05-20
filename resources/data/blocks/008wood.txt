@@ -1,4 +1,5 @@
 : axe pickaxe shovel sword null
 : 0.5 0.7     1.0    0.9   1.0
-: wood 7 1 null 0 chips
+: 7 7 7 7 7 7
+: wood 1 0 1 null 0 chips
 0

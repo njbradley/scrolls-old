@@ -41,6 +41,8 @@ void BlockExtras::save_to_file(ostream& ofile) {
   ofile << ':';
 }
 
+
+
 BlockData::BlockData(ifstream & ifile) {
     string buff;
     getline(ifile, buff, ':');
@@ -55,7 +57,11 @@ BlockData::BlockData(ifstream & ifile) {
         ifile >> hardness[tool];
     }
     getline(ifile, buff, ':');
-    ifile >> name >> texture >> minscale >> rcaction >> lightlevel >> item;
+    for (int i = 0; i < 6; i ++) {
+      ifile >> texture[i];
+    }
+    getline(ifile, buff, ':');
+    ifile >> name >> rotation_enabled >> default_direction >> minscale >> rcaction >> lightlevel >> item;
     bool is_extra;
     ifile >> is_extra;
     if (is_extra) {

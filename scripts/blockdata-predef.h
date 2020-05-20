@@ -17,7 +17,9 @@ class BlockExtras { public:
 
 class BlockData { public:
     map<string,double> hardness;
-    int texture;
+    int texture[6];
+    int default_direction;
+    bool rotation_enabled;
     int minscale;
     string name;
     string rcaction;

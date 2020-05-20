@@ -1,4 +1,5 @@
 : axe pickaxe shovel sword null
 : 3   0.7     4      5     20
-: stone 9 1 null 0 stone
+: 9 9 9 9 9 9
+: stone 1 0 1 null 0 stone
 0

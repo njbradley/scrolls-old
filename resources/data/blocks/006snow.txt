@@ -1,4 +1,5 @@
 : axe pickaxe shovel sword null
 : 0.3 0.8     0.9    0.4   0.3
-: snow 5 1 null 0 null
+: 5 5 5 5 5 5
+: snow 1 0 1 null 0 null
 0

@@ -65,7 +65,7 @@ class World: public Collider {
         void load_nearby_chunks();
         void get_async_loaded_chunks();
         Block* get_global(int x, int y, int z, int scale);
-        void set(char val, int x, int y, int z);
+        void set(char val, int x, int y, int z, int direction = 0);
         char get(int x, int y, int z);
         Block* raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time);
         void save_chunk(ivec3 pos);

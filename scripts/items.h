@@ -39,13 +39,18 @@ void CharArray::set(char val, int x, int y, int z) {
 }
 
 void CharArray::place(World* world, int x, int y, int z, int dx, int dy, int dz) {
+    int direction = dy+dz*2;
+    if (dx < 0 or dy < 0 or dz < 0) {
+      direction = direction*-1+3;
+    }
+    cout << direction << ' ' << dx << ' ' << dy << ' ' << dz << endl;
     for (int i = 0; i < sx; i ++) {
         for (int j = 0; j < sy; j ++) {
             for (int k = 0; k < sz; k ++) {
                 int px = i;
                 int py = j - (sy/2);
                 int pz = k - (sz/2);
-                world->set(get(i,j,k), x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy));
+                world->set(get(i,j,k), x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy), direction);
             }
         }
     }
