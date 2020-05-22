@@ -1,5 +1,5 @@
 : axe pickaxe shovel sword null
 : 0.5 0.7     1.0    0.9   1.0
-: 0 19 0 0 19 0
-: bark 1 1 1 null 0 chips
+: 63 19 63 63 19 63
+: enthead 0 0 1 null 0 null
 0

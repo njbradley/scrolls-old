@@ -51,12 +51,23 @@ class Block: public Collider { public:
     virtual void save_to_file(ofstream&) = 0;
     Block* raycast(Collider* world, double* x, double* y, double* z, double dx, double dy, double dz, double time);
     Block* get_world();
+    vec3 get_position();
     void update_chunk();
     
     static Block* from_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent, Tile* tile);
 };
 
-class Pixel: public Block { public:
+class Pixel: public Block {
+  void rotate_uv(GLfloat* uvs, int rot);
+  // takes in a glfloat array 12 long and
+  // rotates the face rottimes clockwise
+  void rotate_from_origin(int* mats, int* dirs, int rotation);
+  // takes in two arrays 6 long, the texture and rotation of
+  // every face, and rotates everything to direction rotation
+  // from origin
+  void rotate_to_origin(int* mats, int* dirs, int rotation);
+  // same as above but rotates from a location to the origin
+public:
     char value;
     char direction;
     pair<int,int> render_index;
@@ -72,6 +83,8 @@ class Pixel: public Block { public:
     char get();
     void all(function<void(Pixel*)> func);
     void all_side(function<void(Pixel*)>,int,int,int);
+    // runs the function only on blocks touching the
+    // side specified by the three ints, dx, dy, dz.
     Pixel* get_pix();
     float get_lightlevel(int dx, int dy, int dz);
     Block * get(int x, int y, int z);

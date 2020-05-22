@@ -157,7 +157,7 @@ void RenderingThread::operator()() {
 			world->render();
 			parent->render_num_verts = world->glvecs.num_verts;
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		std::this_thread::sleep_for(std::chrono::milliseconds(2));
 	}
 	cout << "rendering thread exited" << endl;
 }

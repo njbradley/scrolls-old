@@ -15,6 +15,7 @@ class Tile {
 		int chunksize;
 		World* world;
 		std::timed_mutex writelock;
+		bool deleting;
 		vector<DisplayEntity*> entities;
 		Tile(ivec3 position, World* world);
 		void timestep();

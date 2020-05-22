@@ -246,7 +246,6 @@ void main_menu() {
 
 int main( void )
 {
-	
 	load_settings();
 	min_ms_per_frame = 1000.0/max_fps;
 	

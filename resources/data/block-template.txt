@@ -1,7 +1,7 @@
 : axe pickaxe shovel sword null
 : dig times, null is hand
 : tex indexes for different directions, order is positive x, y, z, negative x, y, z
-: name rotation-enabled? minimum-scale action light-level-emitted item-dropped
+: name rotation-enabled? default-rotation minimum-scale action light-level-emitted item-dropped
 extra?
 (if extra? is 1 add the next line)
 : size-of-inven

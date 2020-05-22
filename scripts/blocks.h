@@ -71,6 +71,12 @@ Block* Block::get_world() {
     }
 }
 
+vec3 Block::get_position() {
+  int x,y,z;
+  global_position(&x,&y,&z);
+  return vec3(x,y,z);
+}
+
 Block* Block::raycast(Collider* this_world, double* x, double* y, double* z, double dx, double dy, double dz, double time) {
     //cout << "block raycast(" << *x << ' ' << *y << ' ' << *z << ' ' << dx << ' ' << dy << ' ' << dz << endl;
     if (!continues() and get() != 0) {
@@ -261,6 +267,9 @@ void Pixel::set(char val) {
 void Pixel::tick() {
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
+  // if (value == blocks->names["dirt"] and world->get(gx, gy+scale, gz) == 0) {
+  //   //set(blocks->names["grass"]);
+  // }
   //cout << gx << ' ' << gy << ' ' << gz << "-----------------------------" << render_index.first << ' ' << render_index.second << endl;
   //cout << "global position " << gx << ' ' << gy << ' ' << gz << endl;
   /*
@@ -346,6 +355,94 @@ void Pixel::calculate_lightlevel() {
   }
 }
 
+void Pixel::rotate_uv(GLfloat* uvs, int rot) {
+  const GLfloat points[] {uvs[0],uvs[1], uvs[2],uvs[3], uvs[4],uvs[5], uvs[8],uvs[9]};
+  const int indexes[] {0,1,2,2,3,0};
+  for (int i = 0; i < 6; i ++) {
+    int off_index = indexes[i] + rot;
+    if (off_index < 0) {
+      off_index += 4;
+    } if (off_index >= 4) {
+      off_index -= 4;
+    }
+    uvs[i*2] = points[off_index*2];
+    uvs[i*2+1] = points[off_index*2+1];
+  }
+  // for (int i = 0; i < 8; i ++) {
+  //   cout << points[i] << ' ';
+  // }
+  // cout << endl;
+  // for (int i = 0; i < 12; i ++) {
+  //   cout << uvs[i] << ' ';
+  // }
+  // cout << endl;
+}
+
+void Pixel::rotate_from_origin(int* mats, int* dirs, int rotation) {
+  const int mappings[6][6] { // gives the new location of every face for every possible rotation
+    {0, 0, 0, 0, 0, 0},
+    {1, 3, 2, 4, 0, 5},
+    {2, 1, 3, 5, 4, 0},
+    {3, 1, 5, 0, 4, 2},
+    {4, 0, 2, 1, 3, 5},
+    {5, 1, 0, 2, 4, 3}
+  };
+  const int rot_map[6][6] { // gives the rotation needed for each face
+    {0, 0, 0, 0, 0, 0},
+    {0, 0, -1, 0, 0, 1},
+    {0, 1, 0, 0, -1, 0},
+    {0, 2, 0, 0, 2, 0},
+    {0, 2, 1, 0, 2, -1},
+    {0, -1, 0, 0, 1, 0}
+  };
+  if (rotation == 0) {
+    return;
+  }
+  int oldmats[6];
+  int olddirs[6];
+  for (int i = 0; i < 6; i ++) {
+    oldmats[i] = mats[i];
+    olddirs[i] = dirs[i];
+  }
+  for (int i = 0; i < 6; i ++) {
+    mats[mappings[rotation][i]] = oldmats[i];
+    dirs[mappings[rotation][i]] = olddirs[i] + rot_map[rotation][i];
+  }
+}
+
+void Pixel::rotate_to_origin(int* mats, int* dirs, int rotation) {
+  const int mappings[6][6] {
+    {0, 0, 0, 0, 0, 0},
+    {1, 3, 2, 4, 0, 5},
+    {2, 1, 3, 5, 4, 0},
+    {3, 1, 5, 0, 4, 2},
+    {4, 0, 2, 1, 3, 5},
+    {5, 1, 0, 2, 4, 3}
+  };
+  const int rot_map[6][6] {
+    {0, 0, 0, 0, 0, 0},
+    {0, 0, -1, 0, 0, 1},
+    {0, 1, 0, 0, -1, 0},
+    {0, 2, 2, 0, -2, -2},
+    {0, 2, 1, 0, 2, -1},
+    {0, -1, 0, 0, 1, 0}
+  };
+  if (rotation == 0) {
+    return;
+  }
+  int oldmats[6];
+  int olddirs[6];
+  for (int i = 0; i < 6; i ++) {
+    oldmats[i] = mats[i];
+    olddirs[i] = dirs[i];
+  }
+  for (int i = 0; i < 6; i ++) {
+    mats[i] = oldmats[mappings[rotation][i]];
+    dirs[i] = olddirs[mappings[rotation][i]];
+    dirs[i] -= rot_map[rotation][i];
+  }
+}
+
 void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
     if (!render_flag) {
         return;
@@ -369,17 +466,52 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
       return;
     } else {
       
+      
+      
+      
       //cout << x << ' ' << y << ' ' << z << "rendering call" << endl;
       GLfloat uv_start = 0.0f;// + (1/32.0f*(int)value);
       GLfloat uv_end = uv_start + 1.0f;///32.0f;
       int mat[6];
       for (int i = 0; i < 6; i ++) {
-        if (i+direction >= 6) {
-          mat[i+direction-6] =  blocks->blocks[value]->texture[i];
-        } else {
-          mat[i+direction] =  blocks->blocks[value]->texture[i];
-        }
+        mat[i] = blocks->blocks[value]->texture[i];
       }
+      int dirs[6] {0,0,0,0,0,0};
+      
+      if (direction != blocks->blocks[value]->default_direction) {
+        rotate_to_origin(mat, dirs, blocks->blocks[value]->default_direction);
+        rotate_from_origin(mat, dirs, direction);
+      }
+      // for (int i = 0; i < 6; i ++) {
+      //   if (i+direction >= 6) {
+      //     mat[i+direction-6] =  blocks->blocks[value]->texture[i];
+      //   } else {
+      //     mat[i+direction] =  blocks->blocks[value]->texture[i];
+      //   }
+      // }
+      
+      // const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
+      // int def_dir_index = blocks->blocks[value]->default_direction;
+      // ivec3 def_dir = dir_array[def_dir_index];
+      // ivec3 dir = dir_array[direction];
+      // ivec3 to_origin = ivec3(1,0,0) - def_dir;
+      // ivec3 from_origin = dir - ivec3(1,0,0);
+      //
+      // int maxmin = 0;
+      // for (int i = 0; i < 3; i ++) {
+      //   if (std::abs(from_origin[i]) > std::abs(maxmin) or from_origin[i] == std::abs(maxmin)) {
+      //     maxmin = from_origin[i];
+      //   }
+      // }
+      // for (int axis = 0; axis < 3; axis ++) {
+      //   if (from_origin[axis] == 0) {
+      //     dirs[axis] += maxmin;
+      //     dirs[axis+3] -= maxmin;
+      //   }
+      // }
+      //
+      
+       
       int minscale = blocks->blocks[value]->minscale;
       // /char mat = tex_index;
       /*GLfloat new_uvs[] = {
@@ -390,14 +522,14 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
           0.0f, 0.0f,
           0.0f, 1.0f * scale/minscale
       };*/
-      GLfloat new_uvs[] = {
-          0.0f, 1.0f,
-          1.0f, 1.0f,
-          1.0f, 0.0f,
-          1.0f, 0.0f,
-          0.0f, 0.0f,
-          0.0f, 1.0f
-      };
+      // GLfloat new_uvs[] = {
+      //     0.0f, 1.0f,
+      //     1.0f, 1.0f,
+      //     1.0f, 0.0f,
+      //     1.0f, 0.0f,
+      //     0.0f, 0.0f,
+      //     0.0f, 1.0f
+      // };
       //cout << 85 << endl;
       Block* block;
       //cout << 87 << endl;
@@ -408,6 +540,15 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
       
       block = world->get_global(gx, gy, gz-scale, scale);
       if (block == nullptr or block->is_air(0, 0, 1)) {
+          GLfloat new_uvs[] = {
+              0.0f, 1.0f,
+              1.0f, 1.0f,
+              1.0f, 0.0f,
+              1.0f, 0.0f,
+              0.0f, 0.0f,
+              0.0f, 1.0f
+          };
+          rotate_uv(new_uvs,dirs[5]);
           GLfloat face[] = {
               x + scale, y, z,
               x, y, z,
@@ -421,13 +562,22 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
       
       block = world->get_global(gx, gy-scale, gz, scale);
       if (block == nullptr or block->is_air(0, 1, 0)) {
+          GLfloat new_uvs[] = {
+              0.0f, 1.0f,
+              1.0f, 1.0f,
+              1.0f, 0.0f,
+              1.0f, 0.0f,
+              0.0f, 0.0f,
+              0.0f, 1.0f
+          };
+          rotate_uv(new_uvs,dirs[4]);
           GLfloat face[] = {
+              x, y, z + scale,
               x, y, z,
               x + scale, y, z,
-              x + scale, y, z + scale,
+              x + scale, y, z,
               x + scale, y, z + scale,
               x, y, z + scale,
-              x, y, z
           };
           
           vecs.add_face(face, new_uvs, 0.5f * ( (block!=nullptr) ? block->get_lightlevel(0,1,0) : 1 ), minscale, mat[4]);
@@ -435,6 +585,15 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
       
       block = world->get_global(gx-scale, gy, gz, scale);
       if (block == nullptr or block->is_air(1, 0, 0)) {
+          GLfloat new_uvs[] = {
+              0.0f, 1.0f,
+              1.0f, 1.0f,
+              1.0f, 0.0f,
+              1.0f, 0.0f,
+              0.0f, 0.0f,
+              0.0f, 1.0f
+          };
+          rotate_uv(new_uvs,dirs[3]);
           GLfloat face[] = {
               x, y, z,
               x, y, z + scale,
@@ -448,6 +607,15 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
       
       block = world->get_global(gx, gy, gz+scale, scale);
       if (block == nullptr or block->is_air(0, 0, -1)) {
+          GLfloat new_uvs[] = {
+              0.0f, 1.0f,
+              1.0f, 1.0f,
+              1.0f, 0.0f,
+              1.0f, 0.0f,
+              0.0f, 0.0f,
+              0.0f, 1.0f
+          };
+          rotate_uv(new_uvs,dirs[2]);
           GLfloat face[] = {
               x, y, z + scale,
               x + scale, y, z + scale,
@@ -461,19 +629,38 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
       
       block = world->get_global(gx, gy+scale, gz, scale);
       if (block == nullptr or block->is_air(0, -1, 0)) {
+          GLfloat new_uvs[] = {
+              0.0f, 1.0f,
+              1.0f, 1.0f,
+              1.0f, 0.0f,
+              1.0f, 0.0f,
+              0.0f, 0.0f,
+              0.0f, 1.0f
+          };
+          rotate_uv(new_uvs,dirs[1]);
           GLfloat face[] = {
+            
+              x, y + scale, z,
+              x, y + scale, z + scale,
+              x + scale, y + scale, z + scale,
               x + scale, y + scale, z + scale,
               x + scale, y + scale, z,
               x, y + scale, z,
-              x, y + scale, z,
-              x, y + scale, z + scale,
-              x + scale, y + scale, z + scale
           };
           vecs.add_face(face, new_uvs, 0.9f * ( (block!=nullptr) ? block->get_lightlevel(0,-1,0) : 1 ), minscale, mat[1]);//top
       }
       
       block = world->get_global(gx+scale, gy, gz, scale);
       if (block == nullptr or block->is_air(-1, 0, 0)) {
+          GLfloat new_uvs[] = {
+              0.0f, 1.0f,
+              1.0f, 1.0f,
+              1.0f, 0.0f,
+              1.0f, 0.0f,
+              0.0f, 0.0f,
+              0.0f, 1.0f
+          };
+          rotate_uv(new_uvs,dirs[0]);
           GLfloat face[] = {
               x + scale, y, z + scale,
               x + scale, y, z,

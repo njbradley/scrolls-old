@@ -51,6 +51,7 @@ class World: public Collider {
         
         World(string newname, int newseed);
         World(string oldname);
+        vec3 get_position();
         void unzip();
         void load_data_file();
         void save_data_file();

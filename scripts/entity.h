@@ -21,6 +21,8 @@ void print(vec3 v) {
 }
 
 
+
+
 Entity::Entity(vec3 pos, vec3 hitbox1, vec3 hitbox2):
 position(pos), box1(hitbox1), box2(hitbox2-vec3(1,1,1))
 {
@@ -72,6 +74,8 @@ void Entity::get_nearby_entities(vector<DisplayEntity*>* colliders) {
   }
 }
 
+
+
 void Entity::find_colliders(vector<Collider*>* colliders) {
   colliders->push_back(world);
   ivec3 chunk = ivec3(position)/world->chunksize - ivec3(position.x<0, position.y<0, position.z<0);
@@ -82,29 +86,8 @@ void Entity::find_colliders(vector<Collider*>* colliders) {
   //   if (glm::length(vec3(kvpair.first-chunk)) <= 1.5) {
   //     //print (kvpair.first);
       for (DisplayEntity* e : entities) {
-        if (e != this) {
-          vec3 dist = e->position - position;
-          vec3 box_dist = e->box1*-1.0f + box2 + 2.0f;
-          vec3 box2_dist = box1*-1.0f + e->box2 + 2.0f;
-          if (dist.x < 0) {
-            box_dist.x = box2_dist.x;
-            dist.x *= -1;
-          } if (dist.y < 0) {
-            box_dist.y = box2_dist.y;
-            dist.y *= -1;
-          } if (dist.z < 0) {
-            box_dist.z = box2_dist.z;
-            dist.z *= -1;
-          }
-          if (dist.x < box_dist.x and dist.y < box_dist.y and dist.z < box_dist.z) {
-            colliders->push_back(e);
-            // cout << e << ' ' << endl;
-            // print(e->position);
-            // print(position);
-            // print(box_dist);
-            // print(dist);
-            // cout << ';' << endl;
-          }
+        if (e != this and colliding(e)) {
+          colliders->push_back(e);
         }
       }
     //}
@@ -136,13 +119,15 @@ void Entity::calc_constraints(World* world) {
     
     
     for (Collider* collider : colliders) {
+      vec3 rel_pos = position - collider->get_position();
+      vec3 new_rel_pos = newpos - collider->get_position();
       for (int axis = 0; axis < 3; axis ++) {
         vec3 coords = coords_array[axis];
         vec3 dir = dir_array[axis];
         
         // pos is the positive point of the hitbox rounded up to the nearest block. neg is the negative most point rounded down
-        vec3 neg = floor( position + box1 - axis_gap*dir );// + vec3(0,1,0);
-        vec3 pos = ceil( position + box2 + axis_gap*dir );
+        vec3 neg = floor( rel_pos + box1 - axis_gap*dir );// + vec3(0,1,0);
+        vec3 pos = ceil( rel_pos + box2 + axis_gap*dir );
         
         
         //positive side
@@ -159,7 +144,7 @@ void Entity::calc_constraints(World* world) {
         }
         new_consts[axis] = new_consts[axis] or constraint;
         if (constraint) {
-            newpos[axis] = floor(newpos[axis] + box2[axis] + axis_gap) - box2[axis] - axis_gap;
+            new_rel_pos[axis] = floor(new_rel_pos[axis] + box2[axis] + axis_gap) - box2[axis] - axis_gap;
         }
         vec3 neg2 = neg*dir + pos*coords;
         constraint = false;
@@ -174,13 +159,13 @@ void Entity::calc_constraints(World* world) {
         }
         new_consts[axis+3] = new_consts[axis+3] or constraint;
         if (constraint) {
-          newpos[axis] = ceil(newpos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
+          new_rel_pos[axis] = ceil(new_rel_pos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
         }
       }
       /// torso check: to tell if the constraints are only on the feet
       
-      vec3 neg = floor( position + box1 - axis_gap + vec3(0,1.2,0)) ;
-      vec3 pos = ceil( position + box2 + axis_gap );
+      vec3 neg = floor( rel_pos + box1 - axis_gap + vec3(0,1.2,0)) ;
+      vec3 pos = ceil( rel_pos + box2 + axis_gap );
       bool constraint = false;
       for (int x = (int)neg.x; x < pos.x+1; x ++) {
         for (int y = (int)neg.y; y < pos.y+1; y ++) {
@@ -191,6 +176,8 @@ void Entity::calc_constraints(World* world) {
         }
       }
       new_consts[6] =  new_consts[6] or constraint;
+      
+      newpos = new_rel_pos + collider->get_position();
     }
     for (int i = 0; i < 7; i ++) {
         consts[i] = old_consts[i] or new_consts[i];
@@ -247,7 +234,22 @@ void Entity::on_timestep(World* world) {
   
 }
 
-
+bool Entity::colliding(const Entity* other) {
+  vec3 dist = other->position - position;
+  vec3 box_dist = other->box1*-1.0f + box2 + 2.0f;
+  vec3 box2_dist = box1*-1.0f + other->box2 + 2.0f;
+  if (dist.x < 0) {
+    box_dist.x = box2_dist.x;
+    dist.x *= -1;
+  } if (dist.y < 0) {
+    box_dist.y = box2_dist.y;
+    dist.y *= -1;
+  } if (dist.z < 0) {
+    box_dist.z = box2_dist.z;
+    dist.z *= -1;
+  }
+  return dist.x < box_dist.x and dist.y < box_dist.y and dist.z < box_dist.z;
+}
 
 
 
@@ -258,10 +260,14 @@ DisplayEntity::DisplayEntity(vec3 starting_pos, Block* newblock): Entity(startin
   block->render(&vecs, 0, 0, 0);
 }
 
+vec3 DisplayEntity::get_position() {
+  return position;
+}
+
 Block * DisplayEntity::get_global(int x, int y, int z, int size) {
   ivec3 index(x,y,z);
   //print (index);
-  index -= ivec3(glm::round(position) + box1-axis_gap);
+  index -= ivec3(box1-axis_gap);
   //print (position);
   //print (index);
   int scale = block->scale;

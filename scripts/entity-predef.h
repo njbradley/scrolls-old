@@ -17,6 +17,7 @@ using namespace std;
 
 struct Collider {
   virtual Block * get_global(int,int,int,int) = 0;
+  virtual vec3 get_position() = 0;
 };
 
 class Entity { public:
@@ -44,6 +45,7 @@ class Entity { public:
     void fall_damage(float velocity);
     void drag(bool do_drag, float deltaTime);
     virtual void on_timestep(World* world);
+    bool colliding(const Entity* other);
 };
 
 
@@ -82,6 +84,7 @@ public:
   pair<int,int> render_index;
   DisplayEntity(vec3 starting_pos, Block* newblock);
   Block * get_global(int,int,int,int);
+  vec3 get_position();
   void render();
   void calc_constraints(World* world);
   void on_timestep(World* world);
@@ -92,12 +95,6 @@ public:
   string nametype;
   NamedEntity(vec3 starting_pos, string name);
   Block* loadblock(string name);
-};
-
-class EntityGroup {
-  vector<Entity*> entities;
-  void render(GLVecs* vecs);
-  void add(Entity*);
 };
 
 class EntityStorage { public:

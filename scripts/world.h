@@ -190,15 +190,21 @@ void World::tick() {
         //cout << 827349 << endl;
         std::advance( item, rand()%tiles.size() );
         Tile* tile = item->second;
-        Block* block = tile->chunk->get_global(rand()%chunksize, rand()%chunksize, rand()%chunksize, 1);
-        if (block != nullptr and block->get_pix() != nullptr) {
-          block->get_pix()->tick();
+        if (!tile->deleting) {
+          Block* block = tile->chunk->get_global(rand()%chunksize, rand()%chunksize, rand()%chunksize, 1);
+          if (block != nullptr and block->get_pix() != nullptr) {
+            block->get_pix()->tick();
+          }
         }
       }
     }
     writelock.unlock();
   }
   //cout << "end world tick" << endl;
+}
+
+vec3 World::get_position() {
+  return vec3(0,0,0);
 }
 
 void World::block_update(int x, int y, int z) {
@@ -215,6 +221,7 @@ void World::render() {
     }
     bool changed = false;
     //cout << "back in render" << endl;
+    vector<ivec3> empty;
     for (pair<ivec3, Tile*> kvpair : tiles) {
         //double before = clock();
         //chunks[kvpair.first]->all([](Pixel* pix) {
@@ -228,10 +235,20 @@ void World::render() {
         if (tiles[kvpair.first]->chunk->render_flag) {
           cout << kvpair.first.x << ' ' << kvpair.first.y << ' ' << kvpair.first.z << endl;
         }
-        tiles[kvpair.first]->render(&glvecs);
+        if (tiles.find(kvpair.first) != tiles.end()) {
+          kvpair.second->render(&glvecs);
+          // if (tiles[kvpair.first] == nullptr) {
+          //   empty.push_back(kvpair.first);
+          // } else {
+          //   tiles[kvpair.first]->render(&glvecs);
+          // }
+        }
         //cout << "rendered chunk " << kvpair.first.first << ' ' << kvpair.first.second << endl;
         //render_chunk_vectors(kvpair.first);
         //cout << during - before << ' ' << after - during << ' ' << clock()-after << endl;
+    }
+    for (ivec3 e : empty) {
+      tiles.erase(e);
     }
     if (changed) {
 			cout << "changed" << endl;

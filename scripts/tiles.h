@@ -35,13 +35,15 @@ void Tile::update_lighting() {
 }
 
 void Tile::render(GLVecs* glvecs) {
-  if (writelock.try_lock_for(std::chrono::seconds(1))) {
+  //if (writelock.try_lock_for(std::chrono::seconds(1))) {
     //update_lighting();
     //chunk->calculate_lightlevel();
-	   chunk->render(glvecs, 0, 0, 0);
+    if (!deleting) {
+	     chunk->render(glvecs, 0, 0, 0);
+     }
      //cout << chunk->render_flag << endl;
-     writelock.unlock();
-   }
+  //   writelock.unlock();
+   //}
 }
 
 void Tile::save() {
@@ -69,10 +71,10 @@ void Tile::timestep() {
   }
 }
 
-Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize) {
-	if (writelock.try_lock_for(std::chrono::seconds(1))) {
+Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize), deleting(false) {
+	//if (writelock.try_lock_for(std::chrono::seconds(1))) {
     if (pos == ivec3(0,2,15)) {
-      entities.push_back(new NamedEntity(pos*chunksize+32, "test"));
+      entities.push_back(new NamedEntity(pos*chunksize+32, "ent"));
   	}
     stringstream path;
   	path << "saves/world/chunk" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
@@ -89,18 +91,19 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
   	}
   	//render_chunk_vectors(pos);
   	//render(&world->glvecs);
-    writelock.unlock();
-  } else {
-    cout << "tile locked when created?" << endl;
-    crash(1188188839499);
-  }
+  //   writelock.unlock();
+  // } else {
+  //   cout << "tile locked when created?" << endl;
+  //   crash(1188188839499);
+  // }
 }
 
 void Tile::del(bool remove_faces) {
-  if (writelock.try_lock_for(std::chrono::seconds(1))) {
+  //if (writelock.try_lock_for(std::chrono::seconds(1))) {
+    deleting = true;
 	  chunk->del(remove_faces);
-    writelock.unlock();
-  }
+    //writelock.unlock();
+  //}
 }
 
 /*

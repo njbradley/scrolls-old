@@ -147,7 +147,7 @@ void Player::raycast(Pixel** hit, vec3* hitpos, DisplayEntity** target_entity) {
 		//cout << "made it" << endl;
 		Block* start_block = entity->block->get_global(int(ex) - (ex<0), int(ey) - (ey<0), int(ez) - (ez<0), 1);
 		//cout << start_block << endl;
-		Block* newtarget = start_block->raycast(entity->block, &ex, &ey, &ez, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 8-glm::length(pointing*dt));
+		Block* newtarget = start_block->raycast(entity, &ex, &ey, &ez, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 8-glm::length(pointing*dt));
 		float newdist;
 		if (newtarget != nullptr) {
 			newdist = glm::length(position-entity->position-vec3(ex,ey,ez));
@@ -163,6 +163,8 @@ void Player::raycast(Pixel** hit, vec3* hitpos, DisplayEntity** target_entity) {
 	}
 	if (dist != -1) {
 		*hit = target->get_pix();
+		//cout << int((*hit)->value) << endl;
+		//cout << x << ' ' << y << ' ' << z << "---------" << endl;
 		*hitpos = vec3(x,y,z);
 	}
 }
@@ -182,13 +184,14 @@ void Player::right_mouse() {
 		return;
 	}
 	if (target_entity != nullptr) {
-		target_entity->vel += pointing * 4.0f + vec3(0,5,0);
+		target_entity->vel += pointing * 1.0f + vec3(0,5,0);
 		return;
 	}
 	
 	double x = hitpos.x;
 	double y = hitpos.y;
 	double z = hitpos.z;
+	
 	
 	int ox = (int)x - (x<0);
 	int oy = (int)y - (y<0);
@@ -231,15 +234,18 @@ void Player::left_mouse() {
 		if (timeout < 0) {
 			return;
 		}
-		timeout = -0.2;
-		cout << "hit" << endl;
-		target_entity->vel += pointing * 4.0f + vec3(0,5,0);
+		timeout = -0.8;
+		//cout << "hit" << endl;
+		target_entity->vel += pointing * 1.0f + vec3(0,5,0) + vel;
 		return;
 	}
 	
 	double x = hitpos.x;
 	double y = hitpos.y;
 	double z = hitpos.z;
+	
+	//cout << "skdfls " << int(pix->value) << endl;
+	//cout << ':' << x << ' ' << y << ' ' << z << endl;
 	
 	Item* item = inven.get(selitem);
 	string tool = "null";
@@ -273,8 +279,9 @@ void Player::die() {
 		vector<string> options = {"Respawn"};
 		menu = new SelectMenu("You Died", options, [&] (string result) {
 			if (result == "Respawn") {
+				World* w = world;
 				delete world->player;
-				world->spawn_player();
+				w->spawn_player();
 			} else if (result == "Quit") {
 				cout << "you dead" << endl;
 			}
