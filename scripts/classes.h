@@ -6,6 +6,7 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <functional>
 using glm::vec3;
 using glm::ivec3;
 using glm::vec2;
@@ -13,6 +14,7 @@ using glm::ivec2;
 using std::cout;
 using std::endl;
 using std::string;
+using std::function;
 
 void crash(long long);
 void hard_crash(long long);
@@ -31,6 +33,7 @@ class Entity;
 class DisplayEntity;
 class Player;
 class BlockStorage;
+class BlockGroup;
 class CharArray;
 class ItemStorage;
 class ItemContainer;

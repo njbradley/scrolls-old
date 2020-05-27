@@ -175,7 +175,7 @@ void World::timestep() {
 
 void World::tick() {
   //cout << "world tick" << endl;
-  if (writelock.try_lock_for(std::chrono::seconds(1))) {
+  //if (writelock.try_lock_for(std::chrono::seconds(1))) {
     for (ivec3 pos : block_updates) {
       //cout << pos.x << endl;
       Block* block = get_global(pos.x, pos.y, pos.z, 1);
@@ -198,8 +198,8 @@ void World::tick() {
         }
       }
     }
-    writelock.unlock();
-  }
+  //  writelock.unlock();
+  //}
   //cout << "end world tick" << endl;
 }
 
@@ -309,7 +309,7 @@ void World::set(char val, int x, int y, int z, int direction) {
     }
     while (newblock->scale > minscale) {
       char val = newblock->get();
-      newblock->subdivide();
+      newblock->get_pix()->subdivide();
       delete newblock;
       newblock = get_global((int)x, (int)y, (int)z, 1);
     }

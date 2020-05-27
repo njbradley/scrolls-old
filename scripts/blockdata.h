@@ -62,6 +62,11 @@ BlockData::BlockData(ifstream & ifile) {
     }
     getline(ifile, buff, ':');
     ifile >> name >> rotation_enabled >> default_direction >> minscale >> rcaction >> lightlevel >> item;
+    getline(ifile, buff, ':');
+    ifile >> clumpyness >> clumpy_group;
+    if (clumpy_group == "null") {
+      clumpy_group = name + "-group";
+    }
     bool is_extra;
     ifile >> is_extra;
     if (is_extra) {

@@ -2,4 +2,5 @@
 : 0   0       0      0     0
 : 6 6 6 6 6 6
 : water 1 0 1 null 0 null
+: 1 null
 0

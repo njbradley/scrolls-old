@@ -29,6 +29,7 @@ using namespace glm;
 #include "scripts/crafting.h"
 #include "scripts/terrain.h"
 #include "scripts/tiles.h"
+#include "scripts/blockphysics.h"
 #include "scripts/multithreading.h"
 
 

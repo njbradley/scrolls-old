@@ -10,6 +10,7 @@
 class RenderVecs {
 public:
   virtual pair<int,int> add(MemVecs* newvecs) = 0;
+  virtual void del(pair<int,int>) = 0;
 };
 
 class MemVecs: public RenderVecs {/*
@@ -28,6 +29,7 @@ class MemVecs: public RenderVecs {/*
         adds a face to the vectors, newverts and newuvs are arrays, 3 and 2 length respectivly
       */
       pair<int,int> add(MemVecs* newvecs);
+      void del(pair<int,int>);
       void clear();
 };
 

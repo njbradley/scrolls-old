@@ -35,6 +35,7 @@ class Entity { public:
     vec3 dirs[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
     bool old_consts[7];
     bool consts[7]; // constraints for entity, posx, pos y, pos z, neg x, neg y, neg z
+    bool alive;
     
     Entity(vec3 pos, vec3 hitbox1, vec3 hitbox2);
     void timestep(World* world);
@@ -46,6 +47,7 @@ class Entity { public:
     void drag(bool do_drag, float deltaTime);
     virtual void on_timestep(World* world);
     bool colliding(const Entity* other);
+    virtual void kill();
 };
 
 
@@ -64,7 +66,7 @@ class Player: public Entity {
 		Player(vec3 pos, World* newworld);
     Player(istream& ifile);
     void save_to_file(ostream& ofile);
-    void die();
+    virtual void die();
 		mat4 getViewMatrix();
 		mat4 getProjectionMatrix();
 		void right_mouse();
@@ -87,7 +89,8 @@ public:
   vec3 get_position();
   void render();
   void calc_constraints(World* world);
-  void on_timestep(World* world);
+  virtual void on_timestep(World* world);
+  void die();
 };
 
 class NamedEntity: public DisplayEntity {
@@ -95,6 +98,13 @@ public:
   string nametype;
   NamedEntity(vec3 starting_pos, string name);
   Block* loadblock(string name);
+};
+
+class FallingBlockEntity: public DisplayEntity {
+public:
+  BlockGroup* group;
+  FallingBlockEntity(BlockGroup* newgroup);
+  void on_timestep(World* world);
 };
 
 class EntityStorage { public:

@@ -28,7 +28,16 @@ ThreadManager::ThreadManager(GLFWwindow* window) {
 	GLFWwindow* renderwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
 	
 	rendering_thread = thread(RenderingThread(renderwindow, this));
-	tick_thread = thread(TickThread(this));
+	
+	glfwWindowHint(GLFW_SAMPLES, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+	GLFWwindow* tickwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
+	
+	tick_thread = thread(TickThread(tickwindow, this));
 	
 	for (int i = 0; i < num_threads; i ++) {
 		loading[i] = nullptr;
@@ -162,11 +171,12 @@ void RenderingThread::operator()() {
 	cout << "rendering thread exited" << endl;
 }
 
-TickThread::TickThread( ThreadManager* newparent): parent(newparent) {
+TickThread::TickThread(GLFWwindow* nwindow, ThreadManager* newparent): window(nwindow), parent(newparent) {
 	
 }
 
 void TickThread::operator()() {
+	glfwMakeContextCurrent(window);
 	while (parent->render_running) {
 		if (world != nullptr) {
 			world->tick();

@@ -39,7 +39,7 @@ void Tile::render(GLVecs* glvecs) {
     //update_lighting();
     //chunk->calculate_lightlevel();
     if (!deleting) {
-	     chunk->render(glvecs, 0, 0, 0);
+	     chunk->render(glvecs, world, 0, 0, 0);
      }
      //cout << chunk->render_flag << endl;
   //   writelock.unlock();
@@ -58,14 +58,20 @@ void Tile::timestep() {
   for (int i = entities.size()-1; i >= 0; i --) {
     //cout << i << endl;
     entities[i]->timestep(world);
-    vec3 epos = entities[i]->position;
-    ivec3 chunk = ivec3(epos)/world->chunksize - ivec3(epos.x<0,epos.y<0,epos.z<0);
-    if (chunk != pos) {
-      if (world->tiles.find(pos) != world->tiles.end()) {
-        world->tiles[pos]->entities.push_back(entities[i]);
-      } else {
-        delete entities[i];
+    if (entities[i]->alive) {
+      vec3 epos = entities[i]->position;
+      ivec3 chunk = ivec3(epos)/world->chunksize - ivec3(epos.x<0,epos.y<0,epos.z<0);
+      if (chunk != pos) {
+        if (world->tiles.find(pos) != world->tiles.end()) {
+          world->tiles[pos]->entities.push_back(entities[i]);
+        } else {
+          delete entities[i];
+        }
+        entities.erase(entities.begin()+i);
       }
+    } else {
+      entities[i]->die();
+      delete entities[i];
       entities.erase(entities.begin()+i);
     }
   }

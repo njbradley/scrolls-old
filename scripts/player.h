@@ -237,6 +237,7 @@ void Player::left_mouse() {
 		timeout = -0.8;
 		//cout << "hit" << endl;
 		target_entity->vel += pointing * 1.0f + vec3(0,5,0) + vel;
+		target_entity->alive = false;
 		return;
 	}
 	

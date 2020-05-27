@@ -255,18 +255,35 @@ void Pixel::set(char val) {
     reset_lightlevel();
     render_update();
     tile->world->block_update(gx, gy, gz);
-    world->get_global(gx+scale, gy, gz, scale)->render_update();
-    world->get_global(gx-scale, gy, gz, scale)->render_update();
-    world->get_global(gx, gy+scale, gz, scale)->render_update();
-    world->get_global(gx, gy-scale, gz, scale)->render_update();
-    world->get_global(gx, gy, gz+scale, scale)->render_update();
-    world->get_global(gx, gy, gz-scale, scale)->render_update();
-    
+    Block* block;
+    const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
+    for (ivec3 dir : dir_array) {
+      dir *= scale;
+      block = world->get_global(gx+dir.x, gy+dir.y, gz+dir.z, scale);
+      if (block != nullptr) {
+        block->render_update();
+      }
+    }
 }
 
 void Pixel::tick() {
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
+  //cout << "tick" << endl;
+  BlockGroup* group = new BlockGroup(tile->world, ivec3(gx, gy, gz), 500);
+  if (group->block_poses.size() > 0 and !group->consts[4]) {
+    for (int i = 0; i < 6; i ++) {
+      cout << group->consts[i] << ' ';
+    } cout << endl;
+    cout << "copying " << group->block_poses.size() << endl;
+    group->copy_to_block();
+    cout << "erasing" << endl;
+    group->erase_from_world();
+    cout << "done" << endl;
+    tile->entities.push_back(new FallingBlockEntity(group));
+  } else {
+    delete group;
+  }
   // if (value == blocks->names["dirt"] and world->get(gx, gy+scale, gz) == 0) {
   //   //set(blocks->names["grass"]);
   // }
@@ -443,7 +460,7 @@ void Pixel::rotate_to_origin(int* mats, int* dirs, int rotation) {
   }
 }
 
-void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
+void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int gz) {
     if (!render_flag) {
         return;
     }
@@ -460,7 +477,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
     
     if (value == 0) {
       if (render_index.first > -1) {
-        world->glvecs.del(render_index);
+        allvecs->del(render_index);
         render_index = pair<int,int>(-1, 0);
       }
       return;
@@ -538,7 +555,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
       
       
       
-      block = world->get_global(gx, gy, gz-scale, scale);
+      block = collider->get_global(gx, gy, gz-scale, scale);
       if (block == nullptr or block->is_air(0, 0, 1)) {
           GLfloat new_uvs[] = {
               0.0f, 1.0f,
@@ -560,7 +577,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
           vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(0,0,1) : 1 ), minscale, mat[5]);//0.4f
       }
       
-      block = world->get_global(gx, gy-scale, gz, scale);
+      block = collider->get_global(gx, gy-scale, gz, scale);
       if (block == nullptr or block->is_air(0, 1, 0)) {
           GLfloat new_uvs[] = {
               0.0f, 1.0f,
@@ -583,7 +600,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
           vecs.add_face(face, new_uvs, 0.5f * ( (block!=nullptr) ? block->get_lightlevel(0,1,0) : 1 ), minscale, mat[4]);
       }
       
-      block = world->get_global(gx-scale, gy, gz, scale);
+      block = collider->get_global(gx-scale, gy, gz, scale);
       if (block == nullptr or block->is_air(1, 0, 0)) {
           GLfloat new_uvs[] = {
               0.0f, 1.0f,
@@ -605,7 +622,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
           vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(1,0,0) : 1 ), minscale, mat[3]);
       }
       
-      block = world->get_global(gx, gy, gz+scale, scale);
+      block = collider->get_global(gx, gy, gz+scale, scale);
       if (block == nullptr or block->is_air(0, 0, -1)) {
           GLfloat new_uvs[] = {
               0.0f, 1.0f,
@@ -627,7 +644,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
           vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(0,0,-1) : 1 ), minscale, mat[2]);
       }
       
-      block = world->get_global(gx, gy+scale, gz, scale);
+      block = collider->get_global(gx, gy+scale, gz, scale);
       if (block == nullptr or block->is_air(0, -1, 0)) {
           GLfloat new_uvs[] = {
               0.0f, 1.0f,
@@ -650,7 +667,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
           vecs.add_face(face, new_uvs, 0.9f * ( (block!=nullptr) ? block->get_lightlevel(0,-1,0) : 1 ), minscale, mat[1]);//top
       }
       
-      block = world->get_global(gx+scale, gy, gz, scale);
+      block = collider->get_global(gx+scale, gy, gz, scale);
       if (block == nullptr or block->is_air(-1, 0, 0)) {
           GLfloat new_uvs[] = {
               0.0f, 1.0f,
@@ -674,7 +691,7 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
     }
     
     if (render_index != pair<int,int>(-1,0)) {
-      world->glvecs.del(render_index);
+      allvecs->del(render_index);
       render_index = pair<int,int>(-1,0);
     }
     if (vecs.num_verts != 0) {
@@ -688,6 +705,12 @@ void Pixel::render(RenderVecs* allvecs, int gx, int gy, int gz) {
 }
 
 Chunk* Pixel::subdivide() {
+  return subdivide([&] (ivec3 pos) {
+    return world->loader.gen_func(pos);
+  });
+}
+
+Chunk* Pixel::subdivide(function<char(ivec3)> gen_func) {
     //render_update();
     if (render_index.first != -1) {
         world->glvecs.del(render_index);
@@ -703,10 +726,10 @@ Chunk* Pixel::subdivide() {
     for (int x = 0; x < csize; x ++) {
         for (int y = 0; y < csize; y ++) {
             for (int z = 0; z < csize; z ++) {
-                char val = world->loader.gen_func(ivec3(gx+x*scale/csize, gy+y*scale/csize, gz+z*scale/csize));
+                char val = gen_func(ivec3(gx+x*scale/csize, gy+y*scale/csize, gz+z*scale/csize));
                 Pixel* pix = new Pixel(x, y, z, val, scale/csize, newchunk, tile);
                 //cout << gx+x*scale/csize << ' ' << gy+y*scale/csize << ' ' << gz+z*scale/csize << endl;
-                Chunk* subdivided = pix->resolve();
+                Chunk* subdivided = pix->resolve(gen_func);
                 if (subdivided == nullptr) {
                    newchunk->blocks[x][y][z] = pix;
                 } else {
@@ -729,16 +752,22 @@ Chunk* Pixel::subdivide() {
 }
 
 Chunk* Pixel::resolve() {
+  return resolve([&] (ivec3 pos) {
+    return world->loader.gen_func(pos);
+  });
+}
+
+Chunk* Pixel::resolve(function<char(ivec3)> gen_func) {
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
   //cout << gx << ' ' << gy << ' ' << gz << "res" << endl;
   bool shell = true;
   bool full = true;
-  char val = world->loader.gen_func(ivec3(gx, gy, gz));
+  char val = gen_func(ivec3(gx, gy, gz));
   for (int ox = 0; ox < scale and shell; ox ++) {
     for (int oy = 0; oy < scale and shell; oy ++) {
       for (int oz = 0; oz < scale and shell; oz ++) {
-        char newval = world->loader.gen_func(ivec3(gx+ox, gy+oy, gz+oz));
+        char newval = gen_func(ivec3(gx+ox, gy+oy, gz+oz));
         if (newval != val) {
           if (ox == 0 or ox == scale-1 or oy == 0 or oy == scale-1 or oz == 0 or oz == scale-1) {
             shell = false;
@@ -752,12 +781,12 @@ Chunk* Pixel::resolve() {
     if (val == 0 and !full) {
       //cout << "subdivide again" << endl;
       //cout << newchunk->blocks[x][y][z] << '-' << endl;
-      return subdivide();
+      return subdivide(gen_func);
     }
   } else {
     //cout << "subdivide again" << endl;
     //cout << newchunk->blocks[x][y][z] << '-' << endl;
-    return subdivide();
+    return subdivide(gen_func);
   }
   return nullptr;
 }
@@ -798,11 +827,6 @@ char Chunk::get() {
 }
 void Chunk::set(char c) {
     cout << "error: set called on chunk object" << endl;
-}
-Chunk* Chunk::subdivide() {
-    cout << "error: subdividing already subdivided block" << endl;
-    crash(16758912);
-    return nullptr;
 }
 void Chunk::calculate_lightlevel() {
     for (int x = 0; x < csize; x ++) {
@@ -901,13 +925,13 @@ float Chunk::get_lightlevel(int dx, int dy, int dz) {
     }
 }
 
-void Chunk::render(RenderVecs* vecs, int gx, int gy, int gz) {
+void Chunk::render(RenderVecs* vecs, Collider* collider, int gx, int gy, int gz) {
     if (render_flag) {
         render_flag = false;
         for (int x = 0; x < csize; x ++) {
             for (int y = 0; y < csize; y ++) {
                 for (int z = 0; z < csize; z ++) {
-                    blocks[x][y][z]->render(vecs, gx + px*scale, gy + py*scale, gz + pz*scale);
+                    blocks[x][y][z]->render(vecs, collider, gx + px*scale, gy + py*scale, gz + pz*scale);
                 }
             }
         }

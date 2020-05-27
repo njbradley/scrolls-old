@@ -11,6 +11,7 @@
 
 #include <GL/glew.h>
 #include <map>
+#include "world-predef.h"
 
 #define csize 2
 
@@ -34,7 +35,6 @@ class Block: public Collider { public:
     virtual Block * get(int, int, int) = 0; //get a block at coords
     virtual char get() = 0;                 //get the value of the block. these two methods are exclusive for pixel/chunk, but same reaseon as above
     virtual void set(char) = 0;
-    virtual Chunk* subdivide() = 0;
     virtual void del(bool remove_faces) = 0;
     virtual void calculate_lightlevel() = 0;
     virtual Pixel* get_pix()  = 0;
@@ -44,7 +44,7 @@ class Block: public Collider { public:
     Block(int x, int y, int z, int newscale, Chunk* newparent);
     void world_to_local(int x, int y, int z, int* lx, int* ly, int* lz);
     void global_position(int*, int*, int*);
-    virtual void render(RenderVecs*, int, int, int) = 0;
+    virtual void render(RenderVecs*, Collider*, int, int, int) = 0;
     virtual bool is_air(int, int, int) = 0;
     virtual Block * get_global(int,int,int,int) = 0;
     virtual void render_update() = 0;
@@ -97,9 +97,11 @@ public:
     void lighting_update();
     bool is_air(int dx, int dy, int dz);
     Block* get_global(int x, int y, int z, int scale);
-    void render(RenderVecs*, int, int,int);
+    void render(RenderVecs*, Collider*, int, int,int);
     Chunk* subdivide();
+    Chunk* subdivide(function<char(ivec3)> gen_func);
     Chunk* resolve();
+    Chunk* resolve(function<char(ivec3)> gen_func);
     void save_to_file(ofstream& of);
 };
 
@@ -112,12 +114,11 @@ class Chunk: public Block { public:
     Pixel* get_pix();
     char get();
     void set(char c);
-    Chunk* subdivide();
     void calculate_lightlevel();
     void all(function<void(Pixel*)> func);
     void all_side(function<void(Pixel*)>,int,int,int);
     float get_lightlevel(int dx, int dy, int dz);
-    void render(RenderVecs* vecs, int gx, int gy, int gz);
+    void render(RenderVecs* vecs, Collider*, int gx, int gy, int gz);
     void del(bool remove_faces);
     void render_update();
     Block* get_global(int x, int y, int z, int nscale);

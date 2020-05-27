@@ -25,6 +25,8 @@ class BlockData { public:
     string rcaction;
     float lightlevel;
     string item;
+    double clumpyness;
+    string clumpy_group;
     BlockExtras* extras = nullptr;
     
     BlockData(ifstream & ifile);

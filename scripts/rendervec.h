@@ -37,6 +37,16 @@ pair<int,int> MemVecs::add(MemVecs* newvecs) {
   return pair<int,int>((num_verts - newvecs->num_verts)/6, newvecs->num_verts/6);
 }
 
+void MemVecs::del(pair<int,int> index) {
+  int start = index.first*6;
+  int end = start + index.second*6;
+  verts.erase(verts.begin()+start*3, verts.begin()+end*3);
+  uvs.erase(uvs.begin()+start*2, uvs.begin()+end*2);
+  light.erase(light.begin()+start, light.begin()+end);
+  mats.erase(mats.begin()+start*2, mats.begin()+end*2);
+}
+  
+
 void MemVecs::clear() {
   verts.clear();
   uvs.clear();

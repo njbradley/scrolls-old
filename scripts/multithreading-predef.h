@@ -75,8 +75,9 @@ public:
 
 class TickThread {
 	ThreadManager* parent;
+	GLFWwindow* window;
 public:
-	TickThread(ThreadManager* newparent);
+	TickThread(GLFWwindow* window, ThreadManager* newparent);
 	void operator()();
 };
 

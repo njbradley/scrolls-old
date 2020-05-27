@@ -11,6 +11,7 @@
 
 #include "entity-predef.h"
 #include "tiles-predef.h"
+#include "blockphysics-predef.h"
 
 using namespace glm;
 
@@ -24,7 +25,7 @@ void print(vec3 v) {
 
 
 Entity::Entity(vec3 pos, vec3 hitbox1, vec3 hitbox2):
-position(pos), box1(hitbox1), box2(hitbox2-vec3(1,1,1))
+position(pos), box1(hitbox1), box2(hitbox2-vec3(1,1,1)), alive(true)
 {
     angle = vec2(0,0);
     vel = vec3(0,0,0);
@@ -251,13 +252,17 @@ bool Entity::colliding(const Entity* other) {
   return dist.x < box_dist.x and dist.y < box_dist.y and dist.z < box_dist.z;
 }
 
+void Entity::kill() {
+  
+}
+
 
 
 
 DisplayEntity::DisplayEntity(vec3 starting_pos, Block* newblock): Entity(starting_pos, vec3(0.2,0.2,0.2), vec3(1,1,1)), block(newblock), render_index(-1,0) {
   int size = block->scale;
   box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
-  block->render(&vecs, 0, 0, 0);
+  block->render(&vecs, this, 0, 0, 0);
 }
 
 vec3 DisplayEntity::get_position() {
@@ -419,7 +424,9 @@ void DisplayEntity::calc_constraints(World* world) {
     position = newpos;
 }
 
-
+void DisplayEntity::die() {
+  world->glvecs.del(render_index);
+}
 
 
 
@@ -441,6 +448,23 @@ Block* NamedEntity::loadblock(string name) {
   ifile.read(&buff,1);
   return Block::from_file(ifile, 0, 0, 0, size, nullptr, nullptr);
 }
+
+
+
+FallingBlockEntity::FallingBlockEntity(BlockGroup* newgroup): DisplayEntity(newgroup->position, newgroup->block), group(newgroup) {
+  
+}
+
+void FallingBlockEntity::on_timestep(World* world) {
+  render();
+  if (consts[4]) {
+    group->copy_to_world(position);
+    delete group;
+    alive = false;
+  }
+}
+    
+
 
 
 
