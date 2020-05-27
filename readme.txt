@@ -10,12 +10,6 @@ in the folder saves/ there is a file called settings.txt, which has all of the g
 settings, like fullscreen, screen dimentions, max fps. If the window is to big for the 
 screen, mess with the dimentions or go into fullscreen mode
 
-Crashing:
-Unfortunately, this game has a lot of bugs, and it sometimes crashes. If the game crashes
-every time you start it, it might be incompadable with your computer. If you are willing, 
-send me an email at nicholasjohnsonbradley@gmail.com with some info about your computer, 
-and I can work to get it working.
-
 Controls:
 WASD - movement
 Mouse - look around
@@ -28,8 +22,8 @@ M - main menu
 Ctr-Q - quit
 
 Debug:
-P - show/hide debug menu
-R - force cleaining of memory vectors
+O/P - show/hide debug menu
+R - force cleaning of memory vectors
 F/G - enter/exit spectator mode
 
 Version 0.2:
