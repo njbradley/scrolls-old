@@ -1,3 +1,4 @@
-main.exe
+*.exe
 saves
 command.bat
+dump*.txt

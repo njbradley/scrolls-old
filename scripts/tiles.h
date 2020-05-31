@@ -105,11 +105,16 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
 }
 
 void Tile::del(bool remove_faces) {
-  //if (writelock.try_lock_for(std::chrono::seconds(1))) {
+  cout << "start of deleting tile ";
+  print (pos);
+  if (writelock.try_lock_for(std::chrono::seconds(1))) {
     deleting = true;
 	  chunk->del(remove_faces);
-    //writelock.unlock();
-  //}
+    writelock.unlock();
+  } else {
+    cout << "ERR: tile not properly deleted" << endl;
+    crash(43928739482);
+  }
 }
 
 /*

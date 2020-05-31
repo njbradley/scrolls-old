@@ -74,6 +74,7 @@ public:
     float lightlevel = 1;
     BlockExtras* extras = nullptr;
     Tile* tile;
+    //int num;
     //ItemContainer* container;
     
     Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* tile);

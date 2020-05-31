@@ -25,7 +25,7 @@ void print(vec3 v) {
 
 
 Entity::Entity(vec3 pos, vec3 hitbox1, vec3 hitbox2):
-position(pos), box1(hitbox1), box2(hitbox2-vec3(1,1,1)), alive(true)
+position(pos), box1(hitbox1), box2(hitbox2-vec3(1,1,1)), alive(true), immune(false)
 {
     angle = vec2(0,0);
     vel = vec3(0,0,0);
@@ -78,7 +78,6 @@ void Entity::get_nearby_entities(vector<DisplayEntity*>* colliders) {
 
 
 void Entity::find_colliders(vector<Collider*>* colliders) {
-  colliders->push_back(world);
   ivec3 chunk = ivec3(position)/world->chunksize - ivec3(position.x<0, position.y<0, position.z<0);
   //std::map<ivec3,Tile*>::iterator it = world->tiles.find(chunk);
   vector<DisplayEntity*> entities;
@@ -93,6 +92,8 @@ void Entity::find_colliders(vector<Collider*>* colliders) {
       }
     //}
   //}
+  
+    colliders->push_back(world);
 }
 
 void Entity::calc_constraints(World* world) {
@@ -145,7 +146,7 @@ void Entity::calc_constraints(World* world) {
         }
         new_consts[axis] = new_consts[axis] or constraint;
         if (constraint) {
-            new_rel_pos[axis] = floor(new_rel_pos[axis] + box2[axis] + axis_gap) - box2[axis] - axis_gap;
+            new_rel_pos[axis] = floor(rel_pos[axis] + box2[axis] + axis_gap) - box2[axis] - axis_gap;
         }
         vec3 neg2 = neg*dir + pos*coords;
         constraint = false;
@@ -160,7 +161,7 @@ void Entity::calc_constraints(World* world) {
         }
         new_consts[axis+3] = new_consts[axis+3] or constraint;
         if (constraint) {
-          new_rel_pos[axis] = ceil(new_rel_pos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
+          new_rel_pos[axis] = ceil(rel_pos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
         }
       }
       /// torso check: to tell if the constraints are only on the feet
@@ -259,10 +260,10 @@ void Entity::kill() {
 
 
 
-DisplayEntity::DisplayEntity(vec3 starting_pos, Block* newblock): Entity(starting_pos, vec3(0.2,0.2,0.2), vec3(1,1,1)), block(newblock), render_index(-1,0) {
+DisplayEntity::DisplayEntity(vec3 starting_pos, Block* newblock): Entity(starting_pos, vec3(0.2,0.2,0.2), vec3(1,1,1)), block(newblock), render_index(-1,0), render_flag(true) {
   int size = block->scale;
   box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
-  block->render(&vecs, this, 0, 0, 0);
+  //block->render(&vecs, this, 0, 0, 0);
 }
 
 vec3 DisplayEntity::get_position() {
@@ -292,6 +293,10 @@ void DisplayEntity::render() {
   // });
   // block->render(&vecs, int(position.x), int(position.y), int(position.z));
   //
+  if (render_flag) {
+    block->render(&vecs, this, 0, 0, 0);
+    render_flag = false;
+  }
   MemVecs translated;
   translated.add(&vecs);
   for (int i = 0; i < translated.num_verts; i++) {
@@ -452,7 +457,7 @@ Block* NamedEntity::loadblock(string name) {
 
 
 FallingBlockEntity::FallingBlockEntity(BlockGroup* newgroup): DisplayEntity(newgroup->position, newgroup->block), group(newgroup) {
-  
+  immune = true;
 }
 
 void FallingBlockEntity::on_timestep(World* world) {

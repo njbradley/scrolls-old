@@ -217,6 +217,9 @@ void Player::right_mouse() {
 					arr->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
 				}
 			}
+		} else {
+			cout << "block ";
+			print (ivec3(hitpos));
 		}
 	}
 }
@@ -236,8 +239,10 @@ void Player::left_mouse() {
 		}
 		timeout = -0.8;
 		//cout << "hit" << endl;
-		target_entity->vel += pointing * 1.0f + vec3(0,5,0) + vel;
-		target_entity->alive = false;
+		if (!target_entity->immune) {
+			target_entity->vel += pointing * 1.0f + vec3(0,5,0) + vel;
+		}
+		//target_entity->alive = false;
 		return;
 	}
 	

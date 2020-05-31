@@ -254,7 +254,6 @@ void Pixel::set(char val) {
     //cout << "global position " << gx << ' ' << gy << ' ' << gz << endl;
     reset_lightlevel();
     render_update();
-    tile->world->block_update(gx, gy, gz);
     Block* block;
     const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
     for (ivec3 dir : dir_array) {
@@ -310,8 +309,8 @@ void Pixel::tick() {
 }
 
 void Pixel::render_update() {
-    //int gx, gy, gz;
-    //global_position(&gx, &gy, &gz);
+    int gx, gy, gz;
+    global_position(&gx, &gy, &gz);
     //cout << gx << ' ' << gy << ' ' << gz << endl;
     //cout << render_index << endl;
     //cout << "render_update() " << render_index.first << ' ' << render_index.second << endl;
@@ -321,6 +320,8 @@ void Pixel::render_update() {
         //render_index = pair<int,int>(-1,0);
         //render_flag = true;
         set_render_flag();
+        
+        tile->world->block_update(gx, gy, gz);
         //cout << render_index.first << ' ' << render_index.second << " x" << endl;
         //render_index.first = -(render_index.first+2);
 }

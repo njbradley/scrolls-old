@@ -36,6 +36,7 @@ class Entity { public:
     bool old_consts[7];
     bool consts[7]; // constraints for entity, posx, pos y, pos z, neg x, neg y, neg z
     bool alive;
+    bool immune;
     
     Entity(vec3 pos, vec3 hitbox1, vec3 hitbox2);
     void timestep(World* world);
@@ -84,6 +85,7 @@ public:
   Block* block;
   MemVecs vecs;
   pair<int,int> render_index;
+  bool render_flag;
   DisplayEntity(vec3 starting_pos, Block* newblock);
   Block * get_global(int,int,int,int);
   vec3 get_position();

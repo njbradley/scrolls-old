@@ -72,7 +72,7 @@ void BlockGroup::copy_to_block() {
 
 void BlockGroup::erase_from_world() {
 	for (ivec3 pos : block_poses) {
-		world->set(0,pos.x, pos.y, pos.z, 1);
+		world->set(0,pos.x, pos.y, pos.z);
 	}
 }
 

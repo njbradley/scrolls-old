@@ -190,10 +190,15 @@ void World::tick() {
         //cout << 827349 << endl;
         std::advance( item, rand()%tiles.size() );
         Tile* tile = item->second;
-        if (!tile->deleting) {
-          Block* block = tile->chunk->get_global(rand()%chunksize, rand()%chunksize, rand()%chunksize, 1);
-          if (block != nullptr and block->get_pix() != nullptr) {
-            block->get_pix()->tick();
+        //cout << "start of tick for tile ";
+        //print (tile->pos);
+        if (std::find(deleting_chunks.begin(), deleting_chunks.end(), item->first) == deleting_chunks.end()) {
+          if (tile->writelock.try_lock_for(std::chrono::seconds(1))) {
+            Block* block = tile->chunk->get_global(rand()%chunksize, rand()%chunksize, rand()%chunksize, 1);
+            if (block != nullptr and block->get_pix() != nullptr) {
+              block->get_pix()->tick();
+            }
+            tile->writelock.unlock();
           }
         }
       }
@@ -235,7 +240,7 @@ void World::render() {
         if (tiles[kvpair.first]->chunk->render_flag) {
           cout << kvpair.first.x << ' ' << kvpair.first.y << ' ' << kvpair.first.z << endl;
         }
-        if (tiles.find(kvpair.first) != tiles.end()) {
+        if (tiles.find(kvpair.first) != tiles.end() and std::find(deleting_chunks.begin(), deleting_chunks.end(), kvpair.first) == deleting_chunks.end()) {
           kvpair.second->render(&glvecs);
           // if (tiles[kvpair.first] == nullptr) {
           //   empty.push_back(kvpair.first);
@@ -280,7 +285,7 @@ Block* World::get_global(int x, int y, int z, int scale) {
     }
     ivec3 pos(px, py, pz);
     //cout << "pair<" << pos.first << ' ' << pos.second << endl;
-    if (tiles.find(pos) == tiles.end()) {
+    if (tiles.find(pos) == tiles.end() or std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) != deleting_chunks.end()) {
         //cout << "   returning null\n";
         return nullptr;
     }
@@ -293,6 +298,7 @@ Block* World::get_global(int x, int y, int z, int scale) {
 }
 
 void World::set(char val, int x, int y, int z, int direction) {
+  int before = clock();
     Block* newblock = get_global(x,y,z, 1);
     int minscale = 1;
     if (newblock == nullptr) {
@@ -308,8 +314,16 @@ void World::set(char val, int x, int y, int z, int direction) {
         }
     }
     while (newblock->scale > minscale) {
+      cout << newblock->scale << endl;
       char val = newblock->get();
-      newblock->get_pix()->subdivide();
+      if (newblock->parent == nullptr) {
+        ivec3 pos(newblock->px, newblock->py, newblock->pz);
+        Block* result = newblock->get_pix()->subdivide([=] (ivec3 pos) {return newblock->get_pix()->value;});
+        cout << "ksdjflakjsd" << result->px << ' ' << result->py << ' ' << result->pz << endl;
+        tiles[pos]->chunk = result;
+      } else {
+        newblock->get_pix()->subdivide([=] (ivec3 pos) {return newblock->get_pix()->value;});
+      }
       delete newblock;
       newblock = get_global((int)x, (int)y, (int)z, 1);
     }
@@ -325,6 +339,7 @@ void World::set(char val, int x, int y, int z, int direction) {
     if (val != 0 and blocks->blocks[val]->rotation_enabled) {
       newblock->get_pix()->direction = direction;
     }
+    cout << "done with setting! time: " << clock() - before << endl;
 }
 
 char World::get(int x, int y, int z) {
