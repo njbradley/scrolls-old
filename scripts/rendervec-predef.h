@@ -8,6 +8,7 @@
 #include <chrono>
 
 class RenderVecs {
+  // the base class that holds all of the render vectors
 public:
   virtual pair<int,int> add(MemVecs* newvecs) = 0;
   virtual void del(pair<int,int>) = 0;
@@ -26,7 +27,7 @@ class MemVecs: public RenderVecs {/*
       int num_verts = 0;
       
       void add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat newlight, GLint minscale, GLint mat);/*
-        adds a face to the vectors, newverts and newuvs are arrays, 3 and 2 length respectivly
+        adds a face to the vectors, newverts and newuvs are arrays, 3*6 and 2*6 length respectivly
       */
       pair<int,int> add(MemVecs* newvecs);
       void del(pair<int,int>);

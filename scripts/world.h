@@ -318,11 +318,11 @@ void World::set(char val, int x, int y, int z, int direction) {
       char val = newblock->get();
       if (newblock->parent == nullptr) {
         ivec3 pos(newblock->px, newblock->py, newblock->pz);
-        Block* result = newblock->get_pix()->subdivide([=] (ivec3 pos) {return newblock->get_pix()->value;});
-        cout << "ksdjflakjsd" << result->px << ' ' << result->py << ' ' << result->pz << endl;
+        Block* result = newblock->get_pix()->subdivide();
+        //cout << "ksdjflakjsd" << result->px << ' ' << result->py << ' ' << result->pz << endl;
         tiles[pos]->chunk = result;
       } else {
-        newblock->get_pix()->subdivide([=] (ivec3 pos) {return newblock->get_pix()->value;});
+        newblock->get_pix()->subdivide();
       }
       delete newblock;
       newblock = get_global((int)x, (int)y, (int)z, 1);
@@ -339,7 +339,7 @@ void World::set(char val, int x, int y, int z, int direction) {
     if (val != 0 and blocks->blocks[val]->rotation_enabled) {
       newblock->get_pix()->direction = direction;
     }
-    cout << "done with setting! time: " << clock() - before << endl;
+    //cout << "done with setting! time: " << clock() - before << endl;
 }
 
 char World::get(int x, int y, int z) {

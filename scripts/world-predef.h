@@ -21,20 +21,13 @@
 
 #define csize 2
 
-struct ivec3_comparator {
-  bool operator() (const ivec3& lhs, const ivec3& rhs) const
-  {
-      return lhs.x < rhs.x || lhs.x == rhs.x && (lhs.y < rhs.y || lhs.y == rhs.y && lhs.z < rhs.z);
-  }
-};
+
 
 class World: public Collider {
     vector<ivec3> loading_chunks;
     vector<ivec3> deleting_chunks;
     vector<ivec3> block_updates;
     std::timed_mutex writelock;
-    //vector< pair<ivec3, future<Block*> > > loading_chunks;
-    //vector< pair<ivec3, future<bool> > > deleting_chunks;
     char* tmparr;
     public:
         map<ivec3, Tile*, ivec3_comparator> tiles;

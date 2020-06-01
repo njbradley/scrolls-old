@@ -38,6 +38,8 @@ class Block: public Collider { public:
     virtual void del(bool remove_faces) = 0;
     virtual void calculate_lightlevel() = 0;
     virtual Pixel* get_pix()  = 0;
+    // returns a pixel pointer if the object is a pixel,
+    // otherwise returns nullptr
     virtual float get_lightlevel(int,int,int) = 0;
     virtual void all(function<void(Pixel*)>) = 0;
     virtual void all_side(function<void(Pixel*)>,int,int,int) = 0;
@@ -100,9 +102,21 @@ public:
     Block* get_global(int x, int y, int z, int scale);
     void render(RenderVecs*, Collider*, int, int,int);
     Chunk* subdivide();
+    // splits the pixel into a chunk with 8 pixels of the
+    // same value in it
     Chunk* subdivide(function<char(ivec3)> gen_func);
-    Chunk* resolve();
+    // subdivides the pixel based on a function that returns
+    // a char for each global position
+    // the new chunk is returned and if possible it is placed
+    // into the parent. if this pixel has no parent it is up
+    // to the function caller to properly replace the pixel
+    // with the chunk
     Chunk* resolve(function<char(ivec3)> gen_func);
+    // defines the chunk based on the function, like subdivide
+    // but doesn't force one division
+    // if the pixel is divided a chunk will be returned and
+    // the parent will be altered. if the pixel is not divided,
+    // a nullptr is returned
     void save_to_file(ofstream& of);
 };
 

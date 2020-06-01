@@ -1,0 +1,6 @@
+: axe pickaxe shovel sword null
+: 0.5 0.7     1.0    0.9   1.0
+: 20 21 20 20 21 20
+: planks 1 1 1 null 0 planks
+: 0.99 building
+0

@@ -21,6 +21,21 @@ void hard_crash(long long);
 
 void print(vec3 v);
 
+struct ivec3_comparator {
+  bool operator() (const ivec3& lhs, const ivec3& rhs) const
+  {
+      return lhs.x < rhs.x || lhs.x == rhs.x && (lhs.y < rhs.y || lhs.y == rhs.y && lhs.z < rhs.z);
+  }
+};
+
+
+struct ivec3_hash {
+	size_t operator() (const ivec3& pos) const {
+		string all = std::to_string(pos.x) + std::to_string(pos.y) + std::to_string(pos.z);
+		return std::hash<string>{}(all);
+	}
+};
+
 ////////////////// CLASSES ///////////////////////////
 class Block;
 class Collider;
@@ -60,4 +75,6 @@ std::stringstream debugstream;
 GLFWwindow* window;
 World* world;
 Menu* menu;
+DisplayEntity* debugentity;
+Pixel* debugblock;
 #endif

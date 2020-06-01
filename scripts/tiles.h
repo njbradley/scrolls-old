@@ -8,14 +8,14 @@
 //#include <ZipLib/ZipFile.h>
 
 Block* Tile::generate(ivec3 pos) {
-    cout << chunksize << ' ' << pos.x << ',' << pos.y << ' ' << pos.z << endl;
-    Pixel* pix = new Pixel(pos.x,pos.y,pos.z,0,chunksize,nullptr,this);
-    Chunk* chunk = pix->resolve();
-		if (chunk == nullptr) {
-			return pix;
-		} else {
-			return chunk;
-		}
+  cout << chunksize << ' ' << pos.x << ',' << pos.y << ' ' << pos.z << endl;
+  Pixel* pix = new Pixel(pos.x,pos.y,pos.z,0,chunksize,nullptr,this);
+  Chunk* chunk = pix->resolve([=] (ivec3 position) {return world->loader.gen_func(position);});
+	if (chunk == nullptr) {
+		return pix;
+	} else {
+		return chunk;
+	}
 }
 
 void Tile::update_lighting() {
@@ -105,7 +105,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
 }
 
 void Tile::del(bool remove_faces) {
-  cout << "start of deleting tile ";
+  //cout << "start of deleting tile ";
   print (pos);
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
     deleting = true;

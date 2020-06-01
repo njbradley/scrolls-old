@@ -24,11 +24,11 @@ using namespace glm;
 #include "scripts/menu.h"
 #include "scripts/world.h"
 #include "scripts/blockdata.h"
+#include "scripts/tiles.h"
 #include "scripts/blocks.h"
 #include "scripts/items.h"
 #include "scripts/crafting.h"
 #include "scripts/terrain.h"
-#include "scripts/tiles.h"
 #include "scripts/blockphysics.h"
 #include "scripts/multithreading.h"
 
@@ -345,11 +345,11 @@ int main( void )
 	
 	
 	////// get mats from folders
-	vector<string> blocks;
+	vector<string> block_tex;
 	vector<string> uis;
-	get_files_folder("resources/blocks", &blocks);
+	get_files_folder("resources/blocks", &block_tex);
 	get_files_folder("resources/ui", &uis);
-	num_blocks = blocks.size();
+	num_blocks = block_tex.size();
 	num_uis = uis.size();
 	
 	
@@ -360,7 +360,7 @@ int main( void )
 	
 	
 	for( int i = 0; i < num_blocks; i ++) {
-		string block = "resources/blocks/" + blocks[i];
+		string block = "resources/blocks/" + block_tex[i];
 		const char* data = block.c_str();
 		block_textures[i] = loadBMP_array_custom(data);
 	}
@@ -476,6 +476,8 @@ int main( void )
 		
 		if (debug_visible) {
 			debugstream.str("");
+			debugstream << std::fixed;
+			debugstream.precision(3);
 			
 			debugstream << "fps: " << fps << endl;
 			debugstream << "x: " << world->player->position.x << "\ny: " << world->player->position.y << "\nz: " << world->player->position.z << endl;
@@ -492,29 +494,30 @@ int main( void )
 	        debugstream << endl;
 			world->glvecs.status(debugstream);
 			debugstream << "------threads-------" << endl;
+			debugstream << "load ";
 			for (int i = 0; i < threadmanager->num_threads; i ++) {
-				debugstream << "load" << i;
-				if (threadmanager->loading[i] == nullptr) {
-					debugstream << " idle" << endl;
-				} else {
+				//debugstream << "load" << i;
+				if (threadmanager->loading[i] != nullptr) {
 					ivec3 pos = threadmanager->loading[i]->pos;
-					debugstream << " (" << pos.x << ' ' << pos.y << ' ' << pos.z << ")" << endl;
+					debugstream << pos.x << ',' << pos.y << ',' << pos.z << " ";
 				}
-				debugstream << "del " << i;
-				if (threadmanager->deleting[i] == nullptr) {
-					debugstream << " idle" << endl;
-				} else {
-					ivec3 pos = *threadmanager->deleting[i];
-					debugstream << " (" << pos.x << ' ' << pos.y << ' ' << pos.z << ")" << endl;
-				}
-				
 			}
+			debugstream << endl << "del ";
+			for (int i = 0; i < threadmanager->num_threads; i ++) {
+				//debugstream << "del " << i;
+				if (threadmanager->deleting[i] != nullptr) {
+					ivec3 pos = *threadmanager->deleting[i];
+					debugstream << pos.x << ',' << pos.y << ',' << pos.z << " ";
+				}
+			}
+			debugstream << endl;
 			////////////////////////// error handling:
 			debugstream << "-----opengl errors-----" << endl;
 			GLenum err;
 			while((err = glGetError()) != GL_NO_ERROR) {
 				debugstream << "err: " << std::hex << err << std::dec << endl;
 			}
+			
 		}
 		
 		world->load_nearby_chunks();
@@ -537,6 +540,33 @@ int main( void )
 			debugstream << "ms: " << ms << endl;
 			debugstream << "ms(goal):" << min_ms_per_frame << endl;
 			debugstream << "reaching max fps: " << reaching_max_fps << " (" << slow_frame << ")" << endl;
+			/// block and entity debug
+			debugstream << "-----block-entity-tracking-----" << endl;
+			if (debugentity != nullptr) {
+				debugstream << "tracking entity " << debugentity << endl;
+				debugstream << "x:" << debugentity->position.x << " y:" << debugentity->position.y << " z:" << debugentity->position.z << endl;
+				debugstream << "dx:" << debugentity->vel.x << " dy:" << debugentity->vel.y << " dz:" << debugentity->vel.z << endl;
+				debugstream << "consts: ";
+				for (bool b : debugentity->consts ) {
+					debugstream << b << ' ';
+				}
+				debugstream << endl;
+			}
+			if (debugblock != nullptr) {
+				int gx, gy, gz;
+				debugblock->global_position(&gx, &gy, &gz);
+				string name = "undef";
+				for (pair<string,char> kv : blocks->names) {
+					if (kv.second == debugblock->value) {
+						name = kv.first;
+						break;
+					}
+				}
+				debugstream << "tracking block at " << gx << "x " << gy << "y " << gz << "z " << endl;
+				debugstream << " type:" << name << " char:" << int(debugblock->value) << " scale:" << debugblock->scale << endl;
+				debugstream << " direction:" << debugblock->direction << " render_index:" << debugblock->render_index.first << ',' << debugblock->render_index.second << endl;
+				debugstream << " parent coords:" << debugblock->px << ',' << debugblock->py << ',' << debugblock->pz << endl;
+			}
 		}
 		
 		if (ms > min_ms_per_frame) {

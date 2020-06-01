@@ -2,6 +2,8 @@
 #define BLOCKPHYSICS_PREDEF
 
 #include "classes.h"
+#include <unordered_set>
+using std::unordered_set;
 
 struct BlockGroup {
 	ivec3 position;
@@ -9,7 +11,7 @@ struct BlockGroup {
 	ivec3 size;
 	// bounding box of all blocks
 	Block* block;
-	vector<ivec3> block_poses;
+	unordered_set<ivec3,ivec3_hash> block_poses;
 	// list of all blocks in the group
 	bool consts[6] = {false, false, false, false, false, false};
 	World* world;

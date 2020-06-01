@@ -706,9 +706,27 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
 }
 
 Chunk* Pixel::subdivide() {
-  return subdivide([&] (ivec3 pos) {
-    return world->loader.gen_func(pos);
-  });
+  if (render_index.first != -1) {
+      world->glvecs.del(render_index);
+  }
+  if (scale == 1) {
+      cout << "error: block alreasy at scale 1" << endl;
+      return nullptr;
+  }
+  Chunk * newchunk = new Chunk(px, py, pz, scale, parent);
+  for (int x = 0; x < csize; x ++) {
+      for (int y = 0; y < csize; y ++) {
+          for (int z = 0; z < csize; z ++) {
+              char val = value;
+              Pixel* pix = new Pixel(x, y, z, val, scale/csize, newchunk, tile);
+              newchunk->blocks[x][y][z] = pix;
+          }
+      }
+  }
+  if (parent != nullptr) {
+      parent->blocks[px][py][pz] = newchunk;
+  }
+  return newchunk;
 }
 
 Chunk* Pixel::subdivide(function<char(ivec3)> gen_func) {
@@ -750,12 +768,6 @@ Chunk* Pixel::subdivide(function<char(ivec3)> gen_func) {
     //delete this;
     //cout << 678 << endl;
     return newchunk;
-}
-
-Chunk* Pixel::resolve() {
-  return resolve([&] (ivec3 pos) {
-    return world->loader.gen_func(pos);
-  });
 }
 
 Chunk* Pixel::resolve(function<char(ivec3)> gen_func) {

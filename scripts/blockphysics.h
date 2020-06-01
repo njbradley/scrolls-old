@@ -51,7 +51,7 @@ void BlockGroup::copy_to_block() {
 		// return val;
 		char val;
 		ivec3 pos = npos + position;
-		if (std::find(block_poses.begin(), block_poses.end(), pos) != block_poses.end()) {
+		if (block_poses.find(pos) != block_poses.end()) {
 			val =  world->get_global(pos.x, pos.y, pos.z, 1)->get();
 		} else {
 			val = 0;
@@ -89,7 +89,7 @@ void BlockGroup::find_block(ivec3 newpos) {
 		//cout << "err" << endl;
 		return;
 	}
-	block_poses.push_back(newpos);
+	block_poses.emplace(newpos);
 	for (int axis = 0; axis < 3; axis ++) {
 		if (newpos[axis] < position[axis]) {
 			size[axis] += position[axis] - newpos[axis];

@@ -181,11 +181,12 @@ void Player::right_mouse() {
 	DisplayEntity* target_entity;
 	raycast(&pix, &hitpos, &target_entity);
 	if (pix == nullptr) {
+		debugblock = nullptr;
+		debugentity = nullptr;
 		return;
 	}
 	if (target_entity != nullptr) {
-		target_entity->vel += pointing * 1.0f + vec3(0,5,0);
-		return;
+		
 	}
 	
 	double x = hitpos.x;
@@ -218,8 +219,8 @@ void Player::right_mouse() {
 				}
 			}
 		} else {
-			cout << "block ";
-			print (ivec3(hitpos));
+			debugblock = pix;
+			debugentity = target_entity;
 		}
 	}
 }
