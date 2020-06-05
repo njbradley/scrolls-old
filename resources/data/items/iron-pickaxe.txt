@@ -1,2 +1,3 @@
 0
-: iron-pickaxe 14 pickaxe 5
+: iron-pickaxe 14 pickaxe 5 0 null
+: 2 3

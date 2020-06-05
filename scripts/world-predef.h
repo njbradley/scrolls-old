@@ -18,6 +18,9 @@
 #include <future>
 #include <thread>
 #include <mutex>
+#include <unordered_set>
+
+using std::unordered_set;
 
 #define csize 2
 
@@ -26,11 +29,12 @@
 class World: public Collider {
     vector<ivec3> loading_chunks;
     vector<ivec3> deleting_chunks;
-    vector<ivec3> block_updates;
+    unordered_set<ivec3,ivec3_hash> block_updates;
     std::timed_mutex writelock;
     char* tmparr;
     public:
         map<ivec3, Tile*, ivec3_comparator> tiles;
+        //unordered_set<BlockGroup*> physicsgroups;
         int seed;
         string name;
         int view_dist = 3;
@@ -59,7 +63,7 @@ class World: public Collider {
         void load_nearby_chunks();
         void get_async_loaded_chunks();
         Block* get_global(int x, int y, int z, int scale);
-        void set(char val, int x, int y, int z, int direction = 0);
+        void set(int x, int y, int z, char val, int direction = 0, BlockExtras* extras = nullptr);
         char get(int x, int y, int z);
         Block* raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time);
         void save_chunk(ivec3 pos);

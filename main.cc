@@ -562,10 +562,12 @@ int main( void )
 						break;
 					}
 				}
-				debugstream << "tracking block at " << gx << "x " << gy << "y " << gz << "z " << endl;
+				
+				debugstream << "tracking block " << debugblock << " at " << gx << "x " << gy << "y " << gz << "z " << endl;
 				debugstream << " type:" << name << " char:" << int(debugblock->value) << " scale:" << debugblock->scale << endl;
-				debugstream << " direction:" << debugblock->direction << " render_index:" << debugblock->render_index.first << ',' << debugblock->render_index.second << endl;
+				debugstream << " direction:" << int(debugblock->direction) << " render_index:" << debugblock->render_index.first << ',' << debugblock->render_index.second << endl;
 				debugstream << " parent coords:" << debugblock->px << ',' << debugblock->py << ',' << debugblock->pz << endl;
+				debugstream << " physics_group:" << debugblock->physicsgroup << endl;
 			}
 		}
 		

@@ -23,31 +23,53 @@ class CharArray { public:
 };
 
 class Item {
+public:
+  ItemData* data;
+  double durability;
+  double sharpness;
+  int weight;
+  bool isnull;
+  
+  Item(ItemData* newdata);
+  Item(istream& ifile);
+  Item(ItemData* newdata, double newsharpness, double newweight);
+  void damage(double time);
+  double dig_time(char val);
+  bool do_rcaction(World* world);
+  char ondig(World* world, int x, int y, int z);
+  void to_file(ostream& ofile);
+  string descript();
+  
+  static char ondig_null(World* world, int x, int y, int z);
+};
+  
+
+class ItemData {
     public:
         int texture;
+        bool stackable;
         string name;
         CharArray* onplace;
+        string rcaction;
         int damage;
+        int starting_weight;
+        int starting_sharpness;
         string tool;
             
-        Item(ifstream & ifile);
-        char ondig(World* world, int x, int y, int z);
-        void dig_area(World* world, int x, int y, int z, double random);
-        void dig_pickaxe(World* world, int x, int y, int z, int time, double random);
+        ItemData(ifstream & ifile);
         
-        static char ondig_null(World* world, int x, int y, int z);
 };
 
 class ItemStack {
 public:
-  Item* item;
+  Item item;
   int count;
-  ItemStack(Item*,int);
+  ItemStack(Item,int);
   void render(MemVecs* vecs, float x, float y);
 };
 
 class ItemStorage { public:
-    map<string,Item*> items;
+    map<string,ItemData*> items;
     ItemStorage();
 };
 
@@ -63,7 +85,7 @@ class ItemContainer {
         ItemContainer(int newsize);
         ItemContainer(istream&);
         ItemContainer(ItemContainer*, ItemContainer*);
-        bool add(Item* item, int num);
+        bool add(ItemStack itemstack);
         Item* get(int index);
         Item* use(int index);
         bool contains(ItemStack);

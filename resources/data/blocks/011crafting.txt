@@ -2,5 +2,5 @@
 : 0.5 0.7     1.0    0.9   1.5
 : 1 0 1 1 2 1
 : crafting 0 0 2 crafting 0 crafting
-: 0 null
+: 1 null
 0

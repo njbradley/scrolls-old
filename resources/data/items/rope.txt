@@ -1,2 +1,2 @@
 0
-: rope 18 null 1
+: rope 18 null 1 1 null

@@ -17,7 +17,7 @@ bool Recipe::display(ItemContainer* in, ItemContainer* out) {
 		return true;
 	}
 	for (ItemStack is : output.items) {
-		out->add(is.item, is.count);
+		out->add(is);
 	}
 	return true;
 }

@@ -173,7 +173,7 @@ Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk
 ///////////////////////////////// CLASS PIXEL /////////////////////////////////////
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile):
-  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(nullptr), tile(ntile), direction(0) {
+  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(nullptr), physicsgroup(nullptr), tile(ntile), direction(0) {
     reset_lightlevel();
     generate_extras();
     if (value != 0) {
@@ -182,7 +182,7 @@ Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile
 }
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile, BlockExtras* new_extra):
-  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(new_extra), tile(ntile), direction(0) {
+  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(new_extra), physicsgroup(nullptr), tile(ntile), direction(0) {
     reset_lightlevel();
     if (value != 0) {
       direction = blocks->blocks[value]->default_direction;
@@ -241,47 +241,70 @@ Block* Pixel::get_global(int x, int y, int z, int scale) {
     return this;
 }
 
-void Pixel::set(char val) {
+void Pixel::set(char val, int newdirection, BlockExtras* newextras, bool update) {
     
     //cout << "render_indes: " << render_index << " val:" << (int)value <<  ' '<< (int)val << endl;
     //cout << "pixel(" << (int)value <<  " scale " << scale << ") set " << (int)val << endl;
+    if (val == 0) {
+      newdirection = 0;
+    } else {
+      if (newdirection == -1 or !blocks->blocks[val]->rotation_enabled) {
+        newdirection = blocks->blocks[val]->default_direction;
+      }
+    }
+    
     value = val;
-    generate_extras();
-    //render_flag = true;
-    int gx, gy, gz;
-    global_position(&gx, &gy, &gz);
-    //cout << gx << ' ' << gy << ' ' << gz << "-----------------------------" << render_index.first << ' ' << render_index.second << endl;
-    //cout << "global position " << gx << ' ' << gy << ' ' << gz << endl;
-    reset_lightlevel();
-    render_update();
-    Block* block;
-    const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
-    for (ivec3 dir : dir_array) {
-      dir *= scale;
-      block = world->get_global(gx+dir.x, gy+dir.y, gz+dir.z, scale);
-      if (block != nullptr) {
-        block->render_update();
+    if (newextras == nullptr) {
+      generate_extras();
+    } else {
+      delete extras;
+      extras = newextras;
+    }
+    direction = newdirection;
+    if (update) {
+      //render_flag = true;
+      int gx, gy, gz;
+      global_position(&gx, &gy, &gz);
+      //cout << gx << ' ' << gy << ' ' << gz << "-----------------------------" << render_index.first << ' ' << render_index.second << endl;
+      //cout << "global position " << gx << ' ' << gy << ' ' << gz << endl;
+      reset_lightlevel();
+      render_update();
+      Block* block;
+      const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
+      for (ivec3 dir : dir_array) {
+        dir *= scale;
+        block = world->get_global(gx+dir.x, gy+dir.y, gz+dir.z, scale);
+        if (block != nullptr) {
+          block->render_update();
+        }
       }
     }
 }
 
 void Pixel::tick() {
+  if (tile == nullptr) {
+    cout << "err" << endl;
+  }
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
-  //cout << "tick" << endl;
-  BlockGroup* group = new BlockGroup(tile->world, ivec3(gx, gy, gz), 500);
-  if (group->block_poses.size() > 0 and !group->consts[4]) {
-    for (int i = 0; i < 6; i ++) {
-      cout << group->consts[i] << ' ';
-    } cout << endl;
-    cout << "copying " << group->block_poses.size() << endl;
-    group->copy_to_block();
-    cout << "erasing" << endl;
-    group->erase_from_world();
-    cout << "done" << endl;
-    tile->entities.push_back(new FallingBlockEntity(group));
-  } else {
-    delete group;
+  cout << "START PIX tick --------------------------";
+  print (ivec3(gx, gy, gz));
+  if (physicsgroup == nullptr) {
+    BlockGroup* group = new BlockGroup(tile->world, ivec3(gx, gy, gz), 500);
+    cout << group->block_poses.size() << " size!" << endl;
+    if (group->block_poses.size() > 0 and !group->consts[4]) {
+      for (int i = 0; i < 6; i ++) {
+        cout << group->consts[i] << ' ';
+      } cout << endl;
+      cout << "copying " << group->block_poses.size() << endl;
+      group->copy_to_block();
+      cout << "erasing" << endl;
+      group->erase_from_world();
+      cout << "done" << endl;
+      tile->entities.push_back(new FallingBlockEntity(group));
+    }// else {
+      //tile->world->physicsgroups.emplace(group);
+    //}
   }
   // if (value == blocks->names["dirt"] and world->get(gx, gy+scale, gz) == 0) {
   //   //set(blocks->names["grass"]);
@@ -320,8 +343,9 @@ void Pixel::render_update() {
         //render_index = pair<int,int>(-1,0);
         //render_flag = true;
         set_render_flag();
-        
-        tile->world->block_update(gx, gy, gz);
+        if (tile != nullptr) {
+          tile->world->block_update(gx, gy, gz);
+        }
         //cout << render_index.first << ' ' << render_index.second << " x" << endl;
         //render_index.first = -(render_index.first+2);
 }
@@ -838,9 +862,7 @@ Pixel* Chunk::get_pix() {
 char Chunk::get() {
     cout << "error: get() called on chunk object" << endl;
 }
-void Chunk::set(char c) {
-    cout << "error: set called on chunk object" << endl;
-}
+
 void Chunk::calculate_lightlevel() {
     for (int x = 0; x < csize; x ++) {
         for (int y = csize-1; y >= 0; y --) {

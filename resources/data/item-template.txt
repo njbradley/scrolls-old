@@ -2,4 +2,6 @@ placeable?
 (if placable include next two lines)
 : x y z dims of placed object
 : block indexes of the object
-: name texture-index tool-category damage
+: name texture-index tool-category damage stackable? rcaction
+(if tool is not null add next line)
+: starting-sharpness starting-weight

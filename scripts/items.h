@@ -50,18 +50,134 @@ void CharArray::place(World* world, int x, int y, int z, int dx, int dy, int dz)
                 int px = i;
                 int py = j - (sy/2);
                 int pz = k - (sz/2);
-                world->set(get(i,j,k), x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy), direction);
+                world->set(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy), get(i,j,k), direction);
             }
         }
     }
 }
 
+///
 
 
+Item::Item(ItemData* newdata): data(newdata), isnull(data == nullptr) {
+  if (!isnull) {
+    sharpness = data->starting_sharpness;
+    weight = data->starting_weight;
+  }
+}
 
-/////////////////////////////////////// ITEM ////////////////////////////////
+Item::Item(ItemData* newdata, double newsharpness, double newweight): data(newdata), isnull(data == nullptr),
+sharpness(newsharpness), weight(newweight) {
+  
+}
 
-Item::Item(ifstream & ifile) {
+Item::Item(istream& ifile) {
+  string name;
+  ifile >> name;
+  if (name == "null") {
+    data = nullptr;
+    isnull = true;
+  } else {
+    isnull = false;
+    if (name == "~") {
+      ifile >> name >> sharpness >> weight;
+      data = itemstorage->items[name];
+    } else {
+      data = itemstorage->items[name];
+      sharpness = data->starting_sharpness;
+      weight = data->starting_weight;
+    }
+  }
+}
+
+string Item::descript() {
+  if (data->tool == "null") {
+    return data->name;
+  } else {
+    return data->name + "\nSharpness " + std::to_string(sharpness) + "\nWeight " + std::to_string(weight);
+  }
+}
+
+void Item::damage(double time) {
+  sharpness -= 0.1/data->damage;
+  if (sharpness < 0) {
+    sharpness = 0;
+  }
+}
+
+double Item::dig_time(char val) {
+  double time;
+  if (isnull) {
+    return blocks->blocks[val]->hardness["null"];
+  } else {
+    if (data->tool == "null") {
+      time = blocks->blocks[val]->hardness[data->tool];
+    } else {
+      if (sharpness <= 0) {
+        time = 999999999;
+      }
+      time = blocks->blocks[val]->hardness[data->tool]/(sharpness*weight); //balance point
+    }
+    double nulltime = blocks->blocks[val]->hardness["null"];
+    if (nulltime < time) {
+      return nulltime;
+    } else {
+      return time;
+    }
+  }
+}
+
+bool Item::do_rcaction(World* world) {
+  if (!isnull and data->rcaction != "null") {
+    stringstream ss(data->rcaction);
+    string command;
+    cout << data->rcaction << ' ';
+    getline(ss, command, '-');
+    cout << command << endl;
+    if (command == "heal") {
+      int amount;
+      ss >> amount;
+      world->player->health += amount;
+    }
+    return true;
+  }
+  return false;
+}
+
+void Item::to_file(ostream& ofile) {
+  if (data == nullptr) {
+    ofile << "null ";
+  } else {
+    if (data->tool != "null") {
+      ofile << "~ " << data->name << ' ' << sharpness << ' ' << weight << ' ';
+    } else {
+      ofile << data->name << ' ';
+    }
+  }
+}
+
+char Item::ondig(World* world, int x, int y, int z) {
+    char type = world->get(x,y,z);
+    world->set(x,y,z,0);
+    return type;
+    //double random = (rand()%1000/1000.0);
+    //double prob = blocks->blocks[type]->hardness[tool];// - ((damage-1)-time)*0.2;
+    //cout << prob << ' ' << random << endl;
+    //if (prob > random) {
+    //    world->set(x,y,z,0);
+    //}
+    //dig_pickaxe(world, x, y, z, random);
+}
+
+char Item::ondig_null(World* world, int x, int y, int z) {
+    char type = world->get(x,y,z);
+    world->set(x,y,z,0);
+    return type;
+}
+
+/////////////////////////////////////// ITEMdada ////////////////////////////////
+
+ItemData::ItemData(ifstream & ifile) {
     int isarray;
     ifile >> isarray;
     if (isarray) {
@@ -71,77 +187,24 @@ Item::Item(ifstream & ifile) {
     }
     string buff;
     getline(ifile, buff, ':');
-    ifile >> name >> texture >> tool >> damage;
-}
-
-
-char Item::ondig(World* world, int x, int y, int z) {
-    char type = world->get(x,y,z);
-    world->set(0,x,y,z);
-    return type;
-    //double random = (rand()%1000/1000.0);
-    //double prob = blocks->blocks[type]->hardness[tool];// - ((damage-1)-time)*0.2;
-    //cout << prob << ' ' << random << endl;
-    //if (prob > random) {
-    //    world->set(0,x,y,z);
-    //}
-    //dig_pickaxe(world, x, y, z, random);
-}
-
-char Item::ondig_null(World* world, int x, int y, int z) {
-    char type = world->get(x,y,z);
-    world->set(0,x,y,z);
-    return type;
-}
-
-void Item::dig_area(World* world, int x, int y, int z, double random) {
-    int size = damage/2;
-    for (int ox = -size; ox <= size; ox ++) {
-        for (int oy = -size; oy <= size; oy ++) {
-            for (int oz = -size; oz <= size; oz ++) {
-                char val = world->get(x+ox, y+oy, z+oz);
-                double distance = sqrt(ox*ox+oy*oy+oz*oz);
-                if (val != 0) {
-                    double prob = blocks->blocks[val]->hardness[tool] - distance*0.2;
-                    if (prob > random) {
-                        world->set(0,x+ox, y+oy, z+oz);
-                    }
-                }
-            }
-        }
-    }
-}
-    
-
-void Item::dig_pickaxe(World* world, int x, int y, int z, int time, double random) {
-    time --;
-    char val = world->get(x,y,z);
-    if (time < 0 or val == 0) {
-        return;
-    }
-    BlockData* data = blocks->blocks[val];
-    double prob = data->hardness[tool] - ((damage-1)-time)*0.2;
-    cout << prob << ' ' << random << endl;
-    if (prob > random) {
-        world->set(0,x,y,z);
-        dig_pickaxe(world, x+1, y, z, time, random);
-        dig_pickaxe(world, x-1, y, z, time, random);
-        dig_pickaxe(world, x, y+1, z, time, random);
-        dig_pickaxe(world, x, y-1, z, time, random);
-        dig_pickaxe(world, x, y, z+1, time, random);
-        dig_pickaxe(world, x, y, z-1, time, random);
+    ifile >> name >> texture >> tool >> damage >> stackable >> rcaction;
+    if (tool != "null") {
+      cout << name << ' ' << tool << ' ';
+      getline(ifile, buff, ':');
+      ifile >> starting_sharpness >> starting_weight;
+      cout << starting_sharpness << ' ' << starting_weight << endl;
     }
 }
 
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-ItemStack::ItemStack(Item* newitem, int newcount): item(newitem), count(newcount) {
+ItemStack::ItemStack(Item newitem, int newcount): item(newitem), count(newcount) {
   
 }
 
 void ItemStack::render(MemVecs* vecs, float x, float y) {
-  draw_image_uv(vecs, "items.bmp", x, y, 0.1f, 0.1f*aspect_ratio, item->texture/64.0f, (item->texture+1)/64.0f);
+  draw_image_uv(vecs, "items.bmp", x, y, 0.1f, 0.1f*aspect_ratio, item.data->texture/64.0f, (item.data->texture+1)/64.0f);
   draw_text(vecs, std::to_string(count), x+0.02, y+0.02f);
 }
 
@@ -156,7 +219,7 @@ void ItemStack::render(MemVecs* vecs, float x, float y) {
             getline(name_stream, name, '.');
             ifstream ifile("resources/data/items/" + filename);
             cout << "loading item " << name << " from file" << endl;
-            items[name] = new Item(ifile);
+            items[name] = new ItemData(ifile);
         }
     }
 
@@ -166,22 +229,17 @@ void ItemStack::render(MemVecs* vecs, float x, float y) {
 
 ItemContainer::ItemContainer(int newsize = 10): size(newsize) {
     for (int i = 0; i < newsize; i ++) {
-        items.push_back(ItemStack(nullptr,0));
+        items.push_back(ItemStack(Item(nullptr),0));
     }
 }
 
 ItemContainer::ItemContainer(istream& ifile) {
   ifile >> size;
   for (int i = 0; i < size; i ++) {
-    string name;
     int count;
-    ifile >> name;
-    if (name == "null") {
-      items.push_back(ItemStack(nullptr,0));
-    } else {
-      ifile >> count;
-      items.push_back(ItemStack(itemstorage->items[name], count));
-    }
+    Item item(ifile);
+    ifile >> count;
+    items.push_back(ItemStack(item, count));
   }
 }
 
@@ -191,16 +249,18 @@ ItemContainer::ItemContainer(ItemContainer* first, ItemContainer* second) {
   items.insert(items.end(), second->items.begin(), second->items.end());
 }
 
-bool ItemContainer::add(Item* item, int num) {
-    for (int i = 0; i < items.size(); i ++) {
-        if (item == items[i].item) {
-            items[i].count += num;
-            return true;
+bool ItemContainer::add(ItemStack itemstack) {
+    if (itemstack.item.data->stackable) {
+      for (int i = 0; i < items.size(); i ++) {
+        if (itemstack.item.data == items[i].item.data) {
+          items[i].count += itemstack.count;
+          return true;
         }
+      }
     }
     for (int i = 0; i < items.size(); i ++) {
-        if (items[i].item == nullptr) {
-            items[i] = ItemStack(item, num);
+        if (items[i].item.data == nullptr) {
+            items[i] = itemstack;
             return true;
         }
     }
@@ -210,14 +270,14 @@ bool ItemContainer::add(Item* item, int num) {
 
 Item* ItemContainer::get(int index) {
     if (index < items.size()) {
-        return items[index].item;
+        return &items[index].item;
     }
     return nullptr;
 }
 
 Item* ItemContainer::use(int index) {
     if (index < items.size()) {
-        Item* ret = items[index].item;
+        Item* ret = &items[index].item;
         items[index].count--;
         if (items[index].count <= 0) {
           items[index] = ItemStack(nullptr,0);
@@ -229,7 +289,7 @@ Item* ItemContainer::use(int index) {
 
 bool ItemContainer::contains(ItemStack itemstack) {
   for (ItemStack is : items) {
-    if (is.item == itemstack.item) {
+    if (is.item.data == itemstack.item.data) {
       if (is.count >= itemstack.count) {
         return true;
       } else {
@@ -242,7 +302,7 @@ bool ItemContainer::contains(ItemStack itemstack) {
 
 bool ItemContainer::take(ItemStack itemstack) {
   for (int i = 0; i < items.size(); i ++) {
-    if (items[i].item == itemstack.item) {
+    if (items[i].item.data == itemstack.item.data) {
       if (items[i].count > itemstack.count) {
         items[i].count -= itemstack.count;
         return true;
@@ -262,7 +322,7 @@ void ItemContainer::render(MemVecs* vecs, float x, float y) {
   //draw_image(vecs, "inven_select.bmp", x, y, 1, 0.1f*aspect_ratio);
   for (int i = 0; i < items.size(); i ++) {
     draw_icon(vecs, 4, x + i*0.1f, y);
-    if (items[i].item != nullptr) {
+    if (items[i].item.data != nullptr) {
       items[i].render(vecs, x + i*0.1f, y+0.02f);
     }
   }
@@ -277,11 +337,8 @@ void ItemContainer::clear() {
 void ItemContainer::save_to_file(ostream& ofile) {
   ofile << size << ' ';
   for (ItemStack itemstack : items) {
-    if (itemstack.item == nullptr) {
-      ofile << "null ";
-    } else {
-      ofile << itemstack.item->name << ' ' << itemstack.count << ' ';
-    }
+    itemstack.item.to_file(ofile);
+    ofile << itemstack.count << ' ';
   }
   ofile << endl;
 }

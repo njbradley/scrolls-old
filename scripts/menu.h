@@ -67,8 +67,9 @@ void InventoryMenu::render(GLFWwindow* window, World* world, Player* player, Mem
   if (other != nullptr) {
     other->render(uivecs, -0.5f, 0);
   }
-  if (in_hand.item != nullptr) {
+  if (!in_hand.item.isnull) {
     in_hand.render(uivecs, float(xpos)-0.05f, float(ypos)-0.05f);
+    draw_text(uivecs, in_hand.item.descript(), float(xpos)+0.05f, float(ypos)+0.05f);
   }
   
   /////input precesseing
@@ -97,7 +98,7 @@ void InventoryMenu::render(GLFWwindow* window, World* world, Player* player, Mem
     }
     if (container != nullptr and index != -1) {
       if (button == 1) {
-        if (in_hand.item != container->items[index].item) {
+        if (in_hand.item.data != container->items[index].item.data or !in_hand.item.data->stackable or ! container->items[index].item.data->stackable) {
           ItemStack tmp = in_hand;
           in_hand = container->items[index];
           container->items[index] = tmp;
@@ -106,7 +107,7 @@ void InventoryMenu::render(GLFWwindow* window, World* world, Player* player, Mem
           in_hand = ItemStack(nullptr, 0);
         }
       } else if (button == 2) {
-        if (in_hand.item == nullptr) {
+        if (in_hand.item.isnull) {
           in_hand = container->items[index];
           int total = in_hand.count;
           in_hand.count = total/2;
@@ -184,7 +185,7 @@ void CraftingMenu::render(GLFWwindow* window, World* world, Player* player, MemV
     }
   }
   
-  if (in_hand.item != nullptr) {
+  if (!in_hand.item.isnull) {
     in_hand.render(uivecs, float(xpos)-0.05f, float(ypos)-0.05f);
   }
   
@@ -213,7 +214,8 @@ void CraftingMenu::render(GLFWwindow* window, World* world, Player* player, MemV
     bool changed = false;
     if (container != nullptr and index != -1) {
       if (button == 1) {
-        if (in_hand.item != container->items[index].item) {
+        if (in_hand.item.data != container->items[index].item.data or !in_hand.item.data->stackable or ! container->items[index].item.data->stackable) {
+          // different items in hand and spot, swap
           ItemStack tmp = in_hand;
           in_hand = container->items[index];
           container->items[index] = tmp;
@@ -224,7 +226,7 @@ void CraftingMenu::render(GLFWwindow* window, World* world, Player* player, MemV
           changed = true;
         }
       } else if (button == 2) {
-        if (in_hand.item == nullptr) {
+        if (in_hand.item.isnull) {
           in_hand = container->items[index];
           int total = in_hand.count;
           in_hand.count = total/2;
@@ -270,7 +272,6 @@ void CraftingMenu::render(GLFWwindow* window, World* world, Player* player, MemV
 void CraftingMenu::close(World* world) {
   end(world);
   after();
-  end(world);
 }
 
 ////////////////////////////////// select /////////////////////////////////////////////

@@ -1,2 +1,3 @@
 0
-: iron-axe 4 axe 5
+: iron-axe 4 axe 5 0 null
+: 2 6

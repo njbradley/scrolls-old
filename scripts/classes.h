@@ -50,6 +50,8 @@ class Player;
 class BlockStorage;
 class BlockGroup;
 class CharArray;
+class Item;
+class ItemData;
 class ItemStorage;
 class ItemContainer;
 class RenderVecs;

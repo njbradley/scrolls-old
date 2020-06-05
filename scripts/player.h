@@ -58,8 +58,8 @@ Player::Player(vec3 pos, World* newworld):
 	glfwSetScrollCallback(window, scroll_callback);
 	//char arr[] = {1,0,1,0,1,0,1,0}
 	selitem = 3;
-	inven.add( itemstorage->items["chips"], 10 );
-	inven.add( itemstorage->items["crafting"], 1);
+	inven.add( ItemStack(Item(itemstorage->items["chips"]), 10) );
+	inven.add( ItemStack(Item(itemstorage->items["crafting"]), 1));
 }
 
 Player::Player(istream& ifile):
@@ -180,6 +180,13 @@ void Player::right_mouse() {
 	Pixel* pix;
 	DisplayEntity* target_entity;
 	raycast(&pix, &hitpos, &target_entity);
+	Item* inhand = inven.get(selitem);
+	
+	if (inhand->do_rcaction(world)) {
+		inven.use(selitem);
+		return;
+	}
+	
 	if (pix == nullptr) {
 		debugblock = nullptr;
 		debugentity = nullptr;
@@ -209,18 +216,19 @@ void Player::right_mouse() {
 	if (blocks->blocks[pix->value]->rcaction != "null") {
 		blocks->blocks[pix->value]->do_rcaction(pix);
 	} else {
-		Item* inhand = inven.get(selitem);
-		if (inhand != nullptr and inhand->onplace != nullptr) {
-			Item* item = inven.use(selitem);
-			if (item != nullptr) {
-				CharArray* arr = item->onplace;
-				if (arr != nullptr) {
-					arr->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
+		if (!inhand->do_rcaction(world)) {
+			if (!inhand->isnull and inhand->data->onplace != nullptr) {
+				Item* item = inven.use(selitem);
+				if (!item->isnull) {
+					CharArray* arr = item->data->onplace;
+					if (arr != nullptr) {
+						arr->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
+					}
 				}
+			} else {
+				debugblock = pix;
+				debugentity = target_entity;
 			}
-		} else {
-			debugblock = pix;
-			debugentity = target_entity;
 		}
 	}
 }
@@ -256,24 +264,24 @@ void Player::left_mouse() {
 	
 	Item* item = inven.get(selitem);
 	string tool = "null";
-	if (item != nullptr) {
-		tool = item->tool;
+	if (!item->isnull) {
+		tool = item->data->tool;
 	}
-	double time_needed = blocks->blocks[pix->get()]->hardness[tool];
+	double time_needed = item->dig_time(pix->get());
 	if (timeout > time_needed) {
 		if (tool != "null") {
-			inven.use(selitem);
+			item->damage(time_needed);
 		}
 		char newitem;
-		if (item == nullptr) {
+		if (item->isnull) {
 			newitem = Item::ondig_null(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
 		} else {
 			newitem = item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
 		}
 		string item_name = blocks->blocks[newitem]->item;
 		if (item_name != "null") {
-			if (!inven.add(itemstorage->items[item_name], 1)) {
-				backpack.add(itemstorage->items[item_name], 1);
+			if (!inven.add(ItemStack(Item(itemstorage->items[item_name]), 1))) {
+				backpack.add(ItemStack(Item(itemstorage->items[item_name]), 1));
 			}
 		}
 		timeout = 0;
@@ -326,10 +334,10 @@ void Player::computeMatricesFromInputs(World* nworld){
 	glfwGetCursorPos(window, &xpos, &ypos);
 
 	// Reset mouse position for next frame
-	glfwSetCursorPos(window, 1024/2, 768/2);
+	glfwSetCursorPos(window, screen_x/2, screen_y/2);
 
 	// Compute new orientation
-	angle += vec2(mouseSpeed * float(1024/2 - xpos ),  mouseSpeed * float( 768/2 - ypos ));
+	angle += vec2(mouseSpeed * float(screen_x/2 - xpos ),  mouseSpeed * float( screen_y/2 - ypos ));
 	//cout << horizontalAngle << ' ' << verticalAngle << endl;
 	if (angle.y > 1.55f) {
 		angle.y = 1.55f;
@@ -473,8 +481,8 @@ void Player::render_ui(MemVecs * uivecs) {
 	inven.render(uivecs, -0.5f, -1.0f);
 	draw_text(uivecs, "\\/", -0.45f+selitem*0.1f, -0.85f);
 	Item* sel = inven.get(selitem);
-	if (sel != nullptr) {
-		draw_text(uivecs, sel->name, -0.25f, -0.8f);
+	if (!sel->isnull) {
+		draw_text(uivecs, sel->descript(), -0.25f, -0.7f);
 	}
 }
 

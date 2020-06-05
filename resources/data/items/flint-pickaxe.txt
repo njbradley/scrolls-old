@@ -1,2 +1,3 @@
 0
-: flint-pickaxe 19 pickaxe 2
+: flint-pickaxe 19 pickaxe 2 0 null
+: 3 1

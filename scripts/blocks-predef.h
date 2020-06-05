@@ -34,7 +34,7 @@ class Block: public Collider { public:
     virtual bool continues() = 0; // whether the block is a chunk or a pixel. a hacky way of telling, but nessicary because pixels can be at different depths
     virtual Block * get(int, int, int) = 0; //get a block at coords
     virtual char get() = 0;                 //get the value of the block. these two methods are exclusive for pixel/chunk, but same reaseon as above
-    virtual void set(char) = 0;
+    //virtual void set(char val, int direction = -1, BlockExtras* extras = nullptr) = 0;
     virtual void del(bool remove_faces) = 0;
     virtual void calculate_lightlevel() = 0;
     virtual Pixel* get_pix()  = 0;
@@ -76,6 +76,7 @@ public:
     float lightlevel = 1;
     BlockExtras* extras = nullptr;
     Tile* tile;
+    BlockGroup* physicsgroup;
     //int num;
     //ItemContainer* container;
     
@@ -91,7 +92,8 @@ public:
     Pixel* get_pix();
     float get_lightlevel(int dx, int dy, int dz);
     Block * get(int x, int y, int z);
-    void set(char val);
+    void set(char val, int direction = -1, BlockExtras* extras = nullptr, bool update = true);
+    // sets the value, direction, and blockextras of the pixel
     void render_update();
     void tick();
     void del(bool remove_faces);
@@ -128,7 +130,7 @@ class Chunk: public Block { public:
     Block * get(int x, int y, int z);
     Pixel* get_pix();
     char get();
-    void set(char c);
+    //void set(char val, int direction, BlockExtras* extras);
     void calculate_lightlevel();
     void all(function<void(Pixel*)> func);
     void all_side(function<void(Pixel*)>,int,int,int);
