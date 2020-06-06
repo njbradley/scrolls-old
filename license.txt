@@ -2,6 +2,5 @@ Copyright 2020 Nicholas Bradley. All rights reserved.
 
 I grant the right to download and modify the game for your own personal use.
 Please do not distribute or sell original or modified copies of this game without express permission.
-If you wish to use a substantial part of the game source code in another project, please notify and credit me.
 
 This software is provided 'as is' with no expressed or implied warranties.
