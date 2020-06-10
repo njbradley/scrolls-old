@@ -16,7 +16,7 @@ public:
 	int radius;
 	TerrainLoader* parent;
 	TerrainObject(TerrainLoader* loader, ivec3 nsize, int nradius);
-	virtual char gen_func(ivec3) = 0;
+	virtual char gen_func(ivec3,ivec3) = 0;
 	virtual ivec3 get_nearest(ivec3);
 	virtual int priority() = 0;
 	ivec3 get_nearest_3d(ivec3);
@@ -53,7 +53,15 @@ public:
 class Tree: public TerrainObject {
 public:
 	Tree(TerrainObjectMerger*);
-	char gen_func(ivec3);
+	char gen_func(ivec3,ivec3);
+	ivec3 get_nearest(ivec3);
+	int priority();
+};
+
+class BigTree: public TerrainObject {
+public:
+	BigTree(TerrainObjectMerger*);
+	char gen_func(ivec3,ivec3);
 	ivec3 get_nearest(ivec3);
 	int priority();
 };
@@ -61,7 +69,7 @@ public:
 class Cave: public TerrainObject {
 public:
 	Cave(TerrainObjectMerger*);
-	char gen_func(ivec3);
+	char gen_func(ivec3,ivec3);
 	ivec3 get_nearest(ivec3);
 	int priority();
 };
