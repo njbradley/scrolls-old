@@ -1,7 +1,6 @@
 : axe pickaxe shovel sword null
-: 0.5 0.7     1.0    0.9   10
-: 3 2 3 3 2 3
-: chest 0 0 2 chest 0 chest
-: 1 null
-1
-: 10
+: 0.5 0.7     1.0    0.9   1
+: 18 18 18 18 18 18
+: chest 0 0 1 null 0 chest
+: 1 chest-group
+0

@@ -10,6 +10,7 @@
 #include "blockdata-predef.h"
 #include "world-predef.h"
 #include "menu-predef.h"
+#include "blockphysics-predef.h"
 #include "ui.h"
 
 
@@ -182,7 +183,9 @@ void Player::right_mouse() {
 	raycast(&pix, &hitpos, &target_entity);
 	Item* inhand = inven.get(selitem);
 	
-	if (inhand->do_rcaction(world)) {
+	bool shifting = glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS;
+	
+	if (!shifting and inhand->do_rcaction(world)) {
 		inven.use(selitem);
 		return;
 	}
@@ -213,23 +216,24 @@ void Player::right_mouse() {
 	//cout << dx << ' ' << dy << ' ' << dz << endl;
 	//world->set(item, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
 	//Pixel* pix = target->get_pix();
-	if (blocks->blocks[pix->value]->rcaction != "null") {
+	if (blocks->blocks[pix->value]->rcaction != "null" and !shifting) {
 		blocks->blocks[pix->value]->do_rcaction(pix);
+	} else if (pix->physicsgroup != nullptr and !shifting and pix->physicsgroup->rcaction()) {
+		cout << "did rcaction" << endl;
 	} else {
-		if (!inhand->do_rcaction(world)) {
-			if (!inhand->isnull and inhand->data->onplace != nullptr) {
-				Item* item = inven.use(selitem);
-				if (!item->isnull) {
-					CharArray* arr = item->data->onplace;
-					if (arr != nullptr) {
-						arr->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
-					}
+		if (!inhand->isnull and inhand->data->onplace != nullptr) {
+			Item* item = inven.use(selitem);
+			if (!item->isnull) {
+				CharArray* arr = item->data->onplace;
+				if (arr != nullptr) {
+					arr->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
 				}
-			} else {
-				debugblock = pix;
-				debugentity = target_entity;
 			}
+		} else {
+			debugblock = pix;
+			debugentity = target_entity;
 		}
+	
 	}
 }
 

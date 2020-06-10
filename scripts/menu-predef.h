@@ -52,15 +52,16 @@ class CraftingMenu: public Menu { public:
   ItemStack in_hand;
   function<void()> after;
   int button;
+  int level;
   double xpos, ypos;
   vector<Recipe*> recipes;
   int num_possible;
   int page;
-  static const int len_page = 8;
+  static const int len_page = 6;
   ItemContainer outputs[len_page];
   ItemContainer inputs[len_page];
   
-  CraftingMenu(function<void()> after_func);
+  CraftingMenu(int level, function<void()> after_func);
   void get_recipes();
   void render_page();
   void render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs);

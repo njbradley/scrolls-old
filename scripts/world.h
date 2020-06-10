@@ -73,6 +73,8 @@ void World::save_data_file() {
 
 void World::setup_files() {
     create_dir("saves/world");
+    create_dir("saves/world/chunks");
+    create_dir("saves/world/groups");
     ofstream ofile("saves/saves.txt", ios::app);
     ofile << ' ' << name;
 }
@@ -88,6 +90,42 @@ void World::startup() {
     }
     lighting_flag = true;
     load_nearby_chunks();
+    load_groups();
+}
+
+void World::load_groups() {
+  vector<string> group_paths;
+  get_files_folder("saves/world/groups", &group_paths);
+  for (string path : group_paths) {
+    string fullpath = "saves/world/groups/" + path;
+    cout << "loading group from " << fullpath << endl;
+    ifstream ifile(fullpath);
+    BlockGroup* group = BlockGroup::from_file(this, ifile);
+    ifile.close();
+    //remove(fullpath.c_str());
+    group->set_pix_pointers();
+    physicsgroups.emplace(group);
+  }
+  for (BlockGroup* group : physicsgroups) {
+    group->link();
+  }
+}
+
+void World::save_groups() {
+  vector<string> group_paths;
+  get_files_folder("saves/world/groups", &group_paths);
+  for (string path : group_paths) {
+    string fullpath = "saves/world/groups/" + path;
+    remove(fullpath.c_str());
+  }
+  for (BlockGroup* group : physicsgroups) {
+    ivec3 pos = group->position;
+    std::stringstream path;
+    path << "saves/world/groups/" << pos.x << 'x' << pos.y << 'y' << pos.z << "z.txt";
+    ofstream ofile(path.str());
+    cout << "saving group to " << path.str() << endl;
+    group->to_file(ofile);
+  }
 }
 
 void World::spawn_player() {
@@ -159,6 +197,13 @@ void World::get_async_loaded_chunks() {
         break;
       }
     }
+    for (BlockGroup* group : physicsgroups) {
+      ivec3 gpos = group->position;
+      ivec3 cpos = gpos/chunksize - ivec3(gpos.x<0, gpos.y<0, gpos.z<0);
+      if (cpos == pos) {
+        group->set_pix_pointers();
+      }
+    }
   }
   for (int i = deleting_chunks.size()-1; i >= 0; i --) {
     if (tiles.find(deleting_chunks[i]) == tiles.end()) {
@@ -180,10 +225,29 @@ void World::tick() {
       Pixel* pix = get_global(pos.x, pos.y, pos.z, 1)->get_pix();
       BlockGroup* group = pix->physicsgroup;
       if (group != nullptr) {
-        group->remove_pix_pointers();
-        delete group;
+        if (group->persistant()) {
+          group->update_flag = true;
+        } else {
+          group->remove_pix_pointers();
+          delete group;
+        }
       }
     }
+    
+    vector<BlockGroup*> dead_groups;
+    for (BlockGroup* group : physicsgroups) {
+      if (group->block_poses.size() > 0) {
+        group->tick();
+      } else {
+        dead_groups.push_back(group);
+      }
+    }
+    for (BlockGroup* group : dead_groups) {
+      delete group;
+      physicsgroups.erase(group);
+      cout << "erased " << group << endl;
+    }
+    
     for (ivec3 pos : block_updates) {
       //cout << pos.x << endl;
       Block* block = get_global(pos.x, pos.y, pos.z, 1);
@@ -192,6 +256,7 @@ void World::tick() {
       }
     }
     block_updates.clear();
+    
     // for (BlockGroup* group : physicsgroups) {
     //   group->remove_pix_pointers();
     //   delete group;
@@ -227,6 +292,9 @@ vec3 World::get_position() {
 }
 
 void World::block_update(int x, int y, int z) {
+  if (x == 0 and y == 0 and z == 0) {
+    cout << "big prob at 296" << endl;
+  }
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
     //cout << "Recording Block Update at the global world position " << x << ' ' << y << ' ' << z << endl;
     block_updates.emplace(ivec3(x,y,z));
@@ -312,7 +380,7 @@ Block* World::get_global(int x, int y, int z, int scale) {
     return tiles[pos]->chunk->get_global(ox, oy, oz, scale);
 }
 
-void World::set(int x, int y, int z, char val, int direction, BlockExtras* extras) {
+void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras) {
     int before = clock();
     Block* newblock = get_global(x,y,z, 1);
     int minscale = 1;
@@ -386,11 +454,13 @@ void World::del_chunk(ivec3 pos, bool remove_faces) {
 
 void World::load_chunk(ivec3 pos) {
     //cout << "loading chunk ..." << endl;
+    //cout << "creating tile " << this << endl;
     tiles[pos] = new Tile(pos, this);
     //cout << "done" << endl;
 }
 
 void World::zip() {
+  return;
   string command = "cd saves & zip -r -m " + name + ".scrollsworld.zip world > NUL";
   //remove(("saves/" + name + ".scrollsworld.zip").c_str());
   system(command.c_str());
@@ -409,6 +479,7 @@ void World::close_world() {
         del_chunk(pos, false);
     }
     save_data_file();
+    save_groups();
     zip();
     ofstream ofile2("saves/latest.txt");
     ofile2 << name;

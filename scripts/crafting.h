@@ -4,7 +4,7 @@
 #include "crafting-predef.h"
 
 Recipe::Recipe(istream& ifile): input(ifile), output(ifile) {
-	
+	ifile >> level;
 }
 
 bool Recipe::display(ItemContainer* in, ItemContainer* out) {

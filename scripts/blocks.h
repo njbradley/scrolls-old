@@ -150,7 +150,7 @@ Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk
     } else {
         if (c == '~') {
           c = ifile.get();
-          BlockExtras* extra = new BlockExtras(ifile);
+          BlockExtra* extra = new BlockExtra(ifile);
           Pixel* p = new Pixel(px, py, pz, c, scale, parent, tile, extra);
           return (Block*) p;
         } else {
@@ -181,7 +181,7 @@ Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile
     }
 }
 
-Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile, BlockExtras* new_extra):
+Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile, BlockExtra* new_extra):
   Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(new_extra), physicsgroup(nullptr), tile(ntile), direction(0) {
     reset_lightlevel();
     if (value != 0) {
@@ -195,7 +195,7 @@ void Pixel::generate_extras() {
   }
   if (value != 0) {
     if (blocks->blocks[value]->extras != nullptr) {
-      extras = new BlockExtras(this);
+      extras = new BlockExtra(this);
     }
   }
 }
@@ -241,8 +241,9 @@ Block* Pixel::get_global(int x, int y, int z, int scale) {
     return this;
 }
 
-void Pixel::set(char val, int newdirection, BlockExtras* newextras, bool update) {
-    
+void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) {
+    int gx, gy, gz;
+    global_position(&gx, &gy, &gz);
     //cout << "render_indes: " << render_index << " val:" << (int)value <<  ' '<< (int)val << endl;
     //cout << "pixel(" << (int)value <<  " scale " << scale << ") set " << (int)val << endl;
     if (val == 0) {
@@ -261,10 +262,14 @@ void Pixel::set(char val, int newdirection, BlockExtras* newextras, bool update)
       extras = newextras;
     }
     direction = newdirection;
+    
+    if (physicsgroup != nullptr) {
+      physicsgroup->update_flag = true;//block_poses.erase(ivec3(gx,gy,gz));
+      //physicsgroup = nullptr;
+    }
+    physicsgroup = nullptr;
     if (update) {
       //render_flag = true;
-      int gx, gy, gz;
-      global_position(&gx, &gy, &gz);
       //cout << gx << ' ' << gy << ' ' << gz << "-----------------------------" << render_index.first << ' ' << render_index.second << endl;
       //cout << "global position " << gx << ' ' << gy << ' ' << gz << endl;
       reset_lightlevel();
@@ -287,22 +292,31 @@ void Pixel::tick() {
   }
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
-  cout << "START PIX tick --------------------------";
-  print (ivec3(gx, gy, gz));
+  //cout << "START PIX tick --------------------------";
+  //print (ivec3(gx, gy, gz));
   if (physicsgroup == nullptr) {
-    BlockGroup* group = new BlockGroup(tile->world, ivec3(gx, gy, gz), 500);
-    cout << group->block_poses.size() << " size!" << endl;
-    if (group->block_poses.size() > 0 and !group->consts[4]) {
-      for (int i = 0; i < 6; i ++) {
-        cout << group->consts[i] << ' ';
-      } cout << endl;
-      cout << "copying " << group->block_poses.size() << endl;
-      group->copy_to_block();
-      cout << "erasing" << endl;
-      group->erase_from_world();
-      cout << "done" << endl;
-      tile->entities.push_back(new FallingBlockEntity(group));
-    }// else {
+    BlockGroup* group = BlockGroup::make_group(value, tile->world, ivec3(gx, gy, gz));
+    //cout << group->block_poses.size() << " size!" << endl;
+    if (group->block_poses.size() > 0) {
+      if (!group->consts[4]) {
+        for (int i = 0; i < 6; i ++) {
+          cout << group->consts[i] << ' ';
+        } cout << endl;
+        cout << "copying " << group->block_poses.size() << endl;
+        group->copy_to_block();
+        cout << "erasing" << endl;
+        group->erase_from_world();
+        cout << "done" << endl;
+        tile->entities.push_back(new FallingBlockEntity(group));
+      } else {
+        if (group->persistant()) {
+          tile->world->physicsgroups.emplace(group);
+        }
+      }
+    } else {
+      delete group;
+    }
+    // else {
       //tile->world->physicsgroups.emplace(group);
     //}
   }
@@ -828,7 +842,7 @@ Chunk* Pixel::resolve(function<char(ivec3)> gen_func) {
   return nullptr;
 }
 
-void Pixel::save_to_file(ofstream& of) {
+void Pixel::save_to_file(ostream& of) {
     if (extras == nullptr) {
       if (value != 0 and direction != blocks->blocks[value]->default_direction) {
         of << char(100 + direction);
@@ -1059,7 +1073,7 @@ bool Chunk::is_air(int dx, int dy, int dz) {
     return air;
 }
 
-void Chunk::save_to_file(ofstream& of) {
+void Chunk::save_to_file(ostream& of) {
     of << "{";
     for (int x = 0; x < csize; x ++) {
         for (int y = 0; y < csize; y ++) {

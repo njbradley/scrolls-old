@@ -13,7 +13,7 @@ using std::map;
 
 
 
-BlockExtras::BlockExtras(Pixel* pix) {
+BlockExtra::BlockExtra(Pixel* pix): pixel(pix) {
   // std::stringstream filename;
   // int gx, gy, gz;
   // pix->global_position(&gx, &gy, &gz);
@@ -28,15 +28,15 @@ BlockExtras::BlockExtras(Pixel* pix) {
   //}
 }
 
-BlockExtras::BlockExtras() {}
+BlockExtra::BlockExtra() {}
 
-BlockExtras::BlockExtras(istream& ifile) {
+BlockExtra::BlockExtra(istream& ifile): pixel(nullptr) {
   inven = new ItemContainer(ifile);
   string buff;
   getline(ifile, buff, ':');
 }
 
-void BlockExtras::save_to_file(ostream& ofile) {
+void BlockExtra::save_to_file(ostream& ofile) {
   inven->save_to_file(ofile);
   ofile << ':';
 }
@@ -72,7 +72,7 @@ BlockData::BlockData(ifstream & ifile) {
     if (is_extra) {
       getline(ifile, buff, ':');
       cout << "name: " << name << endl;
-      extras = new BlockExtras();
+      extras = new BlockExtra();
       int size_inven;
       ifile >> size_inven;
       if (size_inven != 0) {
@@ -85,7 +85,7 @@ void BlockData::do_rcaction(Pixel* pix) {
     if (rcaction == "crafting") {
       if (menu == nullptr) {
         cout << "setting menu" << endl;
-        menu = new CraftingMenu( [&] () {
+        menu = new CraftingMenu( 6, [&] () {
           cout << "done! " << endl;
           delete menu;
           menu = nullptr;

@@ -126,8 +126,10 @@ void LoadingThread::operator()() {
 		//cout << parent->loading[index] << endl;
 		if (parent->loading[index] != nullptr) {
 			//cout << parent->loading[index] << endl;
-			parent->loading[index]->result = new Tile(parent->loading[index]->pos, world);
-			parent->loading[index]->complete = true;
+			if (world != nullptr) {
+				parent->loading[index]->result = new Tile(parent->loading[index]->pos, world);
+				parent->loading[index]->complete = true;
+			}
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		//cout << "hello from thread " << index << endl;

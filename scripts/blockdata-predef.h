@@ -7,11 +7,22 @@ using std::map;
 #include "classes.h"
 using std::istream;
 
-class BlockExtras { public:
+// class BlockExtra { public:
+//   Pixel* pixel;
+//   BlockExtra(Pixel*);
+//   virtual ItemContainer* get_inven();
+//   virtual save_to_file(ostream& ofile) = 0;
+//
+//   static BlockExtra* from_file(istream& ifile);
+//   static BlockExtra* from_name(
+// };
+
+class BlockExtra { public:
   ItemContainer* inven;
-  BlockExtras();
-  BlockExtras(Pixel*);
-  BlockExtras(istream& ifile);
+  Pixel* pixel;
+  BlockExtra();
+  BlockExtra(Pixel*);
+  BlockExtra(istream& ifile);
   void save_to_file(ostream& ofile);
 };
 
@@ -27,7 +38,7 @@ class BlockData { public:
     string item;
     double clumpyness;
     string clumpy_group;
-    BlockExtras* extras = nullptr;
+    BlockExtra* extras = nullptr;
     
     BlockData(ifstream & ifile);
     

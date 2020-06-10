@@ -556,11 +556,9 @@ int main( void )
 				int gx, gy, gz;
 				debugblock->global_position(&gx, &gy, &gz);
 				string name = "undef";
-				for (pair<string,char> kv : blocks->names) {
-					if (kv.second == debugblock->value) {
-						name = kv.first;
-						break;
-					}
+				BlockData* data = blocks->blocks[debugblock->get()];
+				if (data != nullptr) {
+					name = data->name;
 				}
 				
 				debugstream << "tracking block " << debugblock << " at " << gx << "x " << gy << "y " << gz << "z " << endl;
@@ -568,6 +566,9 @@ int main( void )
 				debugstream << " direction:" << int(debugblock->direction) << " render_index:" << debugblock->render_index.first << ',' << debugblock->render_index.second << endl;
 				debugstream << " parent coords:" << debugblock->px << ',' << debugblock->py << ',' << debugblock->pz << endl;
 				debugstream << " physics_group:" << debugblock->physicsgroup << endl;
+				if (debugblock->physicsgroup != nullptr) {
+					//debugblock->physicsgroup->to_file(debugstream);
+				}
 			}
 		}
 		
@@ -801,6 +802,8 @@ int main( void )
 			debug_visible = true;
 		} else if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
 			debug_visible = false;
+		} else if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) {
+			cout << "njbradley is king" << endl;
 		} else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
 			dump_buffers();
 		} else if (glfwGetKey(window, GLFW_KEY_Q ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
@@ -834,3 +837,16 @@ int main( void )
 		cout << "completed without errors" << endl;
 	}
 }
+
+
+/*
+All other scripts included into this script are considered part of the
+game and are under this same license
+
+Copyright 2020 Nicholas Bradley. All rights reserved.
+
+I grant the right to download and modify the game for your own personal use.
+Please do not distribute or sell original or modified copies of this game without express permission.
+
+This software is provided 'as is' with no expressed or implied warranties.
+*/

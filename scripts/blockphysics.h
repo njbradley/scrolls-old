@@ -3,17 +3,17 @@
 
 #include "blockphysics-predef.h"
 
-BlockGroup::BlockGroup(World* nworld, ivec3 starting_pos, int max): world(nworld), position(starting_pos), max_size(max), size(0,0,0) {
+BlockGroup::BlockGroup(World* nworld, ivec3 starting_pos): world(nworld), position(starting_pos), size(0,0,0), update_flag(false), block(nullptr) {
 	find_group();
 }
 
 void BlockGroup::find_group() {
-	//cout << "-----------------" << endl;
-	//find_block(position);
+	
 	Block* starting_block = world->get_global(position.x, position.y, position.z, 1);
 	if (starting_block == nullptr or starting_block->get() == 0) {
 		return;
 	}
+	groupname = blocks->blocks[starting_block->get()]->clumpy_group;
 	starting_block->get_pix()->physicsgroup = this;
 	unordered_set<ivec3,ivec3_hash> lastblocks;
 	unordered_set<ivec3,ivec3_hash> newblocks;
@@ -21,21 +21,16 @@ void BlockGroup::find_group() {
 	const ivec3 dir_array[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
 	bool under_size = true;
 	while (lastblocks.size() > 0 and under_size) {
+		//loops until no new blocks or it is over size
 		under_size = block_poses.size() < max_size;
-		//cout << "start" << lastblocks.size() << endl;
+		
 		for (ivec3 pos : lastblocks) {
-			//cout << "pos";
-			//print(pos);
 			Pixel* pix = world->get_global(pos.x, pos.y, pos.z, 1)->get_pix();
 			BlockData* data = blocks->blocks[pix->value];
 			for (int i = 0; i < 6; i ++) {
 				ivec3 off = dir_array[i];
-				//cout << "pos+off:";
-				//print (pos+off);
 				if (block_poses.find(pos+off) == block_poses.end()) {
-					//cout << "not dup" << endl;
 					Block* block = world->get_global(pos.x+off.x, pos.y+off.y, pos.z+off.z, 1);
-					//cout << "val " << int(newpix->value) << endl;
 					if (block != nullptr) {
 						if (block->get() != 0) {
 							Pixel* newpix = block->get_pix();
@@ -43,11 +38,13 @@ void BlockGroup::find_group() {
 							bool same = newdata->clumpy_group == data->clumpy_group or newdata->clumpy_group == "all" or data->clumpy_group == "all";
 							if (same and under_size) {
 								newblocks.emplace(pos+off);
-								//print (pos+off);
 								newpix->physicsgroup = this;
-								//cout << "placing!" << endl;
 							} else {
 								consts[i] = true;
+								if (persistant() and newpix->physicsgroup != nullptr and newpix->physicsgroup->persistant()) {
+									cout << newpix->physicsgroup << endl;
+									neighbors.emplace(newpix->physicsgroup);
+								}
 							}
 						}
 					} else {
@@ -56,18 +53,45 @@ void BlockGroup::find_group() {
 				}
 			}
 		}
-		//cout << "done one loop" << endl;
 		for (ivec3 pos : lastblocks) {
 			block_poses.emplace(pos);
 		}
 		lastblocks.clear();
 		lastblocks.swap(newblocks);
 		
-		cout << "newsize " << lastblocks.size() << endl;
-		for (int i = 0; i < 6; i ++) {
-			cout << consts[i] << ' ';
-		} cout << endl;
+		// cout << "newsize " << lastblocks.size() << endl;
+		// for (int i = 0; i < 6; i ++) {
+		// 	cout << consts[i] << ' ';
+		// } cout << endl;
 	}
+	// if (persistant() and group_group() != "null") {
+	// 	for (BlockGroup* group : neighbors) {
+	// 		cout << "neighbor -------" << group << endl;
+	// 		if (group->group_group() == group_group()) {
+	// 			for (ivec3 pos : group->block_poses) {
+	// 				cout << "--";
+	// 				print(pos);
+	// 			}
+	// 			for (ivec3 pos : group->block_poses) {
+	// 				cout << "--";
+	// 				print(pos);
+	// 				for (int i = 0; i < 6; i ++ ) {
+	// 					if (!consts[i]) {
+	// 						ivec3 off = pos + dir_array[i];
+	// 						print (off);
+	// 						if (block_poses.find(off) == block_poses.end() and group->block_poses.find(off) == group->block_poses.end()) {
+	// 							Block* b = world->get_global(off.x, off.y, off.z, 1);
+	// 							if (b != nullptr and b->get() != 0) {
+	// 								consts[i] = true;
+	// 								cout << "setting consts" << endl;
+	// 							}
+	// 						}
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
 	for (ivec3 pos : block_poses) {
 		for (int axis = 0; axis < 3; axis ++) {
 			if (pos[axis] < position[axis]) {
@@ -80,6 +104,48 @@ void BlockGroup::find_group() {
 		}
 	}
 	//exit(1);
+}
+
+bool BlockGroup::persistant() {
+	return false;
+}
+
+void BlockGroup::update() {
+	cout << this << " blockgroup " << position.x << ' ' << position.y << ' ' << position.z << " update" << endl;
+	vector<ivec3> dead_blocks;
+	for (ivec3 pos : block_poses) {
+		Pixel* pix = world->get_global(pos.x, pos.y, pos.z, 1)->get_pix();
+		if (pix->physicsgroup != this) {
+			dead_blocks.push_back(pos);
+		}
+	}
+	for (ivec3 pos : dead_blocks) {
+		block_poses.erase(pos);
+	}
+	bool found_pos = false;
+	ivec3 newpos;
+	for (ivec3 pos : block_poses) {
+		Block* b = world->get_global(pos.x, pos.y, pos.z, 1);
+		if (b->get() != 0 and blocks->blocks[b->get()]->clumpy_group == groupname) {
+			found_pos = true;
+			newpos = pos;
+			break;
+		}
+	}
+	remove_pix_pointers();
+	block_poses.clear();
+	if (found_pos) {
+		//cout << this << " group found new pos " << newpos.x << ' ' << newpos.y << ' ' << newpos.z << " instead of ";
+		print (position);
+		position = newpos;
+		size = ivec3(0,0,0);
+		find_group();
+		on_update();
+	}
+}
+
+void BlockGroup::on_update() {
+	cout << "on update" << endl;
 }
 
 void BlockGroup::copy_to_block() {
@@ -108,43 +174,39 @@ void BlockGroup::copy_to_block() {
 		pix->set(orig->value, orig->direction, orig->extras);
 		block = pix;
 	}
-			
-	
-	// Chunk* result = pix->resolve([&](ivec3 npos) {
-	// 	// char val = arr.get(npos.x, npos.y, npos.z);
-	// 	// cout << int(val) << ' ';
-	// 	// print (npos);
-	// 	// return val;
-	// 	char val;
-	// 	ivec3 pos = npos + position;
-	// 	if (block_poses.find(pos) != block_poses.end()) {
-	// 		val =  world->get_global(pos.x, pos.y, pos.z, 1)->get();
-	// 	} else {
-	// 		val = 0;
-	// 	}
-	// 	return val;
-	// });
-	// cout << "done" << endl;
-	// if (result == nullptr) {
-	// 	cout << "pix" << endl;
-	// 	block = pix;
-	// } else {
-	// 	cout << "chunk" << endl;
-	// 	block = result;
-	// }
 }
 	
 void BlockGroup::remove_pix_pointers() {
 	for (ivec3 pos : block_poses) {
-		world->get_global(pos.x, pos.y, pos.z,1)->get_pix()->physicsgroup = nullptr;
+		Pixel* pix = world->get_global(pos.x, pos.y, pos.z,1)->get_pix();
+		// if (pix->physicsgroup != nullptr and pix->physicsgroup != this) {
+		// 	cout << "153removing " << pos.x << ' ' << pos.y << ' ' << pos.z << " from  " << pix->physicsgroup << endl;
+		// 	pix->physicsgroup->block_poses.erase(pos);
+		// }
+		pix->physicsgroup = nullptr;
+	}
+}
+
+void BlockGroup::set_pix_pointers() {
+	if (block == nullptr) {
+		for (ivec3 pos : block_poses) {
+			Block* b = world->get_global(pos.x, pos.y, pos.z,1);
+			if (b != nullptr) {
+				// if (b->get_pix()->physicsgroup != nullptr and b->get_pix()->physicsgroup != this) {
+				// 	b->get_pix()->physicsgroup->block_poses.erase(pos);
+				// }
+				b->get_pix()->physicsgroup = this;
+			}
+		}
 	}
 }
 
 void BlockGroup::erase_from_world() {
+	remove_pix_pointers();
 	for (ivec3 pos : block_poses) {
+		print (pos);
 		world->set(pos.x, pos.y, pos.z, 0);
 	}
-	remove_pix_pointers();
 }
 
 void BlockGroup::copy_to_world(ivec3 newpos) {
@@ -155,47 +217,414 @@ void BlockGroup::copy_to_world(ivec3 newpos) {
 	}
 }
 
-void BlockGroup::find_block(ivec3 newpos) {
-	Pixel* pix = world->get_global(newpos.x, newpos.y, newpos.z, 1)->get_pix();
-	if (pix->value == 0) {
-		//cout << "err" << endl;
-		return;
+AxleInterface* BlockGroup::cast_axle() {
+	return nullptr;
+}
+
+void BlockGroup::tick() {
+	if (update_flag) {
+		update();
+		update_flag = false;
 	}
-	block_poses.emplace(newpos);
-	for (int axis = 0; axis < 3; axis ++) {
-		if (newpos[axis] < position[axis]) {
-			size[axis] += position[axis] - newpos[axis];
-			position[axis] = newpos[axis];
-		}
-		if (newpos[axis] >= position[axis]+size[axis]) {
-			size[axis] = newpos[axis] - position[axis] + 1;
+}
+
+bool BlockGroup::rcaction() {
+	return false;
+}
+
+string BlockGroup::group_group() {
+	return "null";
+}
+
+void BlockGroup::link() {
+	
+}
+
+BlockGroup* BlockGroup::make_group(char val, World* world, ivec3 pos) {
+	BlockData* data = blocks->blocks[val];
+	string name = "undef";
+	if (data != nullptr) {
+		name = data->clumpy_group;
+	}
+	if (name == "axle-group") return new AxleGroup(world, pos);
+	if (name == "grindstone-group") return new GrindstoneGroup(world, pos);
+	if (name == "crafting-group") return new CraftingGroup(world, pos);
+	if (name == "chest-group") return new ChestGroup(world, pos);
+	return new BlockGroup(world, pos);
+}
+
+BlockGroup* BlockGroup::from_file(World* world, istream& ifile) {
+	string name;
+	int pos = ifile.tellg();
+	ifile >> name;
+	cout << name << endl;
+	ifile.seekg(pos);
+	if (name == "axle-group") return new AxleGroup(world, ifile);
+	if (name == "grindstone-group") return new GrindstoneGroup(world, ifile);
+	if (name == "crafting-group") return new CraftingGroup(world, ifile);
+	if (name == "chest-group") return new ChestGroup(world, ifile);
+	return new BlockGroup(world, ifile);
+}
+
+BlockGroup::BlockGroup(World* nworld, istream& ifile): world(nworld), update_flag(false) {
+	ifile >> groupname;
+	cout << groupname << endl;
+	ifile >> position.x >> position.y >> position.z;
+	ifile >> size.x >> size.y >> size.z;
+	int size;
+	ifile >> size;
+	for (int i = 0; i < size; i ++) {
+		ivec3 pos;
+		ifile >> pos.x >> pos.y >> pos.z;
+		block_poses.emplace(pos);
+	}
+	string isblock;
+	ifile >> isblock;
+	if (isblock == "block") {
+		int scale;
+		ifile >> scale;
+		ifile.get();
+		block = Block::from_file(ifile, 0, 0, 0, scale, nullptr, nullptr);
+	} else {
+		block = nullptr;
+	}
+}
+
+void BlockGroup::to_file(ostream& ofile) {
+	ofile << groupname << endl;
+	ofile << position.x << ' ' << position.y << ' ' << position.z << endl;
+	ofile << size.x << ' ' << size.y << ' ' << size.z << endl;
+	ofile << block_poses.size() << endl;
+	for (ivec3 pos : block_poses) {
+		ofile << pos.x << ' ' << pos.y << ' ' << pos.z << endl;
+	}
+	if (block != nullptr) {
+		ofile << "block" << block->scale << endl;
+		block->save_to_file(ofile);
+	} else {
+		ofile << "null" << endl;
+	}
+}
+
+
+
+
+AxleInterface::AxleInterface(World* nworld, ivec3 starting_pos): BlockGroup(nworld, starting_pos) {
+	
+}
+
+AxleInterface::AxleInterface(World* nworld, istream& ifile): BlockGroup(nworld, ifile) {
+	
+}
+
+AxleInterface* AxleInterface::cast_axle() {
+	return this;
+}
+
+bool AxleInterface::persistant() {
+	return true;
+}
+
+string AxleInterface::group_group() {
+	return "axle-group-group";
+}
+
+
+
+
+
+AxleGroup::AxleGroup(World* nworld, ivec3 starting_pos): AxleInterface(nworld, starting_pos) {
+	//find_group();
+	is_valid = calc_is_valid();
+	port1 = nullptr;
+	port2 = nullptr;
+	if (is_valid) {
+		find_neighbors();
+	}
+}
+
+void AxleGroup::on_update() {
+	cout << "on acxle update " << endl;
+	is_valid = calc_is_valid();
+	cout << "is valid " << is_valid << endl;
+	print (start);
+	print (position);
+	print (size);
+	print (end);
+	port1 = nullptr;
+	port2 = nullptr;
+	if (is_valid) {
+		find_neighbors();
+	}
+	cout << port1 << ' ' << port2 << endl;
+}
+
+void AxleGroup::find_neighbors() {
+	cout << "find neigh" << endl;
+	ivec3 neg(start);
+	neg[axis]--;
+	Block* start_block = world->get_global(neg.x, neg.y, neg.z, 1);
+	if (start_block != nullptr) {
+		BlockGroup* group = start_block->get_pix()->physicsgroup;
+		if (group != nullptr) {
+			port1 = group->cast_axle();
 		}
 	}
-	//print(newpos);
-	//cout << int(pix->value) << ' ';
-	BlockData* data = blocks->blocks[pix->value];
-	//cout << data->clumpy_group << ' ' << data->clumpyness << endl;
-	const ivec3 dir_array[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
-	for (int i = 0; i < 6; i ++) {
-		ivec3 pos = dir_array[i] + newpos;
-		if (std::find(block_poses.begin(), block_poses.end(), pos) == block_poses.end()) {
-			Block* sideblock = world->get_global(pos.x, pos.y, pos.z, 1);
-			if (sideblock != nullptr) {
-				Pixel* sidepix = sideblock->get_pix();
-				BlockData* sidedata = blocks->blocks[sidepix->value];
-				if (sidepix->value != 0) {
-					if (data->clumpy_group == sidedata->clumpy_group and float(rand())/RAND_MAX < data->clumpyness and block_poses.size() < max_size) {
-						find_block(pos);
-					} else {
-						consts[i] = true;
-					}
-				}
-			} else {
-				consts[i] = true;
-			}
+	
+	ivec3 pos(end);
+	pos[axis]++;
+	Block* end = world->get_global(pos.x, pos.y, pos.z, 1);
+	if (end != nullptr) {
+		BlockGroup* group = end->get_pix()->physicsgroup;
+		if (group != nullptr) {
+			port1 = group->cast_axle();
 		}
 	}
 }
-					
+
+void AxleGroup::rotate(AxleInterface* sender, double amount, double force) {
+	if (is_valid) {
+		if (sender != port1 and port1 != nullptr) {
+			port1->rotate(this, amount, force);
+		}
+		if (sender != port2 and port2 != nullptr) {
+			port2->rotate(this, amount, force);
+		}
+	}
+}
+
+bool AxleGroup::calc_is_valid() {
+	int dir = -1;
+	for (ivec3 pos : block_poses) {
+		int newdir = world->get_global(pos.x, pos.y, pos.z,1)->get_pix()->direction;
+		if (newdir > 2) {
+			newdir -= 3;
+		}
+		if (dir == -1) {
+			dir = newdir;
+		}
+		if (dir != newdir) {
+			return false;
+		}
+	}
+	if (dir != -1) {
+		axis = dir;
+		for (int i = 0; i < 3; i ++) {
+			if (i != axis and size[i] != 1) {
+				return false;
+			}
+		}
+		start = position;
+		end = position + size - 1;
+		return true;
+	}
+	return false;
+}
+
+bool AxleGroup::rcaction() {
+	rotate(this, 0.25, 0.1);
+	return true;
+}
+
+void AxleGroup::link() {
+	cout << "linking ";
+	cout << "port1 " << port1 << " port2 " << port2 << endl;
+	print(position);
+	print(port1pos);
+	print(port2pos);
+	cout << endl;
+	for (BlockGroup* group : world->physicsgroups) {
+		print (group->position);
+		if (port1 == (AxleInterface*) 1 and group->position == port1pos) {
+			cout << "match1 " << group << ' ' << group->cast_axle() << endl;
+			port1 = group->cast_axle();
+		}
+		if (port2 == (AxleInterface*) 1 and group->position == port2pos) {
+			cout << "match2 " << group << ' ' << group->cast_axle() << endl;
+			port2 = group->cast_axle();
+		}
+	}
+	cout << "port1 " << port1 << " port2 " << port2 << endl;
+}
+
+AxleGroup::AxleGroup(World* nworld, istream& ifile): AxleInterface(nworld, ifile), is_valid(true) {
+	string buff;
+	ifile >> buff;
+	cout << buff << endl;
+	if (buff == "pointer") {
+		ifile >> port1pos.x >> port1pos.y >> port1pos.z;
+		cout << "1 " << endl;
+		print (port1pos);
+		port1 = (AxleInterface*)1;
+	} else {
+		port1 = nullptr;
+		cout << "null1" << endl;
+	}
+	ifile >> buff;
+	cout << buff << endl;
+	if (buff == "pointer") {
+		ifile >> port2pos.x >> port2pos.y >> port2pos.z;
+		cout << "2 ";
+		print (port2pos);
+		port2 = (AxleInterface*)1;
+	} else {
+		port2 = nullptr;
+	}
+}
+
+void AxleGroup::to_file(ostream& ofile) {
+	BlockGroup::to_file(ofile);
+	cout << port1 << ' ' << port2 << endl;
+	if (port1 == nullptr) {
+		ofile << "null" << endl;
+	} else {
+		ofile << "pointer" << endl;
+		ivec3 pos = port1->position;
+		ofile << pos.x << ' ' << pos.y << ' ' << pos.z << endl;
+	}
+	if (port2 == nullptr) {
+		ofile << "null" << endl;
+	} else {
+		ofile << "pointer" << endl;
+		ivec3 pos = port2->position;
+		ofile << pos.x << ' ' << pos.y << ' ' << pos.z << endl;
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+GrindstoneGroup::GrindstoneGroup(World* nworld, ivec3 starting_pos): AxleInterface(nworld, starting_pos), input(1) {
+	//find_group();
+}
+
+bool GrindstoneGroup::rcaction() {
+	if (menu == nullptr) {
+		cout << "setting menu" << endl;
+		menu = new InventoryMenu("grindstone", &input, [&] () {
+			cout << "done! " << endl;
+			delete menu;
+			menu = nullptr;
+		});
+	}
+	return true;
+}
+
+void GrindstoneGroup::rotate(AxleInterface* sender, double amount, double force) {
+	cout << "recieved rotation" << endl;
+	Item* item = input.get(0);
+	if (!item->isnull) {
+		progress += amount;
+		if (progress >= 1) {
+			item->sharpness += 1;
+			item->weight -= 0.1;
+			progress = 0;
+		}
+	}
+}
+
+GrindstoneGroup::GrindstoneGroup(World* nworld, istream& ifile): AxleInterface(nworld, ifile), input(ifile) {
+	ifile >> progress;
+}
+
+void GrindstoneGroup::to_file(ostream& ofile) {
+	BlockGroup::to_file(ofile);
+	input.save_to_file(ofile);
+	ofile << progress << endl;
+}
+
+
+
+
+
+
+
+ChestGroup::ChestGroup(World* nworld, ivec3 starting_pos): BlockGroup(nworld, starting_pos), inven(block_poses.size()) {
+	//find_group();
+}
+
+ChestGroup::ChestGroup(World* nworld, istream& ifile): BlockGroup(nworld, ifile), inven(ifile) {
+	
+}
+
+bool ChestGroup::rcaction() {
+	menu = new InventoryMenu("chest", &inven, [&] () {
+		cout << "done! " << endl;
+		delete menu;
+		menu = nullptr;
+	});
+	return true;
+}
+
+void ChestGroup::on_update() {
+	update_inven_size();
+}
+
+void ChestGroup::update_inven_size() {
+	int newsize = block_poses.size();
+	if (newsize > 10) {
+		newsize = 10;
+	}
+	if (newsize != inven.size) {
+		ItemContainer newinven(newsize);
+		for (int i = 0; i < newsize and i < inven.size; i ++) {
+			newinven.items[i] = inven.items[i];
+		}
+		inven = newinven;
+	}
+}
+
+bool ChestGroup::persistant() {
+	return true;
+}
+
+void ChestGroup::to_file(ostream& ofile) {
+	BlockGroup::to_file(ofile);
+	inven.save_to_file(ofile);
+}
+
+CraftingGroup::CraftingGroup(World* nworld, ivec3 starting_pos): BlockGroup(nworld, starting_pos) {
+	
+}
+
+CraftingGroup::CraftingGroup(World* nworld, istream& ifile): BlockGroup(nworld, ifile) {
+	
+}
+
+bool CraftingGroup::rcaction() {
+	int level = 1;
+	bool found = false;
+	for (int i = 0; i < 3; i ++) {
+		if (size[i] != 1) {
+			if (size[i] == level) {
+				found = true;
+				break;
+			}
+			if (size[i] != level) {
+				level = size[i];
+			}
+		}
+	}
+	if ((found and block_poses.size() == level*level) or size == ivec3(1,1,1)) {
+		cout << "setting menu" << endl;
+		menu = new CraftingMenu(level, [&] () {
+			cout << "done! " << endl;
+			delete menu;
+			menu = nullptr;
+		});
+	}
+	return true;
+}
+
+bool CraftingGroup::persistant() {
+	return true;
+}
 
 #endif

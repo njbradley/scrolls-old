@@ -39,6 +39,7 @@ void Tile::render(GLVecs* glvecs) {
     //update_lighting();
     //chunk->calculate_lightlevel();
     if (!deleting) {
+       //cout << world << endl;
 	     chunk->render(glvecs, world, 0, 0, 0);
      }
      //cout << chunk->render_flag << endl;
@@ -48,7 +49,7 @@ void Tile::render(GLVecs* glvecs) {
 
 void Tile::save() {
   stringstream path;
-  path << "saves/world/chunk" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
+  path << "saves/world/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
   cout << "saving '" << path.str() << "' to file\n";
   ofstream of(path.str(), ios::binary);
   chunk->save_to_file(of);
@@ -82,8 +83,12 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
     if (pos == ivec3(0,2,15)) {
       entities.push_back(new NamedEntity(pos*chunksize+32, "ent"));
   	}
+    if (world == nullptr) {
+      cout << "error world is null" << endl;
+      exit(1);
+    }
     stringstream path;
-  	path << "saves/world/chunk" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
+  	path << "saves/world/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
   	ifstream ifile(path.str(), ios::binary);
   	if (ifile.good()) {
   			cout << "loading '" << path.str() << "' from file\n";

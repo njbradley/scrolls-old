@@ -124,7 +124,7 @@ void InventoryMenu::close(World* world) {
 }
 /////////////////////////////////////////craftingh ///////////////////////////////////////
 
-CraftingMenu::CraftingMenu(function<void()> after_func): after(after_func), in_hand(nullptr, 0), page(0), button(1) {
+CraftingMenu::CraftingMenu(int newlevel, function<void()> after_func): level(newlevel), after(after_func), in_hand(nullptr, 0), page(0), button(1) {
   start();
   get_recipes();
   render_page();
@@ -136,7 +136,7 @@ void CraftingMenu::get_recipes() {
   recipes.clear();
   ItemContainer inven(&world->player->inven, &world->player->backpack);
   for (Recipe* recipe : recipestorage->recipes) {
-    if (recipe->display(&inven, nullptr)) {
+    if (recipe->level <= level and recipe->display(&inven, nullptr)) {
       possible.push_back(recipe);
     } else {
       others.push_back(recipe);
@@ -171,6 +171,8 @@ void CraftingMenu::render(GLFWwindow* window, World* world, Player* player, MemV
   glfwGetCursorPos(window, &xpos, &ypos);
   xpos = xpos/screen_x*2-1;
   ypos = 1-ypos/screen_y*2;
+  
+  draw_text(uivecs, "Level " + std::to_string(level), 0.3f, 0.5f, 2);
   
   player->inven.render(uivecs, -0.5f, -1);
   player->backpack.render(uivecs, -0.5f, -0.5f);

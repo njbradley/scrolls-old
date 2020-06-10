@@ -27,7 +27,7 @@ public:
   ItemData* data;
   double durability;
   double sharpness;
-  int weight;
+  double weight;
   bool isnull;
   
   Item(ItemData* newdata);

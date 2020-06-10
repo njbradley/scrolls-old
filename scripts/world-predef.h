@@ -34,7 +34,7 @@ class World: public Collider {
     char* tmparr;
     public:
         map<ivec3, Tile*, ivec3_comparator> tiles;
-        //unordered_set<BlockGroup*> physicsgroups;
+        unordered_set<BlockGroup*> physicsgroups;
         int seed;
         string name;
         int view_dist = 3;
@@ -50,6 +50,8 @@ class World: public Collider {
         World(string oldname);
         vec3 get_position();
         void unzip();
+        void load_groups();
+        void save_groups();
         void load_data_file();
         void save_data_file();
         void setup_files();
@@ -63,7 +65,7 @@ class World: public Collider {
         void load_nearby_chunks();
         void get_async_loaded_chunks();
         Block* get_global(int x, int y, int z, int scale);
-        void set(int x, int y, int z, char val, int direction = 0, BlockExtras* extras = nullptr);
+        void set(int x, int y, int z, char val, int direction = 0, BlockExtra* extras = nullptr);
         char get(int x, int y, int z);
         Block* raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time);
         void save_chunk(ivec3 pos);

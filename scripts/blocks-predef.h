@@ -34,7 +34,7 @@ class Block: public Collider { public:
     virtual bool continues() = 0; // whether the block is a chunk or a pixel. a hacky way of telling, but nessicary because pixels can be at different depths
     virtual Block * get(int, int, int) = 0; //get a block at coords
     virtual char get() = 0;                 //get the value of the block. these two methods are exclusive for pixel/chunk, but same reaseon as above
-    //virtual void set(char val, int direction = -1, BlockExtras* extras = nullptr) = 0;
+    //virtual void set(char val, int direction = -1, BlockExtra* extras = nullptr) = 0;
     virtual void del(bool remove_faces) = 0;
     virtual void calculate_lightlevel() = 0;
     virtual Pixel* get_pix()  = 0;
@@ -50,7 +50,7 @@ class Block: public Collider { public:
     virtual bool is_air(int, int, int) = 0;
     virtual Block * get_global(int,int,int,int) = 0;
     virtual void render_update() = 0;
-    virtual void save_to_file(ofstream&) = 0;
+    virtual void save_to_file(ostream&) = 0;
     Block* raycast(Collider* world, double* x, double* y, double* z, double dx, double dy, double dz, double time);
     Block* get_world();
     vec3 get_position();
@@ -74,14 +74,14 @@ public:
     char direction;
     pair<int,int> render_index;
     float lightlevel = 1;
-    BlockExtras* extras = nullptr;
+    BlockExtra* extras = nullptr;
     Tile* tile;
     BlockGroup* physicsgroup;
     //int num;
     //ItemContainer* container;
     
     Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* tile);
-    Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* tile, BlockExtras* new_extra);
+    Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* tile, BlockExtra* new_extra);
     void generate_extras();
     bool continues();
     char get();
@@ -92,8 +92,8 @@ public:
     Pixel* get_pix();
     float get_lightlevel(int dx, int dy, int dz);
     Block * get(int x, int y, int z);
-    void set(char val, int direction = -1, BlockExtras* extras = nullptr, bool update = true);
-    // sets the value, direction, and blockextras of the pixel
+    void set(char val, int direction = -1, BlockExtra* extras = nullptr, bool update = true);
+    // sets the value, direction, and BlockExtra of the pixel
     void render_update();
     void tick();
     void del(bool remove_faces);
@@ -119,7 +119,7 @@ public:
     // if the pixel is divided a chunk will be returned and
     // the parent will be altered. if the pixel is not divided,
     // a nullptr is returned
-    void save_to_file(ofstream& of);
+    void save_to_file(ostream& of);
 };
 
 class Chunk: public Block { public:
@@ -130,7 +130,7 @@ class Chunk: public Block { public:
     Block * get(int x, int y, int z);
     Pixel* get_pix();
     char get();
-    //void set(char val, int direction, BlockExtras* extras);
+    //void set(char val, int direction, BlockExtra* extras);
     void calculate_lightlevel();
     void all(function<void(Pixel*)> func);
     void all_side(function<void(Pixel*)>,int,int,int);
@@ -140,7 +140,7 @@ class Chunk: public Block { public:
     void render_update();
     Block* get_global(int x, int y, int z, int nscale);
     bool is_air(int dx, int dy, int dz);
-    void save_to_file(ofstream& of);
+    void save_to_file(ostream& of);
 };
 
 

@@ -8,6 +8,7 @@ class Recipe {
 public:
 	ItemContainer input;
 	ItemContainer output;
+	int level;
 	Recipe(istream&);
 	bool display(ItemContainer* in, ItemContainer* out);
 	bool craft(ItemContainer* in, ItemContainer* out);

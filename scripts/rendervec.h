@@ -138,6 +138,9 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
 
 void GLVecs::del(pair<int,int> index) {
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
+    if (index.first < -1) {
+      cout << "big problem" << endl;
+    }
     //cout << "del: " << index.first << ' ' << index.second << endl;
     // if (index.second > 0) {
     //   int start = index.first*6;
