@@ -80,8 +80,8 @@ void Tile::timestep() {
 
 Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize), deleting(false) {
 	//if (writelock.try_lock_for(std::chrono::seconds(1))) {
-    if (pos == ivec3(0,2,15)) {
-      entities.push_back(new NamedEntity(pos*chunksize+32, "ent"));
+    if (pos == ivec3(0,2,0)) {
+      entities.push_back(new NamedEntity(pos*chunksize+32, "stone-monster"));
   	}
     if (world == nullptr) {
       cout << "error world is null" << endl;

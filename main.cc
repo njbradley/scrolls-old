@@ -247,7 +247,7 @@ void main_menu() {
 
 int main( void )
 {
-	system("rmdir saves /s /q");
+	//system("rmdir saves /s /q");
 	load_settings();
 	min_ms_per_frame = 1000.0/max_fps;
 	
@@ -381,6 +381,7 @@ int main( void )
 	GLuint uiTextureID  = glGetUniformLocation(uiProgram, "myTextureSampler");
 	GLuint viewdistID = glGetUniformLocation(programID, "view_distance");
 	GLuint clearcolorID = glGetUniformLocation(programID, "clear_color");
+	GLuint player_positionID = glGetUniformLocation(programID, "player_position");
 	
 	int num_tris;
 	int num_ui_tris;
@@ -458,7 +459,7 @@ int main( void )
 	render_flag = true;
 	bool reaching_max_fps = true;
 	double slow_frame = 0;
-	int view_distance = 800;
+	int view_distance = 100;
 	
 	
 	threadmanager->rendering = true;
@@ -466,9 +467,7 @@ int main( void )
 	while (playing) {
 		
 		
-		
 		if (menu == nullptr) {
-			world->player->timestep(world);
 			world->timestep();
 			//test->timestep(world);
 			world->player->computeMatricesFromInputs(world);
@@ -624,6 +623,7 @@ int main( void )
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 		glUniform3f(clearcolorID, clearcolor.x, clearcolor.y, clearcolor.z);
 		glUniform1i(viewdistID, view_distance);
+		glUniform3f(player_positionID, world->player->position.x, world->player->position.y, world->player->position.z);
 		
 		
 		int ids[num_blocks];

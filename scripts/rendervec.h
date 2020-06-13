@@ -167,9 +167,9 @@ void GLVecs::del(pair<int,int> index) {
         empty[i] = pair<int,int>(empty[i].first, empty[i].second + index.second);
         //cout << " result " << empty[i].first << ' ' << empty[i].second << endl;
         if (empty[i].first + empty[i].second == num_verts/6) {
-          cout << "empty " << empty[i].first << ' ' << empty[i].second << " merged out old num " << num_verts/6;
+          //cout << "empty " << empty[i].first << ' ' << empty[i].second << " merged out old num " << num_verts/6;
           num_verts -= empty[i].second*6;
-          cout << ' ' << num_verts/6 << endl;
+          //cout << ' ' << num_verts/6 << endl;
           empty.erase(empty.begin()+i);
           //crash(1178656827093404);
         }
@@ -182,9 +182,9 @@ void GLVecs::del(pair<int,int> index) {
         empty[i] = pair<int,int>(index.first, index.second + empty[i].second);
         //cout << " result " << empty[i].first << ' ' << empty[i].second << endl;
         if (empty[i].first + empty[i].second == num_verts/6) {
-          cout << "empty " << empty[i].first << ' ' << empty[i].second << " merged out old num " << num_verts/6;
+          //cout << "empty " << empty[i].first << ' ' << empty[i].second << " merged out old num " << num_verts/6;
           num_verts -= empty[i].second*6;
-          cout << ' ' << num_verts/6 << endl;
+          //cout << ' ' << num_verts/6 << endl;
           empty.erase(empty.begin()+i);
           //crash(829578937180496782);
         }

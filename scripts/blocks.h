@@ -10,6 +10,8 @@
 #include "cross-platform.h"
 #include "rendervec.h"
 #include "blockdata-predef.h"
+#include "tiles-predef.h"
+#include "blockphysics-predef.h"
 #include "blocks-predef.h"
 #include "world-predef.h"
 
@@ -509,6 +511,7 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
     gx += px*scale;
     gy += py*scale;
     gz += pz*scale;
+    //cout << "render" << gx << ' ' << gy << ' ' << gz << ' '<< scale << endl;
     GLfloat x = gx;
     GLfloat y = gy;
     GLfloat z = gz;
@@ -538,34 +541,6 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
         rotate_to_origin(mat, dirs, blocks->blocks[value]->default_direction);
         rotate_from_origin(mat, dirs, direction);
       }
-      // for (int i = 0; i < 6; i ++) {
-      //   if (i+direction >= 6) {
-      //     mat[i+direction-6] =  blocks->blocks[value]->texture[i];
-      //   } else {
-      //     mat[i+direction] =  blocks->blocks[value]->texture[i];
-      //   }
-      // }
-      
-      // const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
-      // int def_dir_index = blocks->blocks[value]->default_direction;
-      // ivec3 def_dir = dir_array[def_dir_index];
-      // ivec3 dir = dir_array[direction];
-      // ivec3 to_origin = ivec3(1,0,0) - def_dir;
-      // ivec3 from_origin = dir - ivec3(1,0,0);
-      //
-      // int maxmin = 0;
-      // for (int i = 0; i < 3; i ++) {
-      //   if (std::abs(from_origin[i]) > std::abs(maxmin) or from_origin[i] == std::abs(maxmin)) {
-      //     maxmin = from_origin[i];
-      //   }
-      // }
-      // for (int axis = 0; axis < 3; axis ++) {
-      //   if (from_origin[axis] == 0) {
-      //     dirs[axis] += maxmin;
-      //     dirs[axis+3] -= maxmin;
-      //   }
-      // }
-      //
       
        
       int minscale = blocks->blocks[value]->minscale;
@@ -589,7 +564,6 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
       //cout << 85 << endl;
       Block* block;
       //cout << 87 << endl;
-      
       
       
       

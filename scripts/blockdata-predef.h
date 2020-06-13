@@ -48,8 +48,9 @@ class BlockData { public:
 class BlockStorage { public:
     map<char,BlockData*> blocks;
     map<string, char> names;
+    int num_blocks;
     
-    BlockStorage();
+    BlockStorage(string path = "");
 };
 
 BlockStorage* blocks;

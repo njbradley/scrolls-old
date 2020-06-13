@@ -48,6 +48,17 @@ ivec2 TerrainObject::get_nearest_2d(ivec2 pos) {
 
 TerrainObjectMerger::TerrainObjectMerger(TerrainLoader* newparent): parent(newparent) {
 	objs = vector<TerrainObject*> {new Tree(this), new Cave(this), new BigTree(this)};
+	vector<string> files;
+	get_files_folder("resources/data/terrain", &files);
+	for (string file : files) {
+		objs.push_back(new FileTerrain(this, "resources/data/terrain/" + file));
+	}
+}
+
+TerrainObjectMerger::~TerrainObjectMerger() {
+	for (TerrainObject* obj : objs) {
+		delete obj;
+	}
 }
 
 char TerrainObjectMerger::gen_func(ivec3 pos) {
@@ -89,7 +100,7 @@ Land::Land(TerrainLoader* loader): parent(loader) {
 }
 
 int Land::get_height(ivec2 pos) {
-	return int(get_heightmap(pos.x, pos.y, parent->seed));
+	return int(get_heightmap(pos.x, pos.y, parent->seed))/2;
 }
 
 char Land::gen_func(ivec3 pos) {
@@ -144,7 +155,7 @@ char BigTree::gen_func(ivec3 offset, ivec3 pos) {
 	pos.y -= (parent->terrain->get_height(ivec2(offset.x+pos.x, offset.z+pos.z)) - offset.y)*(1 - pos.y/200.0);
 	
 	int seed = hash4(parent->seed, offset.x, offset.y, offset.z, 0);
-	double angle = atan2(pos.x-25, pos.z-25)*10;
+	double angle = atan2(pos.x-25, pos.z-25)*30;
 	double dist = sqrt((pos.x-25)*(pos.x-25) + (pos.z-25)*(pos.z-25));
 	//double dist = std::abs(pos.x-25) + std::abs(pos.z-25);
 	double perlin = scaled_perlin(angle+30, pos.y/10.0+30, 10, 5, seed, 1)-5;
@@ -158,7 +169,7 @@ char BigTree::gen_func(ivec3 offset, ivec3 pos) {
 	double multiplier = (pos.y/25.0 - 0.5);
 	multiplier = 50*multiplier*multiplier*multiplier*multiplier;
 	double height = perlin*multiplier;
-	height += 5;
+	height += 5 + 3*multiplier;
 	if (dist < height and dist > height-(perlin*3)-5) {
 		return 1;
 	} else if (dist <= height-(perlin*3)-5 and pos.y > 25) {
@@ -173,7 +184,7 @@ ivec3 BigTree::get_nearest(ivec3 pos) {
 }
 
 int BigTree::priority() {
-	return 10;
+	return 11;
 }
 
 
@@ -195,6 +206,51 @@ ivec3 Cave::get_nearest(ivec3 pos) {
 
 int Cave::priority() {
 	return 1;
+}
+
+
+
+
+
+FileTerrain::FileTerrain(TerrainObjectMerger* merger, string path): TerrainObject(merger->parent, ivec3(0,0,0), 0) {
+	ifstream ifile(path);
+	cout << "loading terrain object " << path << endl;
+	int scale;
+	bool ignore_air;
+	ifile >> scale;
+	size = ivec3(scale, scale, scale);
+	ifile >> radius;
+	ifile >> priority_level;
+	ifile >> ignore_air;
+	cout << scale << ' ' << radius << ' ' << priority_level << ' ' << ignore_air << endl;
+	string buff;
+	getline(ifile, buff, ':');
+	data = new char[scale*scale*scale];
+	ifile.read(data, scale*scale*scale);
+	if (ignore_air) {
+		for (int i = 0; i < scale*scale*scale; i ++) {
+			if (data[i] == 0) {
+				data[i] = -1;
+			}
+		}
+	}
+}
+
+FileTerrain::~FileTerrain() {
+	delete[] data;
+}
+
+char FileTerrain::gen_func(ivec3 offset, ivec3 pos) {
+	return data[pos.x*size.x*size.x + pos.y*size.x + pos.z];
+}
+
+ivec3 FileTerrain::get_nearest(ivec3 pos) {
+	ivec2 pos2d = get_nearest_2d(ivec2(pos.x, pos.z));
+	return ivec3(pos2d.x, parent->terrain->get_height(pos2d+ivec2(size.x/2,size.z/2)+ivec2(pos.x, pos.z)) - pos.y - size.y/2, pos2d.y);
+}
+
+int FileTerrain::priority() {
+	return priority_level;
 }
 
 #endif

@@ -54,7 +54,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 
 Player::Player(vec3 pos, World* newworld):
-	Entity(pos, vec3(-0.8,-2.6,-0.8), vec3(0.8,1,0.8)), world(newworld), inven(10), backpack(10) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
+	Entity(pos, vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7)), world(newworld), inven(10), backpack(10) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
 	glfwSetMouseButtonCallback(window, mouse_button_call);
 	glfwSetScrollCallback(window, scroll_callback);
 	//char arr[] = {1,0,1,0,1,0,1,0}
@@ -64,7 +64,7 @@ Player::Player(vec3 pos, World* newworld):
 }
 
 Player::Player(istream& ifile):
-	Entity(vec3(0,0,0), vec3(-0.8,-2.6,-0.8), vec3(0.8,1,0.8)), inven(ifile), backpack(ifile) {
+	Entity(vec3(0,0,0), vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7)), inven(ifile), backpack(ifile) {
 		ifile >> selitem;
 		ifile >> position.x >> position.y >> position.z;
 		ifile >> vel.x >> vel.y >> vel.z >> angle.x >> angle.y;

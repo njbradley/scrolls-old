@@ -4,6 +4,7 @@
 in vec2 UV;
 in float lightLevel;
 flat in ivec2 material;
+in float vertex_dist;
 
 // Ouput data
 out vec3 color;
@@ -16,8 +17,8 @@ uniform int view_distance;
 
 void main(){
 	// Output color = color of the texture at the specified UV
-	float dist = gl_FragCoord.z / gl_FragCoord.w;
-	dist /= view_distance;
+	//float dist = gl_FragCoord.z / gl_FragCoord.w;
+	float dist = vertex_dist / view_distance;
 	if (dist > 1) {
 		dist = 1;
 	}

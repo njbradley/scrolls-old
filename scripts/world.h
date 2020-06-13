@@ -213,6 +213,10 @@ void World::get_async_loaded_chunks() {
 }
 
 void World::timestep() {
+  ivec3 chunk(player->position/float(chunksize) - vec3(player->position.x<0, player->position.y<0, player->position.z<0));
+  if (tiles.find(chunk) != tiles.end() or player->flying) {
+    player->timestep(this);
+  }
   for (pair<ivec3, Tile*> kvpair : tiles) {
     tiles[kvpair.first]->timestep();
   }

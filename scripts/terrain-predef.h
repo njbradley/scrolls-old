@@ -28,6 +28,7 @@ public:
 	vector<TerrainObject*> objs;
 	TerrainLoader* parent;
 	TerrainObjectMerger(TerrainLoader* newparent);
+	~TerrainObjectMerger();
 	char gen_func(ivec3);
 };
 
@@ -69,6 +70,17 @@ public:
 class Cave: public TerrainObject {
 public:
 	Cave(TerrainObjectMerger*);
+	char gen_func(ivec3,ivec3);
+	ivec3 get_nearest(ivec3);
+	int priority();
+};
+
+class FileTerrain: public TerrainObject {
+public:
+	char* data;
+	int priority_level;
+	FileTerrain(TerrainObjectMerger*, string path);
+	~FileTerrain();
 	char gen_func(ivec3,ivec3);
 	ivec3 get_nearest(ivec3);
 	int priority();

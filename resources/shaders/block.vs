@@ -9,15 +9,19 @@ layout(location = 3) in ivec2 mat;
 // Output data ; will be interpolated for each fragment.
 out vec2 UV;
 out float lightLevel;
+out float vertex_dist;
 flat out ivec2 material;
 
 // Values that stay constant for the whole mesh.
 uniform mat4 MVP;
+uniform vec3 player_position;
 
 void main(){
 
 	// Output position of the vertex, in clip space : MVP * position
   
+	vertex_dist = length(vertexPosition_modelspace - player_position);
+	
 	gl_Position =  MVP * vec4(vertexPosition_modelspace,1);
 	
 	// UV of the vertex. No special space for this one.

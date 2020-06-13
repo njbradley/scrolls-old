@@ -1,0 +1,6 @@
+: axe pickaxe shovel sword null
+: 0.6 0.3     1.0    1.0   1.0
+: 26 26 26 26 26 26
+: bone 1 0 1 null 0 null
+: 1 null
+0

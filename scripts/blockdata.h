@@ -10,6 +10,8 @@ using std::ifstream;
 using std::map;
 #include "blockdata-predef.h"
 #include "menu-predef.h"
+#include "blocks-predef.h"
+#include "cross-platform.h"
 
 
 
@@ -105,13 +107,14 @@ void BlockData::do_rcaction(Pixel* pix) {
 
 
 
-BlockStorage::BlockStorage() {
+BlockStorage::BlockStorage(string path) {
     vector<string> block_paths;
-    get_files_folder("resources/data/blocks", &block_paths);
+    get_files_folder(path + "resources/data/blocks", &block_paths);
+    num_blocks = block_paths.size();
     int i = 0;
     for (string filename : block_paths) {
         i ++;
-        ifstream ifile("resources/data/blocks/" + filename);
+        ifstream ifile(path + "resources/data/blocks/" + filename);
         BlockData* data = new BlockData(ifile);
         blocks[(char)i] = data;
         names[data->name] = (char)i;
