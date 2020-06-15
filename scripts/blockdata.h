@@ -30,6 +30,10 @@ BlockExtra::BlockExtra(Pixel* pix): pixel(pix) {
   //}
 }
 
+BlockExtra::~BlockExtra() {
+  delete inven;
+}
+
 BlockExtra::BlockExtra() {}
 
 BlockExtra::BlockExtra(istream& ifile): pixel(nullptr) {
@@ -83,6 +87,10 @@ BlockData::BlockData(ifstream & ifile) {
     }
 }
 
+BlockData::~BlockData() {
+  delete extras;
+}
+
 void BlockData::do_rcaction(Pixel* pix) {
     if (rcaction == "crafting") {
       if (menu == nullptr) {
@@ -120,6 +128,12 @@ BlockStorage::BlockStorage(string path) {
         names[data->name] = (char)i;
         cout << "loading blockdata " << data->name << " from file" << endl;
     }
+}
+
+BlockStorage::~BlockStorage() {
+  for (pair<char,BlockData*> kv : blocks) {
+    delete kv.second;
+  }
 }
 
 

@@ -1,0 +1,6 @@
+: axe pickaxe shovel sword null
+: 0.3 0.3     0.2    0.2   0.5
+: 32 32 32 32 32 32
+: dragon-flesh 1 1 1 null 0 dragon-flesh
+: 1 dragon
+0

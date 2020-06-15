@@ -7,6 +7,14 @@ BlockGroup::BlockGroup(World* nworld, ivec3 starting_pos): world(nworld), positi
 	find_group();
 }
 
+BlockGroup::~BlockGroup() {
+	if (block != nullptr) {
+		block->del(false);
+		delete block;
+	}
+	remove_pix_pointers();
+}
+
 void BlockGroup::find_group() {
 	
 	Block* starting_block = world->get_global(position.x, position.y, position.z, 1);

@@ -38,6 +38,7 @@ public:
 	TerrainObjectMerger objmerger;
 	TerrainBase* terrain;
 	TerrainLoader(int nseed);
+	~TerrainLoader();
 	char gen_func(ivec3);
 };
 	

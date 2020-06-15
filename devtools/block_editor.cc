@@ -6,8 +6,6 @@
 #include <thread>
 using std::stringstream;
 
-//#include <nvwa/debug_new.h>
-
 // Include GLEW
 #include <GL/glew.h>
 
@@ -19,26 +17,24 @@ using std::stringstream;
 #include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
 
-#include "scripts/shader.h"
-#include "scripts/texture.h"
-#include "scripts/player.h"
-#include "scripts/entity.h"
-#include "scripts/menu.h"
-#include "scripts/world.h"
-#include "scripts/blockdata.h"
-#include "scripts/tiles.h"
-#include "scripts/blocks.h"
-#include "scripts/items.h"
-#include "scripts/crafting.h"
-#include "scripts/terrain.h"
-#include "scripts/blockphysics.h"
-#include "scripts/multithreading.h"
+#include "../scripts/shader.h"
+#include "../scripts/texture.h"
+#include "../scripts/player.h"
+#include "../scripts/entity.h"
+#include "../scripts/menu.h"
+#include "../scripts/world.h"
+#include "../scripts/blockdata.h"
+#include "../scripts/tiles.h"
+#include "../scripts/blocks.h"
+#include "../scripts/items.h"
+#include "../scripts/crafting.h"
+#include "../scripts/terrain.h"
+#include "../scripts/blockphysics.h"
+#include "../scripts/multithreading.h"
 
+#include "../scripts/cross-platform.h"
 
-#include "scripts/cross-platform.h"
-
-
-#include <future>
+#include "../scripts/classes.h"
 
 int num_blocks;
 int num_uis;
@@ -46,7 +42,7 @@ int num_uis;
 int last_num_verts = 0;
 int last_num_ui_verts = 0;
 
-int max_fps;
+int max_fps = 120;
 double min_ms_per_frame;
 
 GLuint vertexbuffer;
@@ -66,8 +62,29 @@ bool fullscreen = false;
 bool playing = true;
 bool errors = false;
 
+bool rotation_enabled;
+
+/*
+// Initial position : on +Z
+glm::vec3 position = glm::vec3( 25, 45, 5 );
+// Initial horizontal angle : toward -Z
+float horizontalAngle = 3.14f;
+// Initial vertical angle : none
+float verticalAngle = 0.0f;
+// Initial Field of View
+*/
+// float initialFoV = 85.0f;
+//
+//
+// float speed = 40.0f; // 3 units / second
+// float mouseSpeed = 0.005f;
+//
+// void mouse_button_call(GLFWwindow*, int, int, int);
+// bool mouse;
+// int button;
+
 void wait() {
-	//return;
+	return;
 	std::cout << "Press ENTER to continue...";
 	std::cin.ignore( std::numeric_limits <std::streamsize> ::max(), '\n' );
 }
@@ -95,7 +112,6 @@ void dump_emptys() {
 	}
 }
 
-
 void crash(long long err_code) {
 	cout << "fatal error encountered! shutting down cleanly: err code: " << err_code << endl;
 	dump_buffers();
@@ -113,63 +129,396 @@ void hard_crash(long long err_code) {
 	exit(1);
 }
 
-void load_settings() {
-	ifstream ifile("saves/settings.txt");
-	if (ifile.good()) {
-		string name;
-		while (!ifile.eof()) {
-			getline(ifile, name, ':');
-			cout << name << ';' << endl;
-			if (name == "fov") {
-				ifile >> initialFoV;
-			} else if (name == "fullscreen") {
-				ifile >> name;
-				fullscreen = name == "true";
-			} else if (name == "max_fps") {
-				ifile >> max_fps;
-			} else if (name == "dims") {
-				int x,y;
-				ifile >> x >> y;
-				set_screen_dims(x, y);
-			} else if (name == "") {
-				continue;
-			} else {
-				cout << "error reading settings file" << endl;
-				cout << "no setting '" << name << "'" << endl;
-				exit(1);
-			}
-			getline(ifile, name);
-		}
-	} else {
-		create_dir("saves");
-		ofstream ofile("saves/settings.txt");
-		ofile << "fov: 110" << endl;
-		ofile << "fullscreen: false" << endl;
-		ofile << "dims: 1600 900" << endl;
-		ofile << "max_fps: 120" << endl;
-		load_settings();
+class BlockContainer: public Collider { public:
+	Block* block;
+	
+	BlockContainer(Block* b): block(b) {
+		
 	}
+	
+	vec3 get_position() {
+		return block->get_position();
+	}
+	
+	Block* get_global(int x, int y, int z, int size) {
+		if (x >= 0 and y >= 0 and z >= 0 and x < block->scale and y < block->scale and z < block->scale) {
+			return block->get_global(x, y, z, size);
+		} else {
+			return nullptr;
+		}
+	}
+};
+
+
+BlockContainer* worldblock;
+
+class SimplePlayer {
+	
+	mat4 ViewMatrix;
+	mat4 ProjectionMatrix;
+	vec3 pointing;
+	int block_sel;
+	public:
+		vec3 position;
+	  vec3 vel;
+	  vec2 angle;
+		bool autojump = false;
+		
+		SimplePlayer(vec3 pos): position(pos), angle(0,0), block_sel(1) {
+			glfwSetMouseButtonCallback(window, mouse_button_call);
+			glfwSetScrollCallback(window, scroll_callback);
+			speed = 4;
+		}
+			
+		mat4 getViewMatrix(){
+			return ViewMatrix;
+		}
+		mat4 getProjectionMatrix(){
+			return ProjectionMatrix;
+		}
+		
+		Block* raycast(double* x, double* y, double* z) {
+			vec3 start(*x, *y, *z);
+			double tiny = 0.00001;
+			int scale = worldblock->block->scale;
+			//cout << entity << endl;
+			//print(start);
+			float dt = 0;
+			bool ray_valid = true;
+			for (int axis = 0; axis < 3 and ray_valid; axis ++) {
+				float time;
+				if (start[axis] < 0) {
+					time = start[axis] * -1 / pointing[axis];
+				} else if (start[axis] >= scale) {
+					time = (start[axis] - scale) * -1 / pointing[axis] + 0.001f;
+				} else {
+					continue;
+				}
+				//cout << time << ' ';
+				if ( time < 0 ) {
+					ray_valid = false;
+					continue;
+				} else if (time > dt) {
+					dt = time;
+				}
+			}// cout << endl;
+			if (!ray_valid or glm::length(pointing*dt) > 8) {
+				return nullptr;
+			}
+			start += pointing*dt;
+			//print (start);
+			double ex = start.x;
+			double ey = start.y;
+			double ez = start.z;
+			if (ex < 0 or ex >= scale or ey < 0 or ey >= scale or ez < 0 or ez >= scale) {
+				return nullptr;
+			}
+			//cout << "made it" << endl;
+			Block* start_block = worldblock->block->get_global(int(ex) - (ex<0), int(ey) - (ey<0), int(ez) - (ez<0), 1);
+			//cout << start_block << endl;
+			Block* newtarget = start_block->raycast(worldblock, &ex, &ey, &ez, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 10);
+			*x = ex;
+			*y = ey;
+			*z = ez;
+			return newtarget;
+		}
+		
+		void right_mouse() {
+			//cout << "riht" << endl;
+			vec3 v = position;
+			double tiny = 0.0000001;
+			double x = position.x;
+			double y = position.y;
+			double z = position.z;
+			// Block* start = worldblock->get_global(int(x), int(y), int(z), 1);
+			// Block* target = nullptr;
+			// if (start != nullptr) {
+			// 	target = start->raycast(worldblock, &x, &y, &z, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 10);
+			// }
+			Block* target = raycast(&x, &y, &z);
+			if (target == nullptr or target->get() == 0) {
+				return;
+			}
+			int ox = (int)x - (x<0);
+			int oy = (int)y - (y<0);
+			int oz = (int)z - (z<0);
+			x -= pointing.x*0.001;
+			y -= pointing.y*0.001;
+			z -= pointing.z*0.001;
+			int dx = (int)x - (x<0) - ox;
+			int dy = (int)y - (y<0) - oy;
+			int dz = (int)z - (z<0) - oz;
+			Block* newblock = worldblock->get_global((int)x - (x<0), (int)y - (y<0), (int)z - (z<0), 1);
+			if (newblock == nullptr) {
+				return;
+			}
+			while (newblock->scale != 1) {
+				char val = newblock->get();
+				newblock->get_pix()->subdivide();
+				delete newblock;
+				newblock = worldblock->get_global((int)x, (int)y, (int)z, 1);
+			}
+			//cout << "set" << endl;
+			newblock->get_pix()->value = block_sel;
+			newblock->get_pix()->set_render_flag();
+			if (!rotation_enabled or !blocks->blocks[block_sel]->rotation_enabled) {
+				newblock->get_pix()->direction = blocks->blocks[block_sel]->default_direction;
+			}
+			const ivec3 dirs[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
+			for (int i = 0; i < 6; i ++) {
+				ivec3 offset = dirs[i];
+				Block* other = worldblock->get_global((int)x + offset.x, int(y) + offset.y, int(z)+offset.z, 1);
+				if (other != nullptr) {
+					other->get_pix()->set_render_flag();
+				}
+				if (rotation_enabled and blocks->blocks[block_sel]->rotation_enabled and offset == ivec3(dx,dy,dz)) {
+					newblock->get_pix()->direction = i;
+				}
+			}
+			//newblock->get_pix()->value = block_sel;
+			//worldblock->mark_render_update(pair<int,int>((int)position.x/worldblock->chunksize - (position.x<0), (int)position.z/worldblock->chunksize - (position.z<0)));
+		}
+		
+		void left_mouse() {
+			//cout << "lefftt" << endl;
+			vec3 v = position;
+			double tiny = 0.0000001;
+			double x = position.x;
+			double y = position.y;
+			double z = position.z;
+			Block* target = raycast(&x, &y, &z);
+			if (target == nullptr or target->get() == 0) {
+				return;
+			}
+			
+			while (target->scale != 1) {
+				char val = target->get();
+				target->get_pix()->subdivide();
+				delete target;
+				target = worldblock->get_global((int)x, (int)y, (int)z, 1);
+			}
+			//cout << "set" << endl;
+			target->get_pix()->value = 0;
+			target->get_pix()->set_render_flag();
+			const ivec3 dirs[7] {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
+			for (ivec3 offset : dirs) {
+				Block* other = worldblock->get_global((int)x + offset.x, int(y) + offset.y, int(z)+offset.z, 1);
+				if (other != nullptr) {
+					other->get_pix()->set_render_flag();
+				}
+			}
+			//worldblock->mark_render_update(pair<int,int>((int)position.x/worldblock->chunksize - (position.x<0), (int)position.z/worldblock->chunksize - (position.z<0)));
+		}
+		
+		
+		void mouse_button() {
+			//cout << "hello" << endl;
+			if (button == GLFW_MOUSE_BUTTON_LEFT) {
+				
+			} else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+				
+			}
+		}
+		
+		void computeMatricesFromInputs(){
+		
+			// glfwGetTime is called only once, the first time this function is called
+			static double lastTime = glfwGetTime();
+		
+			// Compute time difference between current and last frame
+			double currentTime = glfwGetTime();
+			float deltaTime = float(currentTime - lastTime);
+		
+			// Get mouse position
+			double xpos, ypos;
+			glfwGetCursorPos(window, &xpos, &ypos);
+		
+			// Reset mouse position for next frame
+			glfwSetCursorPos(window, screen_x/2, screen_y/2);
+		
+			// Compute new orientation
+			angle += vec2(mouseSpeed * float(screen_x/2 - xpos ),  mouseSpeed * float( screen_y/2 - ypos ));
+			//cout << horizontalAngle << ' ' << verticalAngle << endl;
+			if (angle.y > 1.55f) {
+				angle.y = 1.55f;
+			}
+			if (angle.y < -1.55) {
+				angle.y = -1.55f;
+			}
+			if (angle.x > 6.28f) {
+				angle.x = 0;
+			}
+			if (angle.x < 0) {
+				angle.x = 6.28;
+			}
+			
+			// Direction : Spherical coordinates to Cartesian coordinates conversion
+			glm::vec3 direction(
+				cos(angle.y) * sin(angle.x),
+				sin(angle.y),
+				cos(angle.y) * cos(angle.x)
+			);
+			pointing = direction;
+			// Right vector
+			glm::vec3 right = glm::vec3(
+				sin(angle.x - 3.14f/2.0f),
+				0,
+				cos(angle.x - 3.14f/2.0f)
+			);
+			vec3 forward = -glm::vec3(
+				-cos(angle.x - 3.14f/2.0f),
+				0,
+				sin(angle.x - 3.14f/2.0f)
+			);
+			
+			
+			// Up vector
+			glm::vec3 up = glm::cross( right, forward );
+			
+			
+			
+			// Move forward
+			if (glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS){
+				position += forward * deltaTime * speed;
+			}
+			// Move backward
+			if (glfwGetKey( window, GLFW_KEY_S ) == GLFW_PRESS){
+				position -= forward * deltaTime * speed;
+			}
+			// Strafe right
+			if (glfwGetKey( window, GLFW_KEY_D ) == GLFW_PRESS){
+				position += right * deltaTime * speed;
+			}
+			// Strafe left
+			if (glfwGetKey( window, GLFW_KEY_A ) == GLFW_PRESS){
+				position -= right * deltaTime * speed;
+			}
+			if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS){
+				position += up * deltaTime * speed;
+			}
+			if (glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS){
+				position -= up * deltaTime * speed;
+			}
+			
+			if (mouse) {
+				if (button == 0) {
+					left_mouse();
+				} else if (button == 1) {
+					right_mouse();
+				}
+				mouse = false;
+			}
+			
+			if (scroll != 0) {
+				block_sel -= scroll;
+				if (block_sel < 1) {
+					block_sel = 1;
+				} if (block_sel > blocks->num_blocks) {
+					block_sel = blocks->num_blocks;
+				}
+				scroll = 0;
+			}
+			
+			float FoV = initialFoV;// - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a callback for this. It's a bit too complicated for this beginner's tutorial, so it's disabled instead.
+			
+			
+			// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+			ProjectionMatrix = glm::perspective(glm::radians(FoV), float(screen_x)/screen_y, 0.1f, 1000.0f);
+			// Camera matrix
+			ViewMatrix       = glm::lookAt(
+										position,           // Camera is here
+										position+direction, // and looks here : at the same position, plus "direction"
+										up                  // Head is up (set to 0,-1,0 to look upside-down)
+								   );
+		
+			// For the next frame, the "last time" will be "now"
+			lastTime = currentTime;
+		}
+		
+		void render_ui(MemVecs * uivecs) {
+			///hearts
+			draw_text(uivecs, blocks->blocks[block_sel]->name, -0.8f,-0.8f, 1);
+			float scale = 0.1f;
+			int i;
+		}
+};
+
+SimplePlayer* player;
+
+
+Block* new_block(int size) {
+	Pixel pix(0,0,0,0,size,nullptr,nullptr);
+	return pix.resolve([=] (ivec3 pos) {
+		if ((pos.x == size-1 or pos.x == 0 or pos.z == size-1 or pos.z == 0 or
+			((pos.x == size/2 or pos.x == size/2-1) and (pos.z == size/2 or pos.z == size/2-1))) and pos.y == 0) {
+			return char(1);
+		} else {
+			return char(0);
+		}
+	});
 }
 
-void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLuint uvbuffer, GLuint matbuffer, int * num_tris) {
+Block* from_block_file(string path) {
+	ifstream ifile(path, ios::binary);
+	if (!ifile.good()) {
+		cout << "File " << path << " does not exist" << endl;
+		exit(1);
+	}
+	int size;
+  ifile >> size;
+  char buff;
+  ifile.read(&buff,1);
+  return Block::from_file(ifile, 0, 0, 0, size, nullptr, nullptr);
+}
+
+void to_block_file(string path) {
+	ofstream ofile(path, ios::binary);
+	ofile << worldblock->block->scale << ' ';
+	worldblock->block->save_to_file(ofile);
+}
+
+Block* from_char_file(string path) {
+	ifstream ifile(path, ios::binary);
+	int size;
+	ifile >> size;
+	char data[size*size*size];
+	string buff;
+	getline(ifile, buff, ':');
+	ifile.read(data, size*size*size);
+	Pixel pix(0,0,0,0,size,nullptr,nullptr);
+	return pix.resolve([&] (ivec3 pos) {
+		return data[pos.x*size*size + pos.y*size + pos.z];
+	});
+}
+
+void to_char_file(string path) {
+	ofstream ofile(path, ios::binary);
+	int size = worldblock->block->scale;
+	char data[size*size*size];
+	for (int x = 0; x < size; x ++) {
+		for (int y = 0; y < size; y ++) {
+			for (int z = 0; z < size; z ++) {
+				data[x*size*size + y*size + z] = worldblock->get_global(x, y, z, 1)->get();
+			}
+		}
+	}
+	ofile << size << " :";
+	ofile.write(data, size*size*size);
+}
+
+
+
+void make_ui_buffer(SimplePlayer* player, string debugstr, GLuint vertexbuffer, GLuint uvbuffer, GLuint matbuffer, int * num_tris) {
 	MemVecs vecs;
 	if (last_num_ui_verts != 0) {
 		vecs.verts.reserve(last_num_ui_verts*3);
 		vecs.uvs.reserve(last_num_ui_verts*2);
 		vecs.mats.reserve(last_num_ui_verts);
 	}
-	if (debug_visible) {
-		render_debug(&vecs, debugstream);
-	} else {
-		render_debug(&vecs, "");
-	}
+	render_debug(&vecs, debugstr);
 	player->render_ui(&vecs);
-	if (menu != nullptr) {
-		menu->render(window, world, player, &vecs);
-	}
 	int num_verts = vecs.num_verts;
 	last_num_ui_verts = num_verts;
-	
 	*num_tris = num_verts/3;
 	
 	GLfloat i = 0.0f;
@@ -185,81 +534,59 @@ void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLu
 	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &vecs.mats.front(), GL_STATIC_DRAW);
 }
 
-
-void inven_menu() {
-	menu = new InventoryMenu("hi", nullptr, [&] () {
-		cout << "done! " << endl;
-		delete menu;
-		menu = nullptr;
-	});
-}
-
-void level_select_menu() {
-	worlds.clear();
-	ifstream ifile("saves/saves.txt");
-	string name;
-	while (ifile >> name) {
-		worlds.push_back(name);
-	}
-	
-	menu = new SelectMenu("Level Select:", worlds, [&] (string result) {
-		if (result != "") {
-			world->close_world();
-			delete world;
-			world = new World(result);
-			world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
-			render_flag = true;
-			//debug_visible = true;
-		}
-		delete menu;
-		menu = nullptr;
-	});
-}
-
-void new_world_menu() {
-	menu = new TextInputMenu("Enter your new name:", true, [&] (string result) {
-		if (result != "") {
-			world->close_world();
-			delete world;
-			world = new World(result, time(NULL));
-			world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
-			render_flag = true;
-		}
-		delete menu;
-		menu = nullptr;
-	});
-}
-
-void main_menu() {
-	vector<string> options = {"Level Select", "New World"};
-	menu = new SelectMenu("Scrolls: an adventure game", options, [&] (string result) {
-		if (result == "Level Select") {
-			delete menu;
-			level_select_menu();
-		} else if (result == "New World") {
-			delete menu;
-			new_world_menu();
-		} else {
-			delete menu;
-			menu = nullptr;
-		}
-	});
-}
+// void mouse_button_call(GLFWwindow* window, int nbutton, int action, int mods) {
+// 	if (action == GLFW_PRESS) {
+// 		mouse = true;
+// 		button = nbutton;
+// 	}
+// }
 
 
-int main( void )
+int main( int numargs, const char** args)
 {
-	
 	//system("rmdir saves /s /q");
-	load_settings();
 	min_ms_per_frame = 1000.0/max_fps;
 	
 	cout.precision(10);
+	blocks = new BlockStorage("../");
 	
-	itemstorage = new ItemStorage();
-	blocks = new BlockStorage();
-	recipestorage = new RecipeStorage();
-	entitystorage = new EntityStorage();
+	
+	
+	
+	if (numargs < 4) {
+		cout << "not enough arguments" << endl;
+		cout << "usage: block_editor new|edit filepath [size]" << endl;
+		return 1;
+	}
+	string worldpath = args[3];
+	string type = args[2];
+	string savepath = worldpath;
+	string savetype = type;
+	if (numargs == 6 and string(args[1]) != "new") {
+		savepath = args[5];
+		savetype = args[4];
+	}
+	if (string(args[1]) == "new") {
+		stringstream ss(args[4]);
+		int size;
+		ss >> size;
+		worldblock = new BlockContainer(new_block(size));
+	} else if (string(args[1]) == "edit") {
+		if (type == "block") {
+			worldblock = new BlockContainer(from_block_file(worldpath));
+		} else if (type == "char") {
+			worldblock = new BlockContainer(from_char_file(worldpath));
+		} else {
+			cout << "invalid type" << endl;
+			return 1;
+		}
+	} else {
+		cout << "bad first arg" << endl;
+		cout << "usage: block_editor new|edit filepath [size]" << endl;
+		return 1;
+	}
+	
+	rotation_enabled = savetype == "block";
 	
 	// Initialise GLFW
 	if( !glfwInit() )
@@ -285,7 +612,6 @@ int main( void )
 	}
 	glfwSetWindowPos(window, 100, 40);
 	
-	threadmanager = new ThreadManager(window);
 	
 	//launch_threads(window);
 	
@@ -296,9 +622,7 @@ int main( void )
 		return -1;
 	}
   glfwMakeContextCurrent(window);
-	
-	
-	//wait();
+		
 	// Initialize GLEW
 	glewExperimental = true; // Needed for core profile
 	if (glewInit() != GLEW_OK) {
@@ -308,9 +632,6 @@ int main( void )
 		return -1;
 	}
 	
-	int maxsize;
-	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxsize);
-	cout << "maxsize: " << maxsize << endl;
 	
 	
 	// Ensure we can capture the escape key being pressed below
@@ -343,8 +664,8 @@ int main( void )
 	
 	
 	// Create and compile our GLSL program from the shaders
-	GLuint programID = LoadShaders( "resources/shaders/block.vs", "resources/shaders/block.fs" );
-	GLuint uiProgram = LoadShaders( "resources/shaders/ui.vs", "resources/shaders/ui.fs" );
+	GLuint programID = LoadShaders( "../resources/shaders/block.vs", "../resources/shaders/block.fs" );
+	GLuint uiProgram = LoadShaders( "../resources/shaders/ui.vs", "../resources/shaders/ui.fs" );
 	
 	// Get a handle for our "MVP" uniform
 	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
@@ -353,8 +674,8 @@ int main( void )
 	////// get mats from folders
 	vector<string> block_tex;
 	vector<string> uis;
-	get_files_folder("resources/blocks", &block_tex);
-	get_files_folder("resources/ui", &uis);
+	get_files_folder("../resources/blocks", &block_tex);
+	get_files_folder("../resources/ui", &uis);
 	num_blocks = block_tex.size();
 	num_uis = uis.size();
 	
@@ -366,19 +687,19 @@ int main( void )
 	
 	
 	for( int i = 0; i < num_blocks; i ++) {
-		string block = "resources/blocks/" + block_tex[i];
+		string block = "../resources/blocks/" + block_tex[i];
 		const char* data = block.c_str();
 		block_textures[i] = loadBMP_array_custom(data);
 	}
 	
 	for( int i = 0; i < num_uis; i ++) {
-		string ui = "resources/ui/" + uis[i];
+		string ui = "../resources/ui/" + uis[i];
 		ui_names[uis[i]] = i;
 		const char* data = ui.c_str();
 		ui_textures[i] = loadBMP_custom(data, true);
 	}
 	// Load the texture
-	//GLuint Texture = loadBMP_custom("scrolls/resources/blocks/dirt.bmp");
+	//GLuint Texture = loadBMP_custom("scrolls/../../resources/blocks/dirt.bmp");
 	//GLuint Texture = loadDDS("uvtemplate.DDS");
 	
 	// Get a handle for our "myTextureSampler" uniform
@@ -386,7 +707,6 @@ int main( void )
 	GLuint uiTextureID  = glGetUniformLocation(uiProgram, "myTextureSampler");
 	GLuint viewdistID = glGetUniformLocation(programID, "view_distance");
 	GLuint clearcolorID = glGetUniformLocation(programID, "clear_color");
-	GLuint player_positionID = glGetUniformLocation(programID, "player_position");
 	
 	int num_tris;
 	int num_ui_tris;
@@ -412,7 +732,10 @@ int main( void )
 	uvbuffer = blockbuffs[1];
 	lightbuffer = blockbuffs[2];
 	matbuffer = blockbuffs[3];
+	GLVecs glvecs;
+	glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, 1000000);
 	
+	player = new SimplePlayer(vec3(0,0,0));
 	
 	//glGenBuffers(1, &vertexbuffer);
 	//glGenBuffers(1, &uvbuffer);
@@ -425,32 +748,11 @@ int main( void )
 	//}
 	
 	
-	//wait();
-	ifstream ifile("saves/latest.txt");
-	if (!ifile.good()) {
-		create_dir("saves");
-		ofstream ofile("saves/saves.txt");
-		ofile << "";
-		world = new World("Starting-World", 12345);
-		world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
-	} else {
-		string latest;
-		ifile >> latest;
-		if (latest != "") {
-			world = new World(latest);
-			world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
-		} else {
-			ifstream ifile2("saves/saves.txt");
-			ifile2 >> latest;
-			if (latest != "") {
-				world = new World(latest);
-				world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
-			} else {
-				world = new World("Starting-World", 12345);
-				world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
-			}
-		}
-	}
+				
+		
+	
+	
+	
 	
 	//Entity* test = new NamedEntity(vec3(0.5, 50, 0), "test");
 	
@@ -463,19 +765,17 @@ int main( void )
 	render_flag = true;
 	bool reaching_max_fps = true;
 	double slow_frame = 0;
-	int view_distance = 100;
+	int view_distance = 800;
+	bool saving = true;
 	
 	
-	threadmanager->rendering = true;
 	//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, &num_tris);
 	while (playing) {
 		
 		
-		if (menu == nullptr) {
-			world->timestep();
-			//test->timestep(world);
-			world->player->computeMatricesFromInputs(world);
-		}
+		
+			//player->timestep();
+			player->computeMatricesFromInputs();
 		
 		
 		if (debug_visible) {
@@ -484,37 +784,10 @@ int main( void )
 			debugstream.precision(3);
 			
 			debugstream << "fps: " << fps << endl;
-			debugstream << "x: " << world->player->position.x << "\ny: " << world->player->position.y << "\nz: " << world->player->position.z << endl;
-			debugstream << "dx: " << world->player->vel.x << "\ndy: " << world->player->vel.y << "\ndz: " << world->player->vel.z << endl;
-			debugstream << "chunk: "
-				<< int((world->player->position.x/world->chunksize) - (world->player->position.x<0)) << ' '
-				<< int((world->player->position.y/world->chunksize) - (world->player->position.y<0)) << ' '
-				<< int((world->player->position.z/world->chunksize) - (world->player->position.z<0)) << endl;
-			debugstream << "loaded chunks: " << world->tiles.size() << endl;
-			debugstream << "consts: ";
-			for (bool b : world->player->consts) {
-	            debugstream << b << ' ';
-	        }
-	        debugstream << endl;
-			world->glvecs.status(debugstream);
-			debugstream << "------threads-------" << endl;
-			debugstream << "load ";
-			for (int i = 0; i < threadmanager->num_threads; i ++) {
-				//debugstream << "load" << i;
-				if (threadmanager->loading[i] != nullptr) {
-					ivec3 pos = threadmanager->loading[i]->pos;
-					debugstream << pos.x << ',' << pos.y << ',' << pos.z << " ";
-				}
-			}
-			debugstream << endl << "del ";
-			for (int i = 0; i < threadmanager->num_threads; i ++) {
-				//debugstream << "del " << i;
-				if (threadmanager->deleting[i] != nullptr) {
-					ivec3 pos = *threadmanager->deleting[i];
-					debugstream << pos.x << ',' << pos.y << ',' << pos.z << " ";
-				}
-			}
-			debugstream << endl;
+			debugstream << "x: " << player->position.x << "\ny: " << player->position.y << "\nz: " << player->position.z << endl;
+			
+			glvecs.status(debugstream);
+			
 			////////////////////////// error handling:
 			debugstream << "-----opengl errors-----" << endl;
 			GLenum err;
@@ -524,14 +797,18 @@ int main( void )
 			
 		}
 		
-		world->load_nearby_chunks();
+		
 		if (true) {
 			//cout << "rendering!!!!" << endl;
 			//auto fut =  std::async([&] () {world->render();});//();
-			//world->render();
-			num_tris = threadmanager->render_num_verts/3;//world->glvecs.num_verts/3;
+			bool changed = worldblock->block->render_flag;
+			worldblock->block->render(&glvecs, worldblock, 0,0,0);
+			if (changed) {
+				glvecs.clean();
+			}
+			num_tris = glvecs.num_verts/3;//threadmanager->render_num_verts/3;//world->glvecs.num_verts/3;
 			//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, matbuffer, &num_tris, render_flag);
-			render_flag = false;
+			//render_flag = false;
 		}
 		
 		
@@ -539,42 +816,7 @@ int main( void )
 		lastFrameTime = currentTime;
 		currentTime = glfwGetTime();
 		double ms = (currentTime-lastFrameTime)*1000;
-		if (debug_visible) {
-			debugstream << "-----time-----" << endl;
-			debugstream << "ms: " << ms << endl;
-			debugstream << "ms(goal):" << min_ms_per_frame << endl;
-			debugstream << "reaching max fps: " << reaching_max_fps << " (" << slow_frame << ")" << endl;
-			/// block and entity debug
-			debugstream << "-----block-entity-tracking-----" << endl;
-			if (debugentity != nullptr) {
-				debugstream << "tracking entity " << debugentity << endl;
-				debugstream << "x:" << debugentity->position.x << " y:" << debugentity->position.y << " z:" << debugentity->position.z << endl;
-				debugstream << "dx:" << debugentity->vel.x << " dy:" << debugentity->vel.y << " dz:" << debugentity->vel.z << endl;
-				debugstream << "consts: ";
-				for (bool b : debugentity->consts ) {
-					debugstream << b << ' ';
-				}
-				debugstream << endl;
-			}
-			if (debugblock != nullptr) {
-				int gx, gy, gz;
-				debugblock->global_position(&gx, &gy, &gz);
-				string name = "undef";
-				BlockData* data = blocks->blocks[debugblock->get()];
-				if (data != nullptr) {
-					name = data->name;
-				}
-				
-				debugstream << "tracking block " << debugblock << " at " << gx << "x " << gy << "y " << gz << "z " << endl;
-				debugstream << " type:" << name << " char:" << int(debugblock->value) << " scale:" << debugblock->scale << endl;
-				debugstream << " direction:" << int(debugblock->direction) << " render_index:" << debugblock->render_index.first << ',' << debugblock->render_index.second << endl;
-				debugstream << " parent coords:" << debugblock->px << ',' << debugblock->py << ',' << debugblock->pz << endl;
-				debugstream << " physics_group:" << debugblock->physicsgroup << endl;
-				if (debugblock->physicsgroup != nullptr) {
-					//debugblock->physicsgroup->to_file(debugstream);
-				}
-			}
-		}
+		
 		
 		if (ms > min_ms_per_frame) {
 			reaching_max_fps = false;
@@ -602,7 +844,6 @@ int main( void )
 		
 		
 		currentTime = glfwGetTime();
-		
 		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
@@ -617,8 +858,8 @@ int main( void )
 		glUseProgram(programID);
 		
 		// Compute the MVP matrix from keyboard and mouse input
-		glm::mat4 ProjectionMatrix = world->player->getProjectionMatrix();
-		glm::mat4 ViewMatrix = world->player->getViewMatrix();
+		glm::mat4 ProjectionMatrix = player->getProjectionMatrix();
+		glm::mat4 ViewMatrix = player->getViewMatrix();
 		glm::mat4 ModelMatrix = glm::mat4(1.0);
 		glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 		
@@ -627,7 +868,6 @@ int main( void )
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 		glUniform3f(clearcolorID, clearcolor.x, clearcolor.y, clearcolor.z);
 		glUniform1i(viewdistID, view_distance);
-		glUniform3f(player_positionID, world->player->position.x, world->player->position.y, world->player->position.z);
 		
 		
 		int ids[num_blocks];
@@ -637,9 +877,7 @@ int main( void )
 			glBindTexture(GL_TEXTURE_2D_ARRAY, block_textures[i]);
 		}
 		
-		if (!world->glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
-			exit(1);
-		}
+		
 		
 		// Bind our texture in Texture Unit 0
 		//glActiveTexture(GL_TEXTURE0);
@@ -702,13 +940,11 @@ int main( void )
 		glDisableVertexAttribArray(2);
 		glDisableVertexAttribArray(3);
 		
-		world->glvecs.writelock.unlock();
-		
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		//-----------------------------------------------------SECOND DRAW CALL------------------------------------------------------------------------------------------------------------------------//
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		
-		make_ui_buffer(world->player, debugstream.str(), vertex_ui_buffer, uv_ui_buffer, mat_ui_buffer, &num_ui_tris);
+		make_ui_buffer(player, debugstream.str(), vertex_ui_buffer, uv_ui_buffer, mat_ui_buffer, &num_ui_tris);
 		
 		//allow trancaperancy
 		glDisable(GL_DEPTH_TEST);
@@ -784,88 +1020,57 @@ int main( void )
 		
 		
 		
-		if (menu == nullptr) {
-			if (glfwGetKey(window, GLFW_KEY_M ) == GLFW_PRESS) {
-				main_menu();
-			} else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-				inven_menu();
-			} else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
-				world->glvecs.clean();
-			} else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
-				world->player->flying = true;
-			} else if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
-				world->player->flying = false;
+			if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+				glvecs.clean();
 			}
-		} else {
-			if (glfwGetKey(window, GLFW_KEY_ESCAPE ) == GLFW_PRESS) {
-				menu->close(world);
-				delete menu;
-				menu = nullptr;
-			}
-		}
 		if (glfwGetKey(window, GLFW_KEY_O ) == GLFW_PRESS) {
 			debug_visible = true;
 		} else if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
 			debug_visible = false;
 		} else if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) {
 			cout << "njbradley is king" << endl;
-		} else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
-			dump_buffers();
 		} else if (glfwGetKey(window, GLFW_KEY_Q ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
 			playing = false;
+		} else if (glfwGetKey(window, GLFW_KEY_X ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
+			playing = false;
+			saving = false;
 		} else if (glfwWindowShouldClose(window)) {
 			playing = false;
 		}
 		
 	}
 	
-	threadmanager->close();
-	delete threadmanager;
-	
 	// Cleanup VBO and shader
 	glDeleteBuffers(1, &vertexbuffer);
 	glDeleteBuffers(1, &uvbuffer);
-	glDeleteBuffers(1, &lightbuffer);
-	glDeleteBuffers(1, &matbuffer);
-	
-	glDeleteBuffers(1, &vertex_ui_buffer);
-	glDeleteBuffers(1, &uv_ui_buffer);
-	glDeleteBuffers(1, &mat_ui_buffer);
-	
 	glDeleteProgram(programID);
-	glDeleteProgram(uiProgram);
-	
 	glDeleteTextures(1, &TextureID);
 	glDeleteVertexArrays(1, &VertexArrayID);
 	
-	if (world != nullptr) {
-		cout << "deleting world" << endl;
-		world->close_world();
-		delete world;
-	}
-	
-	delete itemstorage;
-	delete blocks;
-	delete recipestorage;
-	delete entitystorage;
-	
-	
-	//wait();
 	
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
 	
-	if (errors) {
-		wait();
+	if (saving) {
+		cout << "saving to " << savepath << endl;
+		if (savetype == "block") {
+			to_block_file(savepath);
+		} else if (savetype == "char") {
+			to_char_file(savepath);
+		} else {
+			cout << "invalid type" << endl;
+			return 1;
+		}
 	} else {
-		cout << "completed without errors" << endl;
+		cout << "not saving changes!" << endl;
 	}
-	//wait();
+	
+	cout << "completed without errors" << endl;
 }
 
 
 /*
-All other scripts included into this script are considered part of the
+All other ../scripts included into this script are considered part of the
 game and are under this same license
 
 Copyright 2020 Nicholas Bradley. All rights reserved.

@@ -21,6 +21,7 @@ class BlockGroup { public:
 	World* world;
 	BlockGroup(World* world, ivec3 starting_pos);
 	BlockGroup(World* world, istream& ifile);
+	~BlockGroup();
 	void find_group();
 	void update();
 	void copy_to_block();

@@ -140,6 +140,7 @@ void GLVecs::del(pair<int,int> index) {
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
     if (index.first < -1) {
       cout << "big problem" << endl;
+      crash(19782984921423);
     }
     //cout << "del: " << index.first << ' ' << index.second << endl;
     // if (index.second > 0) {

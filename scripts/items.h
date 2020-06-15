@@ -29,6 +29,10 @@ CharArray::CharArray(ifstream & ifile) {
     }
 }
 
+CharArray::~CharArray() {
+  delete[] arr;
+}
+
 char CharArray::get(int x, int y, int z) {
     //cout << x << ' ' << y << ' ' << z << ' ' << x*sy*sz+ y*sz+ z << endl;
     return arr[x*sy*sz+ y*sz+ z];
@@ -196,6 +200,10 @@ ItemData::ItemData(ifstream & ifile) {
     }
 }
 
+ItemData::~ItemData() {
+  delete onplace;
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////////
 
@@ -222,6 +230,12 @@ void ItemStack::render(MemVecs* vecs, float x, float y) {
             items[name] = new ItemData(ifile);
         }
     }
+
+ItemStorage::~ItemStorage() {
+  for (pair<string,ItemData*> kv : items) {
+    delete kv.second;
+  }
+}
 
 
 ////////////////////////////////////// ITEMKCINTAINER ///////////////////////////////////

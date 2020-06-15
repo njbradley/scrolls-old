@@ -32,7 +32,6 @@ class Block: public Collider { public:
     bool render_flag = true;
     void set_render_flag();
     virtual bool continues() = 0; // whether the block is a chunk or a pixel. a hacky way of telling, but nessicary because pixels can be at different depths
-    virtual Block * get(int, int, int) = 0; //get a block at coords
     virtual char get() = 0;                 //get the value of the block. these two methods are exclusive for pixel/chunk, but same reaseon as above
     //virtual void set(char val, int direction = -1, BlockExtra* extras = nullptr) = 0;
     virtual void del(bool remove_faces) = 0;
@@ -47,6 +46,7 @@ class Block: public Collider { public:
     void world_to_local(int x, int y, int z, int* lx, int* ly, int* lz);
     void global_position(int*, int*, int*);
     virtual void render(RenderVecs*, Collider*, int, int, int) = 0;
+    virtual void rotate(int axis, int direction) = 0;
     virtual bool is_air(int, int, int) = 0;
     virtual Block * get_global(int,int,int,int) = 0;
     virtual void render_update() = 0;
@@ -91,7 +91,6 @@ public:
     // side specified by the three ints, dx, dy, dz.
     Pixel* get_pix();
     float get_lightlevel(int dx, int dy, int dz);
-    Block * get(int x, int y, int z);
     void set(char val, int direction = -1, BlockExtra* extras = nullptr, bool update = true);
     // sets the value, direction, and BlockExtra of the pixel
     void render_update();
@@ -99,6 +98,7 @@ public:
     void del(bool remove_faces);
     void calculate_lightlevel();
     void reset_lightlevel();
+    void rotate(int axis, int dir);
     void lighting_update();
     bool is_air(int dx, int dy, int dz);
     Block* get_global(int x, int y, int z, int scale);
@@ -138,6 +138,7 @@ class Chunk: public Block { public:
     void render(RenderVecs* vecs, Collider*, int gx, int gy, int gz);
     void del(bool remove_faces);
     void render_update();
+    void rotate(int axis, int dir);
     Block* get_global(int x, int y, int z, int nscale);
     bool is_air(int dx, int dy, int dz);
     void save_to_file(ostream& of);

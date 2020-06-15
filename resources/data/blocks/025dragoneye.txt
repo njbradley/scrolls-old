@@ -1,0 +1,6 @@
+: axe pickaxe shovel sword null
+: 0.9 1.2     1.7    0.6   2.0
+: 34 33 34 34 34 34
+: dragon-eye 1 1 1 null 0 dragon-eye
+: 1 dragon
+0

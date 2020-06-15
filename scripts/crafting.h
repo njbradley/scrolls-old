@@ -44,5 +44,11 @@ RecipeStorage::RecipeStorage() {
 		}
 }
 
+RecipeStorage::~RecipeStorage() {
+	for (Recipe* recipe : recipes) {
+		delete recipe;
+	}
+}
+
 
 #endif

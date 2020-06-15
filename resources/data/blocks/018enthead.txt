@@ -1,6 +1,6 @@
 : axe pickaxe shovel sword null
 : 0.5 0.7     1.0    0.9   1.0
-: 63 19 63 63 19 63
+: 28 19 28 28 19 28
 : enthead 0 0 1 null 0 null
-: 0 null
+: 0 tree
 0

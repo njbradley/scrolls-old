@@ -93,19 +93,22 @@ public:
   pair<int,int> render_index;
   bool render_flag;
   DisplayEntity(vec3 starting_pos, Block* newblock);
+  ~DisplayEntity();
   Block * get_global(int,int,int,int);
   vec3 get_position();
   void render();
   void calc_constraints(World* world);
   virtual void on_timestep(World* world);
-  void die();
+  //void die();
 };
 
 class NamedEntity: public DisplayEntity {
 public:
   string nametype;
+  int pointing;
   NamedEntity(vec3 starting_pos, string name);
   Block* loadblock(string name);
+  void on_timestep(World* world);
 };
 
 class FallingBlockEntity: public DisplayEntity {

@@ -222,13 +222,14 @@ void Player::right_mouse() {
 		cout << "did rcaction" << endl;
 	} else {
 		if (!inhand->isnull and inhand->data->onplace != nullptr) {
-			Item* item = inven.use(selitem);
+			Item* item = inven.get(selitem);
 			if (!item->isnull) {
 				CharArray* arr = item->data->onplace;
 				if (arr != nullptr) {
 					arr->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
 				}
 			}
+			inven.use(selitem);
 		} else {
 			debugblock = pix;
 			debugentity = target_entity;
@@ -254,6 +255,8 @@ void Player::left_mouse() {
 		//cout << "hit" << endl;
 		if (!target_entity->immune) {
 			target_entity->vel += pointing * 1.0f + vec3(0,5,0) + vel;
+			target_entity->health -= 1;
+			cout << target_entity->health << endl;
 		}
 		//target_entity->alive = false;
 		return;
@@ -451,7 +454,7 @@ void Player::computeMatricesFromInputs(World* nworld){
 		scroll = 0;
 	}
 	
-	if (health <= 0 or position.y < -50) {
+	if (health <= 0) {
 		die();
 	}
 	

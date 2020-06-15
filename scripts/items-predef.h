@@ -16,7 +16,8 @@ class CharArray { public:
     int sy;
     int sz;
     CharArray( char* newarr, int x, int y, int z);
-    CharArray(ifstream & ifile) ;
+    CharArray(ifstream & ifile);
+    ~CharArray();
     char get(int x, int y, int z);
     void set(char val, int x, int y, int z);
     void place(World* world, int x, int y, int z, int dx, int dy, int dz);
@@ -57,7 +58,7 @@ class ItemData {
         string tool;
             
         ItemData(ifstream & ifile);
-        
+        ~ItemData();
 };
 
 class ItemStack {
@@ -71,6 +72,7 @@ public:
 class ItemStorage { public:
     map<string,ItemData*> items;
     ItemStorage();
+    ~ItemStorage();
 };
 
 ItemStorage* itemstorage;

@@ -90,6 +90,7 @@ vector<Tile*> ThreadManager::get_loaded_tiles() {
 	for ( int i = 0; i < num_threads; i ++) {
 		if (loading[i] != nullptr and loading[i]->complete) {
 			tiles.push_back(loading[i]->result);
+			delete loading[i];
 			loading[i] = nullptr;
 		}
 	}
@@ -147,6 +148,7 @@ void DeletingThread::operator()() {
 	while (parent->del_running[index]) {
 		if (parent->deleting[index] != nullptr) {
 			world->del_chunk(*parent->deleting[index], true);
+			delete parent->deleting[index];
 			parent->deleting[index] = nullptr;
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));

@@ -25,7 +25,7 @@ void print(vec3 v) {
 
 
 Entity::Entity(vec3 pos, vec3 hitbox1, vec3 hitbox2):
-position(pos), box1(hitbox1), box2(hitbox2-vec3(1,1,1)), alive(true), immune(false)
+position(pos), box1(hitbox1), box2(hitbox2-vec3(1,1,1)), alive(true), immune(false), flying(false)
 {
     angle = vec2(0,0);
     vel = vec3(0,0,0);
@@ -294,6 +294,11 @@ void DisplayEntity::render() {
   // block->render(&vecs, int(position.x), int(position.y), int(position.z));
   //
   if (render_flag) {
+    cout << "rendered" << endl;
+    vecs.clear();
+    block->all([=] (Pixel* pix) {
+      pix->render_index = pair<int,int>(-1,0);
+    });
     block->render(&vecs, this, 0, 0, 0);
     render_flag = false;
   }
@@ -306,11 +311,12 @@ void DisplayEntity::render() {
   }
   
   if (render_index == pair<int,int>(-1,0)) {
+    cout << "added" << endl;
     render_index = world->glvecs.add(&translated);
   } else {
     world->glvecs.edit(render_index, &translated);
   }
-  
+  //cout << render_index.first << ',' << render_index.second << ' ' << vecs.num_verts << endl;
   
   // cout << position.x << ' ' << position.y << ' ' << position.z << endl;
   // for (bool b : consts) {
@@ -341,7 +347,9 @@ void DisplayEntity::calc_constraints(World* world) {
     //axis gap make sure a side detects the collision of blocks head on before the side detectors sense the blocks. Each slice is moved out from the player by axis_gap
     //cout << "----------------------------------" << endl;
     //print(position);
-    
+    if (block == nullptr) {
+      return;
+    }
     block->all([&] (Pixel* pix) {
       if (!pix->is_air(0,0,0)) {
         int bx, by, bz;
@@ -429,22 +437,32 @@ void DisplayEntity::calc_constraints(World* world) {
     position = newpos;
 }
 
-void DisplayEntity::die() {
-  world->glvecs.del(render_index);
+DisplayEntity::~DisplayEntity() {
+  cout << render_index.first << ',' << render_index.second << " deleted! " << endl;
+  position.y -= 1000;
+  render();
+  if (block != nullptr) {
+    block->del(false);
+    delete block;
+  }
+    //world->glvecs.del(render_index);
 }
 
 
 
 
 
-NamedEntity::NamedEntity(vec3 starting_pos, string name): DisplayEntity(starting_pos, loadblock(name)), nametype(name)  {
-  
+NamedEntity::NamedEntity(vec3 starting_pos, string name): DisplayEntity(starting_pos, loadblock(name)), nametype(name), pointing(0) {
+  health = 10;
+  //block->rotate(1, 1);
 }
 
 Block* NamedEntity::loadblock(string name) {
-  std::ifstream ifile(entitystorage->blocks[name]);
+  cout << name << endl;
+  std::ifstream ifile(entitystorage->blocks[name], ios::binary);
   if (!ifile.good()) {
     cout << "file error code s9d8f0s98d0f9s80f98sd0" << endl;
+    hard_crash(29348023948029834);
   }
   int size;
   ifile >> size;
@@ -452,6 +470,58 @@ Block* NamedEntity::loadblock(string name) {
   char buff;
   ifile.read(&buff,1);
   return Block::from_file(ifile, 0, 0, 0, size, nullptr, nullptr);
+}
+
+void NamedEntity::on_timestep(World* world) {
+  render();
+  vec3 dist_to_player = world->player->position - (position + box2 / 2.0f);
+  int angle =  int(atan2(dist_to_player.z, dist_to_player.x) / (3.14/2) + 10.5) - 10;
+  //cout << angle << ' ' << pointing << endl;
+  // if (angle < 0) {
+  //   angle += 4;
+  // }
+  if (angle != pointing) {
+    if (angle < pointing) {
+      for (int i = angle; i < pointing; i ++) {
+        cout << "neg rotate" << endl;
+        block->rotate(1, 1);
+      }
+    } else if (angle > pointing) {
+      for (int i = pointing; i < angle; i ++) {
+        cout << "pos rotate" << endl;
+        block->rotate(1, -1);
+      }
+    }
+    //world->glvecs.del(render_index);
+    render_flag = true;
+    //render();
+    pointing = angle;
+  }
+  float dist = glm::length(dist_to_player);
+  dist_to_player /= dist;
+  vel.x += 0.1 * dist_to_player.x;
+  vel.z += 0.1 * dist_to_player.z;
+  if (consts[4]) {
+    vel.y = 10;
+  }
+  if (colliding(world->player)) {
+    world->player->health -= 1;
+    world->player->vel += (dist_to_player + vec3(0,1,0)) * 5.0f;
+    vel -= (dist_to_player + vec3(0,1,0)) * 3.0f;
+  }
+  if (health < 0) {
+    for (int x = 0; x < block->scale; x ++) {
+      for (int y = 0; y < block->scale; y ++) {
+        for (int z = 0; z < block->scale; z ++) {
+          Pixel* pix = block->get_global(x, y, z, 1)->get_pix();
+          if (pix->value != 0) {
+            world->set(position.x+x, position.y+y, position.z+z, pix->value, pix->direction);
+          }
+        }
+      }
+    }
+    alive = false;
+  }
 }
 
 
@@ -465,6 +535,7 @@ void FallingBlockEntity::on_timestep(World* world) {
   if (consts[4]) {
     group->copy_to_world(position);
     delete group;
+    block = nullptr;
     alive = false;
   }
 }

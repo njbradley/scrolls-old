@@ -83,6 +83,10 @@ TerrainLoader::TerrainLoader(int nseed): objmerger(this), seed(nseed) {
 	terrain = new Land(this);
 }
 
+TerrainLoader::~TerrainLoader() {
+	delete terrain;
+}
+
 char TerrainLoader::gen_func(ivec3 pos) {
 	char objval = objmerger.gen_func(pos);
 	if (objval != -1) {

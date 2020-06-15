@@ -26,6 +26,12 @@ O/P - show/hide debug menu
 R - force cleaning of memory vectors
 F/G - enter/exit spectator mode
 
+Version 0.3.dev:
+ Additions:
+ -many new randomly generated terrain structures
+ -block physics is now working! now blocks fall if they are not attached to another block they stick to
+ -monsters have been added!
+
 Version 0.2:
  Additions:
  -full multithreading of loading and saving chunks, so no lag while playing

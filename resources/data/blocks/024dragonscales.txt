@@ -1,0 +1,6 @@
+: axe pickaxe shovel sword null
+: 0.9 1.2     1.7    0.6   2.0
+: 29 29 29 29 29 29
+: dragon-scale 1 0 1 null 0 dragon-scale
+: 1 dragon
+0

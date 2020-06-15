@@ -232,7 +232,6 @@ void World::tick() {
         if (group->persistant()) {
           group->update_flag = true;
         } else {
-          group->remove_pix_pointers();
           delete group;
         }
       }
@@ -479,11 +478,11 @@ void World::close_world() {
     for (pair<ivec3, Tile*> kvpair : tiles) {
         poses.push_back(kvpair.first);
     }
+    save_groups();
     for (ivec3 pos : poses) {
         del_chunk(pos, false);
     }
     save_data_file();
-    save_groups();
     zip();
     ofstream ofile2("saves/latest.txt");
     ofile2 << name;

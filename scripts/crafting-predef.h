@@ -18,6 +18,7 @@ class RecipeStorage {
 public:
 	vector<Recipe*> recipes;
 	RecipeStorage();
+	~RecipeStorage();
 };
 
 RecipeStorage* recipestorage;

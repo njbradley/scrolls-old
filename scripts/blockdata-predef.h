@@ -21,6 +21,7 @@ class BlockExtra { public:
   ItemContainer* inven;
   Pixel* pixel;
   BlockExtra();
+  ~BlockExtra();
   BlockExtra(Pixel*);
   BlockExtra(istream& ifile);
   void save_to_file(ostream& ofile);
@@ -41,6 +42,7 @@ class BlockData { public:
     BlockExtra* extras = nullptr;
     
     BlockData(ifstream & ifile);
+    ~BlockData();
     
     void do_rcaction(Pixel* pix);
 };
@@ -51,6 +53,7 @@ class BlockStorage { public:
     int num_blocks;
     
     BlockStorage(string path = "");
+    ~BlockStorage();
 };
 
 BlockStorage* blocks;

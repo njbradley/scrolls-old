@@ -228,11 +228,6 @@ float Pixel::get_lightlevel(int dx, int dy, int dz) {
     return lightlevel;
 }
 
-Block * Pixel::get(int x, int y, int z) {
-    cout << "error: get(int,int,int) called on pixel" << endl;
-    return nullptr;
-}
-
 bool Pixel::is_air(int dx, int dy, int dz) {
     //cout << "pix is air reaturning:" << (value == 0) << endl;
     return value == 0;
@@ -372,7 +367,9 @@ void Pixel::del(bool remove_faces) {
     }
     if (extras != nullptr) {
       delete extras;
-      cout << "dleleted extras" << endl;
+    }
+    if (physicsgroup != nullptr) {
+      delete physicsgroup;
     }
 }
 
@@ -411,6 +408,27 @@ void Pixel::calculate_lightlevel() {
       //cout << offset[0] << ' ' << offset[1] << ' ' << offset[2] << endl;
     }
   }
+}
+
+void Pixel::rotate(int axis, int dir) {
+  const int positive[18] {
+    0, 2, 4, 3, 5, 1,
+    5, 1, 0, 2, 4, 3,
+    1, 3, 2, 4, 0, 5
+  };
+  const int negative[18] {
+    0, 5, 1, 3, 2, 4,
+    2, 1, 0, 5, 4, 0,
+    4, 0, 2, 1, 3, 5
+  };
+  if (value != 0 and blocks->blocks[value]->rotation_enabled) {
+    if (dir == 1) {
+      direction = positive[axis*6 +direction];
+    } else if (dir == -1) {
+      direction = negative[axis*6 +direction];
+    }
+  }
+  set_render_flag();
 }
 
 void Pixel::rotate_uv(GLfloat* uvs, int rot) {
@@ -868,6 +886,57 @@ void Chunk::all(function<void(Pixel*)> func) {
             }
         }
     }
+}
+
+void Chunk::rotate(int axis, int dir) {
+  // order 0,0 0,1 1,0 1,1
+  const ivec2 positive[csize*csize] {{1,0},{0,0},{1,1},{0,1}};
+  const ivec2 negative[csize*csize] {{0,1},{1,1},{0,0},{1,0}};
+  
+  for (int i = 0; i < csize; i ++) {
+    Block* tmp[4];
+    for (int j = 0; j < csize; j ++) {
+      for (int k = 0; k < csize; k ++) {
+        if (axis == 0) {
+          tmp[j*csize+k] = blocks[i][j][k];
+        } else if (axis == 1) {
+          tmp[j*csize+k] = blocks[k][i][j];
+        } else if (axis == 2) {
+          tmp[j*csize+k] = blocks[j][k][i];
+        }
+        tmp[j*csize+k]->rotate(axis, dir);
+      }
+    }
+    for (int j = 0; j < csize; j ++) {
+      for (int k = 0; k < csize; k ++) {
+        ivec2 newpos;
+        if (dir == 1) {
+          newpos = positive[j*csize+k];
+        } else if (dir == -1) {
+          newpos = negative[j*csize+k];
+        } else {
+          cout << "ERR: dir is not 1 -1 " << endl;
+          crash(8237948232222);
+        }
+        if (axis == 0) {
+          tmp[j*csize+k]->px = i;
+          tmp[j*csize+k]->py = newpos.x;
+          tmp[j*csize+k]->pz = newpos.y;
+          blocks[i][newpos.x][newpos.y] = tmp[j*csize+k];
+        } else if (axis == 1) {
+          tmp[j*csize+k]->px = newpos.y;
+          tmp[j*csize+k]->py = i;
+          tmp[j*csize+k]->pz = newpos.x;
+          blocks[newpos.y][i][newpos.x] = tmp[j*csize+k];
+        } else if (axis == 2) {
+          tmp[j*csize+k]->px = newpos.x;
+          tmp[j*csize+k]->py = newpos.y;
+          tmp[j*csize+k]->pz = i;
+          blocks[newpos.x][newpos.y][i] = tmp[j*csize+k];
+        }
+      }
+    }
+  }
 }
 
 void Chunk::all_side(function<void(Pixel*)> func, int dx, int dy, int dz) {

@@ -71,7 +71,7 @@ void Tile::timestep() {
         entities.erase(entities.begin()+i);
       }
     } else {
-      entities[i]->die();
+      //entities[i]->die();
       delete entities[i];
       entities.erase(entities.begin()+i);
     }
@@ -80,8 +80,9 @@ void Tile::timestep() {
 
 Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize), deleting(false) {
 	//if (writelock.try_lock_for(std::chrono::seconds(1))) {
-    if (pos == ivec3(0,2,0)) {
-      entities.push_back(new NamedEntity(pos*chunksize+32, "stone-monster"));
+    if (pos == ivec3(0,0,0)) {
+      cout << "summoned entity 0923472893472893748293749823749273492734892739482739482739482739487293847283" << endl;
+      entities.push_back(new NamedEntity(pos*chunksize+32, "dragon"));
   	}
     if (world == nullptr) {
       cout << "error world is null" << endl;
@@ -109,12 +110,17 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
   // }
 }
 
+
 void Tile::del(bool remove_faces) {
   //cout << "start of deleting tile ";
   print (pos);
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
     deleting = true;
+    for (DisplayEntity* entity : entities) {
+      delete entity;
+    }
 	  chunk->del(remove_faces);
+    delete chunk;
     writelock.unlock();
   } else {
     cout << "ERR: tile not properly deleted" << endl;
