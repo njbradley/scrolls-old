@@ -296,7 +296,7 @@ vec3 World::get_position() {
 
 void World::block_update(int x, int y, int z) {
   if (x == 0 and y == 0 and z == 0) {
-    cout << "big prob at 296" << endl;
+    cout << "big prob at 296, block update called on 0,0,0" << endl;
   }
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
     //cout << "Recording Block Update at the global world position " << x << ' ' << y << ' ' << z << endl;

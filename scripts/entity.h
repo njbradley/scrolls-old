@@ -140,7 +140,11 @@ void Entity::calc_constraints(World* world) {
             for (int y = (int)pos2.y; y < pos.y+1; y ++) {
                 for (int z = (int)pos2.z; z < pos.z+1; z ++) {
                     Block* pix = collider->get_global(x,y,z,1);
-                    constraint = constraint or (pix != NULL and pix->get() != 0);
+                    bool new_const = (pix != NULL and pix->get() != 0);
+                    if (new_const) {
+                      //world->block_update(x,y,z);
+                    }
+                    constraint = constraint or new_const;
                 }
             }
         }
@@ -155,6 +159,9 @@ void Entity::calc_constraints(World* world) {
                 for (int z = (int)neg.z; z < neg2.z+1; z ++) {
                     Block* pix = collider->get_global(x,y,z,1);
                     bool new_const = (pix != NULL and pix->get() != 0);
+                    if (new_const) {
+                      //world->block_update(x,y,z);
+                    }
                     constraint = constraint or new_const;
                 }
             }
@@ -439,13 +446,14 @@ void DisplayEntity::calc_constraints(World* world) {
 
 DisplayEntity::~DisplayEntity() {
   cout << render_index.first << ',' << render_index.second << " deleted! " << endl;
-  position.y -= 1000;
-  render();
+  // position.y -= 1000;
+  // render();
+  world->glvecs.del(render_index);
   if (block != nullptr) {
     block->del(false);
     delete block;
   }
-    //world->glvecs.del(render_index);
+    //
 }
 
 

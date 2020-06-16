@@ -444,6 +444,7 @@ void Player::computeMatricesFromInputs(World* nworld){
 	//mouse = false;
 	
 	
+	
 	if (scroll != 0) {
 		selitem -= scroll;
 		if (selitem < 0) {
