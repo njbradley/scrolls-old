@@ -186,12 +186,15 @@ void BlockGroup::copy_to_block() {
 	
 void BlockGroup::remove_pix_pointers() {
 	for (ivec3 pos : block_poses) {
-		Pixel* pix = world->get_global(pos.x, pos.y, pos.z,1)->get_pix();
+		Block* b = world->get_global(pos.x, pos.y, pos.z,1);
+		if (b != nullptr) {
+			Pixel* pix = b->get_pix();
 		// if (pix->physicsgroup != nullptr and pix->physicsgroup != this) {
 		// 	cout << "153removing " << pos.x << ' ' << pos.y << ' ' << pos.z << " from  " << pix->physicsgroup << endl;
 		// 	pix->physicsgroup->block_poses.erase(pos);
 		// }
-		pix->physicsgroup = nullptr;
+			pix->physicsgroup = nullptr;
+		}
 	}
 }
 

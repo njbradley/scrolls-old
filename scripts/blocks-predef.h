@@ -54,7 +54,6 @@ class Block: public Collider { public:
     Block* raycast(Collider* world, double* x, double* y, double* z, double dx, double dy, double dz, double time);
     Block* get_world();
     vec3 get_position();
-    void update_chunk();
     
     static Block* from_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent, Tile* tile);
 };

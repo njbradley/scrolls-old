@@ -28,7 +28,7 @@ float initialFoV = 110.0f;
 
 
 float speed = 40.0f; // 3 units / second
-float mouseSpeed = 0.005f;
+float mouseSpeed = 0.003f;
 
 bool mouse;
 int button;
@@ -53,8 +53,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 
 
-Player::Player(vec3 pos, World* newworld):
-	Entity(pos, vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7)), world(newworld), inven(10), backpack(10) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
+Player::Player(World* newworld, vec3 pos):
+	Entity(newworld, pos, vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7)), inven(10), backpack(10) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
 	glfwSetMouseButtonCallback(window, mouse_button_call);
 	glfwSetScrollCallback(window, scroll_callback);
 	//char arr[] = {1,0,1,0,1,0,1,0}
@@ -63,8 +63,8 @@ Player::Player(vec3 pos, World* newworld):
 	inven.add( ItemStack(Item(itemstorage->items["crafting"]), 1));
 }
 
-Player::Player(istream& ifile):
-	Entity(vec3(0,0,0), vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7)), inven(ifile), backpack(ifile) {
+Player::Player(World* newworld, istream& ifile):
+	Entity(newworld, vec3(0,0,0), vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7)), inven(ifile), backpack(ifile) {
 		ifile >> selitem;
 		ifile >> position.x >> position.y >> position.z;
 		ifile >> vel.x >> vel.y >> vel.z >> angle.x >> angle.y;
@@ -326,8 +326,7 @@ void Player::drop_ticks() {
 	lastTime = glfwGetTime();
 }
 
-void Player::computeMatricesFromInputs(World* nworld){
-	world = nworld;
+void Player::computeMatricesFromInputs(){
 
 	// glfwGetTime is called only once, the first time this function is called
 	static double lastTime = glfwGetTime();

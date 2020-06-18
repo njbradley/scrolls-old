@@ -43,8 +43,9 @@ class Entity { public:
     bool consts[7]; // constraints for entity, posx, pos y, pos z, neg x, neg y, neg z
     bool alive;
     bool immune;
+    World* world;
     
-    Entity(vec3 pos, vec3 hitbox1, vec3 hitbox2);
+    Entity(World* nworld, vec3 pos, vec3 hitbox1, vec3 hitbox2);
     void timestep(World* world);
     virtual void calc_constraints(World* world);
     void find_colliders(vector<Collider*>* colliders);
@@ -53,6 +54,7 @@ class Entity { public:
     void fall_damage(float velocity);
     void drag(bool do_drag, float deltaTime);
     virtual void on_timestep(World* world);
+    virtual void tick();
     bool colliding(const Entity* other);
     virtual void kill();
 };
@@ -63,15 +65,14 @@ class Player: public Entity {
 	mat4 ViewMatrix;
 	mat4 ProjectionMatrix;
 	vec3 pointing;
-	World* world;
 	int selitem;
 	
 	public:
 		ItemContainer inven;
 		ItemContainer backpack;
 		
-		Player(vec3 pos, World* newworld);
-    Player(istream& ifile);
+		Player(World* newworld, vec3 pos);
+    Player(World* newworld, istream& ifile);
     void save_to_file(ostream& ofile);
     virtual void die();
 		mat4 getViewMatrix();
@@ -81,7 +82,7 @@ class Player: public Entity {
     void raycast(Pixel** hit, vec3* hitpos, DisplayEntity** entity);
     void drop_ticks();
 		void mouse_button();
-		void computeMatricesFromInputs(World* nworld);
+		void computeMatricesFromInputs();
 		void render_ui(MemVecs * uivecs);
 };
 
@@ -92,7 +93,7 @@ public:
   MemVecs vecs;
   pair<int,int> render_index;
   bool render_flag;
-  DisplayEntity(vec3 starting_pos, Block* newblock);
+  DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock);
   ~DisplayEntity();
   Block * get_global(int,int,int,int);
   vec3 get_position();
@@ -106,7 +107,7 @@ class NamedEntity: public DisplayEntity {
 public:
   string nametype;
   int pointing;
-  NamedEntity(vec3 starting_pos, string name);
+  NamedEntity(World* nworld, vec3 starting_pos, string name);
   Block* loadblock(string name);
   void on_timestep(World* world);
 };
@@ -114,7 +115,7 @@ public:
 class FallingBlockEntity: public DisplayEntity {
 public:
   BlockGroup* group;
-  FallingBlockEntity(BlockGroup* newgroup);
+  FallingBlockEntity(World* nworld, BlockGroup* newgroup);
   void on_timestep(World* world);
 };
 

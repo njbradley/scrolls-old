@@ -84,7 +84,7 @@ void World::startup() {
     //generative_setup_world(seed);
     ifstream ifile("saves/world/player.txt");
     if (ifile.good()) {
-      player = new Player(ifile);
+      player = new Player(this, ifile);
     } else {
       spawn_player();
     }
@@ -129,7 +129,7 @@ void World::save_groups() {
 }
 
 void World::spawn_player() {
-  player = new Player( vec3(10,loader.terrain->get_height(ivec2(10,10))+7,10), world);
+  player = new Player(world, vec3(10,loader.terrain->get_height(ivec2(10,10))+7,10));
   player->flying = false;
   player->autojump = true;
   player->health = 10;

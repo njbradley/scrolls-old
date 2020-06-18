@@ -474,7 +474,7 @@ int main( void )
 		if (menu == nullptr) {
 			world->timestep();
 			//test->timestep(world);
-			world->player->computeMatricesFromInputs(world);
+			world->player->computeMatricesFromInputs();
 		}
 		
 		

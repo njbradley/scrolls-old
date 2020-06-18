@@ -304,7 +304,7 @@ void Pixel::tick() {
         cout << "erasing" << endl;
         group->erase_from_world();
         cout << "done" << endl;
-        tile->entities.push_back(new FallingBlockEntity(group));
+        tile->entities.push_back(new FallingBlockEntity(tile->world, group));
       } else {
         if (group->persistant()) {
           tile->world->physicsgroups.emplace(group);

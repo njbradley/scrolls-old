@@ -24,8 +24,8 @@ void print(vec3 v) {
 
 
 
-Entity::Entity(vec3 pos, vec3 hitbox1, vec3 hitbox2):
-position(pos), box1(hitbox1), box2(hitbox2-vec3(1,1,1)), alive(true), immune(false), flying(false)
+Entity::Entity(World* nworld, vec3 pos, vec3 hitbox1, vec3 hitbox2):
+world(nworld), position(pos), box1(hitbox1), box2(hitbox2-vec3(1,1,1)), alive(true), immune(false), flying(false)
 {
     angle = vec2(0,0);
     vel = vec3(0,0,0);
@@ -49,7 +49,7 @@ void Entity::timestep(World* world) {
     //cout << vel.x << ' ' << vel.y << ' ' << vel.z << endl;
     if (!flying) {
         calc_constraints(world);
-        vel += vec3(0,-18,0) * deltaTime;
+        vel += vec3(0,-20,0) * deltaTime;
     } else {
         vel.y = 0;
     }
@@ -94,6 +94,10 @@ void Entity::find_colliders(vector<Collider*>* colliders) {
   //}
   
     colliders->push_back(world);
+}
+
+void Entity::tick() {
+  
 }
 
 void Entity::calc_constraints(World* world) {
@@ -267,7 +271,7 @@ void Entity::kill() {
 
 
 
-DisplayEntity::DisplayEntity(vec3 starting_pos, Block* newblock): Entity(starting_pos, vec3(0.2,0.2,0.2), vec3(1,1,1)), block(newblock), render_index(-1,0), render_flag(true) {
+DisplayEntity::DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock): Entity(nworld, starting_pos, vec3(0.2,0.2,0.2), vec3(1,1,1)), block(newblock), render_index(-1,0), render_flag(true) {
   int size = block->scale;
   box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
   //block->render(&vecs, this, 0, 0, 0);
@@ -460,7 +464,7 @@ DisplayEntity::~DisplayEntity() {
 
 
 
-NamedEntity::NamedEntity(vec3 starting_pos, string name): DisplayEntity(starting_pos, loadblock(name)), nametype(name), pointing(0) {
+NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, string name): DisplayEntity(nworld, starting_pos, loadblock(name)), nametype(name), pointing(0) {
   health = 10;
   //block->rotate(1, 1);
 }
@@ -534,7 +538,7 @@ void NamedEntity::on_timestep(World* world) {
 
 
 
-FallingBlockEntity::FallingBlockEntity(BlockGroup* newgroup): DisplayEntity(newgroup->position, newgroup->block), group(newgroup) {
+FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup): DisplayEntity(nworld, newgroup->position, newgroup->block), group(newgroup) {
   immune = true;
 }
 
