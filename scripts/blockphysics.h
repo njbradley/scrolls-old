@@ -11,6 +11,7 @@ BlockGroup::~BlockGroup() {
 	if (block != nullptr) {
 		block->del(false);
 		delete block;
+		block = nullptr;
 	}
 	remove_pix_pointers();
 }
@@ -275,6 +276,19 @@ BlockGroup* BlockGroup::from_file(World* world, istream& ifile) {
 	if (name == "crafting-group") return new CraftingGroup(world, ifile);
 	if (name == "chest-group") return new ChestGroup(world, ifile);
 	return new BlockGroup(world, ifile);
+}
+
+bool BlockGroup::is_persistant(char val) {
+	BlockData* data = blocks->blocks[val];
+	string name = "undef";
+	if (data != nullptr) {
+		name = data->clumpy_group;
+	}
+	if (name == "axle-group") return true;
+	if (name == "grindstone-group") return true;
+	if (name == "crafting-group") return true;
+	if (name == "chest-group") return true;
+	return false;
 }
 
 BlockGroup::BlockGroup(World* nworld, istream& ifile): world(nworld), update_flag(false) {

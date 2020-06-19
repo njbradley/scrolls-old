@@ -368,7 +368,7 @@ void Pixel::del(bool remove_faces) {
     if (extras != nullptr) {
       delete extras;
     }
-    if (physicsgroup != nullptr) {
+    if (physicsgroup != nullptr and !physicsgroup->persistant()) {
       delete physicsgroup;
     }
 }

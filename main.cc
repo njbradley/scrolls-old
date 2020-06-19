@@ -524,7 +524,6 @@ int main( void )
 			
 		}
 		
-		world->load_nearby_chunks();
 		if (true) {
 			//cout << "rendering!!!!" << endl;
 			//auto fut =  std::async([&] () {world->render();});//();

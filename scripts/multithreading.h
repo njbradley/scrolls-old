@@ -88,8 +88,9 @@ bool ThreadManager::add_deleting_job(ivec3 pos) {
 vector<Tile*> ThreadManager::get_loaded_tiles() {
 	vector<Tile*> tiles;
 	for ( int i = 0; i < num_threads; i ++) {
-		if (loading[i] != nullptr and loading[i]->complete) {
+		if (loading[i] != nullptr and loading[i]->complete and loading[i]->lock.try_lock_for(std::chrono::seconds(1))) {
 			tiles.push_back(loading[i]->result);
+			loading[i]->lock.unlock();
 			delete loading[i];
 			loading[i] = nullptr;
 		}
@@ -125,11 +126,13 @@ void LoadingThread::operator()() {
 	glfwMakeContextCurrent(window);
 	while (parent->load_running[index]) {
 		//cout << parent->loading[index] << endl;
-		if (parent->loading[index] != nullptr) {
-			//cout << parent->loading[index] << endl;
-			if (world != nullptr) {
+		
+		if (world != nullptr) {
+			if (parent->loading[index] != nullptr and parent->loading[index]->lock.try_lock_for(std::chrono::seconds(1))) {
+				//cout << parent->loading[index] << endl;
 				parent->loading[index]->result = new Tile(parent->loading[index]->pos, world);
 				parent->loading[index]->complete = true;
+				parent->loading[index]->lock.unlock();
 			}
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));

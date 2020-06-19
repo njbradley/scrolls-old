@@ -36,9 +36,9 @@ world(nworld), position(pos), box1(hitbox1), box2(hitbox2-vec3(1,1,1)), alive(tr
     }
 }
 
-void Entity::timestep(World* world) {
+void Entity::timestep() {
         
-    on_timestep(world);
+    on_timestep();
     // Compute time difference between current and last frame
     float currentTime(glfwGetTime());
     deltaTime = (currentTime - lastTime);
@@ -48,7 +48,7 @@ void Entity::timestep(World* world) {
     }
     //cout << vel.x << ' ' << vel.y << ' ' << vel.z << endl;
     if (!flying) {
-        calc_constraints(world);
+        calc_constraints();
         vel += vec3(0,-20,0) * deltaTime;
     } else {
         vel.y = 0;
@@ -100,7 +100,7 @@ void Entity::tick() {
   
 }
 
-void Entity::calc_constraints(World* world) {
+void Entity::calc_constraints() {
     
     vec3 coords_array[3] = {{0,1,1}, {1,0,1}, {1,1,0}};
     vec3 dir_array[3] =    {{1,0,0}, {0,1,0}, {0,0,1}};
@@ -243,7 +243,7 @@ void Entity::drag(bool do_drag, float deltaTime) {
     }
 }
 
-void Entity::on_timestep(World* world) {
+void Entity::on_timestep() {
   
 }
 
@@ -336,12 +336,12 @@ void DisplayEntity::render() {
   // cout << endl;
 }
 
-void DisplayEntity::on_timestep(World* world) {
+void DisplayEntity::on_timestep() {
   render();
   //vel += vec3(0.0,0,-0.08);
 }
 
-void DisplayEntity::calc_constraints(World* world) {
+void DisplayEntity::calc_constraints() {
     float axis_gap = 0.2;
     
     vec3 coords_array[3] = {{0,1,1}, {1,0,1}, {1,1,0}};
@@ -484,7 +484,7 @@ Block* NamedEntity::loadblock(string name) {
   return Block::from_file(ifile, 0, 0, 0, size, nullptr, nullptr);
 }
 
-void NamedEntity::on_timestep(World* world) {
+void NamedEntity::on_timestep() {
   render();
   vec3 dist_to_player = world->player->position - (position + box2 / 2.0f);
   int angle =  int(atan2(dist_to_player.z, dist_to_player.x) / (3.14/2) + 10.5) - 10;
@@ -542,7 +542,7 @@ FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup): Dis
   immune = true;
 }
 
-void FallingBlockEntity::on_timestep(World* world) {
+void FallingBlockEntity::on_timestep() {
   render();
   if (consts[4]) {
     group->copy_to_world(position);

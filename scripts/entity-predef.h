@@ -46,14 +46,14 @@ class Entity { public:
     World* world;
     
     Entity(World* nworld, vec3 pos, vec3 hitbox1, vec3 hitbox2);
-    void timestep(World* world);
-    virtual void calc_constraints(World* world);
+    void timestep();
+    virtual void calc_constraints();
     void find_colliders(vector<Collider*>* colliders);
     void get_nearby_entities(vector<DisplayEntity*>* colliders);
     void move(vec3 change, float deltaTime);
     void fall_damage(float velocity);
     void drag(bool do_drag, float deltaTime);
-    virtual void on_timestep(World* world);
+    virtual void on_timestep();
     virtual void tick();
     bool colliding(const Entity* other);
     virtual void kill();
@@ -98,8 +98,8 @@ public:
   Block * get_global(int,int,int,int);
   vec3 get_position();
   void render();
-  void calc_constraints(World* world);
-  virtual void on_timestep(World* world);
+  void calc_constraints();
+  virtual void on_timestep();
   //void die();
 };
 
@@ -109,14 +109,14 @@ public:
   int pointing;
   NamedEntity(World* nworld, vec3 starting_pos, string name);
   Block* loadblock(string name);
-  void on_timestep(World* world);
+  void on_timestep();
 };
 
 class FallingBlockEntity: public DisplayEntity {
 public:
   BlockGroup* group;
   FallingBlockEntity(World* nworld, BlockGroup* newgroup);
-  void on_timestep(World* world);
+  void on_timestep();
 };
 
 class EntityStorage { public:

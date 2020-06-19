@@ -57,6 +57,9 @@ Player::Player(World* newworld, vec3 pos):
 	Entity(newworld, pos, vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7)), inven(10), backpack(10) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
 	glfwSetMouseButtonCallback(window, mouse_button_call);
 	glfwSetScrollCallback(window, scroll_callback);
+	if (newworld == nullptr) {
+		cout << 61 << endl;
+	}
 	//char arr[] = {1,0,1,0,1,0,1,0}
 	selitem = 3;
 	inven.add( ItemStack(Item(itemstorage->items["chips"]), 10) );

@@ -129,7 +129,7 @@ void World::save_groups() {
 }
 
 void World::spawn_player() {
-  player = new Player(world, vec3(10,loader.terrain->get_height(ivec2(10,10))+7,10));
+  player = new Player(this, vec3(10,loader.terrain->get_height(ivec2(10,10))+7,10));
   player->flying = false;
   player->autojump = true;
   player->health = 10;
@@ -204,6 +204,14 @@ void World::get_async_loaded_chunks() {
         group->set_pix_pointers();
       }
     }
+    tile->chunk->all([=] (Pixel* pix) {
+      if (BlockGroup::is_persistant(pix->value)) {
+        int gx, gy, gz;
+        pix->global_position(&gx, &gy, &gz);
+        pix->tile->world->block_update(gx, gy, gz);
+        cout << gx << ' ' << gy << ' ' << gz << "kdjflskdjf" << endl;
+      }
+    });
   }
   for (int i = deleting_chunks.size()-1; i >= 0; i --) {
     if (tiles.find(deleting_chunks[i]) == tiles.end()) {
@@ -215,7 +223,7 @@ void World::get_async_loaded_chunks() {
 void World::timestep() {
   ivec3 chunk(player->position/float(chunksize) - vec3(player->position.x<0, player->position.y<0, player->position.z<0));
   if (tiles.find(chunk) != tiles.end() or player->flying) {
-    player->timestep(this);
+    player->timestep();
   }
   for (pair<ivec3, Tile*> kvpair : tiles) {
     tiles[kvpair.first]->timestep();
@@ -225,6 +233,8 @@ void World::timestep() {
 void World::tick() {
   //cout << "world tick" << endl;
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {
+  
+    world->load_nearby_chunks();
     for (ivec3 pos : block_updates) {
       Pixel* pix = get_global(pos.x, pos.y, pos.z, 1)->get_pix();
       BlockGroup* group = pix->physicsgroup;
@@ -343,7 +353,7 @@ void World::render() {
     }
     if (changed) {
 			cout << "changed" << endl;
-      world->glvecs.clean();
+      glvecs.clean();
       if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
         glFinish();
         glvecs.writelock.unlock();

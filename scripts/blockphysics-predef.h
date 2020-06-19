@@ -40,6 +40,7 @@ class BlockGroup { public:
 	virtual void to_file(ostream& ofile);
 	static BlockGroup* make_group(char val, World* world, ivec3 pos);
 	static BlockGroup* from_file(World* world, istream& ifile);
+	static bool is_persistant(char val);
 	const static int max_size = 500;
 };
 
