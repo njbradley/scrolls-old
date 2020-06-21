@@ -123,9 +123,12 @@ void BlockGroup::update() {
 	cout << this << " blockgroup " << position.x << ' ' << position.y << ' ' << position.z << " update" << endl;
 	vector<ivec3> dead_blocks;
 	for (ivec3 pos : block_poses) {
-		Pixel* pix = world->get_global(pos.x, pos.y, pos.z, 1)->get_pix();
-		if (pix->physicsgroup != this) {
-			dead_blocks.push_back(pos);
+		Block* b = world->get_global(pos.x, pos.y, pos.z, 1);
+		if (b != nullptr) {
+			Pixel* pix = b->get_pix();
+			if (pix->physicsgroup != this) {
+				dead_blocks.push_back(pos);
+			}
 		}
 	}
 	for (ivec3 pos : dead_blocks) {
@@ -135,7 +138,7 @@ void BlockGroup::update() {
 	ivec3 newpos;
 	for (ivec3 pos : block_poses) {
 		Block* b = world->get_global(pos.x, pos.y, pos.z, 1);
-		if (b->get() != 0 and blocks->blocks[b->get()]->clumpy_group == groupname) {
+		if (b != nullptr and b->get() != 0 and blocks->blocks[b->get()]->clumpy_group == groupname) {
 			found_pos = true;
 			newpos = pos;
 			break;

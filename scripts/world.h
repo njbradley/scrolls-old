@@ -171,16 +171,19 @@ void World::load_nearby_chunks() {
     }
     //crash(17658654574687);
     const double max_distance = std::sqrt((maxrange/2+1)*(maxrange/2+1)*2);
-    for (pair<ivec3,Tile*> kv : tiles) {
-      double distance = std::sqrt((px-kv.first.x)*(px-kv.first.x) + (py-kv.first.y)*(py-kv.first.y) + (pz-kv.first.z)*(pz-kv.first.z));
-      if (distance > max_distance and std::find(deleting_chunks.begin(), deleting_chunks.end(), kv.first) == deleting_chunks.end()) {
-        //del_chunk(kv.first, true);
-        if (threadmanager->add_deleting_job(kv.first)) {
-          deleting_chunks.push_back(kv.first);
-          cout << deleting_chunks.size() << "-------------------" << endl;
+    if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
+      for (pair<ivec3,Tile*> kv : tiles) {
+        double distance = std::sqrt((px-kv.first.x)*(px-kv.first.x) + (py-kv.first.y)*(py-kv.first.y) + (pz-kv.first.z)*(pz-kv.first.z));
+        if (distance > max_distance and std::find(deleting_chunks.begin(), deleting_chunks.end(), kv.first) == deleting_chunks.end()) {
+          //del_chunk(kv.first, true);
+          if (threadmanager->add_deleting_job(kv.first)) {
+            deleting_chunks.push_back(kv.first);
+            cout << deleting_chunks.size() << "-------------------" << endl;
+          }
+          render_flag = true;
         }
-        render_flag = true;
       }
+      tiles_lock.unlock();
     }
   }
   get_async_loaded_chunks();
@@ -188,35 +191,38 @@ void World::load_nearby_chunks() {
 
 void World::get_async_loaded_chunks() {
   vector<Tile*> loaded_chunks = threadmanager->get_loaded_tiles();
-  for (Tile* tile : loaded_chunks) {
-    ivec3 pos = tile->pos;
-    tiles[pos] = tile;
-    for (int i = 0; i < loading_chunks.size(); i ++) {
-      if (loading_chunks[i] == pos) {
-        loading_chunks.erase(loading_chunks.begin()+i);
-        break;
+  if (tiles_lock.try_lock_for(std::chrono::seconds(1))) {
+    for (Tile* tile : loaded_chunks) {
+      ivec3 pos = tile->pos;
+      tiles[pos] = tile;
+      for (int i = 0; i < loading_chunks.size(); i ++) {
+        if (loading_chunks[i] == pos) {
+          loading_chunks.erase(loading_chunks.begin()+i);
+          break;
+        }
+      }
+      for (BlockGroup* group : physicsgroups) {
+        ivec3 gpos = group->position;
+        ivec3 cpos = gpos/chunksize - ivec3(gpos.x<0, gpos.y<0, gpos.z<0);
+        if (cpos == pos) {
+          group->set_pix_pointers();
+        }
+      }
+      tile->chunk->all([=] (Pixel* pix) {
+        if (BlockGroup::is_persistant(pix->value)) {
+          int gx, gy, gz;
+          pix->global_position(&gx, &gy, &gz);
+          pix->tile->world->block_update(gx, gy, gz);
+          cout << gx << ' ' << gy << ' ' << gz << "kdjflskdjf" << endl;
+        }
+      });
+    }
+    for (int i = deleting_chunks.size()-1; i >= 0; i --) {
+      if (tiles.find(deleting_chunks[i]) == tiles.end()) {
+        deleting_chunks.erase(deleting_chunks.begin()+i);
       }
     }
-    for (BlockGroup* group : physicsgroups) {
-      ivec3 gpos = group->position;
-      ivec3 cpos = gpos/chunksize - ivec3(gpos.x<0, gpos.y<0, gpos.z<0);
-      if (cpos == pos) {
-        group->set_pix_pointers();
-      }
-    }
-    tile->chunk->all([=] (Pixel* pix) {
-      if (BlockGroup::is_persistant(pix->value)) {
-        int gx, gy, gz;
-        pix->global_position(&gx, &gy, &gz);
-        pix->tile->world->block_update(gx, gy, gz);
-        cout << gx << ' ' << gy << ' ' << gz << "kdjflskdjf" << endl;
-      }
-    });
-  }
-  for (int i = deleting_chunks.size()-1; i >= 0; i --) {
-    if (tiles.find(deleting_chunks[i]) == tiles.end()) {
-      deleting_chunks.erase(deleting_chunks.begin()+i);
-    }
+    tiles_lock.unlock();
   }
 }
 
@@ -225,8 +231,11 @@ void World::timestep() {
   if (tiles.find(chunk) != tiles.end() or player->flying) {
     player->timestep();
   }
-  for (pair<ivec3, Tile*> kvpair : tiles) {
-    tiles[kvpair.first]->timestep();
+  if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
+    for (pair<ivec3, Tile*> kvpair : tiles) {
+      tiles[kvpair.first]->timestep();
+    }
+    tiles_lock.unlock();
   }
 }
 
@@ -306,13 +315,11 @@ vec3 World::get_position() {
 
 void World::block_update(int x, int y, int z) {
   if (x == 0 and y == 0 and z == 0) {
-    cout << "big prob at 296, block update called on 0,0,0" << endl;
+    cout << "big prob at 296, block update called on 0,0,0, likely a bug, but it is possible if the block at 0,0,0 was actually updated" << endl;
   }
-  if (writelock.try_lock_for(std::chrono::seconds(1))) {
     //cout << "Recording Block Update at the global world position " << x << ' ' << y << ' ' << z << endl;
     block_updates.emplace(ivec3(x,y,z));
-    writelock.unlock();
-  }
+  
 }
 
 void World::render() {
@@ -323,30 +330,33 @@ void World::render() {
     bool changed = false;
     //cout << "back in render" << endl;
     vector<ivec3> empty;
-    for (pair<ivec3, Tile*> kvpair : tiles) {
-        //double before = clock();
-        //chunks[kvpair.first]->all([](Pixel* pix) {
-        //    pix->lightlevel = -1;
-        //});
-        //double during = clock();
-        //chunks[kvpair.first]->calculate_light_level();
-        //double after = clock();
-        //chunks[kvpair.first]->calculate_light_level();
-        changed = changed or tiles[kvpair.first]->chunk->render_flag;
-        if (tiles[kvpair.first]->chunk->render_flag) {
-          cout << "render " << kvpair.first.x << ' ' << kvpair.first.y << ' ' << kvpair.first.z << endl;
-        }
-        if (tiles.find(kvpair.first) != tiles.end() and std::find(deleting_chunks.begin(), deleting_chunks.end(), kvpair.first) == deleting_chunks.end()) {
-          kvpair.second->render(&glvecs);
-          // if (tiles[kvpair.first] == nullptr) {
-          //   empty.push_back(kvpair.first);
-          // } else {
-          //   tiles[kvpair.first]->render(&glvecs);
-          // }
-        }
-        //cout << "rendered chunk " << kvpair.first.first << ' ' << kvpair.first.second << endl;
-        //render_chunk_vectors(kvpair.first);
-        //cout << during - before << ' ' << after - during << ' ' << clock()-after << endl;
+    if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
+      for (pair<ivec3, Tile*> kvpair : tiles) {
+          //double before = clock();
+          //chunks[kvpair.first]->all([](Pixel* pix) {
+          //    pix->lightlevel = -1;
+          //});
+          //double during = clock();
+          //chunks[kvpair.first]->calculate_light_level();
+          //double after = clock();
+          //chunks[kvpair.first]->calculate_light_level();
+          changed = changed or tiles[kvpair.first]->chunk->render_flag;
+          if (tiles[kvpair.first]->chunk->render_flag) {
+            cout << "render " << kvpair.first.x << ' ' << kvpair.first.y << ' ' << kvpair.first.z << endl;
+          }
+          if (tiles.find(kvpair.first) != tiles.end() and std::find(deleting_chunks.begin(), deleting_chunks.end(), kvpair.first) == deleting_chunks.end()) {
+            kvpair.second->render(&glvecs);
+            // if (tiles[kvpair.first] == nullptr) {
+            //   empty.push_back(kvpair.first);
+            // } else {
+            //   tiles[kvpair.first]->render(&glvecs);
+            // }
+          }
+          //cout << "rendered chunk " << kvpair.first.first << ' ' << kvpair.first.second << endl;
+          //render_chunk_vectors(kvpair.first);
+          //cout << during - before << ' ' << after - during << ' ' << clock()-after << endl;
+      }
+      tiles_lock.unlock();
     }
     for (ivec3 e : empty) {
       tiles.erase(e);
@@ -362,8 +372,11 @@ void World::render() {
 }
 
 void World::update_lighting() {
-  for (pair<ivec3,Tile*> kvpair : tiles) {
-    kvpair.second->update_lighting();
+  if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
+    for (pair<ivec3,Tile*> kvpair : tiles) {
+      kvpair.second->update_lighting();
+    }
+    tiles_lock.unlock();
   }
 }
 
@@ -485,8 +498,13 @@ void World::close_world() {
     delete player;
     ofile.close();
     vector<ivec3> poses;
-    for (pair<ivec3, Tile*> kvpair : tiles) {
-        poses.push_back(kvpair.first);
+    if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
+      for (pair<ivec3, Tile*> kvpair : tiles) {
+          poses.push_back(kvpair.first);
+      }
+      tiles_lock.unlock();
+    } else {
+      hard_crash(923400304);
     }
     save_groups();
     for (ivec3 pos : poses) {
