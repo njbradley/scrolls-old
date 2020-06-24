@@ -47,7 +47,7 @@ public:
 
 class ItemData {
     public:
-        int texture;
+        float texture;
         bool stackable;
         string name;
         CharArray* onplace;

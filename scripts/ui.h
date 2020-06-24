@@ -29,7 +29,7 @@ void render_debug(MemVecs * vecs, string message) {
 
 
 
-void draw_image_uv(MemVecs * vecs, string texture, float x, float y, float x_scale, float y_scale, float xuv_start, float xuv_end) {
+void draw_image_uv(MemVecs * vecs, string texture, float x, float y, float x_scale, float y_scale, float xuv_start, float xuv_end, float yuv_start = 0.0f, float yuv_end = 1.0f) {
     float layer = 0;
 	int tex_index = ui_names[texture];
 	GLfloat face[] = {
@@ -41,12 +41,12 @@ void draw_image_uv(MemVecs * vecs, string texture, float x, float y, float x_sca
 		x, y, layer
 	};
 	GLfloat face_uv[] {
-		xuv_start, 1,
-		xuv_end, 1,
-		xuv_end, 0,
-		xuv_end, 0,
-		xuv_start, 0,
-		xuv_start, 1
+		xuv_start, yuv_end,
+		xuv_end, yuv_end,
+		xuv_end, yuv_start,
+		xuv_end, yuv_start,
+		xuv_start, yuv_start,
+		xuv_start, yuv_end
 	};
     vecs->verts.insert(vecs->verts.end(), begin(face), end(face));
     vecs->uvs.insert(vecs->uvs.end(), begin(face_uv), end(face_uv));

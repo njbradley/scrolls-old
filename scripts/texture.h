@@ -59,7 +59,70 @@ GLuint loadBMP_custom(const char * imagepath, bool transparency){
 	return textureID;
 }
 
-GLuint loadBMP_array_folder(string dirpath, std::map<string,int>& path_to_index) {
+GLuint loadBMP_image_folder(string dirpath, bool transparency) {
+	vector<string> img_paths;
+	get_files_folder(dirpath, &img_paths);
+	if (img_paths.size() < 0) {
+		exit(1);
+	}
+	int width, height, nrChannels;
+	unsigned char* img_data = stbi_load((dirpath + "/" + img_paths[0]).c_str(), &width, &height, &nrChannels, 0);
+	unsigned char all_data[width*height*nrChannels*img_paths.size()];
+	for (int i = 0; i < width*height*nrChannels; i ++) {
+		all_data[i] = img_data[i];
+	}
+	stbi_image_free(img_data);
+	
+	for (int i = 1; i < img_paths.size(); i ++) {
+		int newwidth, newheight, newnrChannels;
+		img_data = stbi_load((dirpath + "/" + img_paths[i]).c_str(), &newwidth, &newheight, &newnrChannels, 0);
+		if (newwidth != width or newheight != newheight or newnrChannels != nrChannels) {
+			cout << "error in load_image_folder, image sizes are not the same" << endl;
+			exit(2);
+		}
+		for (int j = 0; j < width*height*nrChannels; j ++) {
+			all_data[i*width*height*nrChannels + j] = img_data[j];
+		}
+		stbi_image_free(img_data);
+	}
+	
+	int num_layers = img_paths.size();
+	// Create one OpenGL texture
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+	
+	// "Bind" the newly created texture : all future texture functions will modify this texture
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	// Give the image to OpenGL
+	if (transparency) {
+		glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, width, height*num_layers, 0, GL_BGRA, GL_UNSIGNED_BYTE, all_data);
+	}
+	else {
+		glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height*num_layers, 0, GL_BGR, GL_UNSIGNED_BYTE, all_data);
+	}
+	// OpenGL has now copied the data. Free our own version
+	//delete [] data;
+
+	// Poor filtering, or ...
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	// ... nice trilinear filtering ...
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 3);
+	// ... which requires mipmaps. Generate them automatically.
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Return the ID of the texture we just created
+	return textureID;
+}
+
+GLuint loadBMP_array_folder(string dirpath) {
 	vector<string> img_paths;
 	get_files_folder(dirpath, &img_paths);
 	if (img_paths.size() < 0) {
@@ -71,7 +134,6 @@ GLuint loadBMP_array_folder(string dirpath, std::map<string,int>& path_to_index)
 	for (int i = 0; i < width*height*3; i ++) {
 		all_data[i] = img_data[i];
 	}
-	path_to_index[img_paths[0]] = 0;
 	stbi_image_free(img_data);
 	
 	for (int i = 1; i < img_paths.size(); i ++) {
@@ -84,7 +146,6 @@ GLuint loadBMP_array_folder(string dirpath, std::map<string,int>& path_to_index)
 		for (int j = 0; j < width*height*3; j ++) {
 			all_data[i*width*height*3 + j] = img_data[j];
 		}
-		path_to_index[img_paths[i]] = i;
 		stbi_image_free(img_data);
 	}
 	
@@ -98,11 +159,11 @@ GLuint loadBMP_array_folder(string dirpath, std::map<string,int>& path_to_index)
 
 	// Give the image to OpenGL
 	//glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
-	for (int i = 0; i < width*height*3*num_layers; i ++) {
-		cout << int(all_data[i]) << ' ';
-	}
-	cout << endl;
-	cout << width << ' ' << height << ' ' << num_layers << endl;
+	// for (int i = 0; i < width*height*3*num_layers; i ++) {
+	// 	cout << int(all_data[i]) << ' ';
+	// }
+	// cout << endl;
+	// cout << width << ' ' << height << ' ' << num_layers << endl;
 	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0,GL_RGB, width, height, num_layers, 0, GL_BGR, GL_UNSIGNED_BYTE, all_data);
 	
 	// OpenGL has now copied the data. Free our own version
@@ -121,11 +182,7 @@ GLuint loadBMP_array_folder(string dirpath, std::map<string,int>& path_to_index)
 	// ... which requires mipmaps. Generate them automatically.
 	
 	glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
-	GLenum err;
-	cout << "errors ghjjjhj " << endl;
-	while((err = glGetError()) != GL_NO_ERROR) {
-		cout << "err: " << std::hex << err << std::dec << endl;
-	}
+	
 	delete[] all_data;
 	// Return the ID of the texture we just created
 	return textureID;

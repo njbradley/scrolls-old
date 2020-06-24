@@ -385,43 +385,40 @@ int main( void )
 	vector<string> uis;
 	//get_files_folder("resources/blocks", &block_tex);
 	get_files_folder("resources/ui", &uis);
-	int max_tex_size;
-	ifstream max_tex_file("resources/blocks/max_tex_size.txt");
-	max_tex_file >> max_tex_size;
-	num_blocks = 0;
-	for (int i = 1; i <= max_tex_size; i *= 2) {
-		num_blocks ++;
-	}
-	num_uis = uis.size();
+	ifstream num_blocks_file("resources/blocks/num_blocks.txt");
+	num_blocks_file >> num_blocks;
+	
+	
+	num_uis = uis.size() + 1;
 	
 	
 	GLuint block_textures[num_blocks];
 	GLuint ui_textures[num_uis];
 	// Load the texture
 	
-	
-	
-	for (int i = 1; i <= max_tex_size; i *= 2) {
-		string block = "resources/blocks/" + std::to_string(i);
+	cout << "numblocks " << num_blocks << endl;
+	int size = 1;
+	for (int i = 0; i < num_blocks; i ++) {
+		string block = "resources/blocks/" + std::to_string(size);
 		cout << block << endl;
-		std::map<string,int> names_to_index;
-		block_textures[i] = loadBMP_array_folder(block, names_to_index);
+		block_textures[i] = loadBMP_array_folder(block);
 		cout << block_textures[i] << endl;
-		for (pair<string,int> kv : names_to_index) {
-			cout << kv.first << ' ' << kv.second << endl;
-		}
+		
 		GLenum err;
 		while((err = glGetError()) != GL_NO_ERROR) {
 			cout << "err: " << std::hex << err << std::dec << endl;
 		}
 	}
 	
-	for( int i = 0; i < num_uis; i ++) {
+	for( int i = 0; i < uis.size(); i ++) {
 		string ui = "resources/ui/" + uis[i];
 		ui_names[uis[i]] = i;
 		const char* data = ui.c_str();
 		ui_textures[i] = loadBMP_custom(data, true);
 	}
+	
+	ui_textures[num_uis-1] = loadBMP_image_folder("resources/items", true);
+	ui_names["items.bmp"] = num_uis-1;
 	// Load the texture
 	//GLuint Texture = loadBMP_custom("scrolls/resources/blocks/dirt.bmp");
 	//GLuint Texture = loadDDS("uvtemplate.DDS");

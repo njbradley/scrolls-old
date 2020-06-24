@@ -212,11 +212,11 @@ ItemStack::ItemStack(Item newitem, int newcount): item(newitem), count(newcount)
 }
 
 void ItemStack::render(MemVecs* vecs, float x, float y) {
-  draw_image_uv(vecs, "items.bmp", x, y, 0.1f, 0.1f*aspect_ratio, item.data->texture/64.0f, (item.data->texture+1)/64.0f);
+  draw_image_uv(vecs, "items.bmp", x, y, 0.1f, 0.1f*aspect_ratio, 0, 1, item.data->texture/30.0f, (item.data->texture+1)/30.0f);
   draw_text(vecs, std::to_string(count), x+0.02, y+0.02f);
 }
 
-/////////////////////////////// ITEMSTRAGE//////////////////////////////////////
+/////////////////////////////// ITEMSTRAGE////////////////////////////////////////////////
 
     ItemStorage::ItemStorage() {
         vector<string> block_paths;
