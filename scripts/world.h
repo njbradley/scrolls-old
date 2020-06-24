@@ -89,6 +89,7 @@ void World::startup() {
       spawn_player();
     }
     lighting_flag = true;
+    cout << "loading chunks from file" << endl;
     load_nearby_chunks();
     load_groups();
 }
@@ -98,7 +99,7 @@ void World::load_groups() {
   get_files_folder("saves/world/groups", &group_paths);
   for (string path : group_paths) {
     string fullpath = "saves/world/groups/" + path;
-    cout << "loading group from " << fullpath << endl;
+    //cout << "loading group from " << fullpath << endl;
     ifstream ifile(fullpath);
     BlockGroup* group = BlockGroup::from_file(this, ifile);
     ifile.close();
@@ -106,9 +107,11 @@ void World::load_groups() {
     group->set_pix_pointers();
     physicsgroups.emplace(group);
   }
+  cout << "loaded " << group_paths.size() << " groups from file" << endl;
   for (BlockGroup* group : physicsgroups) {
     group->link();
   }
+  cout << "linked groups sucessfully" << endl;
 }
 
 void World::save_groups() {
@@ -118,14 +121,15 @@ void World::save_groups() {
     string fullpath = "saves/world/groups/" + path;
     remove(fullpath.c_str());
   }
-  for (BlockGroup* group : physicsgroups) {
+  for (BlockGroup* group : physicsgroups) {\
     ivec3 pos = group->position;
     std::stringstream path;
     path << "saves/world/groups/" << pos.x << 'x' << pos.y << 'y' << pos.z << "z.txt";
     ofstream ofile(path.str());
-    cout << "saving group to " << path.str() << endl;
+    //cout << "saving group to " << path.str() << endl;
     group->to_file(ofile);
   }
+  cout << "saved " << physicsgroups.size() << " groups to file" << endl;
 }
 
 void World::spawn_player() {
@@ -178,7 +182,6 @@ void World::load_nearby_chunks() {
           //del_chunk(kv.first, true);
           if (threadmanager->add_deleting_job(kv.first)) {
             deleting_chunks.push_back(kv.first);
-            cout << deleting_chunks.size() << "-------------------" << endl;
           }
           render_flag = true;
         }
@@ -213,7 +216,6 @@ void World::get_async_loaded_chunks() {
           int gx, gy, gz;
           pix->global_position(&gx, &gy, &gz);
           pix->tile->world->block_update(gx, gy, gz);
-          cout << gx << ' ' << gy << ' ' << gz << "kdjflskdjf" << endl;
         }
       });
     }
@@ -341,9 +343,9 @@ void World::render() {
           //double after = clock();
           //chunks[kvpair.first]->calculate_light_level();
           changed = changed or tiles[kvpair.first]->chunk->render_flag;
-          if (tiles[kvpair.first]->chunk->render_flag) {
-            cout << "render " << kvpair.first.x << ' ' << kvpair.first.y << ' ' << kvpair.first.z << endl;
-          }
+          // if (tiles[kvpair.first]->chunk->render_flag) {
+          //   cout << "render " << kvpair.first.x << ' ' << kvpair.first.y << ' ' << kvpair.first.z << endl;
+          // }
           if (tiles.find(kvpair.first) != tiles.end() and std::find(deleting_chunks.begin(), deleting_chunks.end(), kvpair.first) == deleting_chunks.end()) {
             kvpair.second->render(&glvecs);
             // if (tiles[kvpair.first] == nullptr) {
@@ -362,7 +364,7 @@ void World::render() {
       tiles.erase(e);
     }
     if (changed) {
-			cout << "changed" << endl;
+			//cout << "changed" << endl;
       glvecs.clean();
       if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
         glFinish();
@@ -510,6 +512,7 @@ void World::close_world() {
     for (ivec3 pos : poses) {
         del_chunk(pos, false);
     }
+    cout << "all tiles saved sucessfully" << endl;
     save_data_file();
     zip();
     ofstream ofile2("saves/latest.txt");

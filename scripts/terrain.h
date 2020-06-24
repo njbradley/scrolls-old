@@ -53,6 +53,7 @@ TerrainObjectMerger::TerrainObjectMerger(TerrainLoader* newparent): parent(newpa
 	for (string file : files) {
 		objs.push_back(new FileTerrain(this, "resources/data/terrain/" + file));
 	}
+	cout << "loaded " << files.size() << " terrain objects from file" << endl;
 }
 
 TerrainObjectMerger::~TerrainObjectMerger() {
@@ -218,7 +219,7 @@ int Cave::priority() {
 
 FileTerrain::FileTerrain(TerrainObjectMerger* merger, string path): TerrainObject(merger->parent, ivec3(0,0,0), 0) {
 	ifstream ifile(path);
-	cout << "loading terrain object " << path << endl;
+	//cout << "loading terrain object " << path << endl;
 	int scale;
 	bool ignore_air;
 	ifile >> scale;
@@ -226,7 +227,6 @@ FileTerrain::FileTerrain(TerrainObjectMerger* merger, string path): TerrainObjec
 	ifile >> radius;
 	ifile >> priority_level;
 	ifile >> ignore_air;
-	cout << scale << ' ' << radius << ' ' << priority_level << ' ' << ignore_air << endl;
 	string buff;
 	getline(ifile, buff, ':');
 	data = new char[scale*scale*scale];

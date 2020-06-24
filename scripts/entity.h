@@ -565,8 +565,9 @@ EntityStorage::EntityStorage() {
     string name;
     std::getline(ss, name, '.');
     blocks[name] = "resources/data/entities/" + path;
-    cout << "loaded " << name << " from file" << endl;
+    //cout << "loaded " << name << " from file" << endl;
   }
+  cout << "loaded " << paths.size() << " entities from file" << endl;
 }
 
 #endif

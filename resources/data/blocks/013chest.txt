@@ -2,5 +2,5 @@ block chest {
 	:break_times: [axe:0.5 pickaxe:0.7 shovel:1.0 sword:0.9 null:1.0]
 	:textures: [chest]
 	:item_dropped: chest
-	:clumpy_group: chest_group
+	:clumpy_group: chest-group
 }

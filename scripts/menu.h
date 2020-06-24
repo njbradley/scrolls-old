@@ -321,7 +321,7 @@ bool filter;
 void special_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
   if (key == GLFW_KEY_BACKSPACE && action == GLFW_PRESS) {
-    cout << "backspace" << endl;
+    //cout << "backspace" << endl;
     text_buff += '\b';
   }
 }
@@ -329,7 +329,7 @@ void special_callback(GLFWwindow* window, int key, int scancode, int action, int
 void key_callback(GLFWwindow* window, unsigned int codepoint)
 {
   char lett(codepoint);
-  cout << codepoint << endl;
+  //cout << codepoint << endl;
   if (filter) {
     if ((codepoint >= 65 and codepoint <= 90) or (codepoint >= 97 and codepoint <= 122)) {
       text_buff += lett;

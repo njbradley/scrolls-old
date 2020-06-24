@@ -120,7 +120,7 @@ bool BlockGroup::persistant() {
 }
 
 void BlockGroup::update() {
-	cout << this << " blockgroup " << position.x << ' ' << position.y << ' ' << position.z << " update" << endl;
+	//cout << this << " blockgroup " << position.x << ' ' << position.y << ' ' << position.z << " update" << endl;
 	vector<ivec3> dead_blocks;
 	for (ivec3 pos : block_poses) {
 		Block* b = world->get_global(pos.x, pos.y, pos.z, 1);
@@ -148,7 +148,7 @@ void BlockGroup::update() {
 	block_poses.clear();
 	if (found_pos) {
 		//cout << this << " group found new pos " << newpos.x << ' ' << newpos.y << ' ' << newpos.z << " instead of ";
-		print (position);
+		//print (position);
 		position = newpos;
 		size = ivec3(0,0,0);
 		find_group();
@@ -157,7 +157,7 @@ void BlockGroup::update() {
 }
 
 void BlockGroup::on_update() {
-	cout << "on update" << endl;
+	//cout << "on update" << endl;
 }
 
 void BlockGroup::copy_to_block() {
@@ -167,7 +167,7 @@ void BlockGroup::copy_to_block() {
 	while (scale < size.x or scale < size.y or scale < size.z) {
 		scale *= 2;
 	}
-	cout << scale << endl;
+	//cout << scale << endl;
 	Pixel* pix = new Pixel(0, 0, 0, 0, scale, nullptr, nullptr);
 	if (scale > 1) {
 		block = pix->subdivide();
@@ -272,7 +272,7 @@ BlockGroup* BlockGroup::from_file(World* world, istream& ifile) {
 	string name;
 	int pos = ifile.tellg();
 	ifile >> name;
-	cout << name << endl;
+	//cout << name << endl;
 	ifile.seekg(pos);
 	if (name == "axle-group") return new AxleGroup(world, ifile);
 	if (name == "grindstone-group") return new GrindstoneGroup(world, ifile);
@@ -296,7 +296,6 @@ bool BlockGroup::is_persistant(char val) {
 
 BlockGroup::BlockGroup(World* nworld, istream& ifile): world(nworld), update_flag(false) {
 	ifile >> groupname;
-	cout << groupname << endl;
 	ifile >> position.x >> position.y >> position.z;
 	ifile >> size.x >> size.y >> size.z;
 	int size;
@@ -535,9 +534,7 @@ GrindstoneGroup::GrindstoneGroup(World* nworld, ivec3 starting_pos): AxleInterfa
 
 bool GrindstoneGroup::rcaction() {
 	if (menu == nullptr) {
-		cout << "setting menu" << endl;
 		menu = new InventoryMenu("grindstone", &input, [&] () {
-			cout << "done! " << endl;
 			delete menu;
 			menu = nullptr;
 		});
@@ -584,7 +581,6 @@ ChestGroup::ChestGroup(World* nworld, istream& ifile): BlockGroup(nworld, ifile)
 
 bool ChestGroup::rcaction() {
 	menu = new InventoryMenu("chest", &inven, [&] () {
-		cout << "done! " << endl;
 		delete menu;
 		menu = nullptr;
 	});

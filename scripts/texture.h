@@ -13,8 +13,6 @@
 #include "cross-platform.h"
 
 GLuint loadBMP_custom(const char * imagepath, bool transparency){
-
-	printf("Reading image %s\n", imagepath);
 	
 	unsigned char * data;
 	
@@ -189,8 +187,6 @@ GLuint loadBMP_array_folder(string dirpath) {
 }
 
 GLuint loadBMP_array_custom(const char * imagepath){
-
-	printf("Reading image %s\n", imagepath);
 	
 	unsigned char * data;
 	

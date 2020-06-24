@@ -64,9 +64,7 @@ clumpyness(0.9), item("null") {
     string varname;
     getline(ifile, buff, ':');
     getline(ifile, varname, ':');
-    cout << name << endl;
     while (!ifile.eof() and varname != "") {
-      cout << varname << endl;
       if (varname == "break_times") {
         getline(ifile, buff, '[');
         string all;
@@ -77,9 +75,7 @@ clumpyness(0.9), item("null") {
           stringstream wordss(word);
           string tool;
           getline(wordss, tool, ':');
-          cout << tool << endl;
           wordss >> hardness[tool];
-          cout << hardness[tool] << endl;
         }
       } else if (varname == "textures") {
         getline(ifile, buff, '[');
@@ -110,9 +106,8 @@ clumpyness(0.9), item("null") {
     }
     if (tex_str != "") {
       stringstream ss(tex_str);
-      cout << tex_str << endl;
       vector<string> files;
-      get_files_folder("resources/blocks/" + std::to_string(minscale), &files);
+      get_files_folder("resources/textures/blocks/" + std::to_string(minscale), &files);
       for (int i = 0; i < 6; i ++) {
         string filename;
         ss >> filename;
@@ -127,49 +122,11 @@ clumpyness(0.9), item("null") {
             }
           }
         }
-        cout << "tex" << i << ' ' << texture[i] << endl;
       }
     } else {
       cout << "ERR: textures is a requred block data field" << endl;
     }
   }
-    //
-    //
-    // string buff;
-    // getline(ifile, buff, ':');
-    // vector<string> tools;
-    // getline(ifile, buff, ':');
-    // stringstream line(buff);
-    // string tool;
-    // while (line >> tool) {
-    //     tools.push_back(tool);
-    // }
-    // for (string tool : tools) {
-    //     ifile >> hardness[tool];
-    // }
-    // getline(ifile, buff, ':');
-    // for (int i = 0; i < 6; i ++) {
-    //   ifile >> texture[i];
-    // }
-    // getline(ifile, buff, ':');
-    // ifile >> name >> rotation_enabled >> default_direction >> minscale >> rcaction >> lightlevel >> item;
-    // getline(ifile, buff, ':');
-    // ifile >> clumpyness >> clumpy_group;
-    // if (clumpy_group == "null") {
-    //   clumpy_group = name + "-group";
-    // }
-    // bool is_extra;
-    // ifile >> is_extra;
-    // if (is_extra) {
-    //   getline(ifile, buff, ':');
-    //   cout << "name: " << name << endl;
-    //   extras = new BlockExtra();
-    //   int size_inven;
-    //   ifile >> size_inven;
-    //   if (size_inven != 0) {
-    //     extras->inven = new ItemContainer(size_inven);
-    //   }
-    // }
 }
 
 BlockData::~BlockData() {
@@ -213,8 +170,9 @@ BlockStorage::BlockStorage(string path) {
         BlockData* data = new BlockData(ifile);
         blocks[(char)i] = data;
         names[data->name] = (char)i;
-        cout << "loading blockdata " << data->name << " from file" << endl;
+        //cout << "loading blockdata " << data->name << " from file" << endl;
     }
+    cout << "loaded " << i << " blockdata files" << endl;
 }
 
 BlockStorage::~BlockStorage() {

@@ -148,7 +148,6 @@ void load_settings() {
 		string name;
 		while (!ifile.eof()) {
 			getline(ifile, name, ':');
-			cout << name << ';' << endl;
 			if (name == "fov") {
 				ifile >> initialFoV;
 			} else if (name == "fullscreen") {
@@ -217,7 +216,6 @@ void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLu
 
 void inven_menu() {
 	menu = new InventoryMenu("hi", nullptr, [&] () {
-		cout << "done! " << endl;
 		delete menu;
 		menu = nullptr;
 	});
@@ -384,8 +382,8 @@ int main( void )
 	//vector<string> block_tex;
 	vector<string> uis;
 	//get_files_folder("resources/blocks", &block_tex);
-	get_files_folder("resources/ui", &uis);
-	ifstream num_blocks_file("resources/blocks/num_blocks.txt");
+	get_files_folder("resources/textures/ui", &uis);
+	ifstream num_blocks_file("resources/textures/blocks/num_blocks.txt");
 	num_blocks_file >> num_blocks;
 	
 	
@@ -396,28 +394,21 @@ int main( void )
 	GLuint ui_textures[num_uis];
 	// Load the texture
 	
-	cout << "numblocks " << num_blocks << endl;
 	int size = 1;
 	for (int i = 0; i < num_blocks; i ++) {
-		string block = "resources/blocks/" + std::to_string(size);
-		cout << block << endl;
+		string block = "resources/textures/blocks/" + std::to_string(size);
 		block_textures[i] = loadBMP_array_folder(block);
-		cout << block_textures[i] << endl;
 		
-		GLenum err;
-		while((err = glGetError()) != GL_NO_ERROR) {
-			cout << "err: " << std::hex << err << std::dec << endl;
-		}
 	}
 	
 	for( int i = 0; i < uis.size(); i ++) {
-		string ui = "resources/ui/" + uis[i];
+		string ui = "resources/textures/ui/" + uis[i];
 		ui_names[uis[i]] = i;
 		const char* data = ui.c_str();
 		ui_textures[i] = loadBMP_custom(data, true);
 	}
 	
-	ui_textures[num_uis-1] = loadBMP_image_folder("resources/items", true);
+	ui_textures[num_uis-1] = loadBMP_image_folder("resources/textures/items", true);
 	ui_names["items.bmp"] = num_uis-1;
 	// Load the texture
 	//GLuint Texture = loadBMP_custom("scrolls/resources/blocks/dirt.bmp");

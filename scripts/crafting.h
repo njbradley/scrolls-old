@@ -39,9 +39,10 @@ RecipeStorage::RecipeStorage() {
 		get_files_folder("resources/data/recipes", &recipe_paths);
 		for (string filename : recipe_paths) {
 				ifstream ifile("resources/data/recipes/" + filename);
-				cout << "loading recipe " << filename << " from file" << endl;
+				//cout << "loading recipe " << filename << " from file" << endl;
 				recipes.push_back(new Recipe(ifile));
 		}
+		cout << "loaded " << recipe_paths.size() << " recipe files" << endl;
 }
 
 RecipeStorage::~RecipeStorage() {

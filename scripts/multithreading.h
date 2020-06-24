@@ -18,7 +18,6 @@ ThreadJob::ThreadJob(ivec3 npos): pos(npos), result(nullptr), complete(false) {
 ThreadManager::ThreadManager(GLFWwindow* window) {
 	rendering = false;
 	render_running = true;
-	cout << "main window " << window << endl;
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -59,7 +58,6 @@ ThreadManager::ThreadManager(GLFWwindow* window) {
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
 		GLFWwindow* deletingwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
-		cout << loadingwindow << ' ' << deletingwindow << endl;
 		loading_threads[i] = thread(LoadingThread(loadingwindow, i, this));
 		deleting_threads[i] = thread(DeletingThread(deletingwindow, i, this));
 	}
@@ -100,15 +98,15 @@ vector<Tile*> ThreadManager::get_loaded_tiles() {
 
 void ThreadManager::close() {
 	render_running = false;
-	cout << "joining rendering thread" << endl;
+	//cout << "joining rendering thread" << endl;
 	rendering_thread.join();
 	tick_thread.join();
 	for (int i = 0; i < num_threads; i ++) {
 		load_running[i] = false;
-		cout << "joining load " << i << endl;
+		//cout << "joining load " << i << endl;
 		loading_threads[i].join();
 		del_running[i] = false;
-		cout << "joining del " << i << endl;
+		//cout << "joining del " << i << endl;
 		deleting_threads[i].join();
 	}
 }
@@ -122,7 +120,6 @@ LoadingThread::LoadingThread(GLFWwindow* nwindow, int newindex, ThreadManager* n
 }
 
 void LoadingThread::operator()() {
-	cout << "context " << window << endl;
 	glfwMakeContextCurrent(window);
 	while (parent->load_running[index]) {
 		//cout << parent->loading[index] << endl;

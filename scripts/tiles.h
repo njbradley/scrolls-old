@@ -8,7 +8,6 @@
 //#include <ZipLib/ZipFile.h>
 
 Block* Tile::generate(ivec3 pos) {
-  cout << chunksize << ' ' << pos.x << ',' << pos.y << ' ' << pos.z << endl;
   Pixel* pix = new Pixel(pos.x,pos.y,pos.z,0,chunksize,nullptr,this);
   Chunk* chunk = pix->resolve([=] (ivec3 position) {return world->loader.gen_func(position);});
 	if (chunk == nullptr) {
@@ -50,7 +49,7 @@ void Tile::render(GLVecs* glvecs) {
 void Tile::save() {
   stringstream path;
   path << "saves/world/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
-  cout << "saving '" << path.str() << "' to file\n";
+  //cout << "saving '" << path.str() << "' to file\n";
   ofstream of(path.str(), ios::binary);
   chunk->save_to_file(of);
 }
@@ -95,11 +94,11 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
   	path << "saves/world/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
   	ifstream ifile(path.str(), ios::binary);
   	if (ifile.good()) {
-  			cout << "loading '" << path.str() << "' from file\n";
+  			//cout << "loading '" << path.str() << "' from file\n";
   			//chunks[pos] = parse_file(&ifile, pos.first, 0, pos.second, chunksize, nullptr);
   			chunk = Block::from_file(ifile, pos.x, pos.y, pos.z, chunksize, nullptr, this);
   	} else {
-  			cout << "generating '" << path.str() << "'\n";
+  			//cout << "generating '" << path.str() << "'\n";
   			chunk = generate(pos);
   			//return load_chunk(pos);
   			//chunk = generate(pos);
@@ -116,7 +115,6 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
 
 void Tile::del(bool remove_faces) {
   //cout << "start of deleting tile ";
-  print (pos);
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
     deleting = true;
     for (DisplayEntity* entity : entities) {
