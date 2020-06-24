@@ -1,6 +1,8 @@
-: axe pickaxe shovel sword null
-: 0.5 0.7     1.0    0.9   1.0
-: 7 7 7 7 7 7
-: wood 1 0 1 null 0 chips
-: 0.99 tree
-0
+block wood {
+	:break_times: [axe:0.5 pickaxe:0.7 shovel:1.0 sword:0.9 null:1.0]
+	:textures: [wood]
+	:default_direction: 1
+	:rotation_enabled:
+	:clumpy_group: tree
+	:item_dropped: chips
+}

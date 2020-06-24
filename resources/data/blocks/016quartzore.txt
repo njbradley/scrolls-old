@@ -1,6 +1,5 @@
-: axe pickaxe shovel sword null
-: 3   0.7     4      5     20
-: 13 13 13 13 13 13
-: quartz-ore 1 0 1 null 0 quartz
-: 0.99 stones
-0
+block quartz-ore {
+	:break_times: [axe:3 pickaxe:0.7 shovel:4 sword:5 null:10]
+	:textures: [quartz-ore]
+	:item_dropped: quartz
+}

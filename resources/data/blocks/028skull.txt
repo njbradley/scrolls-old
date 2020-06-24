@@ -1,6 +1,6 @@
-: axe pickaxe shovel sword null
-: 0.6 0.3     1.0    1.0   1.0
-: 27 35 27 27 27 27
-: skull 1 1 1 null 0 skull
-: 1 bones
-0
+block skull {
+	:break_times: [axe:0.5 pickaxe:0.7 shovel:1.0 sword:0.9 null:1.0]
+	:textures: [bone-top skull bone-top]
+	:item_dropped: skull
+	:clumpy_group: bone-group
+}

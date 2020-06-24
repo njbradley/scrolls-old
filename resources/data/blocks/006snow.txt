@@ -1,6 +1,4 @@
-: axe pickaxe shovel sword null
-: 0.3 0.8     0.9    0.4   0.3
-: 5 5 5 5 5 5
-: snow 1 0 1 null 0 null
-: 0.4 null
-0
+block snow {
+	:break_times: [axe:0.3 pickaxe:0.8 shovel:0.1 sword:0.4 null:0.3]
+	:textures: [snow]
+}

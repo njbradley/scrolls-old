@@ -559,9 +559,9 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
         rotate_to_origin(mat, dirs, blocks->blocks[value]->default_direction);
         rotate_from_origin(mat, dirs, direction);
       }
-      
        
       int minscale = blocks->blocks[value]->minscale;
+      
       // /char mat = tex_index;
       /*GLfloat new_uvs[] = {
           0.0f, 1.0f * scale/minscale,

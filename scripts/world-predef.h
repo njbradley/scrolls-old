@@ -18,7 +18,7 @@
 #include <future>
 #include <thread>
 #include <mutex>
-#include <shared_mutex>
+//#include <shared_mutex>
 #include <unordered_set>
 
 using std::unordered_set;
@@ -31,7 +31,7 @@ class World: public Collider {
     vector<ivec3> loading_chunks;
     vector<ivec3> deleting_chunks;
     unordered_set<ivec3,ivec3_hash> block_updates;
-    mutable std::shared_timed_mutex tiles_lock;
+    //mutable std::shared_timed_mutex tiles_lock;
     char* tmparr;
     public:
         map<ivec3, Tile*, ivec3_comparator> tiles;

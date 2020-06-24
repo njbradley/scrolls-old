@@ -1,6 +1,7 @@
-: axe pickaxe shovel sword null
-: 0.5 0.7     1.0    0.9   1.0
-: 28 19 28 28 19 28
-: enthead 0 0 1 null 0 null
-: 0 tree
-0
+block enthead {
+	:break_times: [axe:0.5 pickaxe:0.7 shovel:1.0 sword:0.9 null:1.0]
+	:textures: [ent-mouth log-end ent-mouth ent-mouth log-end ent-mouth]
+	:item_dropped: chips
+	:rotation_enabled:
+	:default_rotation: 1
+}

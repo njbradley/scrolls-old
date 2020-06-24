@@ -1,6 +1,6 @@
-: axe pickaxe shovel sword null
-: 0.9 1.2     1.7    0.6   2.0
-: 31 29 31 31 29 31
-: dragon-mouth 1 1 1 null 0 dragon-mouth
-: 1 dragon
-0
+block dragon-mouth {
+	:break_times: [axe:0.5 pickaxe:0.7 shovel:1.0 sword:0.9 null:1.0]
+	:textures: [dragon-mouth dragon-scale dragon-mouth dragon-mouth dragon-scale dragon-mouth]
+	:item_dropped: dragon-tooth
+	:clumpy_group: dragon-group
+}

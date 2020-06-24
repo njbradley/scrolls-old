@@ -171,7 +171,7 @@ void World::load_nearby_chunks() {
     }
     //crash(17658654574687);
     const double max_distance = std::sqrt((maxrange/2+1)*(maxrange/2+1)*2);
-    if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
+    //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
       for (pair<ivec3,Tile*> kv : tiles) {
         double distance = std::sqrt((px-kv.first.x)*(px-kv.first.x) + (py-kv.first.y)*(py-kv.first.y) + (pz-kv.first.z)*(pz-kv.first.z));
         if (distance > max_distance and std::find(deleting_chunks.begin(), deleting_chunks.end(), kv.first) == deleting_chunks.end()) {
@@ -183,15 +183,15 @@ void World::load_nearby_chunks() {
           render_flag = true;
         }
       }
-      tiles_lock.unlock();
-    }
+    //  tiles_lock.unlock();
+    //}
   }
   get_async_loaded_chunks();
 }
 
 void World::get_async_loaded_chunks() {
   vector<Tile*> loaded_chunks = threadmanager->get_loaded_tiles();
-  if (tiles_lock.try_lock_for(std::chrono::seconds(1))) {
+  //if (tiles_lock.try_lock_for(std::chrono::seconds(1))) {
     for (Tile* tile : loaded_chunks) {
       ivec3 pos = tile->pos;
       tiles[pos] = tile;
@@ -222,8 +222,8 @@ void World::get_async_loaded_chunks() {
         deleting_chunks.erase(deleting_chunks.begin()+i);
       }
     }
-    tiles_lock.unlock();
-  }
+    //tiles_lock.unlock();
+  //}
 }
 
 void World::timestep() {
@@ -231,12 +231,12 @@ void World::timestep() {
   if (tiles.find(chunk) != tiles.end() or player->flying) {
     player->timestep();
   }
-  if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
+  //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
     for (pair<ivec3, Tile*> kvpair : tiles) {
       tiles[kvpair.first]->timestep();
     }
-    tiles_lock.unlock();
-  }
+  //  tiles_lock.unlock();
+  //}
 }
 
 void World::tick() {
@@ -330,7 +330,7 @@ void World::render() {
     bool changed = false;
     //cout << "back in render" << endl;
     vector<ivec3> empty;
-    if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
+    //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
       for (pair<ivec3, Tile*> kvpair : tiles) {
           //double before = clock();
           //chunks[kvpair.first]->all([](Pixel* pix) {
@@ -356,8 +356,8 @@ void World::render() {
           //render_chunk_vectors(kvpair.first);
           //cout << during - before << ' ' << after - during << ' ' << clock()-after << endl;
       }
-      tiles_lock.unlock();
-    }
+    //  tiles_lock.unlock();
+    //}
     for (ivec3 e : empty) {
       tiles.erase(e);
     }
@@ -372,12 +372,12 @@ void World::render() {
 }
 
 void World::update_lighting() {
-  if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
+  //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
     for (pair<ivec3,Tile*> kvpair : tiles) {
       kvpair.second->update_lighting();
     }
-    tiles_lock.unlock();
-  }
+  //  tiles_lock.unlock();
+  //}
 }
 
 Block* World::get_global(int x, int y, int z, int scale) {
@@ -498,14 +498,14 @@ void World::close_world() {
     delete player;
     ofile.close();
     vector<ivec3> poses;
-    if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
+    //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
       for (pair<ivec3, Tile*> kvpair : tiles) {
           poses.push_back(kvpair.first);
       }
-      tiles_lock.unlock();
-    } else {
-      hard_crash(923400304);
-    }
+    //  tiles_lock.unlock();
+    //} else {
+    //  hard_crash(923400304);
+    //}
     save_groups();
     for (ivec3 pos : poses) {
         del_chunk(pos, false);

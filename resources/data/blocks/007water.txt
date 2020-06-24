@@ -1,6 +1,4 @@
-: axe pickaxe shovel sword null
-: 0   0       0      0     0
-: 6 6 6 6 6 6
-: water 1 0 1 null 0 null
-: 1 null
-0
+block water {
+	:break_times: [axe:100 pickaxe:100 shovel:100 sword:100 null:100]
+	:textures: [water]
+}

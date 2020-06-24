@@ -1,6 +1,5 @@
-: axe pickaxe shovel sword null
-: 3   0.7     4      5     20
-: 16 16 16 16 16 16
-: shale 1 0 1 null 0 shale
-: 0.99 stones
-0
+block shale {
+	:break_times: [axe:3 pickaxe:0.7 shovel:4 sword:5 null:10]
+	:textures: [dark-rock]
+	:item_dropped: stone
+}

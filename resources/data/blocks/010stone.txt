@@ -1,6 +1,5 @@
-: axe pickaxe shovel sword null
-: 3   0.7     4      5     20
-: 9 9 9 9 9 9
-: stone 1 0 1 null 0 stone
-: 0.99 stones
-0
+block stone {
+	:break_times: [axe:3 pickaxe:0.7 shovel:4 sword:5 null:10]
+	:textures: [smooth-stone]
+	:item_dropped: stone
+}

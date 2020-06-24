@@ -1,6 +1,5 @@
-: axe pickaxe shovel sword null
-: 0.2 0.2     1.0    0.2   0.2
-: 4 4 4 4 4 4
-: sand 1 0 1 null 0 null
-: 0.2 ground
-0
+block sand {
+	:break_times: [axe:0.08 pickaxe:0.08 shovel:0.08 sword:0.05 null:0.12]
+	:textures: [sand]
+	:clumpy_group: ground
+}

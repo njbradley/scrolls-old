@@ -1,6 +1,6 @@
-: axe pickaxe shovel sword null
-: 0.3 0.3     0.2    0.2   0.5
-: 36 36 36 36 36 36
-: dragon-wing 1 1 1 null 0 dragon-wing
-: 1 dragon
-0
+block dragon-wing {
+	:break_times: [axe:0.3 pickaxe:0.3 shovel:0.2 sword:0.2 null:0.5]
+	:textures: [dragon-wing]
+	:item_dropped: dragon-flesh
+	:clumpy_group: dragon-group
+}

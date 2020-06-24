@@ -1,6 +1,6 @@
-: axe pickaxe shovel sword null
-: 0.08 0.08     0.08    0.05   0.12
-: 3 3 3 3 3 3
-: leaves 1 0 1 null 0 grass
-: 0.9 tree
-0
+block leaves {
+	:break_times: [axe:0.08 pickaxe:0.08 shovel:0.08 sword:0.05 null:0.12]
+	:textures: [leaves]
+	:item_dropped: grass
+	:clumpy_group: tree
+}

@@ -1,6 +1,8 @@
-: axe pickaxe shovel sword null
-: 0.5 0.7     1.0    0.9   1.0
-: 20 21 20 20 21 20
-: axle 1 1 1 null 0 axle
-: 0.99 axle-group
-0
+block axle {
+	:break_times: [axe:0.5 pickaxe:0.7 shovel:1.0 sword:0.9 null:1.0]
+	:textures: [planks-side planks-end planks-side planks-side planks-end planks-side]
+	:item_dropped: axle
+	:rotation_enabled:
+	:default_rotation: 1
+	:clumpy_group: axle-group
+}

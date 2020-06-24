@@ -1,6 +1,6 @@
-: axe pickaxe shovel sword null
-: 3   0.7     4      5     20
-: 22 22 22 22 22 22
-: grindstone 1 0 1 null 0 grindstone
-: 1 grindstone-group
-0
+block grindstone {
+	:break_times: [axe:3 pickaxe:0.7 shovel:4 sword:5 null:10]
+	:textures: [grindstone]
+	:item_dropped: grindstone
+	:clumpy_group: grindstone-group
+}

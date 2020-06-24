@@ -86,6 +86,35 @@ void dump_buffers() {
 	//ofstream ofile("datadump.dat");
 	//ofile.write(dat, len*sizeof(float));
 	glUnmapNamedBuffer( world->glvecs.vertexbuffer );
+	
+	int* matdata = (int*)glMapNamedBuffer( world->glvecs.matbuffer, GL_READ_ONLY);
+	len = allocated_memory*2;
+	ofstream mofile("dump_buffers_mat.txt");
+	for (int i = 0; i < len; i ++) {
+		if (matdata[i] > 100000 or i%(len/100) == 0 or i < 1000) {
+			mofile << i << ' ' << matdata[i] << endl;
+		}
+	}
+	mofile << "numverts" << world->glvecs.num_verts/6 << endl;
+	//char* dat = (char*)data;
+	//ofstream ofile("datadump.dat");
+	//ofile.write(dat, len*sizeof(float));
+	glUnmapNamedBuffer( world->glvecs.matbuffer );
+	
+	data = (float*)glMapNamedBuffer( world->glvecs.lightbuffer, GL_READ_ONLY);
+	len = allocated_memory;
+	ofstream fofile("dump_buffers_light.txt");
+	for (int i = 0; i < len; i ++) {
+		if (data[i] > 100000 or i%(len/100) == 0 or i < 1000) {
+			fofile << i/6 << ' ' << data[i] << endl;
+		}
+	}
+	fofile << "numverts" << world->glvecs.num_verts/6 << endl;
+	//char* dat = (char*)data;
+	//ofstream ofile("datadump.dat");
+	//ofile.write(dat, len*sizeof(float));
+	glUnmapNamedBuffer( world->glvecs.lightbuffer );
+	
 }
 
 void dump_emptys() {
@@ -146,7 +175,7 @@ void load_settings() {
 		ofile << "fov: 110" << endl;
 		ofile << "fullscreen: false" << endl;
 		ofile << "dims: 1600 900" << endl;
-		ofile << "max_fps: 120" << endl;
+		ofile << "max_fps: 60" << endl;
 		load_settings();
 	}
 }
@@ -258,6 +287,7 @@ int main( void )
 	
 	itemstorage = new ItemStorage();
 	blocks = new BlockStorage();
+	
 	recipestorage = new RecipeStorage();
 	entitystorage = new EntityStorage();
 	
@@ -351,11 +381,17 @@ int main( void )
 	
 	
 	////// get mats from folders
-	vector<string> block_tex;
+	//vector<string> block_tex;
 	vector<string> uis;
-	get_files_folder("resources/blocks", &block_tex);
+	//get_files_folder("resources/blocks", &block_tex);
 	get_files_folder("resources/ui", &uis);
-	num_blocks = block_tex.size();
+	int max_tex_size;
+	ifstream max_tex_file("resources/blocks/max_tex_size.txt");
+	max_tex_file >> max_tex_size;
+	num_blocks = 0;
+	for (int i = 1; i <= max_tex_size; i *= 2) {
+		num_blocks ++;
+	}
 	num_uis = uis.size();
 	
 	
@@ -365,10 +401,19 @@ int main( void )
 	
 	
 	
-	for( int i = 0; i < num_blocks; i ++) {
-		string block = "resources/blocks/" + block_tex[i];
-		const char* data = block.c_str();
-		block_textures[i] = loadBMP_array_custom(data);
+	for (int i = 1; i <= max_tex_size; i *= 2) {
+		string block = "resources/blocks/" + std::to_string(i);
+		cout << block << endl;
+		std::map<string,int> names_to_index;
+		block_textures[i] = loadBMP_array_folder(block, names_to_index);
+		cout << block_textures[i] << endl;
+		for (pair<string,int> kv : names_to_index) {
+			cout << kv.first << ' ' << kv.second << endl;
+		}
+		GLenum err;
+		while((err = glGetError()) != GL_NO_ERROR) {
+			cout << "err: " << std::hex << err << std::dec << endl;
+		}
 	}
 	
 	for( int i = 0; i < num_uis; i ++) {
@@ -809,7 +854,7 @@ int main( void )
 		} else if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) {
 			cout << "njbradley is king" << endl;
 		} else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
-			dump_buffers();
+			hard_crash(1);
 		} else if (glfwGetKey(window, GLFW_KEY_Q ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
 			playing = false;
 		} else if (glfwWindowShouldClose(window)) {
