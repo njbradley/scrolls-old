@@ -1,0 +1,8 @@
+block steel {
+	:break_times: [axe:2.0 pickaxe:0.7 shovel:2.0 sword:2.0 null:2.0]
+	:textures: [steel]
+	:item_dropped: steel
+	:clumpyness: 0.99
+	:clumpy_group: building
+
+}
