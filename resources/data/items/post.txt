@@ -1,4 +1,3 @@
-1
-: 4 1 1
-: 19 19 19 19
-: post 20 null 1 1 null
+item post {
+	:onplace: 4 1 1 : 19 19 19 19
+}

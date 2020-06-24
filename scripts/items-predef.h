@@ -47,7 +47,7 @@ public:
 
 class ItemData {
     public:
-        float texture;
+        int texture;
         bool stackable;
         string name;
         CharArray* onplace;
@@ -71,6 +71,7 @@ public:
 
 class ItemStorage { public:
     map<string,ItemData*> items;
+    int total_images;
     ItemStorage();
     ~ItemStorage();
 };

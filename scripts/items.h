@@ -18,7 +18,6 @@ CharArray::CharArray( char* newarr, int x, int y, int z): arr(newarr), sx(x), sy
 
 CharArray::CharArray(ifstream & ifile) {
     string buff;
-    getline(ifile, buff, ':');
     ifile >> sx >> sy >> sz;
     getline(ifile, buff, ':');
     arr = new char[sx*sy*sz];
@@ -181,23 +180,97 @@ char Item::ondig_null(World* world, int x, int y, int z) {
 
 /////////////////////////////////////// ITEMdada ////////////////////////////////
 
-ItemData::ItemData(ifstream & ifile) {
-    int isarray;
-    ifile >> isarray;
-    if (isarray) {
-        onplace = new CharArray(ifile);
-    } else {
-        onplace = nullptr;
-    }
-    string buff;
+ItemData::ItemData(ifstream & ifile):
+stackable(true), onplace(nullptr), rcaction("null"), damage(1), starting_weight(0),
+starting_sharpness(0), tool("null") {
+  
+  string buff;
+  ifile >> buff;
+  if (buff != "item") {
+    cout << "ERR: this file is not a item data file " << endl;
+  } else {
+    string tex_str;
+    ifile >> name;
+    getline(ifile, buff, '{');
+    string varname;
     getline(ifile, buff, ':');
-    ifile >> name >> texture >> tool >> damage >> stackable >> rcaction;
-    if (tool != "null") {
-      cout << name << ' ' << tool << ' ';
+    getline(ifile, varname, ':');
+    cout << name << endl;
+    while (!ifile.eof() and varname != "") {
+      cout << varname << endl;
+      if (varname == "onplace") {
+        onplace = new CharArray(ifile);
+      } else if (varname == "block") {
+        string blockname;
+        ifile >> blockname;
+        char* arr = new char[1];
+        arr[0] = blocks->names[blockname];
+        cout << int(arr[0]) << ' ' << blockname << endl;
+        onplace = new CharArray(arr, 1, 1, 1);
+      } else if (varname == "non_stackable") {
+        stackable = false;
+      } else if (varname == "rcaction") {
+        ifile >> rcaction;
+      } else if (varname == "damage") {
+        ifile >> damage;
+      } else if (varname == "weight") {
+        ifile >> starting_weight;
+      } else if (varname == "sharpness") {
+        ifile >> starting_sharpness;
+      } else if (varname == "tool") {
+        ifile >> tool;
+      } else if (varname == "texture") {
+        ifile >> tex_str;
+      }
       getline(ifile, buff, ':');
-      ifile >> starting_sharpness >> starting_weight;
-      cout << starting_sharpness << ' ' << starting_weight << endl;
+      getline(ifile, varname, ':');
     }
+    if (tex_str == "") {
+      tex_str = name;
+    }
+    vector<string> paths;
+    get_files_folder("resources/items", &paths);
+    texture = 0;
+    for (int i = 0; i < paths.size(); i ++) {
+      stringstream ss(paths[i]);
+      string filename;
+      getline(ss, filename, '.');
+      cout << paths[i] << ' ' << filename << endl;
+      if (filename == tex_str) {
+        cout << "found" << endl;
+        texture = i;
+      }
+    }
+    //texture = float(tex_id) / paths.size();
+    //cout << tex_id << ' ' << paths.size() << ' ' << texture << endl;
+  }
+  //
+  // float texture;
+  // bool stackable;
+  // string name;
+  // CharArray* onplace;
+  // string rcaction;
+  // int damage;
+  // int starting_weight;
+  // int starting_sharpness;
+  // string tool;
+  //
+  //   int isarray;
+  //   ifile >> isarray;
+  //   if (isarray) {
+  //       onplace = new CharArray(ifile);
+  //   } else {
+  //       onplace = nullptr;
+  //   }
+  //   string buff;
+  //   getline(ifile, buff, ':');
+  //   ifile >> name >> texture >> tool >> damage >> stackable >> rcaction;
+  //   if (tool != "null") {
+  //     cout << name << ' ' << tool << ' ';
+  //     getline(ifile, buff, ':');
+  //     ifile >> starting_sharpness >> starting_weight;
+  //     cout << starting_sharpness << ' ' << starting_weight << endl;
+  //   }
 }
 
 ItemData::~ItemData() {
@@ -212,13 +285,16 @@ ItemStack::ItemStack(Item newitem, int newcount): item(newitem), count(newcount)
 }
 
 void ItemStack::render(MemVecs* vecs, float x, float y) {
-  draw_image_uv(vecs, "items.bmp", x, y, 0.1f, 0.1f*aspect_ratio, 0, 1, item.data->texture/30.0f, (item.data->texture+1)/30.0f);
+  draw_image_uv(vecs, "items.bmp", x, y, 0.1f, 0.1f*aspect_ratio, 0, 1, float(item.data->texture)/itemstorage->total_images, float(item.data->texture+1)/itemstorage->total_images);
   draw_text(vecs, std::to_string(count), x+0.02, y+0.02f);
 }
 
 /////////////////////////////// ITEMSTRAGE////////////////////////////////////////////////
 
     ItemStorage::ItemStorage() {
+        vector<string> image_paths;
+        get_files_folder("resources/items", &image_paths);
+        total_images = image_paths.size();
         vector<string> block_paths;
         get_files_folder("resources/data/items", &block_paths);
         for (string filename : block_paths) {

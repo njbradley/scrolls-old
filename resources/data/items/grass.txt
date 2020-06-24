@@ -1,4 +1,4 @@
-1
-: 1 1 1
-: 4
-: grass 17 null 1 1 heal-1
+item grass {
+	:block: leaves
+	:rcaction: heal-1
+}

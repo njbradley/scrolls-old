@@ -285,8 +285,8 @@ int main( void )
 	
 	cout.precision(10);
 	
-	itemstorage = new ItemStorage();
 	blocks = new BlockStorage();
+	itemstorage = new ItemStorage();
 	
 	recipestorage = new RecipeStorage();
 	entitystorage = new EntityStorage();

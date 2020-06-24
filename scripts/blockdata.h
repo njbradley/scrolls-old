@@ -116,7 +116,7 @@ clumpyness(0.9), item("null") {
       for (int i = 0; i < 6; i ++) {
         string filename;
         ss >> filename;
-        if ((ss.eof() or filename == "") and i > 0) {
+        if ((ss.eof() and filename == "") and i > 0) {
           texture[i] = texture[i-1];
         } else {
           filename += ".bmp";

@@ -1,4 +1,3 @@
-1
-: 1 1 1
-: 13
-: chest 9 null 1 1 null
+item chest {
+	:block: chest
+}

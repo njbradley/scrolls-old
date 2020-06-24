@@ -1,3 +1,6 @@
-0
-: flint-pickaxe 19 pickaxe 2 0 null
-: 3 1
+item flint-pickaxe {
+	:tool: pickaxe
+	:sharpness: 3
+	:weight: 1
+	:damage: 2
+}

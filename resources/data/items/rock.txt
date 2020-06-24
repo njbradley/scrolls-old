@@ -1,4 +1,3 @@
-1
-: 1 1 1
-: 15
-: rock 12 null 1 1 null
+item rock {
+	:block: rock
+}

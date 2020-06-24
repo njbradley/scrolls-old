@@ -1,3 +1,6 @@
-0
-: iron-pickaxe 14 pickaxe 5 0 null
-: 2 3
+item iron-pickaxe {
+	:tool: pickaxe
+	:sharpness: 2
+	:weight: 3
+	:damage: 5
+}

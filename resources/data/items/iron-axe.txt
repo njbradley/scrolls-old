@@ -1,3 +1,6 @@
-0
-: iron-axe 4 axe 5 0 null
-: 2 6
+item iron-axe {
+	:tool: axe
+	:sharpness: 2
+	:weight: 6
+	:damage: 3
+}

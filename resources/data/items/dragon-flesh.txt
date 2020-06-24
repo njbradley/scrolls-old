@@ -1,4 +1,3 @@
-1
-: 1 1 1
-: 26
-: dragon-flesh 27 null 1 1 heal-1
+item dragon-flesh {
+	:block: dragon-flesh
+}
