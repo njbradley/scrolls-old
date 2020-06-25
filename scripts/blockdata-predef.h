@@ -7,6 +7,8 @@ using std::map;
 #include "classes.h"
 using std::istream;
 
+#include "items-predef.h"
+
 // class BlockExtra { public:
 //   Pixel* pixel;
 //   BlockExtra(Pixel*);
@@ -27,6 +29,18 @@ class BlockExtra { public:
   void save_to_file(ostream& ofile);
 };
 
+class DropTable { public:
+  double prob;
+  string tool;
+  double sharpness;
+  vector<DropTable> tables;
+  string item_name;
+  int count;
+  DropTable(istream& ifile);
+  DropTable();
+  void drop(ItemContainer* result, Player* player, Item* break_item);
+};
+
 class BlockData { public:
     map<string,double> hardness;
     int texture[6];
@@ -36,7 +50,7 @@ class BlockData { public:
     string name;
     string rcaction;
     float lightlevel;
-    string item;
+    DropTable droptable;
     double clumpyness;
     string clumpy_group;
     BlockExtra* extras = nullptr;

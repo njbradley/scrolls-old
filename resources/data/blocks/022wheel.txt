@@ -1,7 +1,7 @@
 block wheel {
 	:break_times: [axe:0.5 pickaxe:0.7 shovel:1.0 sword:0.9 null:1.0]
 	:textures: [wheel-side wheel-front wheel-side wheel-side wheel-front wheel-side]
-	:item_dropped: wheel
+	:item_dropped: wheel 1
 	:rotation_enabled:
 	:default_rotation: 1
 	:clumpy_group: wheel-group

@@ -73,13 +73,16 @@ void wait() {
 }
 
 void dump_buffers() {
+	cout << "dumping out contents of memory vectors" << endl;
+	cout << "dumping vertex data" << endl;
 	float* data = (float*)glMapNamedBuffer( world->glvecs.vertexbuffer, GL_READ_ONLY);
 	int len = allocated_memory*3;
-	ofstream ofile("dump_buffers.txt");
-	for (int i = 0; i < len; i ++) {
-		if (data[i] > 100000 or i%(len/100) == 0 or i < 1000) {
-			ofile << i/6/3 << ' ' << data[i] << endl;
-		}
+	ofstream ofile("dump_buffers_verts.txt");
+	for (int i = 0; i < world->glvecs.num_verts*3; i ++) {
+		ofile << i/6/3 << ' ' << data[i] << endl;
+		// if (data[i] > 100000 or i%(len/100) == 0 or i < 1000) {
+		//
+		// }
 	}
 	ofile << "numverts" << world->glvecs.num_verts/6 << endl;
 	//char* dat = (char*)data;
@@ -87,13 +90,14 @@ void dump_buffers() {
 	//ofile.write(dat, len*sizeof(float));
 	glUnmapNamedBuffer( world->glvecs.vertexbuffer );
 	
+	cout << "dumping material data" << endl;
 	int* matdata = (int*)glMapNamedBuffer( world->glvecs.matbuffer, GL_READ_ONLY);
 	len = allocated_memory*2;
 	ofstream mofile("dump_buffers_mat.txt");
-	for (int i = 0; i < len; i ++) {
-		if (matdata[i] > 100000 or i%(len/100) == 0 or i < 1000) {
-			mofile << i << ' ' << matdata[i] << endl;
-		}
+	for (int i = 0; i < world->glvecs.num_verts*2; i ++) {
+		//if (matdata[i] > 100000 or i%(len/100) == 0 or i < 1000) {
+			mofile << i/6/2 << ' ' << matdata[i] << endl;
+		//}
 	}
 	mofile << "numverts" << world->glvecs.num_verts/6 << endl;
 	//char* dat = (char*)data;
@@ -101,13 +105,14 @@ void dump_buffers() {
 	//ofile.write(dat, len*sizeof(float));
 	glUnmapNamedBuffer( world->glvecs.matbuffer );
 	
+	cout << "dumping light data" << endl;
 	data = (float*)glMapNamedBuffer( world->glvecs.lightbuffer, GL_READ_ONLY);
 	len = allocated_memory;
 	ofstream fofile("dump_buffers_light.txt");
-	for (int i = 0; i < len; i ++) {
-		if (data[i] > 100000 or i%(len/100) == 0 or i < 1000) {
+	for (int i = 0; i < world->glvecs.num_verts; i ++) {
+		//if (data[i] > 100000 or i%(len/100) == 0 or i < 1000) {
 			fofile << i/6 << ' ' << data[i] << endl;
-		}
+		//}
 	}
 	fofile << "numverts" << world->glvecs.num_verts/6 << endl;
 	//char* dat = (char*)data;

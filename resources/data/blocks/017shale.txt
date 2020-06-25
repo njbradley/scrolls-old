@@ -1,5 +1,5 @@
 block shale {
 	:break_times: [axe:3 pickaxe:0.7 shovel:4 sword:5 null:10]
 	:textures: [dark-rock]
-	:item_dropped: stone
+	:item_dropped: stone 1
 }

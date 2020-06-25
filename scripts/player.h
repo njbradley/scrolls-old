@@ -288,12 +288,13 @@ void Player::left_mouse() {
 		} else {
 			newitem = item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
 		}
-		string item_name = blocks->blocks[newitem]->item;
-		if (item_name != "null") {
-			if (!inven.add(ItemStack(Item(itemstorage->items[item_name]), 1))) {
-				backpack.add(ItemStack(Item(itemstorage->items[item_name]), 1));
-			}
-		}
+		blocks->blocks[newitem]->droptable.drop(&inven, this, item);
+		// string item_name = blocks->blocks[newitem]->item;
+		// if (item_name != "null") {
+		// 	if (!inven.add(ItemStack(Item(itemstorage->items[item_name]), 1))) {
+		// 		backpack.add(ItemStack(Item(itemstorage->items[item_name]), 1));
+		// 	}
+		// }
 		timeout = 0;
 	}
 	//world->mark_render_update(pair<int,int>((int)position.x/world->chunksize - (position.x<0), (int)position.z/world->chunksize - (position.z<0)));

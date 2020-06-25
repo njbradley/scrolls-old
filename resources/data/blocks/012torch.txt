@@ -1,5 +1,5 @@
 block torch {
 	:break_times: [axe:0.5 pickaxe:0.7 shovel:1.0 sword:0.9 null:1.0]
 	:textures: [lamp]
-	:item_dropped: lamp
+	:item_dropped: lamp 1
 }

@@ -1,6 +1,6 @@
 block dragon-flesh {
 	:break_times: [axe:0.3 pickaxe:0.3 shovel:0.2 sword:0.2 null:0.5]
 	:textures: [dragon-flesh]
-	:item_dropped: dragon-flesh
+	:item_dropped: dragon-flesh 1
 	:clumpy_group: dragon-group
 }

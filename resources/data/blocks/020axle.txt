@@ -1,7 +1,7 @@
 block axle {
 	:break_times: [axe:0.5 pickaxe:0.7 shovel:1.0 sword:0.9 null:1.0]
 	:textures: [planks-side planks-end planks-side planks-side planks-end planks-side]
-	:item_dropped: axle
+	:item_dropped: axle 1
 	:rotation_enabled:
 	:default_rotation: 1
 	:clumpy_group: axle-group

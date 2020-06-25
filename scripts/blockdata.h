@@ -49,9 +49,70 @@ void BlockExtra::save_to_file(ostream& ofile) {
 
 
 
+DropTable::DropTable(istream& ifile): item_name("null"), count(0), tool("null"), sharpness(0), prob(1) {
+  char lett;
+  ifile >> lett;
+  if (lett == '(') {
+    ifile >> lett;
+    while (lett != ')') {
+      if (lett == '%') {
+        ifile >> prob;
+      } else if (lett == 'T') {
+        ifile >> tool;
+        if (tool.back() == ')') {
+          tool.pop_back();
+          break;
+        }
+      } else if (lett == 'S') {
+        ifile >> sharpness;
+      }
+      ifile >> lett;
+    }
+    ifile >> lett;
+  }
+  if (lett == '[') {
+    do {
+      tables.emplace_back(ifile);
+      ifile >> lett;
+    } while (lett == ',');
+  } else {
+    ifile >> item_name >> count;
+    cout << item_name << ',' << lett << ',' << endl;
+    item_name = lett + item_name;
+  }
+}
+
+DropTable::DropTable(): item_name("null"), count(0), tool("null"), sharpness(0), prob(1) {
+  
+}
+
+void DropTable::drop(ItemContainer* result, Player* player, Item* break_item) {
+  bool is_prob = prob == 1;
+  if (!is_prob) {
+    double random = rand()%10000/10000.0;
+    //cout << random << endl;
+    is_prob = prob >= random;
+  }
+  if (is_prob) {
+    if (tool == "null" or break_item->data->tool == tool) {
+      if (sharpness == 0 or sharpness <= break_item->sharpness) {
+        if (tables.size() > 0) {
+          for (int i = 0; i < tables.size(); i ++) {
+            tables[i].drop(result, player, break_item);
+          }
+        } else if (item_name != "null" and count != 0) {
+          result->add(ItemStack(Item(itemstorage->items[item_name]), count));
+        }
+      }
+    }
+  }
+}
+
+
+
 BlockData::BlockData(ifstream & ifile):
 default_direction(0), rotation_enabled(false), minscale(1), rcaction("null"), lightlevel(0),
-clumpyness(0.9), item("null") {
+clumpyness(0.9) {
   string buff;
   ifile >> buff;
   if (buff != "block") {
@@ -91,7 +152,7 @@ clumpyness(0.9), item("null") {
       } else if (varname == "lightlevel") {
         ifile >> lightlevel;
       } else if (varname == "item_dropped") {
-        ifile >> item;
+        droptable = DropTable(ifile);
       } else if (varname == "clumpyness") {
         ifile >> clumpyness;
       } else if (varname == "clumpy_group") {

@@ -1,4 +1,3 @@
 item grass {
-	:block: leaves
 	:rcaction: heal-1
 }

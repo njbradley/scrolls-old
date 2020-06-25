@@ -83,7 +83,7 @@ void Tile::timestep() {
 Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize), deleting(false) {
 	//if (writelock.try_lock_for(std::chrono::seconds(1))) {
     if (pos == ivec3(0,0,0)) {
-      cout << "summoned entity 0923472893472893748293749823749273492734892739482739482739482739487293847283" << endl;
+      //cout << "summoned entity 0923472893472893748293749823749273492734892739482739482739482739487293847283" << endl;
       //entities.push_back(new NamedEntity(world, pos*chunksize+32, "dragon"));
   	}
     if (world == nullptr) {
