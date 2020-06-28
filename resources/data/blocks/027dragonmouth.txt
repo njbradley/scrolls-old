@@ -3,4 +3,6 @@ block dragon-mouth {
 	:textures: [dragon-mouth dragon-scale dragon-mouth dragon-mouth dragon-scale dragon-mouth]
 	:item_dropped: null 0
 	:clumpy_group: dragon-group
+	:default_direction: 1
+	:rotation_enabled:
 }

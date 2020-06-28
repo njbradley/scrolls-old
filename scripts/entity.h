@@ -49,7 +49,7 @@ void Entity::timestep() {
     //cout << vel.x << ' ' << vel.y << ' ' << vel.z << endl;
     if (!flying) {
         calc_constraints();
-        vel += vec3(0,-20,0) * deltaTime;
+        vel += vec3(0,-40,0) * deltaTime;
     } else {
         vel.y = 0;
     }
@@ -101,7 +101,7 @@ void Entity::tick() {
 }
 
 void Entity::calc_constraints() {
-    
+    //int begin = clock();
     vec3 coords_array[3] = {{0,1,1}, {1,0,1}, {1,1,0}};
     vec3 dir_array[3] =    {{1,0,0}, {0,1,0}, {0,0,1}};
     
@@ -134,7 +134,9 @@ void Entity::calc_constraints() {
         // pos is the positive point of the hitbox rounded up to the nearest block. neg is the negative most point rounded down
         vec3 neg = floor( rel_pos + box1 - axis_gap*dir );// + vec3(0,1,0);
         vec3 pos = ceil( rel_pos + box2 + axis_gap*dir );
-        
+        if (axis != 1 and !consts[2]) {
+          neg += vec3(0,1,0);
+        }
         
         //positive side
         //pos2 is the other point for the face
@@ -157,22 +159,64 @@ void Entity::calc_constraints() {
             new_rel_pos[axis] = floor(rel_pos[axis] + box2[axis] + axis_gap) - box2[axis] - axis_gap;
         }
         vec3 neg2 = neg*dir + pos*coords;
-        constraint = false;
-        for (int x = (int)neg.x; x < neg2.x+1; x ++) {
-            for (int y = (int)neg.y; y < neg2.y+1; y ++) {
-                for (int z = (int)neg.z; z < neg2.z+1; z ++) {
-                    Block* pix = collider->get_global(x,y,z,1);
-                    bool new_const = (pix != NULL and pix->get() != 0);
-                    if (new_const) {
-                      //world->block_update(x,y,z);
-                    }
-                    constraint = constraint or new_const;
-                }
+        if (axis == 1) {
+          //neg -= vec3(0.5,0,0.5);
+          //neg2 += vec3(0.5,0,0.5);
+          int max_y = INT_MIN;
+          constraint = false;
+          for (int x = (int)neg.x; x < neg2.x+1; x ++) {
+              for (int y = (int)neg.y; y < neg2.y+1; y ++) {
+                  for (int z = (int)neg.z; z < neg2.z+1; z ++) {
+                      Block* pix = collider->get_global(x,y,z,1);
+                      if (pix == nullptr or pix->get() == 0) {
+                        continue;
+                      }
+                      for (int yoff = 1; yoff < 3; yoff ++) {
+                        pix = collider->get_global(x,y+yoff,z,1);
+                        if (pix == nullptr or pix->get() == 0) {
+                          if (y+yoff-1 > max_y) {
+                            max_y = y+yoff-1;
+                          }
+                          constraint = true;
+                          break;
+                        }
+                      }
+                  }
+              }
+          }
+          new_consts[axis+3] = new_consts[axis+3] or constraint;
+          if (constraint) {
+            
+            double newpos = max_y - box1[axis] + axis_gap + 1;
+            if (newpos > new_rel_pos[1]) {
+              double diff = newpos - new_rel_pos[1];
+              if (diff > 0.2) {
+                diff = 0.2;
+              }
+              new_rel_pos[1] += diff;
+            } else {
+              new_consts[axis+3] = false;
             }
-        }
-        new_consts[axis+3] = new_consts[axis+3] or constraint;
-        if (constraint) {
-          new_rel_pos[axis] = ceil(rel_pos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
+            //ceil(rel_pos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
+          }
+        } else {
+          constraint = false;
+          for (int x = (int)neg.x; x < neg2.x+1; x ++) {
+              for (int y = (int)neg.y; y < neg2.y+1; y ++) {
+                  for (int z = (int)neg.z; z < neg2.z+1; z ++) {
+                      Block* pix = collider->get_global(x,y,z,1);
+                      bool new_const = (pix != NULL and pix->get() != 0);
+                      if (new_const) {
+                        //world->block_update(x,y,z);
+                      }
+                      constraint = constraint or new_const;
+                  }
+              }
+          }
+          new_consts[axis+3] = new_consts[axis+3] or constraint;
+          if (constraint) {
+            new_rel_pos[axis] = ceil(rel_pos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
+          }
         }
       }
       /// torso check: to tell if the constraints are only on the feet
@@ -198,6 +242,7 @@ void Entity::calc_constraints() {
     }
     
     position = newpos;
+    //cout << clock() - begin << endl;
     //print(position);
 }
 
@@ -223,22 +268,26 @@ void Entity::move(vec3 change, float deltaTime) {
 }
 
 void Entity::fall_damage(float velocity) {
-    if (velocity > 20) {
-        health -= (int)(velocity-20)/2;
+    if (velocity > 30) {
+        health -= (int)(velocity-30)/2;
     }
 }
 
 void Entity::drag(bool do_drag, float deltaTime) {
     if (do_drag) {
-        float ground_drag = 1-5*deltaTime;
+        float ground_drag = 1-20*deltaTime;
+        float side_drag = 1-3*deltaTime;
+        if (ground_drag < 0) {
+          ground_drag = 0;
+        }
         if (vel.y > 0) {
             vel *= vec3(ground_drag,1,ground_drag);
         }
         else {
-            vel *= ground_drag;
+            vel *= vec3(ground_drag, side_drag, ground_drag);
         }
     } else {
-        float air_drag = 1-3*deltaTime;
+        float air_drag = 1;//-5*deltaTime;
         vel *= vec3(air_drag, 1, air_drag);
     }
 }
@@ -277,7 +326,7 @@ DisplayEntity::DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock):
   //block->render(&vecs, this, 0, 0, 0);
 }
 
-vec3 DisplayEntity::get_position() {
+vec3 DisplayEntity::get_position() const {
   return position;
 }
 
@@ -511,10 +560,15 @@ void NamedEntity::on_timestep() {
   }
   float dist = glm::length(dist_to_player);
   dist_to_player /= dist;
-  vel.x += 0.1 * dist_to_player.x;
-  vel.z += 0.1 * dist_to_player.z;
   if (consts[4]) {
-    vel.y = 10;
+    vel.x += 0.5 * dist_to_player.x;
+    vel.z += 0.5 * dist_to_player.z;
+  } else {
+    vel.x += 0.1 * dist_to_player.x;
+    vel.z += 0.1 * dist_to_player.z;
+  }
+  if (consts[4] and (consts[0] or consts[2] or consts[3] or consts[5])) {
+    vel.y = 20;
   }
   if (colliding(world->player)) {
     world->player->health -= 1;

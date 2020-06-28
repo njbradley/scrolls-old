@@ -55,6 +55,15 @@ void MemVecs::clear() {
   num_verts = 0;
 }
 
+void MemVecs::edit(pair<int,int> index, MemVecs* newvecs) {
+  int start = index.first;
+  verts.insert(verts.begin()+start*3, newvecs->verts.begin(), newvecs->verts.end());
+  uvs.insert(uvs.begin()+start*2, newvecs->uvs.begin(), newvecs->uvs.end());
+  light.insert(light.begin()+start, newvecs->light.begin(), newvecs->light.end());
+  mats.insert(mats.begin()+start*2, newvecs->mats.begin(), newvecs->mats.end());
+  
+}
+
 
 
 
@@ -81,6 +90,8 @@ void GLVecs::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, in
 
 pair<int,int> GLVecs::add(MemVecs* newvecs) {
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
+    //cout << 84 << endl;
+    //int start = clock();
     int old_num_verts = num_verts;
     int location = num_verts;
     
@@ -115,32 +126,47 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
     if (num_verts+newvecs->light.size() > size_alloc) {
         cout << "ran out of memory!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
         cout << num_verts << ' ' << size_alloc << endl;
+        writelock.unlock();
         crash(2);
     }
+    //int mid1 = clock();
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     glBufferSubData(GL_ARRAY_BUFFER, num_verts*3*sizeof(GLfloat), newvecs->verts.size()*sizeof(GLfloat), &newvecs->verts.front());
+    //int mid2 = clock();
     glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
     glBufferSubData(GL_ARRAY_BUFFER, num_verts*2*sizeof(GLfloat), newvecs->uvs.size()*sizeof(GLfloat), &newvecs->uvs.front());
+    //int mid3 = clock();
     glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
     glBufferSubData(GL_ARRAY_BUFFER, num_verts*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
+    //int mid4 = clock();
     glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
     glBufferSubData(GL_ARRAY_BUFFER, num_verts*2*sizeof(GLint), newvecs->mats.size()*sizeof(GLfloat), &newvecs->mats.front());
-    
+    //int mid5 = clock();
     num_verts += newvecs->num_verts;
     writelock.unlock();
     //cout << "add " << old_num_verts/6 << ' ' << newvecs->num_verts/6 << endl;
     // del(pair<int,int>(3,2));
     // clean();
     // dump_buffers();
+    
+    // int all = clock() - start;
+    // if (all > 2) {
+    //   cout << all << " add " << old_num_verts/6 << ' ' << newvecs->num_verts/6 << endl;
+    //   cout << mid1-start << ' ' << mid2-mid1 << ' ' << mid3-mid2 << ' ' << mid4-mid3 << ' ' << mid5-mid4 << endl;
+    // }
     return pair<int,int>(old_num_verts/6, newvecs->num_verts/6);
   }
 }
 
 void GLVecs::del(pair<int,int> index) {
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
+    //cout << 142 << endl;
     if (index.first < -1) {
+      cout << index.first << ' ' << index.second << endl;
       cout << "big problem" << endl;
+      writelock.unlock();
       crash(19782984921423);
+      return;
     }
     //cout << "del: " << index.first << ' ' << index.second << endl;
     // if (index.second > 0) {
@@ -159,6 +185,7 @@ void GLVecs::del(pair<int,int> index) {
         (empty[i].first <= index.first and empty[i].first+empty[i].second > index.first)) {
         if (index.second > 0) {
           cout << index.first << ' ' << index.second << ' ' << empty[i].first << ' '<< empty[i].second << " problem" << endl;
+          writelock.unlock();
           crash(1567483904356848390);
         }
       }
@@ -202,6 +229,8 @@ void GLVecs::del(pair<int,int> index) {
 
 void GLVecs::clean() {
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
+    //cout << 207 << endl;
+    //int start = clock();
 		int max = 0;
     for (pair<int,int> index : empty) {
 			if (index.second*6 > max) {
@@ -224,11 +253,16 @@ void GLVecs::clean() {
         glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLint), size*2*sizeof(GLint), &zerosi.front());
     }
     writelock.unlock();
+    // int all = clock() - start;
+    // if (all > 2) {
+    //   cout << all << " clean" << endl;
+    // }
   }
 }
 
 void GLVecs::edit( pair<int,int> index, MemVecs* newvecs) {
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
+    //cout << 235 << endl;
     //cout << "editing!" << endl;
     int location = index.first*6;
     

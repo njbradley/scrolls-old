@@ -3,6 +3,6 @@ block wheel {
 	:textures: [wheel-side wheel-front wheel-side wheel-side wheel-front wheel-side]
 	:item_dropped: wheel 1
 	:rotation_enabled:
-	:default_rotation: 1
+	:default_direction: 1
 	:clumpy_group: wheel-group
 }

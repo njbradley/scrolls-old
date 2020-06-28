@@ -3,5 +3,5 @@ block enthead {
 	:textures: [ent-mouth log-end ent-mouth ent-mouth log-end ent-mouth]
 	:item_dropped: chips 1
 	:rotation_enabled:
-	:default_rotation: 1
+	:default_direction: 1
 }

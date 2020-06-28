@@ -49,7 +49,7 @@ class World: public Collider {
         
         World(string newname, int newseed);
         World(string oldname);
-        vec3 get_position();
+        vec3 get_position() const;
         void unzip();
         void load_groups();
         void save_groups();

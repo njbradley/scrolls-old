@@ -7,7 +7,7 @@ block block-name {
 			the name of the item dropped
 	:rotation_enabled:
 			this flag means rotation is enabled
-	:default_rotation: 1
+	:default_direction: 1
 			this is the rotation that the textures are at given above (defautlt 0)
 	:minscale: 1
 			this is the minimum scale that the block can be (default 1)

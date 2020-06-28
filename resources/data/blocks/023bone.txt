@@ -3,5 +3,5 @@ block bone {
 	:textures: [bone-side bone-top bone-side bone-side bone-top bone-side]
 	:item_dropped: bone 1
 	:rotation_enabled:
-	:default_rotation: 1
+	:default_direction: 1
 }

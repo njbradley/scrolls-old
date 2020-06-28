@@ -311,7 +311,7 @@ void World::tick() {
   //cout << "end world tick" << endl;
 }
 
-vec3 World::get_position() {
+vec3 World::get_position() const {
   return vec3(0,0,0);
 }
 
@@ -405,7 +405,7 @@ Block* World::get_global(int x, int y, int z, int scale) {
     int oy = ((y < 0) ? chunksize : 0) + y%chunksize;
     int oz = ((z < 0) ? chunksize : 0) + z%chunksize;
     //cout << ox << ' ' << y << ' ' << oz << endl;
-    return tiles[pos]->chunk->get_global(ox, oy, oz, scale);
+    return tiles.at(pos)->chunk->get_global(ox, oy, oz, scale);
 }
 
 void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras) {

@@ -77,7 +77,7 @@ DropTable::DropTable(istream& ifile): item_name("null"), count(0), tool("null"),
     } while (lett == ',');
   } else {
     ifile >> item_name >> count;
-    cout << item_name << ',' << lett << ',' << endl;
+    //cout << item_name << ',' << lett << ',' << endl;
     item_name = lett + item_name;
   }
 }
@@ -143,8 +143,8 @@ clumpyness(0.9) {
         getline(ifile, tex_str, ']');
       } else if (varname == "default_direction") {
         ifile >> default_direction;
-      } else if (varname == "roation_enabled") {
-        ifile >> rotation_enabled;
+      } else if (varname == "rotation_enabled") {
+        rotation_enabled = true;
       } else if (varname == "minscale") {
         ifile >> minscale;
       } else if (varname == "rcaction") {

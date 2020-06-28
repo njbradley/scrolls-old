@@ -675,8 +675,10 @@ int main( void )
 		}
 		
 		if (!world->glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
+			cout << "glvecs lock has timed out" << endl;
 			exit(1);
 		}
+		int start = clock();
 		
 		// Bind our texture in Texture Unit 0
 		//glActiveTexture(GL_TEXTURE0);
@@ -740,6 +742,11 @@ int main( void )
 		glDisableVertexAttribArray(3);
 		
 		world->glvecs.writelock.unlock();
+		
+		int all = clock() - start;
+		if (all > 2) {
+			cout << all << " render " << endl;
+		}
 		
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		//-----------------------------------------------------SECOND DRAW CALL------------------------------------------------------------------------------------------------------------------------//
@@ -826,6 +833,11 @@ int main( void )
 				main_menu();
 			} else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
 				inven_menu();
+			} else if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
+				menu = new CraftingMenu(1, [&]() {
+					delete menu;
+					menu = nullptr;
+				});
 			} else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 				world->glvecs.clean();
 			} else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {

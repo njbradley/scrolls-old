@@ -43,14 +43,14 @@ void Block::set_render_flag() {
   }
 }
 
-void Block::world_to_local(int x, int y, int z, int* lx, int* ly, int* lz) {
+void Block::world_to_local(int x, int y, int z, int* lx, int* ly, int* lz) const {
     *lx = x-(x/scale*scale);
     *ly = y-(y/scale*scale);
     *lz = z-(z/scale*scale);
     //cout << scale << " -----scale ------" << endl;
 }
 
-void Block::global_position(int* gx, int* gy, int* gz) {
+void Block::global_position(int* gx, int* gy, int* gz) const {
     //cout << px << ' ' << py << ' ' << pz << ' ' << scale << endl;
     if (parent == nullptr) {
         *gx = px*scale;
@@ -73,7 +73,7 @@ Block* Block::get_world() {
     }
 }
 
-vec3 Block::get_position() {
+vec3 Block::get_position() const {
   int x,y,z;
   global_position(&x,&y,&z);
   return vec3(x,y,z);
@@ -202,11 +202,11 @@ void Pixel::generate_extras() {
   }
 }
 
-bool Pixel::continues() {
+bool Pixel::continues() const {
     return false;
 }
 
-char Pixel::get() {
+char Pixel::get() const {
     //cout << "pixel get px" << px << " py" << py << " pz" << pz << " s" << scale << " value" << value  << endl;
     return value;
 }
@@ -228,7 +228,7 @@ float Pixel::get_lightlevel(int dx, int dy, int dz) {
     return lightlevel;
 }
 
-bool Pixel::is_air(int dx, int dy, int dz) {
+bool Pixel::is_air(int dx, int dy, int dz) const {
     //cout << "pix is air reaturning:" << (value == 0) << endl;
     return value == 0;
 }
@@ -562,6 +562,7 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
        
       int minscale = blocks->blocks[value]->minscale;
       
+      const GLfloat uvmax = 1.0f;
       // /char mat = tex_index;
       /*GLfloat new_uvs[] = {
           0.0f, 1.0f * scale/minscale,
@@ -589,12 +590,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
       block = collider->get_global(gx, gy, gz-scale, scale);
       if (block == nullptr or block->is_air(0, 0, 1)) {
           GLfloat new_uvs[] = {
-              0.0f, 1.0f,
-              1.0f, 1.0f,
-              1.0f, 0.0f,
-              1.0f, 0.0f,
+              0.0f, uvmax,
+              uvmax, uvmax,
+              uvmax, 0.0f,
+              uvmax, 0.0f,
               0.0f, 0.0f,
-              0.0f, 1.0f
+              0.0f, uvmax
           };
           rotate_uv(new_uvs,dirs[5]);
           GLfloat face[] = {
@@ -611,12 +612,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
       block = collider->get_global(gx, gy-scale, gz, scale);
       if (block == nullptr or block->is_air(0, 1, 0)) {
           GLfloat new_uvs[] = {
-              0.0f, 1.0f,
-              1.0f, 1.0f,
-              1.0f, 0.0f,
-              1.0f, 0.0f,
+              0.0f, uvmax,
+              uvmax, uvmax,
+              uvmax, 0.0f,
+              uvmax, 0.0f,
               0.0f, 0.0f,
-              0.0f, 1.0f
+              0.0f, uvmax
           };
           rotate_uv(new_uvs,dirs[4]);
           GLfloat face[] = {
@@ -634,12 +635,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
       block = collider->get_global(gx-scale, gy, gz, scale);
       if (block == nullptr or block->is_air(1, 0, 0)) {
           GLfloat new_uvs[] = {
-              0.0f, 1.0f,
-              1.0f, 1.0f,
-              1.0f, 0.0f,
-              1.0f, 0.0f,
+              0.0f, uvmax,
+              uvmax, uvmax,
+              uvmax, 0.0f,
+              uvmax, 0.0f,
               0.0f, 0.0f,
-              0.0f, 1.0f
+              0.0f, uvmax
           };
           rotate_uv(new_uvs,dirs[3]);
           GLfloat face[] = {
@@ -656,12 +657,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
       block = collider->get_global(gx, gy, gz+scale, scale);
       if (block == nullptr or block->is_air(0, 0, -1)) {
           GLfloat new_uvs[] = {
-              0.0f, 1.0f,
-              1.0f, 1.0f,
-              1.0f, 0.0f,
-              1.0f, 0.0f,
+              0.0f, uvmax,
+              uvmax, uvmax,
+              uvmax, 0.0f,
+              uvmax, 0.0f,
               0.0f, 0.0f,
-              0.0f, 1.0f
+              0.0f, uvmax
           };
           rotate_uv(new_uvs,dirs[2]);
           GLfloat face[] = {
@@ -678,12 +679,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
       block = collider->get_global(gx, gy+scale, gz, scale);
       if (block == nullptr or block->is_air(0, -1, 0)) {
           GLfloat new_uvs[] = {
-              0.0f, 1.0f,
-              1.0f, 1.0f,
-              1.0f, 0.0f,
-              1.0f, 0.0f,
+              0.0f, uvmax,
+              uvmax, uvmax,
+              uvmax, 0.0f,
+              uvmax, 0.0f,
               0.0f, 0.0f,
-              0.0f, 1.0f
+              0.0f, uvmax
           };
           rotate_uv(new_uvs,dirs[1]);
           GLfloat face[] = {
@@ -701,12 +702,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
       block = collider->get_global(gx+scale, gy, gz, scale);
       if (block == nullptr or block->is_air(-1, 0, 0)) {
           GLfloat new_uvs[] = {
-              0.0f, 1.0f,
-              1.0f, 1.0f,
-              1.0f, 0.0f,
-              1.0f, 0.0f,
+              0.0f, uvmax,
+              uvmax, uvmax,
+              uvmax, 0.0f,
+              uvmax, 0.0f,
               0.0f, 0.0f,
-              0.0f, 1.0f
+              0.0f, uvmax
           };
           rotate_uv(new_uvs,dirs[0]);
           GLfloat face[] = {
@@ -852,11 +853,11 @@ void Pixel::save_to_file(ostream& of) {
 Chunk::Chunk(int x, int y, int z, int nscale, Chunk* nparent):
     Block(x, y, z, nscale, nparent) {}
 
-bool Chunk::continues() {
+bool Chunk::continues() const {
     return true;
 }
 
-Block * Chunk::get(int x, int y, int z) {
+Block * Chunk::get(int x, int y, int z) const {
     //cout << "chunk get px" << px << " py" << py << " pz" << pz << " s" << scale << " x" << x << " y" << y << " z" << z << endl;
     return blocks[x][y][z];
 }
@@ -865,7 +866,7 @@ Pixel* Chunk::get_pix() {
     return nullptr;
 }
 
-char Chunk::get() {
+char Chunk::get() const {
     cout << "error: get() called on chunk object" << endl;
 }
 
@@ -1079,7 +1080,7 @@ Block* Chunk::get_global(int x, int y, int z, int nscale) {
 }
             
 
-bool Chunk::is_air(int dx, int dy, int dz) {
+bool Chunk::is_air(int dx, int dy, int dz) const {
     //cout << "is_air(dx" << dx << " dy" << dy << " dz" << dz << ")\n";
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);

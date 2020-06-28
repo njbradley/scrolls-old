@@ -12,6 +12,7 @@ class RenderVecs {
 public:
   virtual pair<int,int> add(MemVecs* newvecs) = 0;
   virtual void del(pair<int,int>) = 0;
+  virtual void edit(pair<int,int>, MemVecs*) = 0;
 };
 
 class MemVecs: public RenderVecs {/*
@@ -31,6 +32,7 @@ class MemVecs: public RenderVecs {/*
       */
       pair<int,int> add(MemVecs* newvecs);
       void del(pair<int,int>);
+      void edit(pair<int,int> index, MemVecs* newvecs);
       void clear();
 };
 

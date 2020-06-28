@@ -23,7 +23,7 @@ struct Collider {
   // and at scale scale
   // to make sure a pixel is returned, use scale 1 and call
   // get_pix() on the result
-  virtual vec3 get_position() = 0;
+  virtual vec3 get_position() const = 0;
 };
 
 class Entity { public:
@@ -96,7 +96,7 @@ public:
   DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock);
   ~DisplayEntity();
   Block * get_global(int,int,int,int);
-  vec3 get_position();
+  vec3 get_position() const;
   void render();
   void calc_constraints();
   virtual void on_timestep();

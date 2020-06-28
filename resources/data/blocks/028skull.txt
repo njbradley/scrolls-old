@@ -3,4 +3,6 @@ block skull {
 	:textures: [bone-top skull bone-top]
 	:item_dropped: skull 1
 	:clumpy_group: bone-group
+	:default_direction: 1
+	:rotation_enabled:
 }
