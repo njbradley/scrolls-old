@@ -286,8 +286,8 @@ void World::tick() {
     //   delete group;
     // }
     //physicsgroups.clear();
-    return;
-    for (int i = 0; i < 3; i ++) {
+    
+    for (int i = 0; i < 30; i ++) {
       std::map<ivec3,Tile*>::iterator item = tiles.begin();
       if (tiles.size() > 0) {
         //cout << 827349 << endl;
@@ -296,13 +296,13 @@ void World::tick() {
         //cout << "start of tick for tile ";
         //print (tile->pos);
         if (std::find(deleting_chunks.begin(), deleting_chunks.end(), item->first) == deleting_chunks.end()) {
-          if (tile->writelock.try_lock_for(std::chrono::seconds(1))) {
+          //if (tile->writelock.try_lock_for(std::chrono::seconds(1))) {
             Block* block = tile->chunk->get_global(rand()%chunksize, rand()%chunksize, rand()%chunksize, 1);
             if (block != nullptr and block->get_pix() != nullptr) {
-              block->get_pix()->tick();
+              block->get_pix()->random_tick();
             }
-            tile->writelock.unlock();
-          }
+            //tile->writelock.unlock();
+          //}
         }
       }
     }
@@ -342,11 +342,11 @@ void World::render() {
           //chunks[kvpair.first]->calculate_light_level();
           //double after = clock();
           //chunks[kvpair.first]->calculate_light_level();
-          changed = changed or tiles[kvpair.first]->chunk->render_flag;
           // if (tiles[kvpair.first]->chunk->render_flag) {
           //   cout << "render " << kvpair.first.x << ' ' << kvpair.first.y << ' ' << kvpair.first.z << endl;
           // }
           if (tiles.find(kvpair.first) != tiles.end() and std::find(deleting_chunks.begin(), deleting_chunks.end(), kvpair.first) == deleting_chunks.end()) {
+            changed = changed or kvpair.second->chunk->render_flag;
             kvpair.second->render(&glvecs);
             // if (tiles[kvpair.first] == nullptr) {
             //   empty.push_back(kvpair.first);
@@ -454,7 +454,11 @@ void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras
 }
 
 char World::get(int x, int y, int z) {
-    return get_global(x, y, z, 1)->get();
+    Block* block = get_global(x, y, z, 1);
+    if (block == nullptr) {
+      return -1;
+    }
+    return block->get();
 }
 
 Block* World::raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time) {

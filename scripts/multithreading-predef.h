@@ -37,6 +37,7 @@ public:
 	std::thread rendering_thread;
 	std::thread tick_thread;
 	int render_num_verts = 0;
+	int tick_ms;
 	ThreadManager(GLFWwindow* window);
 	bool add_loading_job(ivec3 pos);
 	bool add_deleting_job(ivec3 pos);
@@ -76,6 +77,7 @@ public:
 class TickThread {
 	ThreadManager* parent;
 	GLFWwindow* window;
+	int ms;
 public:
 	TickThread(GLFWwindow* window, ThreadManager* newparent);
 	void operator()();

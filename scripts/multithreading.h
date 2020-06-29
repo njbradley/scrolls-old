@@ -182,10 +182,15 @@ TickThread::TickThread(GLFWwindow* nwindow, ThreadManager* newparent): window(nw
 void TickThread::operator()() {
 	glfwMakeContextCurrent(window);
 	while (parent->render_running) {
+		double start_time = glfwGetTime();
 		if (world != nullptr) {
 			world->tick();
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		ms = (glfwGetTime() - start_time) * 1000;
+		parent->tick_ms = ms;
+		if (ms < 50) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(50 - ms));
+		}
 	}
 	cout << "tick thread exited" << endl;
 }

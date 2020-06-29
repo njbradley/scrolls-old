@@ -28,6 +28,13 @@ struct ivec3_comparator {
   }
 };
 
+struct vec3_comparator {
+  bool operator() (const vec3& lhs, const vec3& rhs) const
+  {
+      return lhs.x < rhs.x || lhs.x == rhs.x && (lhs.y < rhs.y || lhs.y == rhs.y && lhs.z < rhs.z);
+  }
+};
+
 
 struct ivec3_hash {
 	size_t operator() (const ivec3& pos) const {

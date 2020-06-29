@@ -94,6 +94,7 @@ public:
     // sets the value, direction, and BlockExtra of the pixel
     void render_update();
     void tick();
+    void random_tick();
     void del(bool remove_faces);
     void calculate_lightlevel();
     void reset_lightlevel();

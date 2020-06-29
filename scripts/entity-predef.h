@@ -90,10 +90,12 @@ class Player: public Entity {
 class DisplayEntity: public Entity, public Collider {
 public:
   Block* block;
+  map<vec3,Block*,vec3_comparator> limbs;
   MemVecs vecs;
   pair<int,int> render_index;
   bool render_flag;
-  DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock);
+  DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock,
+    map<vec3,Block*,vec3_comparator> newlimbs = map<vec3,Block*,vec3_comparator>());
   ~DisplayEntity();
   Block * get_global(int,int,int,int);
   vec3 get_position() const;
@@ -107,8 +109,10 @@ class NamedEntity: public DisplayEntity {
 public:
   string nametype;
   int pointing;
-  NamedEntity(World* nworld, vec3 starting_pos, string name);
+  NamedEntity(World* nworld, vec3 starting_pos, string name,
+    map<vec3,string,vec3_comparator> limbnames);
   Block* loadblock(string name);
+  map<vec3,Block*,vec3_comparator> loadlimbs(map<vec3,string,vec3_comparator>& names);
   void on_timestep();
 };
 

@@ -91,7 +91,7 @@ void GLVecs::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, in
 pair<int,int> GLVecs::add(MemVecs* newvecs) {
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
     //cout << 84 << endl;
-    //int start = clock();
+    int start = clock();
     int old_num_verts = num_verts;
     int location = num_verts;
     
@@ -129,19 +129,19 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
         writelock.unlock();
         crash(2);
     }
-    //int mid1 = clock();
+    int mid1 = clock();
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     glBufferSubData(GL_ARRAY_BUFFER, num_verts*3*sizeof(GLfloat), newvecs->verts.size()*sizeof(GLfloat), &newvecs->verts.front());
-    //int mid2 = clock();
+    int mid2 = clock();
     glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
     glBufferSubData(GL_ARRAY_BUFFER, num_verts*2*sizeof(GLfloat), newvecs->uvs.size()*sizeof(GLfloat), &newvecs->uvs.front());
-    //int mid3 = clock();
+    int mid3 = clock();
     glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
     glBufferSubData(GL_ARRAY_BUFFER, num_verts*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
-    //int mid4 = clock();
+    int mid4 = clock();
     glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
     glBufferSubData(GL_ARRAY_BUFFER, num_verts*2*sizeof(GLint), newvecs->mats.size()*sizeof(GLfloat), &newvecs->mats.front());
-    //int mid5 = clock();
+    int mid5 = clock();
     num_verts += newvecs->num_verts;
     writelock.unlock();
     //cout << "add " << old_num_verts/6 << ' ' << newvecs->num_verts/6 << endl;
@@ -149,11 +149,11 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
     // clean();
     // dump_buffers();
     
-    // int all = clock() - start;
-    // if (all > 2) {
-    //   cout << all << " add " << old_num_verts/6 << ' ' << newvecs->num_verts/6 << endl;
-    //   cout << mid1-start << ' ' << mid2-mid1 << ' ' << mid3-mid2 << ' ' << mid4-mid3 << ' ' << mid5-mid4 << endl;
-    // }
+    int all = clock() - start;
+    if (all > 2) {
+      cout << all << " add " << old_num_verts/6 << ' ' << newvecs->num_verts/6 << endl;
+      cout << mid1-start << ' ' << mid2-mid1 << ' ' << mid3-mid2 << ' ' << mid4-mid3 << ' ' << mid5-mid4 << endl;
+    }
     return pair<int,int>(old_num_verts/6, newvecs->num_verts/6);
   }
 }

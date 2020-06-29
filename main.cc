@@ -501,6 +501,7 @@ int main( void )
 	render_flag = true;
 	bool reaching_max_fps = true;
 	double slow_frame = 0;
+	int slow_tick = 0;
 	int view_distance = 100;
 	
 	
@@ -581,6 +582,8 @@ int main( void )
 			debugstream << "ms: " << ms << endl;
 			debugstream << "ms(goal):" << min_ms_per_frame << endl;
 			debugstream << "reaching max fps: " << reaching_max_fps << " (" << slow_frame << ")" << endl;
+			debugstream << "tick thread ms: " << threadmanager->tick_ms << endl;
+			debugstream << "slow tick: " << slow_tick << endl;
 			/// block and entity debug
 			debugstream << "-----block-entity-tracking-----" << endl;
 			if (debugentity != nullptr) {
@@ -619,6 +622,9 @@ int main( void )
 		if (ms > slow_frame) {
 			slow_frame = ms;
 		}
+		if (threadmanager->tick_ms > slow_tick) {
+			slow_tick = threadmanager->tick_ms;
+		}
 		
 		nbFrames++;
 		if ( currentTime - lastTime >= 1.0 ){ // If last prinf() was more than 1 sec ago
@@ -629,6 +635,7 @@ int main( void )
 		    lastTime += 1.0;
 			reaching_max_fps = true;
 			slow_frame = 0;
+			slow_tick = 0;
 		}
 		
 		////////////// sleep to max fps

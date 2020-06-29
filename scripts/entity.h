@@ -320,7 +320,8 @@ void Entity::kill() {
 
 
 
-DisplayEntity::DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock): Entity(nworld, starting_pos, vec3(0.2,0.2,0.2), vec3(1,1,1)), block(newblock), render_index(-1,0), render_flag(true) {
+DisplayEntity::DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock, map<vec3,Block*,vec3_comparator> newlimbs):
+Entity(nworld, starting_pos, vec3(0.2,0.2,0.2), vec3(1,1,1)), block(newblock), render_index(-1,0), render_flag(true), limbs(newlimbs) {
   int size = block->scale;
   box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
   //block->render(&vecs, this, 0, 0, 0);
@@ -360,6 +361,16 @@ void DisplayEntity::render() {
       pix->render_index = pair<int,int>(-1,0);
     });
     block->render(&vecs, this, 0, 0, 0);
+    int begin = vecs.num_verts;
+    for (pair<vec3,Block*> limb : limbs) {
+      limb.second->render(&vecs, this, 0, 0, 0);
+      for (int i = begin; i < vecs.num_verts; i ++) {
+        vecs.verts[i*3+0] += limb.first.x;
+        vecs.verts[i*3+1] += limb.first.y;
+        vecs.verts[i*3+2] += limb.first.z;
+      }
+      begin = vecs.num_verts;
+    }
     render_flag = false;
   }
   MemVecs translated;
@@ -506,14 +517,19 @@ DisplayEntity::~DisplayEntity() {
     block->del(false);
     delete block;
   }
-    //
+  
+  for (pair<vec3,Block*> kvpair : limbs) {
+    delete kvpair.second;
+  }
 }
 
 
 
 
 
-NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, string name): DisplayEntity(nworld, starting_pos, loadblock(name)), nametype(name), pointing(0) {
+NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, string name,
+  map<vec3,string,vec3_comparator> limbnames):
+  DisplayEntity(nworld, starting_pos, loadblock(name), loadlimbs(limbnames)), nametype(name), pointing(0) {
   health = 10;
   //block->rotate(1, 1);
 }
@@ -531,6 +547,14 @@ Block* NamedEntity::loadblock(string name) {
   char buff;
   ifile.read(&buff,1);
   return Block::from_file(ifile, 0, 0, 0, size, nullptr, nullptr);
+}
+
+map<vec3,Block*,vec3_comparator> NamedEntity::loadlimbs(map<vec3,string,vec3_comparator>& names) {
+  map<vec3,Block*,vec3_comparator> result;
+  for (pair<vec3,string> name : names) {
+    result[name.first] = loadblock(name.second);
+  }
+  return result;
 }
 
 void NamedEntity::on_timestep() {
