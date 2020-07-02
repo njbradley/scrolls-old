@@ -135,7 +135,7 @@ void Entity::calc_constraints() {
         vec3 neg = floor( rel_pos + box1 - axis_gap*dir );// + vec3(0,1,0);
         vec3 pos = ceil( rel_pos + box2 + axis_gap*dir );
         if (axis != 1 and !consts[2]) {
-          neg += vec3(0,1,0);
+          neg = floor( rel_pos + box1 - axis_gap*dir + vec3(0,1,0));
         }
         
         //positive side
@@ -184,21 +184,55 @@ void Entity::calc_constraints() {
                   }
               }
           }
-          new_consts[axis+3] = new_consts[axis+3] or constraint;
-          if (constraint) {
+          
+          if (!constraint) {
+            neg = floor( rel_pos + box1 - axis_gap );
+            pos = ceil( rel_pos + box2 + axis_gap );
+            neg2 = neg*dir + pos*coords;
             
-            double newpos = max_y - box1[axis] + axis_gap + 1;
-            if (newpos > new_rel_pos[1]) {
-              double diff = newpos - new_rel_pos[1];
-              if (diff > 0.2) {
-                diff = 0.2;
+            for (int x = (int)neg.x; x < neg2.x+1; x ++) {
+              for (int y = (int)neg.y; y < neg2.y+1; y ++) {
+                for (int z = (int)neg.z; z < neg2.z+1; z ++) {
+                  Block* floor = collider->get_global(x,y,z,1);
+                  if (floor != nullptr and floor->get() != 0) {
+                    Block* above = collider->get_global(x,y+1,z,1);
+                    if (above == nullptr or above->get() == 0) {
+                      constraint = true;
+                    }
+                  }
+                  
+                }
               }
-              new_rel_pos[1] += diff;
-            } else {
-              new_consts[axis+3] = false;
             }
-            //ceil(rel_pos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
+            
+            if (constraint) {
+              float newpos = ceil(rel_pos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
+              if (std::abs(newpos - new_rel_pos[axis]) > 0.3) {
+                constraint = false;
+              } else {
+                new_rel_pos[axis] = newpos;
+              }
+            }
+            
+          } else {
+            if (constraint and max_y != INT_MIN) {
+              
+              double newpos = max_y - box1[axis] + axis_gap + 1;
+              if (newpos > new_rel_pos[1]) {
+                double diff = newpos - new_rel_pos[1];
+                if (diff > 0.2) {
+                  diff = 0.2;
+                }
+                new_rel_pos[1] += diff;
+              } else {
+                new_consts[axis+3] = false;
+              }
+              //ceil(rel_pos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
+            }
           }
+          
+          new_consts[axis+3] = new_consts[axis+3] or constraint;
+          
         } else {
           constraint = false;
           for (int x = (int)neg.x; x < neg2.x+1; x ++) {
@@ -320,8 +354,15 @@ void Entity::kill() {
 
 
 
-DisplayEntity::DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock, map<vec3,Block*,vec3_comparator> newlimbs):
+DisplayEntity::DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock, vector<DisplayEntity*> newlimbs):
 Entity(nworld, starting_pos, vec3(0.2,0.2,0.2), vec3(1,1,1)), block(newblock), render_index(-1,0), render_flag(true), limbs(newlimbs) {
+  int size = block->scale;
+  box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
+  //block->render(&vecs, this, 0, 0, 0);
+}
+
+DisplayEntity::DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock):
+Entity(nworld, starting_pos, vec3(0.2,0.2,0.2), vec3(1,1,1)), block(newblock), render_index(-1,0), render_flag(true) {
   int size = block->scale;
   box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
   //block->render(&vecs, this, 0, 0, 0);
@@ -346,7 +387,7 @@ Block * DisplayEntity::get_global(int x, int y, int z, int size) {
   }
 }
 
-void DisplayEntity::render() {
+void DisplayEntity::render(RenderVecs* allvecs) {
   // vecs.clear();
   // block->all([=] (Pixel* pix) {
   //   pix->set_render_flag();
@@ -356,21 +397,21 @@ void DisplayEntity::render() {
   //
   if (render_flag) {
     cout << "rendered" << endl;
+    print (position);
     vecs.clear();
     block->all([=] (Pixel* pix) {
       pix->render_index = pair<int,int>(-1,0);
+      pix->set_render_flag();
     });
     block->render(&vecs, this, 0, 0, 0);
-    int begin = vecs.num_verts;
-    for (pair<vec3,Block*> limb : limbs) {
-      limb.second->render(&vecs, this, 0, 0, 0);
-      for (int i = begin; i < vecs.num_verts; i ++) {
-        vecs.verts[i*3+0] += limb.first.x;
-        vecs.verts[i*3+1] += limb.first.y;
-        vecs.verts[i*3+2] += limb.first.z;
-      }
-      begin = vecs.num_verts;
+    cout << vecs.num_verts << ';' << endl;
+    for (DisplayEntity* limb : limbs) {
+      limb->render_flag = true;
+      limb->render_index = pair<int,int>(-1,0);
+      limb->render(&vecs);
+      cout << vecs.num_verts << '-' << endl;
     }
+    cout << "done rendering " << endl;
     render_flag = false;
   }
   MemVecs translated;
@@ -383,9 +424,9 @@ void DisplayEntity::render() {
   
   if (render_index == pair<int,int>(-1,0)) {
     cout << "added" << endl;
-    render_index = world->glvecs.add(&translated);
+    render_index = allvecs->add(&translated);
   } else {
-    world->glvecs.edit(render_index, &translated);
+    allvecs->edit(render_index, &translated);
   }
   //cout << render_index.first << ',' << render_index.second << ' ' << vecs.num_verts << endl;
   
@@ -397,7 +438,7 @@ void DisplayEntity::render() {
 }
 
 void DisplayEntity::on_timestep() {
-  render();
+  render(&world->glvecs);
   //vel += vec3(0.0,0,-0.08);
 }
 
@@ -500,6 +541,21 @@ void DisplayEntity::calc_constraints() {
       }
     });
     
+    
+    
+    for (DisplayEntity* limb : limbs) {
+      vec3 limbpos = limb->position;
+      limb->position += position;
+      limb->calc_constraints();
+      vec3 diff = limb->position - position - limbpos;
+      //print (diff);
+      newpos += diff;
+      limb->position = limbpos;
+      for (int i = 0; i < 7; i ++) {
+        new_consts[i] = new_consts[i] or limb->consts[i];
+      }
+    }
+    
     for (int i = 0; i < 7; i ++) {
         consts[i] = old_consts[i] or new_consts[i];
         old_consts[i] = new_consts[i];
@@ -512,14 +568,17 @@ DisplayEntity::~DisplayEntity() {
   cout << render_index.first << ',' << render_index.second << " deleted! " << endl;
   // position.y -= 1000;
   // render();
-  world->glvecs.del(render_index);
+  if (render_index.first != -1) {
+    world->glvecs.del(render_index);
+  }
   if (block != nullptr) {
     block->del(false);
     delete block;
   }
   
-  for (pair<vec3,Block*> kvpair : limbs) {
-    delete kvpair.second;
+  for (DisplayEntity* limb : limbs) {
+    limb->render_index = pair<int,int>(-1,0);
+    delete limb;
   }
 }
 
@@ -528,8 +587,14 @@ DisplayEntity::~DisplayEntity() {
 
 
 NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, string name,
-  map<vec3,string,vec3_comparator> limbnames):
-  DisplayEntity(nworld, starting_pos, loadblock(name), loadlimbs(limbnames)), nametype(name), pointing(0) {
+  vector<DisplayEntity*> newlimbs):
+  DisplayEntity(nworld, starting_pos, loadblock(name), newlimbs), nametype(name), pointing(0) {
+  health = 10;
+  //block->rotate(1, 1);
+}
+
+NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, string name):
+  DisplayEntity(nworld, starting_pos, loadblock(name)), nametype(name), pointing(0) {
   health = 10;
   //block->rotate(1, 1);
 }
@@ -549,16 +614,8 @@ Block* NamedEntity::loadblock(string name) {
   return Block::from_file(ifile, 0, 0, 0, size, nullptr, nullptr);
 }
 
-map<vec3,Block*,vec3_comparator> NamedEntity::loadlimbs(map<vec3,string,vec3_comparator>& names) {
-  map<vec3,Block*,vec3_comparator> result;
-  for (pair<vec3,string> name : names) {
-    result[name.first] = loadblock(name.second);
-  }
-  return result;
-}
-
 void NamedEntity::on_timestep() {
-  render();
+  DisplayEntity::on_timestep();
   vec3 dist_to_player = world->player->position - (position + box2 / 2.0f);
   int angle =  int(atan2(dist_to_player.z, dist_to_player.x) / (3.14/2) + 10.5) - 10;
   //cout << angle << ' ' << pointing << endl;
@@ -566,15 +623,28 @@ void NamedEntity::on_timestep() {
   //   angle += 4;
   // }
   if (angle != pointing) {
+    cout << angle << endl;
     if (angle < pointing) {
       for (int i = angle; i < pointing; i ++) {
         cout << "neg rotate" << endl;
         block->rotate(1, 1);
+        for (DisplayEntity* limb : limbs) {
+          limb->block->rotate(1,1);
+          limb->position -= block->scale/2.0 - limb->block->scale/2.0;
+          limb->position = vec3(limb->position.z, limb->position.y, -limb->position.x);
+          limb->position += block->scale/2.0 - limb->block->scale/2.0;
+        }
       }
     } else if (angle > pointing) {
       for (int i = pointing; i < angle; i ++) {
         cout << "pos rotate" << endl;
         block->rotate(1, -1);
+        for (DisplayEntity* limb : limbs) {
+          limb->block->rotate(1,-1);
+          limb->position -= block->scale/2.0 - limb->block->scale/2.0;
+          limb->position = vec3(-limb->position.z, limb->position.y, limb->position.x);
+          limb->position += block->scale/2.0 - limb->block->scale/2.0;
+        }
       }
     }
     //world->glvecs.del(render_index);
@@ -584,6 +654,7 @@ void NamedEntity::on_timestep() {
   }
   float dist = glm::length(dist_to_player);
   dist_to_player /= dist;
+  return;
   if (consts[4]) {
     vel.x += 0.5 * dist_to_player.x;
     vel.z += 0.5 * dist_to_player.z;
@@ -621,7 +692,7 @@ FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup): Dis
 }
 
 void FallingBlockEntity::on_timestep() {
-  render();
+  DisplayEntity::on_timestep();
   if (consts[4]) {
     group->copy_to_world(position);
     delete group;

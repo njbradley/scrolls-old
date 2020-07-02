@@ -136,7 +136,7 @@ class BlockContainer: public Collider { public:
 		
 	}
 	
-	vec3 get_position() {
+	vec3 get_position() const {
 		return block->get_position();
 	}
 	
@@ -548,7 +548,7 @@ int main( int numargs, const char** args)
 	min_ms_per_frame = 1000.0/max_fps;
 	
 	cout.precision(10);
-	blocks = new BlockStorage("../");
+	blocks = new BlockStorage();
 	
 	
 	
@@ -664,42 +664,52 @@ int main( int numargs, const char** args)
 	
 	
 	// Create and compile our GLSL program from the shaders
-	GLuint programID = LoadShaders( "../resources/shaders/block.vs", "../resources/shaders/block.fs" );
-	GLuint uiProgram = LoadShaders( "../resources/shaders/ui.vs", "../resources/shaders/ui.fs" );
+	GLuint programID = LoadShaders( "resources/shaders/block.vs", "resources/shaders/block.fs" );
+	GLuint uiProgram = LoadShaders( "resources/shaders/ui.vs", "resources/shaders/ui.fs" );
 	
 	// Get a handle for our "MVP" uniform
 	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
 	
 	
 	////// get mats from folders
-	vector<string> block_tex;
+	//vector<string> block_tex;
 	vector<string> uis;
-	get_files_folder("../resources/blocks", &block_tex);
-	get_files_folder("../resources/ui", &uis);
-	num_blocks = block_tex.size();
-	num_uis = uis.size();
+	//get_files_folder("resources/blocks", &block_tex);
+	get_files_folder("resources/textures/ui", &uis);
+	ifstream num_blocks_file("resources/textures/blocks/num_blocks.txt");
+	num_blocks_file >> num_blocks;
+	
+	
+	num_uis = uis.size() + 1;
 	
 	
 	GLuint block_textures[num_blocks];
 	GLuint ui_textures[num_uis];
 	// Load the texture
 	
-	
-	
-	for( int i = 0; i < num_blocks; i ++) {
-		string block = "../resources/blocks/" + block_tex[i];
-		const char* data = block.c_str();
-		block_textures[i] = loadBMP_array_custom(data);
+	int size = 1;
+	for (int i = 0; i < num_blocks; i ++) {
+		string block = "resources/textures/blocks/" + std::to_string(size);
+		block_textures[i] = loadBMP_array_folder(block);
+		vector<string> files;
+		get_files_folder(block, &files);
+		for (string s : files) {
+			cout << s << endl;
+		}
 	}
 	
-	for( int i = 0; i < num_uis; i ++) {
-		string ui = "../resources/ui/" + uis[i];
+	for( int i = 0; i < uis.size(); i ++) {
+		string ui = "resources/textures/ui/" + uis[i];
 		ui_names[uis[i]] = i;
 		const char* data = ui.c_str();
 		ui_textures[i] = loadBMP_custom(data, true);
 	}
+	
+	ui_textures[num_uis-1] = loadBMP_image_folder("resources/textures/items", true);
+	ui_names["items.bmp"] = num_uis-1;
+	
 	// Load the texture
-	//GLuint Texture = loadBMP_custom("scrolls/../../resources/blocks/dirt.bmp");
+	//GLuint Texture = loadBMP_custom("scrolls/resources/blocks/dirt.bmp");
 	//GLuint Texture = loadDDS("uvtemplate.DDS");
 	
 	// Get a handle for our "myTextureSampler" uniform

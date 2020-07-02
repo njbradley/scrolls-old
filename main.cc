@@ -289,6 +289,7 @@ int main( void )
 	cout.precision(10);
 	
 	blocks = new BlockStorage();
+	
 	itemstorage = new ItemStorage();
 	
 	recipestorage = new RecipeStorage();

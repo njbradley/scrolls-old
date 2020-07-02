@@ -112,7 +112,7 @@ void DropTable::drop(ItemContainer* result, Player* player, Item* break_item) {
 
 BlockData::BlockData(ifstream & ifile):
 default_direction(0), rotation_enabled(false), minscale(1), rcaction("null"), lightlevel(0),
-clumpyness(0.9) {
+clumpyness(0.9), clumpy_group("") {
   string buff;
   ifile >> buff;
   if (buff != "block") {
@@ -161,9 +161,8 @@ clumpyness(0.9) {
       getline(ifile, buff, ':');
       getline(ifile, varname, ':');
     }
-    
     if (clumpy_group == "") {
-      clumpy_group == name + "-group";
+      clumpy_group = name + "-group";
     }
     if (tex_str != "") {
       stringstream ss(tex_str);

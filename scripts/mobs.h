@@ -5,19 +5,19 @@ Mob::Mob(World* nworld, vec3 start_pos, string name): NamedEntity(nworld, start_
 	
 }
 
-void Mob::tick() {
-	if (target == nullptr) {
-		find_target();
-	}
-}
-
-void Mob::find_target() {
-	target = world->player;
-}
-
-void Mob::find_next_point() {
-	vec3 diff =
-}
+// void Mob::tick() {
+// 	if (target == nullptr) {
+// 		find_target();
+// 	}
+// }
+//
+// void Mob::find_target() {
+// 	target = world->player;
+// }
+//
+// void Mob::find_next_point() {
+// 	vec3 diff =
+// }
 
 
 #endif

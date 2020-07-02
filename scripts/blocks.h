@@ -285,11 +285,11 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
 
 void Pixel::random_tick() {
   int gx, gy, gz;
-  global_position(&gx, &gy, &gz);
-  if (value == blocks->names["dirt"] and world->get(gx, gy+scale, gz) == 0) {
-    set(blocks->names["grass"]);
-    cout << "grass grown at " << gx << ' ' << gy << ' ' << gz << endl;
-  }
+  // global_position(&gx, &gy, &gz);
+  // if (value == blocks->names["dirt"] and world->get(gx, gy+scale, gz) == 0) {
+  //   set(blocks->names["grass"]);
+  //   cout << "grass grown at " << gx << ' ' << gy << ' ' << gz << endl;
+  // }
   // if (value == blocks->names["leaves"] and world->get(gx, gy+scale, gz) == 0) {
   //   tile->entities.push_back(new NamedEntity(tile->world, vec3(gx, gy, gz), "skeleton"));
   //   cout << "spawned skeleton at " << gx << ' ' << gy << ' ' << gz << endl;
@@ -375,6 +375,8 @@ void Pixel::render_update() {
 }
 
 void Pixel::del(bool remove_faces) {
+    int gx, gy, gz;
+    global_position(&gx, &gy, &gz);
     if (remove_faces) {
       world->glvecs.del(render_index);
     }
@@ -382,7 +384,10 @@ void Pixel::del(bool remove_faces) {
       delete extras;
     }
     if (physicsgroup != nullptr and !physicsgroup->persistant()) {
-      delete physicsgroup;
+      physicsgroup->block_poses.erase(ivec3(gx, gy, gz));
+      if (physicsgroup->block_poses.size() == 0) {
+        delete physicsgroup;
+      }
     }
 }
 

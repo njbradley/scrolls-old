@@ -8,6 +8,10 @@ BlockGroup::BlockGroup(World* nworld, ivec3 starting_pos): world(nworld), positi
 }
 
 BlockGroup::~BlockGroup() {
+	// cout << "deleting " << groupname << endl;
+	// for (ivec3 pos : block_poses) {
+	// 	cout << pos.x << ' ' << pos.y << ' ' << pos.z << ", ";
+	// } cout << endl;
 	if (block != nullptr) {
 		block->del(false);
 		delete block;
@@ -158,6 +162,10 @@ void BlockGroup::update() {
 
 void BlockGroup::on_update() {
 	//cout << "on update" << endl;
+}
+
+void BlockGroup::add_item(ItemStack stack) {
+	
 }
 
 void BlockGroup::copy_to_block() {
@@ -589,6 +597,10 @@ bool ChestGroup::rcaction() {
 
 void ChestGroup::on_update() {
 	update_inven_size();
+}
+
+void ChestGroup::add_item(ItemStack stack) {
+	inven.add(stack);
 }
 
 void ChestGroup::update_inven_size() {

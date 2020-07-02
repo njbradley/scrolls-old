@@ -30,6 +30,7 @@ class BlockGroup { public:
 	void erase_from_world();
 	void copy_to_world(ivec3 newpos);
 	virtual AxleInterface* cast_axle();
+	virtual void add_item(ItemStack stack);
 	//virtual PipeInterface* cast_pipe();
 	virtual void tick();
 	virtual bool rcaction();
@@ -93,6 +94,7 @@ class ChestGroup: public BlockGroup { public:
 	ChestGroup(World* world, ivec3 spos);
 	ChestGroup(World* world, istream& ifile);
 	bool rcaction();
+	void add_item(ItemStack stack);
 	void on_update();
 	void update_inven_size();
 	bool persistant();

@@ -61,9 +61,9 @@ Player::Player(World* newworld, vec3 pos):
 		cout << 61 << endl;
 	}
 	//char arr[] = {1,0,1,0,1,0,1,0}
-	selitem = 3;
-	inven.add( ItemStack(Item(itemstorage->items["chips"]), 10) );
-	inven.add( ItemStack(Item(itemstorage->items["crafting"]), 1));
+	selitem = 0;
+	//inven.add( ItemStack(Item(itemstorage->items["chips"]), 10) );
+	//inven.add( ItemStack(Item(itemstorage->items["crafting"]), 1));
 }
 
 Player::Player(World* newworld, istream& ifile):
@@ -288,7 +288,9 @@ void Player::left_mouse() {
 		} else {
 			newitem = item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
 		}
-		blocks->blocks[newitem]->droptable.drop(&inven, this, item);
+		if (newitem != 0) {
+			blocks->blocks[newitem]->droptable.drop(&inven, this, item);
+		}
 		// string item_name = blocks->blocks[newitem]->item;
 		// if (item_name != "null") {
 		// 	if (!inven.add(ItemStack(Item(itemstorage->items[item_name]), 1))) {
@@ -301,9 +303,36 @@ void Player::left_mouse() {
 }
 
 void Player::die() {
+	const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
+	vector<ItemStack> items;
+	for (ItemStack stack : inven.items) {
+		if (!stack.item.isnull) {
+			items.push_back(stack);
+		}
+	}
+	ivec3 pos(position);
+	while (world->get(pos.x, pos.y, pos.z) == 0) {
+		pos.y --;
+	}
+	pos.y ++;
+	for (int i = 0; i < items.size(); i ++) {
+		ivec3 off;
+		do {
+			off = dir_array[rand()%6];
+		} while (world->get(pos.x+off.x, pos.y+off.y, pos.z+off.z) != 0);
+		pos += off;
+		world->set(pos.x, pos.y, pos.z, blocks->names["chest"]);
+	}
+	
 	if (menu == nullptr) {
 		vector<string> options = {"Respawn"};
-		menu = new SelectMenu("You Died", options, [&] (string result) {
+		menu = new SelectMenu("You Died", options, [&, pos, items] (string result) {
+			Pixel* chest = world->get_global(pos.x, pos.y, pos.z, 1)->get_pix();
+			if (chest->physicsgroup != nullptr) {
+				for (ItemStack stack : items) {
+					chest->physicsgroup->add_item(stack);
+				}
+			}
 			if (result == "Respawn") {
 				World* w = world;
 				delete world->player;

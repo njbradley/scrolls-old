@@ -84,11 +84,14 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
 	//if (writelock.try_lock_for(std::chrono::seconds(1))) {
     if (pos == ivec3(0,0,0)) {
       //cout << "summoned entity 0923472893472893748293749823749273492734892739482739482739482739487293847283" << endl;
-      map<vec3,string,vec3_comparator> limbs {
-        {{0,0,0}, "skeleton"},
-        {{5,5,5}, "ent"}
+      vector<DisplayEntity*> limbs {
+        new NamedEntity(world, vec3(-0.5,-0.5,0.5), "pigfoot"),
+        new NamedEntity(world, vec3(3.5,-0.5,0.5), "pigfoot"),
+        new NamedEntity(world, vec3(-0.5,-0.5,2.5), "pigfoot"),
+        new NamedEntity(world, vec3(3.5,-0.5,2.5), "pigfoot"),
+        
       };
-      entities.push_back(new NamedEntity(world, pos*chunksize+32, "dragon", limbs));
+      entities.push_back(new NamedEntity(world, pos*chunksize+32 + ivec3(0,5,0), "pigbody", limbs));
   	}
     if (world == nullptr) {
       cout << "error world is null" << endl;

@@ -90,16 +90,17 @@ class Player: public Entity {
 class DisplayEntity: public Entity, public Collider {
 public:
   Block* block;
-  map<vec3,Block*,vec3_comparator> limbs;
+  vector<DisplayEntity*> limbs;
   MemVecs vecs;
   pair<int,int> render_index;
   bool render_flag;
   DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock,
-    map<vec3,Block*,vec3_comparator> newlimbs = map<vec3,Block*,vec3_comparator>());
+    vector<DisplayEntity*> newlimbs);
+  DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock);
   ~DisplayEntity();
   Block * get_global(int,int,int,int);
   vec3 get_position() const;
-  void render();
+  void render(RenderVecs* allvecs);
   void calc_constraints();
   virtual void on_timestep();
   //void die();
@@ -110,9 +111,9 @@ public:
   string nametype;
   int pointing;
   NamedEntity(World* nworld, vec3 starting_pos, string name,
-    map<vec3,string,vec3_comparator> limbnames);
+  vector<DisplayEntity*> limbs);
+  NamedEntity(World* nworld, vec3 starting_pos, string name);
   Block* loadblock(string name);
-  map<vec3,Block*,vec3_comparator> loadlimbs(map<vec3,string,vec3_comparator>& names);
   void on_timestep();
 };
 
@@ -120,6 +121,7 @@ class FallingBlockEntity: public DisplayEntity {
 public:
   BlockGroup* group;
   FallingBlockEntity(World* nworld, BlockGroup* newgroup);
+  ~FallingBlockEntity();
   void on_timestep();
 };
 

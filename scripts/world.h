@@ -367,7 +367,9 @@ void World::render() {
 			//cout << "changed" << endl;
       glvecs.clean();
       if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
+        int before = clock();
         glFinish();
+        cout << "glfinish time " << clock() - before << endl;
         glvecs.writelock.unlock();
       }
     }
