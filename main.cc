@@ -504,24 +504,24 @@ int main( void )
 	double slow_frame = 0;
 	int slow_tick = 0;
 	int view_distance = 100;
-	
+	bool dologtime = true;
 	
 	threadmanager->rendering = true;
 	//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, &num_tris);
 	while (playing) {
 		
-		//int begin = clock();
+		int begin = clock();
 		if (menu == nullptr) {
 			world->timestep();
 			//test->timestep(world);
 			world->player->computeMatricesFromInputs();
 		}
-		// int time = clock() - begin;
-		// if (time > 1) {
-		// 	cout << "timestep " << time << endl;
-		// }
+		int time = clock() - begin;
+		if (dologtime and time > 1) {
+			cout << "timestep " << time << endl;
+		}
 		
-		//begin = clock();
+		begin = clock();
 		if (debug_visible) {
 			debugstream.str("");
 			debugstream << std::fixed;
@@ -643,10 +643,10 @@ int main( void )
 			slow_tick = 0;
 		}
 		
-		// time = clock() - begin;
-		// if (time > 1) {
-		// 	cout << "debug " << time << endl;
-		// }
+		time = clock() - begin;
+		if (dologtime and time > 1) {
+			cout << "debug " << time << endl;
+		}
 		
 		////////////// sleep to max fps
 		double sleep_needed = min_ms_per_frame-ms;
@@ -691,16 +691,16 @@ int main( void )
 			glBindTexture(GL_TEXTURE_2D_ARRAY, block_textures[i]);
 		}
 		
-		//int start = clock();
+		int start = clock();
 		if (!world->glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
 			cout << "glvecs lock has timed out" << endl;
 			exit(1);
 		}
-		// time = clock() - start;
-		// if (time > 5) {
-		// 	cout << "unlocking took " << time << endl;
-		// }
-		// start = clock();
+		time = clock() - start;
+		if (time > 5) {
+			cout << "unlocking took " << time << endl;
+		}
+		start = clock();
 		
 		// Bind our texture in Texture Unit 0
 		//glActiveTexture(GL_TEXTURE0);
@@ -765,20 +765,20 @@ int main( void )
 		
 		world->glvecs.writelock.unlock();
 		
-		// int all = clock() - start;
-		// if (all > 2) {
-		// 	cout << all << " render time" << endl;
-		// }
+		int all = clock() - start;
+		if (all > 2) {
+			cout << all << " render time" << endl;
+		}
 		
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		//-----------------------------------------------------SECOND DRAW CALL------------------------------------------------------------------------------------------------------------------------//
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		//begin = clock();
+		begin = clock();
 		make_ui_buffer(world->player, debugstream.str(), vertex_ui_buffer, uv_ui_buffer, mat_ui_buffer, &num_ui_tris);
-		// int buffertime = clock() - begin;
-		// if (buffertime > 1) {
-		// 	cout << "buffer " << buffertime;
-		// }
+		int buffertime = clock() - begin;
+		if (dologtime and buffertime > 1) {
+			cout << "buffer " << buffertime << ' ';
+		}
 		//allow trancaperancy
 		glDisable(GL_DEPTH_TEST);
 		glDepthMask(GL_FALSE);
@@ -849,18 +849,18 @@ int main( void )
 		//*/
 		// Swap buffers
 		
-		// time = clock() - begin;
-		// if (time > 1) {
-		// 	cout << "ui " << time << endl;
-		// }
+		time = clock() - begin;
+		if (dologtime and time > 1) {
+			cout << "ui " << time << endl;
+		}
 		
-		//begin = clock();
+		begin = clock();
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-		// time = clock() - begin;
-		// if (time > 1) {
-		// 	cout << "swap " << time << endl;
-		// }
+		time = clock() - begin;
+		if (dologtime and time > 1) {
+			cout << "swap " << time << endl;
+		}
 		
 		
 		if (menu == nullptr) {
