@@ -62,6 +62,10 @@ void Entity::timestep() {
     lastTime = currentTime;
 }
 
+void Entity::drop_ticks() {
+	lastTime = glfwGetTime();
+}
+
 void Entity::get_nearby_entities(vector<DisplayEntity*>* colliders) {
   ivec3 chunk = ivec3(position)/world->chunksize - ivec3(position.x<0, position.y<0, position.z<0);
   //std::map<ivec3,Tile*>::iterator it = world->tiles.find(chunk);

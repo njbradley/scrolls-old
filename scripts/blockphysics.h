@@ -273,6 +273,7 @@ BlockGroup* BlockGroup::make_group(char val, World* world, ivec3 pos) {
 	if (name == "grindstone-group") return new GrindstoneGroup(world, pos);
 	if (name == "crafting-group") return new CraftingGroup(world, pos);
 	if (name == "chest-group") return new ChestGroup(world, pos);
+	if (name == "backpack-group") return new BackpackGroup(world, pos);
 	return new BlockGroup(world, pos);
 }
 
@@ -286,6 +287,7 @@ BlockGroup* BlockGroup::from_file(World* world, istream& ifile) {
 	if (name == "grindstone-group") return new GrindstoneGroup(world, ifile);
 	if (name == "crafting-group") return new CraftingGroup(world, ifile);
 	if (name == "chest-group") return new ChestGroup(world, ifile);
+	if (name == "backpack-group") return new BackpackGroup(world, ifile);
 	return new BlockGroup(world, ifile);
 }
 
@@ -299,6 +301,7 @@ bool BlockGroup::is_persistant(char val) {
 	if (name == "grindstone-group") return true;
 	if (name == "crafting-group") return true;
 	if (name == "chest-group") return true;
+	if (name == "backpack-group") return true;
 	return false;
 }
 
@@ -625,6 +628,37 @@ void ChestGroup::to_file(ostream& ofile) {
 	BlockGroup::to_file(ofile);
 	inven.save_to_file(ofile);
 }
+
+
+
+BackpackGroup::BackpackGroup(World* world, ivec3 spos): ChestGroup(world, spos) {
+	
+}
+
+BackpackGroup::BackpackGroup(World* world, istream& ifile): ChestGroup(world, ifile) {
+	
+}
+
+bool BackpackGroup::rcaction() {
+	menu = new InventoryMenu("chest", &inven, [&] () {
+		int num_items = 0;
+		for (ItemStack stack : inven.items) {
+			if (!stack.item.isnull) {
+				num_items ++;
+			}
+		}
+		if (num_items == 0) {
+			erase_from_world();
+			block_poses.clear();
+		}
+		delete menu;
+		menu = nullptr;
+	});
+	return true;
+}
+
+
+
 
 CraftingGroup::CraftingGroup(World* nworld, ivec3 starting_pos): BlockGroup(nworld, starting_pos) {
 	

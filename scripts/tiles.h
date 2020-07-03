@@ -80,18 +80,24 @@ void Tile::timestep() {
   }
 }
 
+void Tile::drop_ticks() {
+  for (DisplayEntity* entity : entities) {
+    entity->drop_ticks();
+  }
+}
+
 Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize), deleting(false) {
 	//if (writelock.try_lock_for(std::chrono::seconds(1))) {
     if (pos == ivec3(0,0,0)) {
       //cout << "summoned entity 0923472893472893748293749823749273492734892739482739482739482739487293847283" << endl;
-      vector<DisplayEntity*> limbs {
-        new NamedEntity(world, vec3(-0.5,-0.5,0.5), "pigfoot"),
-        new NamedEntity(world, vec3(3.5,-0.5,0.5), "pigfoot"),
-        new NamedEntity(world, vec3(-0.5,-0.5,2.5), "pigfoot"),
-        new NamedEntity(world, vec3(3.5,-0.5,2.5), "pigfoot"),
-        
-      };
-      entities.push_back(new NamedEntity(world, pos*chunksize+32 + ivec3(0,5,0), "pigbody", limbs));
+      // vector<DisplayEntity*> limbs {
+      //   new NamedEntity(world, vec3(-0.5,-0.5,0.5), "pigfoot"),
+      //   new NamedEntity(world, vec3(3.5,-0.5,0.5), "pigfoot"),
+      //   new NamedEntity(world, vec3(-0.5,-0.5,2.5), "pigfoot"),
+      //   new NamedEntity(world, vec3(3.5,-0.5,2.5), "pigfoot"),
+      //
+      // };
+      // entities.push_back(new NamedEntity(world, pos*chunksize+32 + ivec3(0,5,0), "pigbody", limbs));
   	}
     if (world == nullptr) {
       cout << "error world is null" << endl;

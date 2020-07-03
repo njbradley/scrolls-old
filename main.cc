@@ -682,11 +682,16 @@ int main( void )
 			glBindTexture(GL_TEXTURE_2D_ARRAY, block_textures[i]);
 		}
 		
+		int start = clock();
 		if (!world->glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
 			cout << "glvecs lock has timed out" << endl;
 			exit(1);
 		}
-		int start = clock();
+		int time = clock() - start;
+		if (time > 5) {
+			cout << "unlocking took " << time << endl;
+		}
+		start = clock();
 		
 		// Bind our texture in Texture Unit 0
 		//glActiveTexture(GL_TEXTURE0);
@@ -753,7 +758,7 @@ int main( void )
 		
 		int all = clock() - start;
 		if (all > 2) {
-			cout << all << " render " << endl;
+			cout << all << " render time" << endl;
 		}
 		
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

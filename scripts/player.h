@@ -321,7 +321,7 @@ void Player::die() {
 			off = dir_array[rand()%6];
 		} while (world->get(pos.x+off.x, pos.y+off.y, pos.z+off.z) != 0);
 		pos += off;
-		world->set(pos.x, pos.y, pos.z, blocks->names["chest"]);
+		world->set(pos.x, pos.y, pos.z, blocks->names["backpack"]);
 	}
 	
 	if (menu == nullptr) {
@@ -355,9 +355,7 @@ void Player::mouse_button() {
 	}
 }
 
-void Player::drop_ticks() {
-	lastTime = glfwGetTime();
-}
+
 
 void Player::computeMatricesFromInputs(){
 

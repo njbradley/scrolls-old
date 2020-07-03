@@ -41,7 +41,7 @@ void Menu::start() {
 }
 
 void Menu::end(World* world) {
-  world->player->drop_ticks();
+  world->drop_ticks();
   glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_FALSE);
   glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);

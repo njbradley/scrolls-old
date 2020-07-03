@@ -19,6 +19,7 @@ class Tile {
 		vector<DisplayEntity*> entities;
 		Tile(ivec3 position, World* world);
 		void timestep();
+		void drop_ticks();
 		void render(GLVecs*);
 		void save();
 		void update_lighting();

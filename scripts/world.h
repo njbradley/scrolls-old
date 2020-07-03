@@ -311,6 +311,13 @@ void World::tick() {
   //cout << "end world tick" << endl;
 }
 
+void World::drop_ticks() {
+  player->drop_ticks();
+  for (pair<ivec3,Tile*> kv : tiles) {
+    kv.second->drop_ticks();
+  }
+}
+
 vec3 World::get_position() const {
   return vec3(0,0,0);
 }
@@ -480,10 +487,11 @@ void World::save_chunk(ivec3 pos) {
 }
 
 void World::del_chunk(ivec3 pos, bool remove_faces) {
-    save_chunk(pos);
-    tiles[pos]->del(remove_faces);
-    delete tiles[pos];
+    Tile* tile = tiles[pos];
     tiles.erase(pos);
+    tile->save();
+    tile->del(remove_faces);
+    delete tile;
 }
 
 void World::load_chunk(ivec3 pos) {

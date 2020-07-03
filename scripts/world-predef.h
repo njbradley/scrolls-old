@@ -61,6 +61,7 @@ class World: public Collider {
         void render();
         void timestep();
         void tick();
+        void drop_ticks();
         void block_update(int,int,int);
         void update_lighting();
         void load_nearby_chunks();

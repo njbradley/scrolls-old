@@ -47,6 +47,7 @@ class Entity { public:
     
     Entity(World* nworld, vec3 pos, vec3 hitbox1, vec3 hitbox2);
     void timestep();
+    void drop_ticks();
     virtual void calc_constraints();
     void find_colliders(vector<Collider*>* colliders);
     void get_nearby_entities(vector<DisplayEntity*>* colliders);
@@ -80,7 +81,6 @@ class Player: public Entity {
 		void right_mouse();
 		void left_mouse();
     void raycast(Pixel** hit, vec3* hitpos, DisplayEntity** entity);
-    void drop_ticks();
 		void mouse_button();
 		void computeMatricesFromInputs();
 		void render_ui(MemVecs * uivecs);

@@ -93,12 +93,18 @@ class ChestGroup: public BlockGroup { public:
 	ItemContainer inven;
 	ChestGroup(World* world, ivec3 spos);
 	ChestGroup(World* world, istream& ifile);
-	bool rcaction();
+	virtual bool rcaction();
 	void add_item(ItemStack stack);
 	void on_update();
 	void update_inven_size();
 	bool persistant();
 	void to_file(ostream& ofile);
+};
+
+class BackpackGroup: public ChestGroup { public:
+	BackpackGroup(World* world, ivec3 spos);
+	BackpackGroup(World* world, istream& ifile);
+	bool rcaction();
 };
 
 class CraftingGroup: public BlockGroup { public:
