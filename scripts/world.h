@@ -297,7 +297,7 @@ void World::tick() {
         //print (tile->pos);
         if (std::find(deleting_chunks.begin(), deleting_chunks.end(), item->first) == deleting_chunks.end()) {
           //if (tile->writelock.try_lock_for(std::chrono::seconds(1))) {
-            Block* block = tile->chunk->get_global(rand()%chunksize, rand()%chunksize, rand()%chunksize, 1);
+            Block* block = tile->chunk->get_global(rand()%chunksize, rand()%chunksize, rand()%chunksize, 1); //ERR: tile is 337? maybe change to del_chunk
             if (block != nullptr and block->get_pix() != nullptr) {
               block->get_pix()->random_tick();
             }
@@ -375,8 +375,8 @@ void World::render() {
       glvecs.clean();
       if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
         int before = clock();
-        glFinish();
-        cout << "glfinish time " << clock() - before << endl;
+        glFlush();
+        //cout << "glfinish time " << clock() - before << endl;
         glvecs.writelock.unlock();
       }
     }
@@ -487,11 +487,15 @@ void World::save_chunk(ivec3 pos) {
 }
 
 void World::del_chunk(ivec3 pos, bool remove_faces) {
-    Tile* tile = tiles[pos];
+    // Tile* tile = tiles[pos];
+    // tiles.erase(pos);
+    // tile->save();
+    // tile->del(remove_faces);
+    // delete tile;
+    save_chunk(pos);
+    tiles[pos]->del(remove_faces);
+    delete tiles[pos];
     tiles.erase(pos);
-    tile->save();
-    tile->del(remove_faces);
-    delete tile;
 }
 
 void World::load_chunk(ivec3 pos) {
