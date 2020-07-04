@@ -170,8 +170,8 @@ void BlockGroup::add_item(ItemStack stack) {
 
 void BlockGroup::copy_to_block() {
 	int scale = 1;
-	print (size);
-	print (position);
+	// print (size);
+	// print (position);
 	while (scale < size.x or scale < size.y or scale < size.z) {
 		scale *= 2;
 	}
@@ -227,7 +227,7 @@ void BlockGroup::set_pix_pointers() {
 void BlockGroup::erase_from_world() {
 	remove_pix_pointers();
 	for (ivec3 pos : block_poses) {
-		print (pos);
+		//print (pos);
 		world->set(pos.x, pos.y, pos.z, 0);
 	}
 }

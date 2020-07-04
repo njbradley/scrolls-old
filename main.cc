@@ -504,7 +504,7 @@ int main( void )
 	double slow_frame = 0;
 	int slow_tick = 0;
 	int view_distance = 100;
-	bool dologtime = true;
+	bool dologtime = false;
 	
 	threadmanager->rendering = true;
 	//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, &num_tris);
