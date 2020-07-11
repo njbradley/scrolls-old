@@ -12,6 +12,7 @@
 #include <GL/glew.h>
 #include <map>
 #include "world-predef.h"
+#include "collider-predef.h"
 
 #define csize 2
 
@@ -144,5 +145,13 @@ class Chunk: public Block { public:
     void save_to_file(ostream& of);
 };
 
+
+class BlockContainer: public Collider { public:
+	Block* block;
+	
+	BlockContainer(Block* b);
+	vec3 get_position() const;
+	Block* get_global(int x, int y, int z, int size);
+};
 
 #endif

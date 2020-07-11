@@ -4,6 +4,7 @@
 #include "tiles-predef.h"
 #include "blocks-predef.h"
 #include "blockdata-predef.h"
+#include "mobs-predef.h"
 
 //#include <ZipLib/ZipFile.h>
 
@@ -41,6 +42,12 @@ void Tile::render(GLVecs* glvecs) {
        //cout << world << endl;
 	     chunk->render(glvecs, world, 0, 0, 0);
      }
+     // for (int i = entities.size()-1; i >= 0; i --) {
+     //   if (!entities[i]->alive) {
+     //     delete entities[i];
+     //     entities.erase(entities.begin()+i);
+     //   }
+     // }
      //cout << chunk->render_flag << endl;
   //   writelock.unlock();
    //}
@@ -91,13 +98,15 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
     if (pos == ivec3(0,0,0)) {
       //cout << "summoned entity 0923472893472893748293749823749273492734892739482739482739482739487293847283" << endl;
       // vector<DisplayEntity*> limbs {
-      //   new NamedEntity(world, vec3(-0.5,-0.5,0.5), "pigfoot"),
-      //   new NamedEntity(world, vec3(3.5,-0.5,0.5), "pigfoot"),
-      //   new NamedEntity(world, vec3(-0.5,-0.5,2.5), "pigfoot"),
-      //   new NamedEntity(world, vec3(3.5,-0.5,2.5), "pigfoot"),
+      //   new NamedEntity(world, vec3(-0.5,-0.5,0.5), vec3(0,0,0), vec3(1,1,1), "pigfoot", vec3(0,0,0)),
+      //   new NamedEntity(world, vec3(3.5,-0.5,0.5), vec3(0,0,0), vec3(1,1,1), "pigfoot", vec3(0,0,0)),
+      //   new NamedEntity(world, vec3(-0.5,-0.5,2.5), vec3(0,0,0), vec3(1,1,1), "pigfoot", vec3(0,0,0)),
+      //   new NamedEntity(world, vec3(3.5,-0.5,2.5), vec3(0,0,0), vec3(1,1,1), "pigfoot", vec3(0,0,0)),
       //
       // };
-      // entities.push_back(new NamedEntity(world, pos*chunksize+32 + ivec3(0,5,0), "pigbody", limbs));
+      entities.push_back(new Pig(world, pos*chunksize + 32 + ivec3(0,5,0)));
+      //entities.push_back(new NamedEntity(world, pos*chunksize+32 + ivec3(0,5,0), vec3(0,0,0), vec3(2,2,2), "pighead", vec3(0,0,0)));
+      // entities.push_back(new NamedEntity(world, pos*chunksize+32 + ivec3(0,5,0), vec3(-1,0,-1), vec3(1,4,1), "skeleton", vec3(-2.5,0,-2.5), limbs));
   	}
     if (world == nullptr) {
       cout << "error world is null" << endl;

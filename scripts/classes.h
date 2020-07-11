@@ -45,6 +45,7 @@ struct ivec3_hash {
 
 ////////////////// CLASSES ///////////////////////////
 class Block;
+class BlockContainer;
 class Collider;
 class Chunk;
 class Pixel;

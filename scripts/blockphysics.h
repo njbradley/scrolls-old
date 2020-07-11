@@ -7,6 +7,44 @@ BlockGroup::BlockGroup(World* nworld, ivec3 starting_pos): world(nworld), positi
 	find_group();
 }
 
+BlockGroup::BlockGroup(World* nworld, unordered_set<ivec3,ivec3_hash>& poses, Block* newblock):
+world(nworld), position(0,0,0), size(0,0,0), update_flag(false), block(newblock) {
+	block_poses.swap(poses);
+	if (block_poses.size() > 0) {
+		bool init = false;
+		ivec3 max;
+		ivec3 min;
+		for (ivec3 pos : block_poses) {
+			if (!init) {
+				min = pos;
+				max = pos;
+				init = true;
+			} else {
+				if (pos.x < min.x) {
+					min.x = pos.x;
+				}
+				if (pos.y < min.y) {
+					min.y = pos.y;
+				}
+				if (pos.z < min.z) {
+					min.z = pos.z;
+				}
+				if (pos.x > max.x) {
+					max.x = pos.x;
+				}
+				if (pos.y > max.y) {
+					max.y = pos.y;
+				}
+				if (pos.z > max.z) {
+					max.z = pos.z;
+				}
+			}
+		}
+		position = min;
+		size = max;
+	}
+}
+
 BlockGroup::~BlockGroup() {
 	// cout << "deleting " << groupname << endl;
 	// for (ivec3 pos : block_poses) {
@@ -235,7 +273,7 @@ void BlockGroup::erase_from_world() {
 void BlockGroup::copy_to_world(ivec3 newpos) {
 	for (ivec3 pos : block_poses) {
 		ivec3 offset = pos - position;
-		Pixel* pix = block->get_global(offset.x, offset.y, offset.z,1)->get_pix();
+		Pixel* pix = block->get_global(offset.x, offset.y, offset.z,1)->get_pix(); // ERR: offset.z is uninitialized, something to do with new entity deleting system?
 		world->set(newpos.x+offset.x, newpos.y+offset.y, newpos.z+offset.z, pix->value, pix->direction, pix->extras);
 	}
 }

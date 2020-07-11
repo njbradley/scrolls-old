@@ -25,7 +25,7 @@ void print(vec3 v) {
 
 
 Entity::Entity(World* nworld, vec3 pos, vec3 hitbox1, vec3 hitbox2):
-world(nworld), position(pos), box1(hitbox1), box2(hitbox2-vec3(1,1,1)), alive(true), immune(false), flying(false)
+world(nworld), position(pos), box1(hitbox1), box2(hitbox2), alive(true), immune(false), flying(false)
 {
     angle = vec2(0,0);
     vel = vec3(0,0,0);
@@ -89,11 +89,11 @@ void Entity::find_colliders(vector<Collider*>* colliders) {
   // for (pair<ivec3, Tile*> kvpair : world->tiles) {
   //   if (glm::length(vec3(kvpair.first-chunk)) <= 1.5) {
   //     //print (kvpair.first);
-      for (DisplayEntity* e : entities) {
-        if (e != this and colliding(e)) {
-          colliders->push_back(e);
-        }
-      }
+      // for (DisplayEntity* e : entities) {
+      //   if (e != this and colliding(e)) {
+      //     colliders->push_back(e);
+      //   }
+      // }
     //}
   //}
   
@@ -118,6 +118,10 @@ void Entity::calc_constraints() {
     
     vector<Collider*> colliders;
     find_colliders(&colliders);
+    
+    vec3 newbox2 = box2 - 1.0f - axis_gap;
+    vec3 newbox1 = box1 + axis_gap;
+    
     //box2 = vec3(0,0,0);
     
     //this system works by creating a slice of blocks that define each side of collision. the sides all share either the most positive point or the most negative point
@@ -136,10 +140,10 @@ void Entity::calc_constraints() {
         vec3 dir = dir_array[axis];
         
         // pos is the positive point of the hitbox rounded up to the nearest block. neg is the negative most point rounded down
-        vec3 neg = floor( rel_pos + box1 - axis_gap*dir );// + vec3(0,1,0);
-        vec3 pos = ceil( rel_pos + box2 + axis_gap*dir );
+        vec3 neg = floor( rel_pos + newbox1 - axis_gap*dir );// + vec3(0,1,0);
+        vec3 pos = ceil( rel_pos + newbox2 + axis_gap*dir );
         if (axis != 1 and !consts[2]) {
-          neg = floor( rel_pos + box1 - axis_gap*dir + vec3(0,1,0));
+          neg = floor( rel_pos + newbox1 - axis_gap*dir + vec3(0,1,0));
         }
         
         //positive side
@@ -160,7 +164,7 @@ void Entity::calc_constraints() {
         }
         new_consts[axis] = new_consts[axis] or constraint;
         if (constraint) {
-            new_rel_pos[axis] = floor(rel_pos[axis] + box2[axis] + axis_gap) - box2[axis] - axis_gap;
+            new_rel_pos[axis] = floor(rel_pos[axis] + newbox2[axis] + axis_gap) - newbox2[axis] - axis_gap;
         }
         vec3 neg2 = neg*dir + pos*coords;
         if (axis == 1) {
@@ -190,8 +194,8 @@ void Entity::calc_constraints() {
           }
           
           if (!constraint) {
-            neg = floor( rel_pos + box1 - axis_gap );
-            pos = ceil( rel_pos + box2 + axis_gap );
+            neg = floor( rel_pos + newbox1 - axis_gap );
+            pos = ceil( rel_pos + newbox2 + axis_gap );
             neg2 = neg*dir + pos*coords;
             
             for (int x = (int)neg.x; x < neg2.x+1; x ++) {
@@ -210,7 +214,7 @@ void Entity::calc_constraints() {
             }
             
             if (constraint) {
-              float newpos = ceil(rel_pos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
+              float newpos = ceil(rel_pos[axis] + newbox1[axis] - axis_gap) - newbox1[axis] + axis_gap;
               if (std::abs(newpos - new_rel_pos[axis]) > 0.3) {
                 constraint = false;
               } else {
@@ -221,7 +225,7 @@ void Entity::calc_constraints() {
           } else {
             if (constraint and max_y != INT_MIN) {
               
-              double newpos = max_y - box1[axis] + axis_gap + 1;
+              double newpos = max_y - newbox1[axis] + axis_gap + 1;
               if (newpos > new_rel_pos[1]) {
                 double diff = newpos - new_rel_pos[1];
                 if (diff > 0.2) {
@@ -231,7 +235,7 @@ void Entity::calc_constraints() {
               } else {
                 new_consts[axis+3] = false;
               }
-              //ceil(rel_pos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
+              //ceil(rel_pos[axis] + newbox1[axis] - axis_gap) - newbox1[axis] + axis_gap;
             }
           }
           
@@ -253,14 +257,14 @@ void Entity::calc_constraints() {
           }
           new_consts[axis+3] = new_consts[axis+3] or constraint;
           if (constraint) {
-            new_rel_pos[axis] = ceil(rel_pos[axis] + box1[axis] - axis_gap) - box1[axis] + axis_gap;
+            new_rel_pos[axis] = ceil(rel_pos[axis] + newbox1[axis] - axis_gap) - newbox1[axis] + axis_gap;
           }
         }
       }
       /// torso check: to tell if the constraints are only on the feet
       
-      vec3 neg = floor( rel_pos + box1 - axis_gap + vec3(0,1.2,0)) ;
-      vec3 pos = ceil( rel_pos + box2 + axis_gap );
+      vec3 neg = floor( rel_pos + newbox1 - axis_gap + vec3(0,1.2,0)) ;
+      vec3 pos = ceil( rel_pos + newbox2 + axis_gap );
       bool constraint = false;
       for (int x = (int)neg.x; x < pos.x+1; x ++) {
         for (int y = (int)neg.y; y < pos.y+1; y ++) {
@@ -358,37 +362,18 @@ void Entity::kill() {
 
 
 
-DisplayEntity::DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock, vector<DisplayEntity*> newlimbs):
-Entity(nworld, starting_pos, vec3(0.2,0.2,0.2), vec3(1,1,1)), block(newblock), render_index(-1,0), render_flag(true), limbs(newlimbs) {
-  int size = block->scale;
-  box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
+DisplayEntity::DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 newblockpos, vector<DisplayEntity*> newlimbs):
+Entity(nworld, starting_pos, hitbox1, hitbox2), block(newblock), render_index(-1,0), render_flag(true), limbs(newlimbs), blockpos(newblockpos), dead_falling(false) {
+  // int size = block.block->scale;
+  // box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
   //block->render(&vecs, this, 0, 0, 0);
 }
 
-DisplayEntity::DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock):
-Entity(nworld, starting_pos, vec3(0.2,0.2,0.2), vec3(1,1,1)), block(newblock), render_index(-1,0), render_flag(true) {
-  int size = block->scale;
-  box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
+DisplayEntity::DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 newblockpos):
+Entity(nworld, starting_pos, hitbox1, hitbox2), block(newblock), render_index(-1,0), render_flag(true), blockpos(newblockpos), dead_falling(false) {
+  // int size = block.block->scale;
+  // box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
   //block->render(&vecs, this, 0, 0, 0);
-}
-
-vec3 DisplayEntity::get_position() const {
-  return position;
-}
-
-Block * DisplayEntity::get_global(int x, int y, int z, int size) {
-  ivec3 index(x,y,z);
-  //print (index);
-  index -= ivec3(box1-axis_gap);
-  //print (position);
-  //print (index);
-  int scale = block->scale;
-  //cout << ';' << endl;
-  if ( index.x >= 0 and index.x < scale and index.y >= 0 and index.y < scale and index.z >= 0 and index.z < scale ) {
-    return block->get_global(index.x, index.y, index.z,size);
-  } else {
-    return nullptr;
-  }
 }
 
 void DisplayEntity::render(RenderVecs* allvecs) {
@@ -400,34 +385,59 @@ void DisplayEntity::render(RenderVecs* allvecs) {
   // block->render(&vecs, int(position.x), int(position.y), int(position.z));
   //
   if (render_flag) {
-    cout << "rendered" << endl;
     print (position);
     vecs.clear();
-    block->all([=] (Pixel* pix) {
+    block.block->all([=] (Pixel* pix) {
       pix->render_index = pair<int,int>(-1,0);
       pix->set_render_flag();
     });
-    block->render(&vecs, this, 0, 0, 0);
-    cout << vecs.num_verts << ';' << endl;
-    for (DisplayEntity* limb : limbs) {
-      limb->render_flag = true;
-      limb->render_index = pair<int,int>(-1,0);
-      limb->render(&vecs);
-      cout << vecs.num_verts << '-' << endl;
+    block.block->render(&vecs, &block, 0, 0, 0);
+    for (int i = 0; i < vecs.num_verts; i++) {
+      vecs.verts[i*3+0] += blockpos.x;
+      vecs.verts[i*3+1] += blockpos.y;
+      vecs.verts[i*3+2] += blockpos.z;
     }
-    cout << "done rendering " << endl;
+    // for (DisplayEntity* limb : limbs) {
+    //   cout << "lib:";
+    //   print(limb->position);
+    //   limb->render_flag = true;
+    //   limb->render_index = pair<int,int>(-1,0);
+    //   limb->render(&vecs);
+    //   cout << vecs.num_verts << '-' << endl;
+    // }
     render_flag = false;
   }
   MemVecs translated;
   translated.add(&vecs);
+  //cout << 't' << translated.num_verts << endl;
+  
+  
+  for (DisplayEntity* limb : limbs) {
+    limb->render_index = pair<int,int>(-1,0);
+    limb->render(&translated);
+  }
+  //cout << 'y' << translated.num_verts << endl;
   for (int i = 0; i < translated.num_verts; i++) {
+    // translated.verts[i*3+0] += blockpos.x;
+    // translated.verts[i*3+1] += blockpos.y;
+    // translated.verts[i*3+2] += blockpos.z;
+    float x = translated.verts[i*3+0];
+    float y = translated.verts[i*3+1];
+    float z = translated.verts[i*3+2];
+    translated.verts[i*3+0] = x * cos(angle.y) - y * sin(angle.y);
+    translated.verts[i*3+1] = x * sin(angle.y) + y * cos(angle.y);
+    x = translated.verts[i*3+0];
+    y = translated.verts[i*3+1];
+    z = translated.verts[i*3+2];
+    translated.verts[i*3+0] = x * cos(angle.x) - z * sin(angle.x);
+    translated.verts[i*3+2] = x * sin(angle.x) + z * cos(angle.x);
+    
     translated.verts[i*3+0] += position.x;
     translated.verts[i*3+1] += position.y;
     translated.verts[i*3+2] += position.z;
   }
   
   if (render_index == pair<int,int>(-1,0)) {
-    cout << "added" << endl;
     render_index = allvecs->add(&translated);
   } else {
     allvecs->edit(render_index, &translated);
@@ -446,7 +456,140 @@ void DisplayEntity::on_timestep() {
   //vel += vec3(0.0,0,-0.08);
 }
 
-void DisplayEntity::calc_constraints() {
+DisplayEntity::~DisplayEntity() {
+  //cout << render_index.first << ',' << render_index.second << " deleted! " << endl;
+  // position.y -= 1000;
+  // render();
+  if (render_index.first != -1) {
+    //world->glvecs.del(render_index);
+    world->dead_render_indexes.push_back(render_index);
+  }
+  if (block.block != nullptr) {
+    block.block->del(false);
+    delete block.block;
+  }
+  
+  for (DisplayEntity* limb : limbs) {
+    limb->render_index = pair<int,int>(-1,0);
+    delete limb;
+  }
+}
+
+
+
+
+
+NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, string name, vec3 newblockpos,
+  vector<DisplayEntity*> newlimbs):
+  DisplayEntity(nworld, starting_pos, hitbox1, hitbox2, loadblock(name), newblockpos, newlimbs), nametype(name), pointing(0) {
+  health = 1;
+  //block->rotate(1, 1);
+}
+
+NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, string name, vec3 newblockpos):
+  DisplayEntity(nworld, starting_pos, hitbox1, hitbox2, loadblock(name), newblockpos), nametype(name), pointing(0) {
+  health = 10;
+  //block->rotate(1, 1);
+}
+
+Block* NamedEntity::loadblock(string name) {
+  std::ifstream ifile(entitystorage->blocks[name], ios::binary);
+  if (!ifile.good()) {
+    cout << "file error code s9d8f0s98d0f9s80f98sd0" << endl;
+    hard_crash(29348023948029834);
+  }
+  int size;
+  ifile >> size;
+  box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
+  char buff;
+  ifile.read(&buff,1);
+  return Block::from_file(ifile, 0, 0, 0, size, nullptr, nullptr);
+}
+
+void NamedEntity::on_timestep() {
+  DisplayEntity::on_timestep();
+  return;
+  vec3 dist_to_player = world->player->position - (position + box2 / 2.0f);
+  double lon =  atan2(dist_to_player.z, dist_to_player.x);
+  //double lat = atan2(dist_to_player.y, vec2(dist_to_player.x, dist_to_player.z).length());
+  //cout << angle << ' ' << pointing << endl;
+  // if (angle < 0) {
+  //   angle += 4;
+  // }
+  angle.x += float(rand()%10-5)/100;
+  return;
+  //angle.y = lat;
+  
+  float dist = glm::length(dist_to_player);
+  dist_to_player /= dist;
+  if (consts[4]) {
+    vel.x += 0.5 * dist_to_player.x;
+    vel.z += 0.5 * dist_to_player.z;
+  } else {
+    vel.x += 0.1 * dist_to_player.x;
+    vel.z += 0.1 * dist_to_player.z;
+  }
+  if (consts[4] and (consts[0] or consts[2] or consts[3] or consts[5])) {
+    vel.y = 20;
+  }
+  if (colliding(world->player)) {
+    world->player->health -= 1;
+    world->player->vel += (dist_to_player + vec3(0,1,0)) * 5.0f;
+    vel -= (dist_to_player + vec3(0,1,0)) * 3.0f;
+  }
+  if (health < 0) {
+    for (int x = 0; x < block.block->scale; x ++) {
+      for (int y = 0; y < block.block->scale; y ++) {
+        for (int z = 0; z < block.block->scale; z ++) {
+          Pixel* pix = block.block->get_global(x, y, z, 1)->get_pix();
+          if (pix->value != 0) {
+            world->set(position.x+x, position.y+y, position.z+z, pix->value, pix->direction);
+          }
+        }
+      }
+    }
+    alive = false;
+  }
+}
+
+
+
+FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup): DisplayEntity(nworld, newgroup->position, vec3(0,0,0),
+vec3(1,1,1), newgroup->block, vec3(0,0,0)), group(newgroup) {
+  box2 = vec3(block.block->scale - 0.2, block.block->scale, block.block->scale);
+  immune = true;
+}
+
+void FallingBlockEntity::on_timestep() {
+  DisplayEntity::on_timestep();
+  if (consts[4]) {
+    group->copy_to_world(position);
+    delete group;
+    block.block = nullptr;
+    alive = false;
+  }
+}
+    
+Block * FallingBlockEntity::get_global(int x, int y, int z, int size) {
+  ivec3 index(x,y,z);
+  //print (index);
+  index -= ivec3(box1-axis_gap);
+  //print (position);
+  //print (index);
+  int scale = block.block->scale;
+  //cout << ';' << endl;
+  if ( index.x >= 0 and index.x < scale and index.y >= 0 and index.y < scale and index.z >= 0 and index.z < scale ) {
+    return block.block->get_global(index.x, index.y, index.z,size);
+  } else {
+    return nullptr;
+  }
+}
+
+vec3 FallingBlockEntity::get_position() const {
+  return position;
+}
+
+void FallingBlockEntity::calc_constraints() {
     float axis_gap = 0.2;
     
     vec3 coords_array[3] = {{0,1,1}, {1,0,1}, {1,1,0}};
@@ -463,10 +606,10 @@ void DisplayEntity::calc_constraints() {
     //axis gap make sure a side detects the collision of blocks head on before the side detectors sense the blocks. Each slice is moved out from the player by axis_gap
     //cout << "----------------------------------" << endl;
     //print(position);
-    if (block == nullptr) {
+    if (block.block == nullptr) {
       return;
     }
-    block->all([&] (Pixel* pix) {
+    block.block->all([&] (Pixel* pix) {
       if (!pix->is_air(0,0,0)) {
         int bx, by, bz;
         pix->global_position(&bx, &by, &bz);
@@ -491,8 +634,8 @@ void DisplayEntity::calc_constraints() {
           gy = by+int(dir.y)*pix->scale;
           gz = bz+int(dir.z)*pix->scale;
           //cout << gx << ' ' << gy << ' ' << gz << endl;
-          side = block->get_global(gx, gy, gz, pix->scale);
-          bool out_bounds = gx >= block->scale or gy >= block->scale or gz >= block->scale;
+          side = block.block->get_global(gx, gy, gz, pix->scale);
+          bool out_bounds = gx >= block.block->scale or gy >= block.block->scale or gz >= block.block->scale;
           //cout << out_bounds << endl;
           if (side == nullptr or out_bounds or side->is_air(-dir.x, -dir.y, -dir.z)) {
             vec3 pos2 = pos*dir + neg*coords;
@@ -520,7 +663,7 @@ void DisplayEntity::calc_constraints() {
           gy = by-int(dir.y)*pix->scale;
           gz = bz-int(dir.z)*pix->scale;
           //cout << gx << ' ' << gy << ' ' << gz << endl;
-          side = block->get_global(gx, gy, gz, pix->scale);
+          side = block.block->get_global(gx, gy, gz, pix->scale);
           out_bounds = gx < 0 or gy < 0 or gz < 0;
           if (side == nullptr or out_bounds or side->is_air(dir.x, dir.y, dir.z)) {
             vec3 neg2 = neg*dir + pos*coords;
@@ -568,156 +711,17 @@ void DisplayEntity::calc_constraints() {
     position = newpos;
 }
 
-DisplayEntity::~DisplayEntity() {
-  cout << render_index.first << ',' << render_index.second << " deleted! " << endl;
-  // position.y -= 1000;
-  // render();
-  if (render_index.first != -1) {
-    world->glvecs.del(render_index);
-  }
-  if (block != nullptr) {
-    block->del(false);
-    delete block;
-  }
-  
-  for (DisplayEntity* limb : limbs) {
-    limb->render_index = pair<int,int>(-1,0);
-    delete limb;
-  }
-}
-
-
-
-
-
-NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, string name,
-  vector<DisplayEntity*> newlimbs):
-  DisplayEntity(nworld, starting_pos, loadblock(name), newlimbs), nametype(name), pointing(0) {
-  health = 10;
-  //block->rotate(1, 1);
-}
-
-NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, string name):
-  DisplayEntity(nworld, starting_pos, loadblock(name)), nametype(name), pointing(0) {
-  health = 10;
-  //block->rotate(1, 1);
-}
-
-Block* NamedEntity::loadblock(string name) {
-  cout << name << endl;
-  std::ifstream ifile(entitystorage->blocks[name], ios::binary);
-  if (!ifile.good()) {
-    cout << "file error code s9d8f0s98d0f9s80f98sd0" << endl;
-    hard_crash(29348023948029834);
-  }
-  int size;
-  ifile >> size;
-  box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
-  char buff;
-  ifile.read(&buff,1);
-  return Block::from_file(ifile, 0, 0, 0, size, nullptr, nullptr);
-}
-
-void NamedEntity::on_timestep() {
-  DisplayEntity::on_timestep();
-  vec3 dist_to_player = world->player->position - (position + box2 / 2.0f);
-  int angle =  int(atan2(dist_to_player.z, dist_to_player.x) / (3.14/2) + 10.5) - 10;
-  //cout << angle << ' ' << pointing << endl;
-  // if (angle < 0) {
-  //   angle += 4;
-  // }
-  if (angle != pointing) {
-    cout << angle << endl;
-    if (angle < pointing) {
-      for (int i = angle; i < pointing; i ++) {
-        cout << "neg rotate" << endl;
-        block->rotate(1, 1);
-        for (DisplayEntity* limb : limbs) {
-          limb->block->rotate(1,1);
-          limb->position -= block->scale/2.0 - limb->block->scale/2.0;
-          limb->position = vec3(limb->position.z, limb->position.y, -limb->position.x);
-          limb->position += block->scale/2.0 - limb->block->scale/2.0;
-        }
-      }
-    } else if (angle > pointing) {
-      for (int i = pointing; i < angle; i ++) {
-        cout << "pos rotate" << endl;
-        block->rotate(1, -1);
-        for (DisplayEntity* limb : limbs) {
-          limb->block->rotate(1,-1);
-          limb->position -= block->scale/2.0 - limb->block->scale/2.0;
-          limb->position = vec3(-limb->position.z, limb->position.y, limb->position.x);
-          limb->position += block->scale/2.0 - limb->block->scale/2.0;
-        }
-      }
-    }
-    //world->glvecs.del(render_index);
-    render_flag = true;
-    //render();
-    pointing = angle;
-  }
-  float dist = glm::length(dist_to_player);
-  dist_to_player /= dist;
-  return;
-  if (consts[4]) {
-    vel.x += 0.5 * dist_to_player.x;
-    vel.z += 0.5 * dist_to_player.z;
-  } else {
-    vel.x += 0.1 * dist_to_player.x;
-    vel.z += 0.1 * dist_to_player.z;
-  }
-  if (consts[4] and (consts[0] or consts[2] or consts[3] or consts[5])) {
-    vel.y = 20;
-  }
-  if (colliding(world->player)) {
-    world->player->health -= 1;
-    world->player->vel += (dist_to_player + vec3(0,1,0)) * 5.0f;
-    vel -= (dist_to_player + vec3(0,1,0)) * 3.0f;
-  }
-  if (health < 0) {
-    for (int x = 0; x < block->scale; x ++) {
-      for (int y = 0; y < block->scale; y ++) {
-        for (int z = 0; z < block->scale; z ++) {
-          Pixel* pix = block->get_global(x, y, z, 1)->get_pix();
-          if (pix->value != 0) {
-            world->set(position.x+x, position.y+y, position.z+z, pix->value, pix->direction);
-          }
-        }
-      }
-    }
-    alive = false;
-  }
-}
-
-
-
-FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup): DisplayEntity(nworld, newgroup->position, newgroup->block), group(newgroup) {
-  immune = true;
-}
-
-void FallingBlockEntity::on_timestep() {
-  DisplayEntity::on_timestep();
-  if (consts[4]) {
-    group->copy_to_world(position);
-    delete group;
-    block = nullptr;
-    alive = false;
-  }
-}
-    
-
-
 
 
 EntityStorage::EntityStorage() {
   vector<string> paths;
-  get_files_folder("resources/data/entities", &paths);
+  get_files_folder("resources/data/entities/blockfiles", &paths);
   for (string path : paths) {
     ifstream ifile(path);
     std::stringstream ss(path);
     string name;
     std::getline(ss, name, '.');
-    blocks[name] = "resources/data/entities/" + path;
+    blocks[name] = "resources/data/entities/blockfiles/" + path;
     //cout << "loaded " << name << " from file" << endl;
   }
   cout << "loaded " << paths.size() << " entities from file" << endl;

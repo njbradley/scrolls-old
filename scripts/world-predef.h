@@ -15,6 +15,7 @@
 #include "entity-predef.h"
 #include "terrain-predef.h"
 #include "blocks-predef.h"
+#include "collider-predef.h"
 #include <future>
 #include <thread>
 #include <mutex>
@@ -36,6 +37,7 @@ class World: public Collider {
     public:
         map<ivec3, Tile*, ivec3_comparator> tiles;
         unordered_set<BlockGroup*> physicsgroups;
+    		vector<pair<int,int> > dead_render_indexes;
         int seed;
         string name;
         int view_dist = 3;
@@ -67,6 +69,7 @@ class World: public Collider {
         void load_nearby_chunks();
         void get_async_loaded_chunks();
         Block* get_global(int x, int y, int z, int scale);
+        void summon(DisplayEntity* entity);
         void set(int x, int y, int z, char val, int direction = 0, BlockExtra* extras = nullptr);
         char get(int x, int y, int z);
         Block* raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time);

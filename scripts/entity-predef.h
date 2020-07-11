@@ -3,28 +3,19 @@
 
 #include <iostream>
 #include "classes.h"
+#include "blocks-predef.h"
 
 //#include "items.h"
 //#include "rendervec.h"
 #include "items-predef.h"
 #include "rendervec-predef.h"
+#include "collider-predef.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <GLFW/glfw3.h>
 using namespace glm;
 
 using namespace std;
-
-struct Collider {
-  virtual Block * get_global(int x,int y,int z,int scale) = 0;
-  // this is a function shared by all classes that hold
-  // chunks/pixels in them
-  // it returns a block that is at the global position xyz
-  // and at scale scale
-  // to make sure a pixel is returned, use scale 1 and call
-  // get_pix() on the result
-  virtual vec3 get_position() const = 0;
-};
 
 class Entity { public:
     static constexpr float axis_gap = 0.2f;
@@ -87,21 +78,20 @@ class Player: public Entity {
 };
 
 
-class DisplayEntity: public Entity, public Collider {
+class DisplayEntity: public Entity {
 public:
-  Block* block;
+  BlockContainer block;
+  vec3 blockpos;
   vector<DisplayEntity*> limbs;
   MemVecs vecs;
   pair<int,int> render_index;
   bool render_flag;
-  DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock,
+  bool dead_falling;
+  DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos,
     vector<DisplayEntity*> newlimbs);
-  DisplayEntity(World* nworld, vec3 starting_pos, Block* newblock);
+  DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos);
   ~DisplayEntity();
-  Block * get_global(int,int,int,int);
-  vec3 get_position() const;
   void render(RenderVecs* allvecs);
-  void calc_constraints();
   virtual void on_timestep();
   //void die();
 };
@@ -110,18 +100,21 @@ class NamedEntity: public DisplayEntity {
 public:
   string nametype;
   int pointing;
-  NamedEntity(World* nworld, vec3 starting_pos, string name,
+  NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, string name, vec3 newblockpos,
   vector<DisplayEntity*> limbs);
-  NamedEntity(World* nworld, vec3 starting_pos, string name);
+  NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, string name, vec3 newblockpos);
   Block* loadblock(string name);
   void on_timestep();
 };
 
-class FallingBlockEntity: public DisplayEntity {
+class FallingBlockEntity: public DisplayEntity, public Collider {
 public:
   BlockGroup* group;
   FallingBlockEntity(World* nworld, BlockGroup* newgroup);
   ~FallingBlockEntity();
+  void calc_constraints();
+  Block * get_global(int,int,int,int);
+  vec3 get_position() const;
   void on_timestep();
 };
 

@@ -365,6 +365,11 @@ void World::render() {
           //render_chunk_vectors(kvpair.first);
           //cout << during - before << ' ' << after - during << ' ' << clock()-after << endl;
       }
+      for (pair<int,int> render_index : dead_render_indexes) {
+        glvecs.del(render_index);
+        changed = true;
+      }
+      dead_render_indexes.clear();
     //  tiles_lock.unlock();
     //}
     for (ivec3 e : empty) {
@@ -415,6 +420,19 @@ Block* World::get_global(int x, int y, int z, int scale) {
     int oz = ((z < 0) ? chunksize : 0) + z%chunksize;
     //cout << ox << ' ' << y << ' ' << oz << endl;
     return tiles.at(pos)->chunk->get_global(ox, oy, oz, scale);
+}
+
+void World::summon(DisplayEntity* entity) {
+  ivec3 pos(entity->position);
+  pos = pos / chunksize - ivec3(
+    int(pos.x<0 and -pos.x%chunksize!=0),
+    int(pos.y<0 and -pos.y%chunksize!=0),
+    int(pos.z<0 and -pos.z%chunksize!=0)
+  );
+  if (tiles.find(pos) == tiles.end() or std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) != deleting_chunks.end()) {
+    return;
+  }
+  tiles.at(pos)->entities.push_back(entity);
 }
 
 void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras) {

@@ -107,70 +107,90 @@ void Player::raycast(Pixel** hit, vec3* hitpos, DisplayEntity** target_entity) {
 	float dist;
 	if (target != nullptr) {
 		dist = glm::length(position-vec3(x,y,z));
+		*hit = target->get_pix();
+		*hitpos = vec3(x,y,z);
 	} else {
 		dist = -1;
+		*hit = nullptr;
 	}
 	//cout << dist << endl;
 	*target_entity = nullptr;
-	*hit = nullptr;
 	//print(pointing);
 	for (DisplayEntity* entity : entities) {
 		vec3 start = position-entity->position;
 		//cout << entity << endl;
 		//print(start);
 		float dt = 0;
+		float maxdt = -1;
 		bool ray_valid = true;
 		for (int axis = 0; axis < 3 and ray_valid; axis ++) {
-			float time;
-			if (start[axis] < 0) {
-				time = start[axis] * -1 / pointing[axis];
-			} else if (start[axis] >= entity->block->scale) {
-				time = (start[axis] - entity->block->scale) * -1 / pointing[axis] + 0.001f;
+			float mintime;
+			float maxtime;
+			
+			if (start[axis] < entity->box1[axis]) {
+				mintime = (start[axis] - entity->box1[axis]) * -1 / pointing[axis];
+				maxtime = (start[axis] - entity->box2[axis]) * -1 / pointing[axis];
+			} else if (start[axis] > entity->box2[axis]) {
+				mintime = (start[axis] - entity->box2[axis]) * -1 / pointing[axis];
+				maxtime = (start[axis] - entity->box1[axis]) * -1 / pointing[axis];
 			} else {
-				continue;
+				mintime = 0;
+				if (pointing[axis] < 0) {
+					maxtime = (start[axis] - entity->box1[axis]) * -1 / pointing[axis];
+				} else {
+					maxtime = (start[axis] - entity->box2[axis]) * -1 / pointing[axis];
+				}
 			}
-			//cout << time << ' ';
-			if ( time < 0 ) {
+			if (maxdt == -1) {
+				maxdt = maxtime;
+			}
+			if ( mintime < 0 or mintime > maxdt or maxtime < dt) {
 				ray_valid = false;
-				continue;
-			} else if (time > dt) {
-				dt = time;
+				break;
+			} else {
+				if (mintime > dt) {
+					dt = mintime;
+				}
+				if (maxtime < maxdt) {
+					maxdt = maxtime;
+				}
 			}
-		}// cout << endl;
+		}
 		if (!ray_valid or glm::length(pointing*dt) > 8) {
 			continue;
 		}
 		start += pointing*dt;
+		//if (start.x > 0 and start.x <= entity->box2.x and start.y > 0 and start.y <= entity->box2.y and start.z < 0 and start.z <= entity->box2.z) {
+			
 		//print (start);
-		double ex = start.x;
-		double ey = start.y;
-		double ez = start.z;
-		if (ex < 0 or ex >= entity->block->scale or ey < 0 or ey >= entity->block->scale or ez < 0 or ez >= entity->block->scale) {
-			continue;
-		}
-		//cout << "made it" << endl;
-		Block* start_block = entity->block->get_global(int(ex) - (ex<0), int(ey) - (ey<0), int(ez) - (ez<0), 1);
-		//cout << start_block << endl;
-		Block* newtarget = start_block->raycast(entity, &ex, &ey, &ez, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 8-glm::length(pointing*dt));
-		float newdist;
-		if (newtarget != nullptr) {
-			newdist = glm::length(position-entity->position-vec3(ex,ey,ez));
-		} else {
-			newdist = -1;
-		}
-		//cout << dist << ' ' <<  newdist << endl;
-		if ((dist == -1 and newdist != -1) or (newdist < dist and newdist != -1)) {
-			dist = newdist;
-			target = newtarget;
-			*target_entity = entity;
-		}
+		
+			float newdist = glm::length(pointing*dt);
+			if (dist == -1 or newdist < dist) {
+				dist = newdist;
+				*target_entity = entity;
+				*hitpos = entity->position + start;
+			}
+		//}
 	}
-	if (dist != -1) {
-		*hit = target->get_pix();
-		//cout << int((*hit)->value) << endl;
-		//cout << x << ' ' << y << ' ' << z << "---------" << endl;
-		*hitpos = vec3(x,y,z);
-	}
+	// 	//cout << "made it" << endl;
+	// 	Block* start_block = entity->block->get_global(int(ex) - (ex<0), int(ey) - (ey<0), int(ez) - (ez<0), 1);
+	// 	//cout << start_block << endl;
+	// 	Block* newtarget = start_block->raycast(entity, &ex, &ey, &ez, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 8-glm::length(pointing*dt));
+	// 	float newdist;
+	// 	if (newtarget != nullptr) {
+	// 		newdist = glm::length(position-entity->position-vec3(ex,ey,ez));
+	// 	} else {
+	// 		newdist = -1;
+	// 	}
+	// 	//cout << dist << ' ' <<  newdist << endl;
+	// 	if ((dist == -1 and newdist != -1) or (newdist < dist and newdist != -1)) {
+	// 		dist = newdist;
+	// 		target = newtarget;
+	// 		*target_entity = entity;
+	// 	}
+	// }
+	
+	
 }
 
 void Player::right_mouse() {
@@ -247,9 +267,6 @@ void Player::left_mouse() {
 	Pixel* pix;
 	DisplayEntity* target_entity;
 	raycast(&pix, &hitpos, &target_entity);
-	if (pix == nullptr) {
-		return;
-	}
 	if (target_entity != nullptr) {
 		if (timeout < 0) {
 			return;
@@ -262,6 +279,9 @@ void Player::left_mouse() {
 			cout << target_entity->health << endl;
 		}
 		//target_entity->alive = false;
+		return;
+	}
+	if (pix == nullptr) {
 		return;
 	}
 	

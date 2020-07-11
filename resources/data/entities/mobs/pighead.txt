@@ -1,0 +1,6 @@
+mob pighead {
+	:box1: -0.5 -0.5 -0.5
+	:box2: 0.5 0.5 0.5
+	:blockpath: pighead
+	:blockpos: -0.5 -0.5 -0.5
+}

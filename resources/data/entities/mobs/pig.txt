@@ -1,0 +1,7 @@
+mob pig {
+	:box1: -1 -1.5 -1
+	:box2: 1 1 1
+	:blockpath: pigbody
+	:blockpos: -1 -1 -1
+	:limbs: [ -1 -0.5 -1 pigfoot   -1 -0.5 1 pigfoot   1 -0.5 -1 pigfoot   1 -0.5 1 pigfoot  1 1 0 pighead ]
+}

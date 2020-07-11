@@ -1147,4 +1147,32 @@ void Chunk::save_to_file(ostream& of) {
     of << "}";
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+BlockContainer::BlockContainer(Block* b): block(b) {
+	
+}
+
+vec3 BlockContainer::get_position() const {
+	return block->get_position();
+}
+
+Block* BlockContainer::get_global(int x, int y, int z, int size) {
+	if (x >= 0 and y >= 0 and z >= 0 and x < block->scale and y < block->scale and z < block->scale) {
+		return block->get_global(x, y, z, size);
+	} else {
+		return nullptr;
+	}
+}
+
 #endif

@@ -33,6 +33,7 @@ using namespace glm;
 #include "scripts/terrain.h"
 #include "scripts/blockphysics.h"
 #include "scripts/multithreading.h"
+#include "scripts/mobs.h"
 
 
 #include "scripts/cross-platform.h"
@@ -294,6 +295,7 @@ int main( void )
 	
 	recipestorage = new RecipeStorage();
 	entitystorage = new EntityStorage();
+	mobstorage = new MobStorage();
 	
 	// Initialise GLFW
 	if( !glfwInit() )
