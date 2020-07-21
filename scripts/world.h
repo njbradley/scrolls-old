@@ -380,7 +380,7 @@ void World::render() {
       glvecs.clean();
       if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
         int before = clock();
-        glFlush();
+        glFinish();
         //cout << "glfinish time " << clock() - before << endl;
         glvecs.writelock.unlock();
       }
