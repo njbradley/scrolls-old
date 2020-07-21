@@ -17,8 +17,9 @@ class Tile {
 		std::timed_mutex writelock;
 		bool deleting;
 		vector<DisplayEntity*> entities;
+		vector<FallingBlockEntity*> block_entities;
 		Tile(ivec3 position, World* world);
-		void timestep();
+		void timestep(int timestep_clock);
 		void drop_ticks();
 		void render(GLVecs*);
 		void save();

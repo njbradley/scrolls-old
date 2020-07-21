@@ -55,34 +55,63 @@ void Tile::render(GLVecs* glvecs) {
 
 void Tile::save() {
   stringstream path;
-  path << "saves/world/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
+  path << "saves/" << world->name << "/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
   //cout << "saving '" << path.str() << "' to file\n";
-  ofstream of(path.str(), ios::binary);
-  chunk->save_to_file(of);
+  ofstream ofile(path.str(), ios::binary);
+  chunk->save_to_file(ofile);
+  ofile << endl << entities.size() << endl;
+  for (DisplayEntity* e : entities) {
+    e->to_file(ofile);
+  }
+  ofile << block_entities.size() << endl;
+  for (FallingBlockEntity* e : block_entities) {
+    e->to_file(ofile);
+  }
 }
 
-void Tile::timestep() {
+void Tile::timestep(int timestep_clock) {
   if (deleting) {
     return;
   }
+  // ERR: started deleting while this function was running
   for (int i = entities.size()-1; i >= 0; i --) {
     //cout << i << endl;
-    entities[i]->timestep();
-    if (entities[i]->alive) {
-      vec3 epos = entities[i]->position;
+    //int dist = glm::length(world->player->position - entities[i]->position) / 4;
+      entities[i]->timestep();
+      if (entities[i]->alive) {
+        vec3 epos = entities[i]->position;
+        ivec3 chunk = ivec3(epos)/world->chunksize - ivec3(epos.x<0,epos.y<0,epos.z<0);
+        if (chunk != pos) {
+          if (world->tiles.find(pos) != world->tiles.end()) {
+            world->tiles[pos]->entities.push_back(entities[i]);
+          } else {
+            delete entities[i];
+          }
+          entities.erase(entities.begin()+i);
+        }
+      } else {
+        //entities[i]->die();
+        delete entities[i];
+        entities.erase(entities.begin()+i);
+      }
+  }
+  
+  for (int i = block_entities.size()-1; i >= 0; i --) {
+    block_entities[i]->timestep();
+    if (block_entities[i]->alive) {
+      vec3 epos = block_entities[i]->position;
       ivec3 chunk = ivec3(epos)/world->chunksize - ivec3(epos.x<0,epos.y<0,epos.z<0);
       if (chunk != pos) {
         if (world->tiles.find(pos) != world->tiles.end()) {
-          world->tiles[pos]->entities.push_back(entities[i]);
+          world->tiles[pos]->block_entities.push_back(block_entities[i]);
         } else {
-          delete entities[i];
+          delete block_entities[i];
         }
-        entities.erase(entities.begin()+i);
+        block_entities.erase(block_entities.begin()+i);
       }
     } else {
-      //entities[i]->die();
-      delete entities[i];
-      entities.erase(entities.begin()+i);
+      delete block_entities[i];
+      block_entities.erase(block_entities.begin()+i);
     }
   }
 }
@@ -90,6 +119,9 @@ void Tile::timestep() {
 void Tile::drop_ticks() {
   for (DisplayEntity* entity : entities) {
     entity->drop_ticks();
+  }
+  for (FallingBlockEntity* e : block_entities) {
+    e->drop_ticks();
   }
 }
 
@@ -104,7 +136,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
       //   new NamedEntity(world, vec3(3.5,-0.5,2.5), vec3(0,0,0), vec3(1,1,1), "pigfoot", vec3(0,0,0)),
       //
       // };
-      entities.push_back(new Pig(world, pos*chunksize + 32 + ivec3(0,5,0)));
+      entities.push_back(new Skeleton(world, pos*chunksize + 32 + ivec3(0,5,0)));
       //entities.push_back(new NamedEntity(world, pos*chunksize+32 + ivec3(0,5,0), vec3(0,0,0), vec3(2,2,2), "pighead", vec3(0,0,0)));
       // entities.push_back(new NamedEntity(world, pos*chunksize+32 + ivec3(0,5,0), vec3(-1,0,-1), vec3(1,4,1), "skeleton", vec3(-2.5,0,-2.5), limbs));
   	}
@@ -113,12 +145,21 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
       exit(1);
     }
     stringstream path;
-  	path << "saves/world/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
+  	path << "saves/" << world->name << "/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
   	ifstream ifile(path.str(), ios::binary);
   	if (ifile.good()) {
   			//cout << "loading '" << path.str() << "' from file\n";
   			//chunks[pos] = parse_file(&ifile, pos.first, 0, pos.second, chunksize, nullptr);
   			chunk = Block::from_file(ifile, pos.x, pos.y, pos.z, chunksize, nullptr, this);
+        int size;
+        ifile >> size;
+        for (int i = 0; i < size; i ++) {
+          entities.push_back(Mob::from_file(world, ifile));
+        }
+        ifile >> size;
+        for (int i = 0; i < size; i ++) {
+          block_entities.push_back(new FallingBlockEntity(world, ifile));
+        }
   	} else {
   			//cout << "generating '" << path.str() << "'\n";
   			chunk = generate(pos);

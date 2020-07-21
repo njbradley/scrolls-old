@@ -26,9 +26,11 @@ class Mob: public NamedEntity { public:
 	string name;
 	// ivec3 last_point;
 	Mob(World* world, vec3 start_pos, string newname);
+	Mob(World* world, istream& ifile);
 	virtual void on_timestep();
-	void to_file(ostream& ofile);
+	virtual void to_file(ostream& ofile);
 	static void fall_apart(DisplayEntity* entity);
+	static Mob* from_file(World* nworld, istream& ifile);
 	// virtual void tick();
 	// virtual void find_target();
 	// virtual void find_next_point();
@@ -39,8 +41,22 @@ private:
 class Pig: public Mob { public:
 	ivec3 next_point;
 	Pig(World* world, vec3 start_pos);
+	Pig(World* nworld, istream& ifile);
 	virtual void on_timestep();
 };
 
+class Biped: public Mob { public:
+	ivec3 next_point;
+	Biped(World* nworld, vec3 start_pos, string name);
+	Biped(World* nworld, istream& ifile);
+	virtual void on_timestep();
+};
+
+class Skeleton: public Biped { public:
+	float attack_recharge;
+	Skeleton(World* nworld, vec3 start_pos);
+	Skeleton(World* nworld, istream& ifile);
+	virtual void on_timestep();
+};
 
 #endif

@@ -26,7 +26,21 @@ using std::unordered_set;
 
 #define csize 2
 
-
+// class TileLoop { public:
+//   World* world;
+//   class iterator { public:
+//     int pos;
+//     iterator(int newpos);
+//     Tile* operator->();
+//     iterator operator++();
+//     bool operator==(const iterator& other);
+//     bool operator!=(const iterator& other);
+//   };
+//   TileLoop(World* nworld);
+//   iterator begin();
+//   iterator end();
+// };
+  
 
 class World: public Collider {
     vector<ivec3> loading_chunks;
@@ -46,6 +60,8 @@ class World: public Collider {
         TerrainLoader loader;
         bool lighting_flag;
         Player* player;
+        bool closing_world;
+        int timestep_clock = 0;
 				
         static const int chunksize = 64;
         
@@ -77,6 +93,7 @@ class World: public Collider {
         void del_chunk(ivec3 pos, bool remove_faces);
         void load_chunk(ivec3 pos);
         void close_world();
+        bool is_world_closed();
         void zip();
 };
 

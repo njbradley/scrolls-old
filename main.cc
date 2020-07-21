@@ -237,10 +237,14 @@ void level_select_menu() {
 	
 	menu = new SelectMenu("Level Select:", worlds, [&] (string result) {
 		if (result != "") {
-			world->close_world();
-			delete world;
+			World* w = world;
+			threadmanager->rendering = false;
+			world = nullptr;
+			w->close_world();
+			delete w;
 			world = new World(result);
 			world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+			threadmanager->rendering = true;
 			render_flag = true;
 			//debug_visible = true;
 		}
@@ -252,10 +256,14 @@ void level_select_menu() {
 void new_world_menu() {
 	menu = new TextInputMenu("Enter your new name:", true, [&] (string result) {
 		if (result != "") {
-			world->close_world();
-			delete world;
+			World* w = world;
+			threadmanager->rendering = false;
+			world = nullptr;
+			w->close_world();
+			delete w;
 			world = new World(result, time(NULL));
 			world->glvecs.set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+			threadmanager->rendering = true;
 			render_flag = true;
 		}
 		delete menu;
@@ -656,7 +664,12 @@ int main( void )
 			std::this_thread::sleep_for(std::chrono::milliseconds((int)(min_ms_per_frame-ms)));
 		}
 		
+		double total = glfwGetTime() - lastFrameTime;
 		
+		if (debug_visible) {
+			debugstream << "------ total time -----" << endl;
+			debugstream << "total time " << total*1000 << endl;
+		}
 		currentTime = glfwGetTime();
 		
 		// Clear the screen
@@ -898,16 +911,20 @@ int main( void )
 		} else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
 			hard_crash(1);
 		} else if (glfwGetKey(window, GLFW_KEY_Q ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
+			//world->closing_world = true;
 			playing = false;
 		} else if (glfwWindowShouldClose(window)) {
+			//world->closing_world = true;
 			playing = false;
 		}
 		
+		// if (world->is_world_closed()) {
+		// 	playing = false;
+		// }
 	}
 	
 	threadmanager->close();
 	delete threadmanager;
-	
 	// Cleanup VBO and shader
 	glDeleteBuffers(1, &vertexbuffer);
 	glDeleteBuffers(1, &uvbuffer);
@@ -940,7 +957,6 @@ int main( void )
 	
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
-	
 	if (errors) {
 		wait();
 	} else {

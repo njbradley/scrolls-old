@@ -47,6 +47,7 @@ void Entity::timestep() {
         cout << "warning: had to drop ticks" << endl;
     }
     //cout << vel.x << ' ' << vel.y << ' ' << vel.z << endl;
+    move(vel*deltaTime, deltaTime);
     if (!flying) {
         calc_constraints();
         vel += vec3(0,-40,0) * deltaTime;
@@ -58,7 +59,6 @@ void Entity::timestep() {
     //}
     //cout << endl;
     //cout << deltaTime << endl;
-    move(vel*deltaTime, deltaTime);
     lastTime = currentTime;
 }
 
@@ -84,18 +84,17 @@ void Entity::get_nearby_entities(vector<DisplayEntity*>* colliders) {
 void Entity::find_colliders(vector<Collider*>* colliders) {
   ivec3 chunk = ivec3(position)/world->chunksize - ivec3(position.x<0, position.y<0, position.z<0);
   //std::map<ivec3,Tile*>::iterator it = world->tiles.find(chunk);
-  vector<DisplayEntity*> entities;
-  get_nearby_entities(&entities);
-  // for (pair<ivec3, Tile*> kvpair : world->tiles) {
-  //   if (glm::length(vec3(kvpair.first-chunk)) <= 1.5) {
-  //     //print (kvpair.first);
-      // for (DisplayEntity* e : entities) {
-      //   if (e != this and colliding(e)) {
-      //     colliders->push_back(e);
-      //   }
-      // }
-    //}
-  //}
+  vector<FallingBlockEntity*> entities;
+  for (pair<ivec3, Tile*> kvpair : world->tiles) {
+    if (glm::length(vec3(kvpair.first-chunk)) <= 1.5) {
+      //print (kvpair.first);
+      for (FallingBlockEntity* e : kvpair.second->block_entities) {
+        if (e != this and colliding(e)) {
+          colliders->push_back(e);
+        }
+      }
+    }
+  }
   
     colliders->push_back(world);
 }
@@ -103,6 +102,7 @@ void Entity::find_colliders(vector<Collider*>* colliders) {
 void Entity::tick() {
   
 }
+
 
 void Entity::calc_constraints() {
     //int begin = clock();
@@ -154,7 +154,7 @@ void Entity::calc_constraints() {
             for (int y = (int)pos2.y; y < pos.y+1; y ++) {
                 for (int z = (int)pos2.z; z < pos.z+1; z ++) {
                     Block* pix = collider->get_global(x,y,z,1);
-                    bool new_const = (pix != NULL and pix->get() != 0);
+                    bool new_const = (pix == nullptr or pix->get() != 0);
                     if (new_const) {
                       //world->block_update(x,y,z);
                     }
@@ -171,19 +171,22 @@ void Entity::calc_constraints() {
           //neg -= vec3(0.5,0,0.5);
           //neg2 += vec3(0.5,0,0.5);
           int max_y = INT_MIN;
+          bool max_y_set = false;
           constraint = false;
           for (int x = (int)neg.x; x < neg2.x+1; x ++) {
               for (int y = (int)neg.y; y < neg2.y+1; y ++) {
                   for (int z = (int)neg.z; z < neg2.z+1; z ++) {
                       Block* pix = collider->get_global(x,y,z,1);
-                      if (pix == nullptr or pix->get() == 0) {
+                      if (pix != nullptr and pix->get() == 0) {
                         continue;
                       }
+                      constraint = true;
                       for (int yoff = 1; yoff < 3; yoff ++) {
                         pix = collider->get_global(x,y+yoff,z,1);
-                        if (pix == nullptr or pix->get() == 0) {
+                        if (pix != nullptr and pix->get() == 0) {
                           if (y+yoff-1 > max_y) {
                             max_y = y+yoff-1;
+                            max_y_set = true;
                           }
                           constraint = true;
                           break;
@@ -202,9 +205,9 @@ void Entity::calc_constraints() {
               for (int y = (int)neg.y; y < neg2.y+1; y ++) {
                 for (int z = (int)neg.z; z < neg2.z+1; z ++) {
                   Block* floor = collider->get_global(x,y,z,1);
-                  if (floor != nullptr and floor->get() != 0) {
+                  if (floor == nullptr or floor->get() != 0) {
                     Block* above = collider->get_global(x,y+1,z,1);
-                    if (above == nullptr or above->get() == 0) {
+                    if (above != nullptr and above->get() == 0) {
                       constraint = true;
                     }
                   }
@@ -223,8 +226,7 @@ void Entity::calc_constraints() {
             }
             
           } else {
-            if (constraint and max_y != INT_MIN) {
-              
+            if (constraint and max_y_set) {
               double newpos = max_y - newbox1[axis] + axis_gap + 1;
               if (newpos > new_rel_pos[1]) {
                 double diff = newpos - new_rel_pos[1];
@@ -376,6 +378,24 @@ Entity(nworld, starting_pos, hitbox1, hitbox2), block(newblock), render_index(-1
   //block->render(&vecs, this, 0, 0, 0);
 }
 
+DisplayEntity::DisplayEntity(World* nworld, istream& ifile):
+Entity(nworld, vec3(0,0,0), vec3(0,0,0), vec3(0,0,0)), block(nullptr), render_index(-1,0), render_flag(true), blockpos(0,0,0), dead_falling(false) {
+  ifile >> position.x >> position.y >> position.z;
+  ifile >> vel.x >> vel.y >> vel.z;
+  ifile >> angle.x >> angle.y;
+  ifile >> health;
+  ifile >> flying >> alive >> immune >> dead_falling;
+}
+
+
+void DisplayEntity::to_file(ostream& ofile) {
+  ofile << position.x << ' ' << position.y << ' ' << position.z << endl;
+  ofile << vel.x << ' ' << vel.y << ' ' << vel.z << endl;
+  ofile << angle.x << ' ' << angle.y << endl;
+  ofile << health << endl;
+  ofile << flying << ' ' << alive << ' ' << immune << ' ' << dead_falling << endl;
+}
+
 void DisplayEntity::render(RenderVecs* allvecs) {
   // vecs.clear();
   // block->all([=] (Pixel* pix) {
@@ -385,7 +405,6 @@ void DisplayEntity::render(RenderVecs* allvecs) {
   // block->render(&vecs, int(position.x), int(position.y), int(position.z));
   //
   if (render_flag) {
-    print (position);
     vecs.clear();
     block.block->all([=] (Pixel* pix) {
       pix->render_index = pair<int,int>(-1,0);
@@ -440,7 +459,7 @@ void DisplayEntity::render(RenderVecs* allvecs) {
   if (render_index == pair<int,int>(-1,0)) {
     render_index = allvecs->add(&translated);
   } else {
-    allvecs->edit(render_index, &translated);
+    allvecs->edit(render_index, &translated); //ERR: passes problemic vector? segfault deep in allvecs.edit, where translated.verts is added on
   }
   //cout << render_index.first << ',' << render_index.second << ' ' << vecs.num_verts << endl;
   
@@ -488,14 +507,18 @@ NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hi
 
 NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, string name, vec3 newblockpos):
   DisplayEntity(nworld, starting_pos, hitbox1, hitbox2, loadblock(name), newblockpos), nametype(name), pointing(0) {
-  health = 10;
+  health = 1;
   //block->rotate(1, 1);
+}
+
+NamedEntity::NamedEntity(World* nworld, istream& ifile): DisplayEntity(nworld, ifile) {
+  
 }
 
 Block* NamedEntity::loadblock(string name) {
   std::ifstream ifile(entitystorage->blocks[name], ios::binary);
   if (!ifile.good()) {
-    cout << "file error code s9d8f0s98d0f9s80f98sd0" << endl;
+    cout << "file error code with " << name << " -- s9d8f0s98d0f9s80f98sd0" << endl;
     hard_crash(29348023948029834);
   }
   int size;
@@ -558,6 +581,22 @@ FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup): Dis
 vec3(1,1,1), newgroup->block, vec3(0,0,0)), group(newgroup) {
   box2 = vec3(block.block->scale - 0.2, block.block->scale, block.block->scale);
   immune = true;
+}
+
+FallingBlockEntity::FallingBlockEntity(World* nworld, istream& ifile): DisplayEntity(nworld, ifile) {
+  group = BlockGroup::from_file(nworld, ifile);
+  cout << "jsdlfkjsdlfs " << group << ' ' << group->block << endl;
+  block = group->block;
+  // string buff;
+  // int scale;
+  // ifile >> scale;
+  // getline(ifile, buff, ':');
+  // group->block = Block::from_file(ifile, 0, 0, 0, scale, nullptr, nullptr);
+}
+
+void FallingBlockEntity::to_file(ostream& ofile) {
+  DisplayEntity::to_file(ofile);
+  group->to_file(ofile);
 }
 
 void FallingBlockEntity::on_timestep() {

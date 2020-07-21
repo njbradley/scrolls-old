@@ -285,7 +285,7 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
 
 void Pixel::random_tick() {
   int gx, gy, gz;
-  // global_position(&gx, &gy, &gz);
+  global_position(&gx, &gy, &gz);
   // if (value == blocks->names["dirt"] and world->get(gx, gy+scale, gz) == 0) {
   //   set(blocks->names["grass"]);
   //   cout << "grass grown at " << gx << ' ' << gy << ' ' << gz << endl;
@@ -294,6 +294,15 @@ void Pixel::random_tick() {
   //   tile->entities.push_back(new NamedEntity(tile->world, vec3(gx, gy, gz), "skeleton"));
   //   cout << "spawned skeleton at " << gx << ' ' << gy << ' ' << gz << endl;
   // }
+  
+  if (value == blocks->names["grass"] and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1) {
+    world->summon(new Pig(tile->world, vec3(gx, gy+5, gz)));
+  }
+  
+  if ((value == blocks->names["snow"]) and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1) {
+    world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
+    cout << "summoned " << endl;
+  }
 }
 
 void Pixel::tick() {
@@ -309,15 +318,15 @@ void Pixel::tick() {
     //cout << group->block_poses.size() << " size!" << endl;
     if (group->block_poses.size() > 0) {
       if (!group->consts[4]) {
-        for (int i = 0; i < 6; i ++) {
-          cout << group->consts[i] << ' ';
-        } cout << endl;
-        cout << "copying " << group->block_poses.size() << endl;
+        // for (int i = 0; i < 6; i ++) {
+        //   cout << group->consts[i] << ' ';
+        // } cout << endl;
+        // cout << "copying " << group->block_poses.size() << endl;
         group->copy_to_block();
-        cout << "erasing" << endl;
+        // cout << "erasing" << endl;
         group->erase_from_world();
-        cout << "done" << endl;
-        tile->entities.push_back(new FallingBlockEntity(tile->world, group));
+        // cout << "done" << endl;
+        tile->block_entities.push_back(new FallingBlockEntity(tile->world, group));
       } else {
         if (group->persistant()) {
           tile->world->physicsgroups.emplace(group);
@@ -580,7 +589,7 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
        
       int minscale = blocks->blocks[value]->minscale;
       
-      const GLfloat uvmax = 1.0f;
+      const GLfloat uvmax = scale;
       // /char mat = tex_index;
       /*GLfloat new_uvs[] = {
           0.0f, 1.0f * scale/minscale,

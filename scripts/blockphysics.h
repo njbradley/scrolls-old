@@ -93,7 +93,7 @@ void BlockGroup::find_group() {
 							} else {
 								consts[i] = true;
 								if (persistant() and newpix->physicsgroup != nullptr and newpix->physicsgroup->persistant()) {
-									cout << newpix->physicsgroup << endl;
+									//cout << newpix->physicsgroup << endl;
 									neighbors.emplace(newpix->physicsgroup);
 								}
 							}
@@ -359,7 +359,8 @@ BlockGroup::BlockGroup(World* nworld, istream& ifile): world(nworld), update_fla
 	if (isblock == "block") {
 		int scale;
 		ifile >> scale;
-		ifile.get();
+		string buff;
+		getline(ifile, buff, ':');
 		block = Block::from_file(ifile, 0, 0, 0, scale, nullptr, nullptr);
 	} else {
 		block = nullptr;
@@ -375,7 +376,7 @@ void BlockGroup::to_file(ostream& ofile) {
 		ofile << pos.x << ' ' << pos.y << ' ' << pos.z << endl;
 	}
 	if (block != nullptr) {
-		ofile << "block" << block->scale << endl;
+		ofile << "block " << block->scale << endl << ':';
 		block->save_to_file(ofile);
 	} else {
 		ofile << "null" << endl;

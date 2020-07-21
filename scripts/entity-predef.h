@@ -67,6 +67,7 @@ class Player: public Entity {
     Player(World* newworld, istream& ifile);
     void save_to_file(ostream& ofile);
     virtual void die();
+    virtual void calc_constraints();
 		mat4 getViewMatrix();
 		mat4 getProjectionMatrix();
 		void right_mouse();
@@ -90,9 +91,11 @@ public:
   DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos,
     vector<DisplayEntity*> newlimbs);
   DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos);
+  DisplayEntity(World* nworld, istream& ifile);
   ~DisplayEntity();
   void render(RenderVecs* allvecs);
   virtual void on_timestep();
+  virtual void to_file(ostream& ofile);
   //void die();
 };
 
@@ -103,6 +106,7 @@ public:
   NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, string name, vec3 newblockpos,
   vector<DisplayEntity*> limbs);
   NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, string name, vec3 newblockpos);
+  NamedEntity(World* nworld, istream& ifile);
   Block* loadblock(string name);
   void on_timestep();
 };
@@ -111,11 +115,13 @@ class FallingBlockEntity: public DisplayEntity, public Collider {
 public:
   BlockGroup* group;
   FallingBlockEntity(World* nworld, BlockGroup* newgroup);
-  ~FallingBlockEntity();
+  FallingBlockEntity(World* nworld, istream& ifile);
   void calc_constraints();
   Block * get_global(int,int,int,int);
   vec3 get_position() const;
   void on_timestep();
+  virtual void to_file(ostream& ofile);
+  //virtual void to_file(ostream& ofile);
 };
 
 class EntityStorage { public:
