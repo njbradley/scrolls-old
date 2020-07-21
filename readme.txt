@@ -26,11 +26,14 @@ O/P - show/hide debug menu
 R - force cleaning of memory vectors
 F/G - enter/exit spectator mode
 
-Version 0.3.dev:
+Version 0.3 (in dev):
  Additions:
  -many new randomly generated terrain structures
  -block physics is now working! now blocks fall if they are not attached to another block they stick to
- -monsters have been added!
+ -monsters have been added! When they die they become part of the landscape, instead of just dropping their loot
+ -player movement has been improved, you can now go up one block steps automatically without losing your velocity
+ -you can also construct ladders out of blocks that the player can climb, and the player can stand in gaps in the wall
+ -working on multiplayer worlds
 
 Version 0.2:
  Additions:
