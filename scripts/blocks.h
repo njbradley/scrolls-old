@@ -301,7 +301,6 @@ void Pixel::random_tick() {
   
   if ((value == blocks->names["snow"]) and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1) {
     world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
-    cout << "summoned " << endl;
   }
 }
 

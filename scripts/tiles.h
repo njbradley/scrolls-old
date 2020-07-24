@@ -61,6 +61,8 @@ void Tile::save() {
   chunk->save_to_file(ofile);
   ofile << endl << entities.size() << endl;
   for (DisplayEntity* e : entities) {
+    //cout << "entity " << e << " saving pos:";
+    //print(e->position);
     e->to_file(ofile);
   }
   ofile << block_entities.size() << endl;
@@ -69,7 +71,7 @@ void Tile::save() {
   }
 }
 
-void Tile::timestep(int timestep_clock) {
+void Tile::timestep() {
   if (deleting) {
     return;
   }
@@ -78,13 +80,19 @@ void Tile::timestep(int timestep_clock) {
     //cout << i << endl;
     //int dist = glm::length(world->player->position - entities[i]->position) / 4;
       entities[i]->timestep();
+      // if (timestep_clock%500 == 0) {
+      //   cout << "timestep entity " << entities[i] << " pos ";
+      //   print (entities[i]->position);
+      // }
       if (entities[i]->alive) {
         vec3 epos = entities[i]->position;
         ivec3 chunk = ivec3(epos)/world->chunksize - ivec3(epos.x<0,epos.y<0,epos.z<0);
         if (chunk != pos) {
-          if (world->tiles.find(pos) != world->tiles.end()) {
-            world->tiles[pos]->entities.push_back(entities[i]);
+          //cout << "moving " << chunk.x << ' ' << chunk.y << ' ' << chunk.z << "   " << pos.x << ' ' << pos.y << ' ' << pos.z << endl;
+          if (world->tiles.find(chunk) != world->tiles.end()) {
+            world->tiles[chunk]->entities.push_back(entities[i]);
           } else {
+            // cout << "deleting entity " << entities[i] << endl;
             delete entities[i];
           }
           entities.erase(entities.begin()+i);
@@ -181,6 +189,7 @@ void Tile::del(bool remove_faces) {
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
     deleting = true;
     for (DisplayEntity* entity : entities) {
+      // cout << "deleting tile del entitiy " << entity << endl;
       delete entity;
     }
 	  chunk->del(remove_faces);

@@ -6,6 +6,7 @@
 
 class MobData { public:
 	string name;
+	int health;
 	vec3 box1;
 	vec3 box2;
 	string blockpath;

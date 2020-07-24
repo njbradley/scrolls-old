@@ -3,7 +3,7 @@
 
 #include "mobs-predef.h"
 
-MobData::MobData(istream& ifile): box1(-1,-1,-1), box2(1,1,1), blockpos(-1,-1,-1) {
+MobData::MobData(istream& ifile): box1(-1,-1,-1), box2(1,1,1), blockpos(-1,-1,-1), health(5) {
 	string buff;
   ifile >> buff;
   if (buff != "mob") {
@@ -19,6 +19,8 @@ MobData::MobData(istream& ifile): box1(-1,-1,-1), box2(1,1,1), blockpos(-1,-1,-1
         ifile >> box1.x >> box1.y >> box1.z;
       } else if (varname == "box2") {
         ifile >> box2.x >> box2.y >> box2.z;
+      } else if (varname == "health") {
+				ifile >> health;
       } else if (varname == "blockpath") {
         ifile >> blockpath;
       } else if (varname == "blockpos") {
@@ -59,7 +61,9 @@ MobStorage::MobStorage() {
 Mob::Mob(World* nworld, vec3 start_pos, string newname):
 NamedEntity(nworld, start_pos, mobstorage->mobdata[newname]->box1, mobstorage->mobdata[newname]->box2, mobstorage->mobdata[newname]->blockpath,
 	mobstorage->mobdata[newname]->blockpos, get_limbs(nworld, newname)), name(newname) {
-	
+		health = mobstorage->mobdata[newname]->health;
+	// cout << "mob summoned init " << this << " pos ";
+	// print (position);
 }
 
 vector<DisplayEntity*> Mob::get_limbs(World* world, string name) {
@@ -101,7 +105,7 @@ void Mob::on_timestep() {
 					}
 				}
 			}
-			cout <<  this << endl;
+			//cout <<  this << endl;
 			alive = false;
 		}
 		return;
@@ -137,11 +141,14 @@ void Mob::fall_apart(DisplayEntity* entity) {
 		fall_apart(limb);
 	}
 	entity->limbs.clear();
-	cout << entity << endl;
+	//cout << entity << endl;
 }
 
 Mob::Mob(World* nworld, istream& ifile): NamedEntity(nworld, ifile) {
 	ifile >> name;
+	
+	// cout << "mob from file " << this << " pos ";
+	// print (position);
 	
 	MobData* data = mobstorage->mobdata[name];
 	box1 = data->box1;
@@ -163,7 +170,7 @@ Mob::Mob(World* nworld, istream& ifile): NamedEntity(nworld, ifile) {
 }
 
 
-void Mob::to_file(ostream& ofile) {
+void Mob::to_file(ostream& ofile) { //ERR: mobs are being saved with 'nan' as their positions, maybe they are being deleted at the same time?
 	ofile << name << endl;
 	DisplayEntity::to_file(ofile);
 	ofile << name << endl;
@@ -217,7 +224,9 @@ void Pig::on_timestep() {
 			if (timer < 0) {
 				timer *= -1;
 			}
-			dist /= glm::length(dist);
+			if (glm::length(dist) > 0.1) {
+				dist /= glm::length(dist);
+			}
 			angle.x = lon;
 		  if (consts[4]) {
 		    vel.x += 0.2 * dist.x;
@@ -269,7 +278,9 @@ void Biped::on_timestep() {
 			if (timer < 0) {
 				timer *= -1;
 			}
-			dist /= glm::length(vec2(dist.x, dist.z));
+			if (glm::length(vec2(dist.x, dist.z)) > 0.1) {
+				dist /= glm::length(vec2(dist.x, dist.z));
+			}
 			angle.x = lon;
 		  if (consts[4]) {
 		    vel.x += 0.2 * dist.x;
@@ -314,8 +325,8 @@ void Skeleton::on_timestep() {
 	limbs[3]->angle.y = attack_recharge;
 	if (colliding(world->player) and attack_recharge <= 0) {
     world->player->health -= 1;
-    world->player->vel += (dist_to_player + vec3(0,1,0)) * 5.0f;
-    vel -= (dist_to_player + vec3(0,1,0)) * 3.0f;
+    world->player->vel += (dist_to_player + vec3(0,1,0)) * 2.0f;
+    vel -= (dist_to_player + vec3(0,1,0)) * 2.0f;
 		attack_recharge = 1;
   }
 }

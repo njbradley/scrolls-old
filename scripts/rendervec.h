@@ -165,7 +165,7 @@ void GLVecs::del(pair<int,int> index) {
       cout << index.first << ' ' << index.second << endl;
       cout << "big problem" << endl;
       writelock.unlock();
-      crash(19782984921423);
+      // crash(19782984921423);
       return;
     }
     //cout << "del: " << index.first << ' ' << index.second << endl;

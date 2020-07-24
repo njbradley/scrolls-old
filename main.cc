@@ -4,6 +4,8 @@
 #include <sstream>
 #include <chrono>
 #include <thread>
+#include <boost/asio.hpp>
+
 using std::stringstream;
 
 //#include <nvwa/debug_new.h>
@@ -39,6 +41,7 @@ using namespace glm;
 #include "scripts/cross-platform.h"
 
 
+
 #include <future>
 
 int num_blocks;
@@ -59,7 +62,7 @@ GLuint uv_ui_buffer;
 GLuint mat_ui_buffer;
 
 
-int allocated_memory = 2000000*6;
+int allocated_memory;
 
 bool debug_visible = true;
 bool fullscreen = false;
@@ -161,6 +164,9 @@ void load_settings() {
 				fullscreen = name == "true";
 			} else if (name == "max_fps") {
 				ifile >> max_fps;
+			} else if (name == "alloc_memory") {
+				ifile >> allocated_memory;
+				allocated_memory *= 6;
 			} else if (name == "dims") {
 				int x,y;
 				ifile >> x >> y;
@@ -180,7 +186,8 @@ void load_settings() {
 		ofile << "fov: 110" << endl;
 		ofile << "fullscreen: false" << endl;
 		ofile << "dims: 1600 900" << endl;
-		ofile << "max_fps: 60" << endl;
+		ofile << "max_fps: 90" << endl;
+		ofile << "alloc_memory: 500000" << endl;
 		load_settings();
 	}
 }
@@ -288,12 +295,17 @@ void main_menu() {
 }
 
 
+
+
+
 int main( void )
 {
 	
 	//system("rmdir saves /s /q");
 	load_settings();
 	min_ms_per_frame = 1000.0/max_fps;
+	
+	boost::asio::io_service io_service;
 	
 	cout.precision(10);
 	
@@ -516,8 +528,13 @@ int main( void )
 	int view_distance = 100;
 	bool dologtime = false;
 	
+	
 	threadmanager->rendering = true;
 	//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, &num_tris);
+	
+	boost::asio::high_resolution_timer timer(io_service);
+	
+	
 	while (playing) {
 		
 		int begin = clock();
@@ -545,6 +562,7 @@ int main( void )
 				<< int((world->player->position.y/world->chunksize) - (world->player->position.y<0)) << ' '
 				<< int((world->player->position.z/world->chunksize) - (world->player->position.z<0)) << endl;
 			debugstream << "loaded chunks: " << world->tiles.size() << endl;
+			debugstream << "mobcount: " << world->mobcount << endl;
 			debugstream << "consts: ";
 			for (bool b : world->player->consts) {
 	            debugstream << b << ' ';
@@ -591,6 +609,7 @@ int main( void )
 		// Measure speed
 		lastFrameTime = currentTime;
 		currentTime = glfwGetTime();
+		//cout << lastFrameTime << ' ' << currentTime << endl;
 		double ms = (currentTime-lastFrameTime)*1000;
 		if (debug_visible) {
 			debugstream << "-----time-----" << endl;
@@ -658,11 +677,32 @@ int main( void )
 			cout << "debug " << time << endl;
 		}
 		
+		
 		////////////// sleep to max fps
 		double sleep_needed = min_ms_per_frame-ms;
 		if (sleep_needed > 0) {
-			std::this_thread::sleep_for(std::chrono::milliseconds((int)(min_ms_per_frame-ms)));
+			
+			double time = lastFrameTime + min_ms_per_frame/1000.0;
+			double newtime = glfwGetTime();
+			//cout << time << ' ' << newtime << ' ' << currentTime << endl;
+			//sleepshort(int(sleep_needed));
+			
+			timer.expires_after(std::chrono::microseconds(int(sleep_needed*1000)));
+			timer.wait();
+			
+			// while (glfwGetTime() < time) {
+			// 	std::this_thread::yield();
+			// }
+			
+			// ::LARGE_INTEGER ft;
+	    // ft.QuadPart = -static_cast<int64>((sleep_needed*1000 / 2) * 10);  // '-' using relative time
+			//
+	    // ::SetWaitableTimer(timer, &ft, 0, NULL, NULL, 0);
+	    // ::WaitForSingleObject(timer, INFINITE);
+			//std::this_thread::sleep_for(std::chrono::milliseconds((int)(min_ms_per_frame-ms)));
 		}
+		
+		
 		
 		double total = glfwGetTime() - lastFrameTime;
 		
@@ -671,6 +711,9 @@ int main( void )
 			debugstream << "total time " << total*1000 << endl;
 		}
 		currentTime = glfwGetTime();
+		
+		
+		
 		
 		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -707,10 +750,10 @@ int main( void )
 		}
 		
 		int start = clock();
-		if (!world->glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
-			cout << "glvecs lock has timed out" << endl;
-			exit(1);
-		}
+		// if (!world->glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
+		// 	cout << "glvecs lock has timed out" << endl;
+		// 	exit(1);
+		// }
 		time = clock() - start;
 		if (time > 5) {
 			cout << "unlocking took " << time << endl;
@@ -778,7 +821,7 @@ int main( void )
 		glDisableVertexAttribArray(2);
 		glDisableVertexAttribArray(3);
 		
-		world->glvecs.writelock.unlock();
+		//world->glvecs.writelock.unlock();
 		
 		int all = clock() - start;
 		if (all > 2) {
@@ -877,7 +920,6 @@ int main( void )
 			cout << "swap " << time << endl;
 		}
 		
-		
 		if (menu == nullptr) {
 			if (glfwGetKey(window, GLFW_KEY_M ) == GLFW_PRESS) {
 				main_menu();
@@ -922,6 +964,7 @@ int main( void )
 		// 	playing = false;
 		// }
 	}
+	
 	
 	threadmanager->close();
 	delete threadmanager;

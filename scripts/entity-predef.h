@@ -67,7 +67,7 @@ class Player: public Entity {
     Player(World* newworld, istream& ifile);
     void save_to_file(ostream& ofile);
     virtual void die();
-    virtual void calc_constraints();
+    //virtual void calc_constraints();
 		mat4 getViewMatrix();
 		mat4 getProjectionMatrix();
 		void right_mouse();

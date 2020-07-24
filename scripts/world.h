@@ -26,21 +26,51 @@ using std::thread;
 
 
 
-//
-//
-// TileLoop::iterator::iterator(Tile* newpointer): pointer(newpointer) {
-//
-// }
-//
-// Tile* TileLoop::iterator::operator->();
-// TileLoop::iterator TileLoop::iterator::operator++();
-// bool TileLoop::iterator::operator==(const iterator& other);
-// bool TileLoop::iterator::operator!=(const iterator& other);
-//
-// TileLoop::TileLoop(World* nworld);
-// TileLoop::iterator TileLoop::begin();
-// TileLoop::iterator TileLoop::end();
-//
+
+
+TileLoop::iterator::iterator(TileLoop* newtileloop, map<ivec3,Tile*,ivec3_comparator>::iterator newiter): tileloop(newtileloop), iter(newiter) {
+  
+}
+
+map<ivec3,Tile*,ivec3_comparator>::iterator TileLoop::iterator::operator->() {
+  return iter;
+}
+
+pair<ivec3,Tile*> TileLoop::iterator::operator*() {
+  return *iter;
+}
+
+TileLoop::iterator TileLoop::iterator::operator++() {
+  if (iter != tileloop->tiles_copy.end()) {
+    iter++;
+    while (iter != tileloop->tiles_copy.end() and tileloop->world->tiles.find(iter->first) == tileloop->world->tiles.end()) {
+      iter++;
+    }
+  }
+}
+
+bool operator==(const TileLoop::iterator& iter1, const TileLoop::iterator& iter2) {
+  return iter1.iter == iter2.iter;
+}
+
+bool operator!=(const TileLoop::iterator& iter1, const TileLoop::iterator& iter2) {
+  return iter1.iter != iter2.iter;
+}
+
+TileLoop::TileLoop(World* nworld): world(nworld) {
+  world->tilelock.lock();
+    tiles_copy = world->tiles;
+  world->tilelock.unlock();
+}
+
+TileLoop::iterator TileLoop::begin() {
+  return iterator(this, tiles_copy.begin());
+}
+
+TileLoop::iterator TileLoop::end() {
+  return iterator(this, tiles_copy.end());
+}
+
 
 
 
@@ -207,7 +237,8 @@ void World::load_nearby_chunks() {
     //crash(17658654574687);
     const double max_distance = std::sqrt((maxrange/2+1)*(maxrange/2+1)*2);
     //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
-      for (pair<ivec3,Tile*> kv : tiles) {
+      TileLoop loop(this);
+      for (pair<ivec3,Tile*> kv : loop) {
         double distance = std::sqrt((px-kv.first.x)*(px-kv.first.x) + (py-kv.first.y)*(py-kv.first.y) + (pz-kv.first.z)*(pz-kv.first.z));
         if ((distance > max_distance or closing_world) and std::find(deleting_chunks.begin(), deleting_chunks.end(), kv.first) == deleting_chunks.end()) {
           //del_chunk(kv.first, true);
@@ -228,7 +259,9 @@ void World::get_async_loaded_chunks() {
   //if (tiles_lock.try_lock_for(std::chrono::seconds(1))) {
     for (Tile* tile : loaded_chunks) {
       ivec3 pos = tile->pos;
-      tiles[pos] = tile;
+      tilelock.lock();
+        tiles[pos] = tile;
+      tilelock.unlock();
       for (int i = 0; i < loading_chunks.size(); i ++) {
         if (loading_chunks[i] == pos) {
           loading_chunks.erase(loading_chunks.begin()+i);
@@ -265,10 +298,13 @@ void World::timestep() {
     player->timestep();
   }
   //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
+  mobcount = 0;
   timestep_clock ++;
   int i = 0;
-  for (pair<ivec3, Tile*> kvpair : tiles) {
-      kvpair.second->timestep(timestep_clock + i);
+  TileLoop loop(this);
+  for (pair<ivec3, Tile*> kvpair : loop) {
+      kvpair.second->timestep();
+      mobcount += kvpair.second->entities.size() + kvpair.second->block_entities.size();
     i ++;
   }
     //cout << "total " << entities << endl;
@@ -348,7 +384,8 @@ void World::tick() {
 
 void World::drop_ticks() {
   player->drop_ticks();
-  for (pair<ivec3,Tile*> kv : tiles) {
+  TileLoop loop(this);
+  for (pair<ivec3,Tile*> kv : loop) {
     kv.second->drop_ticks();
   }
 }
@@ -373,9 +410,9 @@ void World::render() {
     }
     bool changed = false;
     //cout << "back in render" << endl;
-    vector<ivec3> empty;
     //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
-      for (pair<ivec3, Tile*> kvpair : tiles) {
+    TileLoop loop(this);
+      for (pair<ivec3, Tile*> kvpair : loop) {
           //double before = clock();
           //chunks[kvpair.first]->all([](Pixel* pix) {
           //    pix->lightlevel = -1;
@@ -407,9 +444,6 @@ void World::render() {
       dead_render_indexes.clear();
     //  tiles_lock.unlock();
     //}
-    for (ivec3 e : empty) {
-      tiles.erase(e);
-    }
     if (changed) {
 			//cout << "changed" << endl;
       glvecs.clean();
@@ -424,7 +458,8 @@ void World::render() {
 
 void World::update_lighting() {
   //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
-    for (pair<ivec3,Tile*> kvpair : tiles) {
+  TileLoop loop(this);
+    for (pair<ivec3,Tile*> kvpair : loop) {
       kvpair.second->update_lighting();
     }
   //  tiles_lock.unlock();
@@ -454,7 +489,12 @@ Block* World::get_global(int x, int y, int z, int scale) {
     int oy = ((y < 0) ? chunksize : 0) + y%chunksize;
     int oz = ((z < 0) ? chunksize : 0) + z%chunksize;
     //cout << ox << ' ' << y << ' ' << oz << endl;
-    return tiles.at(pos)->chunk->get_global(ox, oy, oz, scale);
+    try {
+      return tiles.at(pos)->chunk->get_global(ox, oy, oz, scale);
+    } catch (std::out_of_range& ex) {
+      cout << "world get_global caught " << ex.what() << endl;
+      return nullptr;
+    }
 }
 
 void World::summon(DisplayEntity* entity) {
@@ -467,7 +507,11 @@ void World::summon(DisplayEntity* entity) {
   if (tiles.find(pos) == tiles.end() or std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) != deleting_chunks.end()) {
     return;
   }
-  tiles.at(pos)->entities.push_back(entity);
+  try {
+    tiles.at(pos)->entities.push_back(entity);
+  } catch (std::out_of_range& ex) {
+    cout << "world summon caught " << ex.what() << endl;
+  }
 }
 
 void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras) {
@@ -546,7 +590,10 @@ void World::del_chunk(ivec3 pos, bool remove_faces) {
     // tile->del(remove_faces);
     // delete tile;
     Tile* tile = tiles[pos];
-    tiles.erase(pos);
+    tile->deleting = true;
+    tilelock.lock();
+      tiles.erase(pos);
+    tilelock.unlock();
     tile->save();
     tile->del(remove_faces);
     delete tile;
@@ -559,7 +606,9 @@ void World::del_chunk(ivec3 pos, bool remove_faces) {
 void World::load_chunk(ivec3 pos) {
     //cout << "loading chunk ..." << endl;
     //cout << "creating tile " << this << endl;
-    tiles[pos] = new Tile(pos, this);
+    tilelock.lock();
+      tiles[pos] = new Tile(pos, this);
+    tilelock.unlock();
     //cout << "done" << endl;
 }
 
@@ -582,7 +631,8 @@ void World::close_world() {
     ofile.close();
     vector<ivec3> poses;
     //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
-      for (pair<ivec3, Tile*> kvpair : tiles) {
+    TileLoop loop(this);
+      for (pair<ivec3, Tile*> kvpair : loop) {
           poses.push_back(kvpair.first);
       }
     //  tiles_lock.unlock();

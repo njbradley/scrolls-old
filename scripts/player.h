@@ -92,192 +92,192 @@ mat4 Player::getProjectionMatrix(){
 	return ProjectionMatrix;
 }
 
-
-void Player::calc_constraints() {
-    //int begin = clock();
-    vec3 coords_array[3] = {{0,1,1}, {1,0,1}, {1,1,0}};
-    vec3 dir_array[3] =    {{1,0,0}, {0,1,0}, {0,0,1}};
-    
-    vec3 newpos(position);
-    
-    bool new_consts[7];
-    for (int i = 0; i < 7; i ++) {
-      new_consts[i] = false;
-    }
-    
-    vector<Collider*> colliders;
-    find_colliders(&colliders);
-    
-    vec3 newbox2 = box2 - 1.0f - axis_gap;
-    vec3 newbox1 = box1 + axis_gap;
-    
-    //box2 = vec3(0,0,0);
-    
-    //this system works by creating a slice of blocks that define each side of collision. the sides all share either the most positive point or the most negative point
-    //the shlice is tested to see if any blocks are int it (2) and if there are blocks, the players location is rounded to outside the block (3)
-    //axis gap make sure a side detects the collision of blocks head on before the side detectors sense the blocks. Each slice is moved out from the player by axis_gap
-    //cout << "----------------------------------" << endl;
-    //print(position);
-    
-    
-    
-    for (Collider* collider : colliders) {
-      vec3 rel_pos = position - collider->get_position();
-      vec3 new_rel_pos = newpos - collider->get_position();
-      for (int axis = 0; axis < 3; axis ++) {
-        vec3 coords = coords_array[axis];
-        vec3 dir = dir_array[axis];
-        
-        // pos is the positive point of the hitbox rounded up to the nearest block. neg is the negative most point rounded down
-        vec3 neg = floor( rel_pos + newbox1 - axis_gap*dir );// + vec3(0,1,0);
-        vec3 pos = ceil( rel_pos + newbox2 + axis_gap*dir );
-        if (axis != 1 and !consts[2]) {
-          neg = floor( rel_pos + newbox1 - axis_gap*dir + vec3(0,1,0));
-        }
-        
-        //positive side
-        //pos2 is the other point for the face
-        vec3 pos2 = pos*dir + neg*coords;
-        bool constraint = false;
-        for (int x = (int)pos2.x; x < pos.x+1; x ++) {
-            for (int y = (int)pos2.y; y < pos.y+1; y ++) {
-                for (int z = (int)pos2.z; z < pos.z+1; z ++) {
-                    Block* pix = collider->get_global(x,y,z,1);
-                    bool new_const = (pix != NULL and pix->get() != 0);
-                    if (new_const) {
-                      //world->block_update(x,y,z);
-                    }
-                    constraint = constraint or new_const;
-                }
-            }
-        }
-        new_consts[axis] = new_consts[axis] or constraint;
-        if (constraint) {
-            new_rel_pos[axis] = floor(rel_pos[axis] + newbox2[axis] + axis_gap) - newbox2[axis] - axis_gap;
-        }
-        vec3 neg2 = neg*dir + pos*coords;
-        if (axis == 1) {
-          //neg -= vec3(0.5,0,0.5);
-          //neg2 += vec3(0.5,0,0.5);
-          int max_y = INT_MIN;
-          bool max_y_set = false;
-          constraint = false;
-          for (int x = (int)neg.x; x < neg2.x+1; x ++) {
-              for (int y = (int)neg.y; y < neg2.y+1; y ++) {
-                  for (int z = (int)neg.z; z < neg2.z+1; z ++) {
-                      Block* pix = collider->get_global(x,y,z,1);
-                      if (pix == nullptr or pix->get() == 0) {
-                        continue;
-                      }
-                      constraint = true;
-                      for (int yoff = 1; yoff < 3; yoff ++) {
-                        pix = collider->get_global(x,y+yoff,z,1);
-                        if (pix == nullptr or pix->get() == 0) {
-                          if (y+yoff-1 > max_y) {
-                            max_y = y+yoff-1;
-                            max_y_set = true;
-                          }
-                          constraint = true;
-                          break;
-                        }
-                      }
-                  }
-              }
-          }
-          
-          if (!constraint) {
-            neg = floor( rel_pos + newbox1 - axis_gap );
-            pos = ceil( rel_pos + newbox2 + axis_gap );
-            neg2 = neg*dir + pos*coords;
-            
-            for (int x = (int)neg.x; x < neg2.x+1; x ++) {
-              for (int y = (int)neg.y; y < neg2.y+1; y ++) {
-                for (int z = (int)neg.z; z < neg2.z+1; z ++) {
-                  Block* floor = collider->get_global(x,y,z,1);
-                  if (floor != nullptr and floor->get() != 0) {
-                    Block* above = collider->get_global(x,y+1,z,1);
-                    if (above == nullptr or above->get() == 0) {
-                      constraint = true;
-                    }
-                  }
-                  
-                }
-              }
-            }
-            
-            if (constraint) {
-              float newpos = ceil(rel_pos[axis] + newbox1[axis] - axis_gap) - newbox1[axis] + axis_gap;
-              if (std::abs(newpos - new_rel_pos[axis]) > 0.3) {
-                constraint = false;
-              } else {
-                new_rel_pos[axis] = newpos;
-              }
-            }
-            
-          } else {
-            if (constraint and max_y_set) {
-              double newpos = max_y - newbox1[axis] + axis_gap + 1;
-              if (newpos > new_rel_pos[1]) {
-                double diff = newpos - new_rel_pos[1];
-                if (diff > 0.2) {
-                  diff = 0.2;
-                }
-                new_rel_pos[1] += diff;
-              } else {
-                new_consts[axis+3] = false;
-              }
-              //ceil(rel_pos[axis] + newbox1[axis] - axis_gap) - newbox1[axis] + axis_gap;
-            }
-          }
-          
-          new_consts[axis+3] = new_consts[axis+3] or constraint;
-          
-        } else {
-          constraint = false;
-          for (int x = (int)neg.x; x < neg2.x+1; x ++) {
-              for (int y = (int)neg.y; y < neg2.y+1; y ++) {
-                  for (int z = (int)neg.z; z < neg2.z+1; z ++) {
-                      Block* pix = collider->get_global(x,y,z,1);
-                      bool new_const = (pix != NULL and pix->get() != 0);
-                      if (new_const) {
-                        //world->block_update(x,y,z);
-                      }
-                      constraint = constraint or new_const;
-                  }
-              }
-          }
-          new_consts[axis+3] = new_consts[axis+3] or constraint;
-          if (constraint) {
-            new_rel_pos[axis] = ceil(rel_pos[axis] + newbox1[axis] - axis_gap) - newbox1[axis] + axis_gap;
-          }
-        }
-      }
-      /// torso check: to tell if the constraints are only on the feet
-      
-      vec3 neg = floor( rel_pos + newbox1 - axis_gap + vec3(0,1.2,0)) ;
-      vec3 pos = ceil( rel_pos + newbox2 + axis_gap );
-      bool constraint = false;
-      for (int x = (int)neg.x; x < pos.x+1; x ++) {
-        for (int y = (int)neg.y; y < pos.y+1; y ++) {
-          for (int z = (int)neg.z; z < pos.z+1; z ++) {
-            Block* pix = collider->get_global(x,y,z,1);
-            constraint = constraint or (pix != NULL and pix->get() != 0);
-          }
-        }
-      }
-      new_consts[6] =  new_consts[6] or constraint;
-      
-      newpos = new_rel_pos + collider->get_position();
-    }
-    for (int i = 0; i < 7; i ++) {
-        consts[i] = old_consts[i] or new_consts[i];
-        old_consts[i] = new_consts[i];
-    }
-    
-    position = newpos;
-    //cout << clock() - begin << endl;
-    //print(position);
-}
+//
+// void Player::calc_constraints() {
+//     //int begin = clock();
+//     vec3 coords_array[3] = {{0,1,1}, {1,0,1}, {1,1,0}};
+//     vec3 dir_array[3] =    {{1,0,0}, {0,1,0}, {0,0,1}};
+//
+//     vec3 newpos(position);
+//
+//     bool new_consts[7];
+//     for (int i = 0; i < 7; i ++) {
+//       new_consts[i] = false;
+//     }
+//
+//     vector<Collider*> colliders;
+//     find_colliders(&colliders);
+//
+//     vec3 newbox2 = box2 - 1.0f - axis_gap;
+//     vec3 newbox1 = box1 + axis_gap;
+//
+//     //box2 = vec3(0,0,0);
+//
+//     //this system works by creating a slice of blocks that define each side of collision. the sides all share either the most positive point or the most negative point
+//     //the shlice is tested to see if any blocks are int it (2) and if there are blocks, the players location is rounded to outside the block (3)
+//     //axis gap make sure a side detects the collision of blocks head on before the side detectors sense the blocks. Each slice is moved out from the player by axis_gap
+//     //cout << "----------------------------------" << endl;
+//     //print(position);
+//
+//
+//
+//     for (Collider* collider : colliders) {
+//       vec3 rel_pos = position - collider->get_position();
+//       vec3 new_rel_pos = newpos - collider->get_position();
+//       for (int axis = 0; axis < 3; axis ++) {
+//         vec3 coords = coords_array[axis];
+//         vec3 dir = dir_array[axis];
+//
+//         // pos is the positive point of the hitbox rounded up to the nearest block. neg is the negative most point rounded down
+//         vec3 neg = floor( rel_pos + newbox1 - axis_gap*dir );// + vec3(0,1,0);
+//         vec3 pos = ceil( rel_pos + newbox2 + axis_gap*dir );
+//         if (axis != 1 and !consts[2]) {
+//           neg = floor( rel_pos + newbox1 - axis_gap*dir + vec3(0,1,0));
+//         }
+//
+//         //positive side
+//         //pos2 is the other point for the face
+//         vec3 pos2 = pos*dir + neg*coords;
+//         bool constraint = false;
+//         for (int x = (int)pos2.x; x < pos.x+1; x ++) {
+//             for (int y = (int)pos2.y; y < pos.y+1; y ++) {
+//                 for (int z = (int)pos2.z; z < pos.z+1; z ++) {
+//                     Block* pix = collider->get_global(x,y,z,1);
+//                     bool new_const = (pix != NULL and pix->get() != 0);
+//                     if (new_const) {
+//                       //world->block_update(x,y,z);
+//                     }
+//                     constraint = constraint or new_const;
+//                 }
+//             }
+//         }
+//         new_consts[axis] = new_consts[axis] or constraint;
+//         if (constraint) {
+//             new_rel_pos[axis] = floor(rel_pos[axis] + newbox2[axis] + axis_gap) - newbox2[axis] - axis_gap;
+//         }
+//         vec3 neg2 = neg*dir + pos*coords;
+//         if (axis == 1) {
+//           //neg -= vec3(0.5,0,0.5);
+//           //neg2 += vec3(0.5,0,0.5);
+//           int max_y = INT_MIN;
+//           bool max_y_set = false;
+//           constraint = false;
+//           for (int x = (int)neg.x; x < neg2.x+1; x ++) {
+//               for (int y = (int)neg.y; y < neg2.y+1; y ++) {
+//                   for (int z = (int)neg.z; z < neg2.z+1; z ++) {
+//                       Block* pix = collider->get_global(x,y,z,1);
+//                       if (pix == nullptr or pix->get() == 0) {
+//                         continue;
+//                       }
+//                       constraint = true;
+//                       for (int yoff = 1; yoff < 3; yoff ++) {
+//                         pix = collider->get_global(x,y+yoff,z,1);
+//                         if (pix == nullptr or pix->get() == 0) {
+//                           if (y+yoff-1 > max_y) {
+//                             max_y = y+yoff-1;
+//                             max_y_set = true;
+//                           }
+//                           constraint = true;
+//                           break;
+//                         }
+//                       }
+//                   }
+//               }
+//           }
+//
+//           if (!constraint) {
+//             neg = floor( rel_pos + newbox1 - axis_gap );
+//             pos = ceil( rel_pos + newbox2 + axis_gap );
+//             neg2 = neg*dir + pos*coords;
+//
+//             for (int x = (int)neg.x; x < neg2.x+1; x ++) {
+//               for (int y = (int)neg.y; y < neg2.y+1; y ++) {
+//                 for (int z = (int)neg.z; z < neg2.z+1; z ++) {
+//                   Block* floor = collider->get_global(x,y,z,1);
+//                   if (floor != nullptr and floor->get() != 0) {
+//                     Block* above = collider->get_global(x,y+1,z,1);
+//                     if (above == nullptr or above->get() == 0) {
+//                       constraint = true;
+//                     }
+//                   }
+//
+//                 }
+//               }
+//             }
+//
+//             if (constraint) {
+//               float newpos = ceil(rel_pos[axis] + newbox1[axis] - axis_gap) - newbox1[axis] + axis_gap;
+//               if (std::abs(newpos - new_rel_pos[axis]) > 0.3) {
+//                 constraint = false;
+//               } else {
+//                 new_rel_pos[axis] = newpos;
+//               }
+//             }
+//
+//           } else {
+//             if (constraint and max_y_set) {
+//               double newpos = max_y - newbox1[axis] + axis_gap + 1;
+//               if (newpos > new_rel_pos[1]) {
+//                 double diff = newpos - new_rel_pos[1];
+//                 if (diff > 0.2) {
+//                   diff = 0.2;
+//                 }
+//                 new_rel_pos[1] += diff;
+//               } else {
+//                 new_consts[axis+3] = false;
+//               }
+//               //ceil(rel_pos[axis] + newbox1[axis] - axis_gap) - newbox1[axis] + axis_gap;
+//             }
+//           }
+//
+//           new_consts[axis+3] = new_consts[axis+3] or constraint;
+//
+//         } else {
+//           constraint = false;
+//           for (int x = (int)neg.x; x < neg2.x+1; x ++) {
+//               for (int y = (int)neg.y; y < neg2.y+1; y ++) {
+//                   for (int z = (int)neg.z; z < neg2.z+1; z ++) {
+//                       Block* pix = collider->get_global(x,y,z,1);
+//                       bool new_const = (pix != NULL and pix->get() != 0);
+//                       if (new_const) {
+//                         //world->block_update(x,y,z);
+//                       }
+//                       constraint = constraint or new_const;
+//                   }
+//               }
+//           }
+//           new_consts[axis+3] = new_consts[axis+3] or constraint;
+//           if (constraint) {
+//             new_rel_pos[axis] = ceil(rel_pos[axis] + newbox1[axis] - axis_gap) - newbox1[axis] + axis_gap;
+//           }
+//         }
+//       }
+//       /// torso check: to tell if the constraints are only on the feet
+//
+//       vec3 neg = floor( rel_pos + newbox1 - axis_gap + vec3(0,1.2,0)) ;
+//       vec3 pos = ceil( rel_pos + newbox2 + axis_gap );
+//       bool constraint = false;
+//       for (int x = (int)neg.x; x < pos.x+1; x ++) {
+//         for (int y = (int)neg.y; y < pos.y+1; y ++) {
+//           for (int z = (int)neg.z; z < pos.z+1; z ++) {
+//             Block* pix = collider->get_global(x,y,z,1);
+//             constraint = constraint or (pix != NULL and pix->get() != 0);
+//           }
+//         }
+//       }
+//       new_consts[6] =  new_consts[6] or constraint;
+//
+//       newpos = new_rel_pos + collider->get_position();
+//     }
+//     for (int i = 0; i < 7; i ++) {
+//         consts[i] = old_consts[i] or new_consts[i];
+//         old_consts[i] = new_consts[i];
+//     }
+//
+//     position = newpos;
+//     //cout << clock() - begin << endl;
+//     //print(position);
+// }
 
 void Player::raycast(Pixel** hit, vec3* hitpos, DisplayEntity** target_entity) {
 	vec3 v = position;

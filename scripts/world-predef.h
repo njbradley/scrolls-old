@@ -26,20 +26,23 @@ using std::unordered_set;
 
 #define csize 2
 
-// class TileLoop { public:
-//   World* world;
-//   class iterator { public:
-//     int pos;
-//     iterator(int newpos);
-//     Tile* operator->();
-//     iterator operator++();
-//     bool operator==(const iterator& other);
-//     bool operator!=(const iterator& other);
-//   };
-//   TileLoop(World* nworld);
-//   iterator begin();
-//   iterator end();
-// };
+class TileLoop { public:
+  World* world;
+  map<ivec3,Tile*,ivec3_comparator> tiles_copy;
+  class iterator { public:
+    TileLoop* tileloop;
+    map<ivec3,Tile*,ivec3_comparator>::iterator iter;
+    iterator(TileLoop* newtileloop, map<ivec3,Tile*,ivec3_comparator>::iterator newiter);
+    map<ivec3,Tile*,ivec3_comparator>::iterator operator->();
+    pair<ivec3,Tile*> operator*();
+    iterator operator++();
+    friend bool operator==(const iterator& iter1, const iterator& iter2);
+    friend bool operator!=(const iterator& iter1, const iterator& iter2);
+  };
+  TileLoop(World* nworld);
+  iterator begin();
+  iterator end();
+};
   
 
 class World: public Collider {
@@ -50,6 +53,7 @@ class World: public Collider {
     char* tmparr;
     public:
         map<ivec3, Tile*, ivec3_comparator> tiles;
+        std::mutex tilelock;
         unordered_set<BlockGroup*> physicsgroups;
     		vector<pair<int,int> > dead_render_indexes;
         int seed;
@@ -62,6 +66,7 @@ class World: public Collider {
         Player* player;
         bool closing_world;
         int timestep_clock = 0;
+        int mobcount;
 				
         static const int chunksize = 64;
         

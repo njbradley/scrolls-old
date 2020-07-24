@@ -1,15 +1,33 @@
-This is version 0.2 of scrolls alpha: the adventure game!
+This is version 0.3 (in dev) of scrolls alpha: the adventure game!
 
 Getting started:
+
+Precompiled distributions:
+Right now, there is a windows exe release if you want to play the game without setting up the compilation environment.
+Just download the zip file and skip to the section Playing the game.
+
+Compiling:
+To compile scrolls, you will need a c++14 compatable compiler, and the libraries: glfw, glew, glm, stb_image, boost
+On windows, most of these libraries can be downloaded in precomplied states, and only glfw, glew and boost need libraries,
+the rest are header only. I use Mingw for compiling, which works well.
+On mac and linux, the libraries can be installed with atp-get or brew.
+Before you compile the scripts, open the file scripts/cross-platform.h. If you are on windows, comment out the unix include statement
+and leave the win.h include. If you are on mac or linux, do the opposite.
+The compile command is rather simple, you just compile main.cc into main.exe.
+My windows command is:
+g++ main.cc -o main.exe -O3 -std=c++14 -lglew32s -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32 -lWs2_32 -lboost_system-mt-x64 -DGLEW_STATIC
+Thats it! now you should have an executable! However, it has to be kept with the resources folder wherever you run it.
+
+Playing the game:
 To play the game, double click on main.exe. A window should pop up with a new world open.
-The controls are listed below, so walk around and explore! there isn't much to do yet, 
-but you have a crafting table if you get bored of exploring. See if you can get stone!
-
-Settings:
-in the folder saves/ there is a file called settings.txt, which has all of the game wide 
-settings, like fullscreen, screen dimentions, max fps. If the window is to big for the 
-screen, mess with the dimentions or go into fullscreen mode
-
+The controls are listed below, so walk around and explore! I am working on a tutorial, but for now, there is not
+much guidance for what to do. A few pointers:
+ -You can create a crafting table by collecting crafting table blocks (normally in the terrain structures)
+  and place them in a square. A 2x2 crafting table is level 2, a 3x3 table is level 3, and so on. Each level unlocks more
+  and more recipes.
+ -Skeletons spawn in the snow, so watch out for them sneaking up on you, they blend right in
+ -Pigs are a great source of food, they spawn in the grassy areas
+ 
 Controls:
 WASD - movement
 Mouse - look around
@@ -18,6 +36,7 @@ Number Keys - select holding item
 Left click - destroy item (takes time)
 Right click - place item or interact with special blocks
 E - inventory
+C - hand crafting
 M - main menu
 Ctr-Q - quit
 
@@ -33,7 +52,8 @@ Version 0.3 (in dev):
  -monsters have been added! When they die they become part of the landscape, instead of just dropping their loot
  -player movement has been improved, you can now go up one block steps automatically without losing your velocity
  -you can also construct ladders out of blocks that the player can climb, and the player can stand in gaps in the wall
- -working on multiplayer worlds
+ -finally fixed most of the bugs and lag from multithreading
+ -working on multiplayer worlds and servers
 
 Version 0.2:
  Additions:
