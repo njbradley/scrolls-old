@@ -448,6 +448,7 @@ int main( void )
 	GLuint viewdistID = glGetUniformLocation(programID, "view_distance");
 	GLuint clearcolorID = glGetUniformLocation(programID, "clear_color");
 	GLuint player_positionID = glGetUniformLocation(programID, "player_position");
+	GLuint sunlightID = glGetUniformLocation(programID, "sunlight");
 	
 	int num_tris;
 	int num_ui_tris;
@@ -737,10 +738,11 @@ int main( void )
 		// Send our transformation to the currently bound shader,
 		// in the "MVP" uniform
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-		glUniform3f(clearcolorID, clearcolor.x, clearcolor.y, clearcolor.z);
+		glUniform3f(clearcolorID, clearcolor.x * world->sunlight, clearcolor.y * world->sunlight, clearcolor.z * world->sunlight);
+		glClearColor(clearcolor.x * world->sunlight, clearcolor.y * world->sunlight, clearcolor.z * world->sunlight, 0.0f);
 		glUniform1i(viewdistID, view_distance);
 		glUniform3f(player_positionID, world->player->position.x, world->player->position.y, world->player->position.z);
-		
+		glUniform1f(sunlightID, world->sunlight);
 		
 		int ids[num_blocks];
 		for (int i = 0; i < num_blocks; i ++) {
@@ -795,7 +797,7 @@ int main( void )
 		glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
 		glVertexAttribPointer(
 			2,                                // attribute. No particular reason for 2, but must match the layout in the shader.
-			1,                                // size : 1
+			2,                                // size : 1
 			GL_FLOAT,                         // type
 			GL_FALSE,                         // normalized?
 			0,                                // stride

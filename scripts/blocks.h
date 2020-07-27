@@ -223,9 +223,12 @@ Pixel* Pixel::get_pix() {
     return this;
 }
 
-float Pixel::get_lightlevel(int dx, int dy, int dz) {
-  return 1;
-    return lightlevel;
+int Pixel::get_sunlight(int dx, int dy, int dz) {
+  return sunlight;
+}
+
+int Pixel::get_blocklight(int dx, int dy, int dz) {
+  return blocklight;
 }
 
 bool Pixel::is_air(int dx, int dy, int dz) const {
@@ -264,11 +267,15 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
       physicsgroup->update_flag = true;//block_poses.erase(ivec3(gx,gy,gz));
       //physicsgroup = nullptr;
     }
+    if (tile != nullptr) {
+      tile->world->block_update(gx, gy, gz);
+    }
     physicsgroup = nullptr;
     if (update) {
       //render_flag = true;
       //cout << gx << ' ' << gy << ' ' << gz << "-----------------------------" << render_index.first << ' ' << render_index.second << endl;
       //cout << "global position " << gx << ' ' << gy << ' ' << gz << endl;
+      //lightflag = true;
       reset_lightlevel();
       render_update();
       Block* block;
@@ -278,6 +285,9 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
         block = world->get_global(gx+dir.x, gy+dir.y, gz+dir.z, scale);
         if (block != nullptr) {
           block->render_update();
+          int bx, by, bz;
+          block->global_position(&bx, &by, &bz);
+          tile->world->block_update(bx, by, bz);
         }
       }
     }
@@ -295,13 +305,13 @@ void Pixel::random_tick() {
   //   cout << "spawned skeleton at " << gx << ' ' << gy << ' ' << gz << endl;
   // }
   
-  if (value == blocks->names["grass"] and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1) {
-    world->summon(new Pig(tile->world, vec3(gx, gy+5, gz)));
-  }
-  
-  if ((value == blocks->names["snow"]) and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1) {
-    world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
-  }
+  // if (value == blocks->names["grass"] and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1) {
+  //   world->summon(new Pig(tile->world, vec3(gx, gy+5, gz)));
+  // }
+  //
+  // if ((value == blocks->names["snow"]) and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1) {
+  //   world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
+  // }
 }
 
 void Pixel::tick() {
@@ -364,8 +374,7 @@ void Pixel::tick() {
 }
 
 void Pixel::render_update() {
-    int gx, gy, gz;
-    global_position(&gx, &gy, &gz);
+    
     //cout << gx << ' ' << gy << ' ' << gz << endl;
     //cout << render_index << endl;
     //cout << "render_update() " << render_index.first << ' ' << render_index.second << endl;
@@ -375,9 +384,10 @@ void Pixel::render_update() {
         //render_index = pair<int,int>(-1,0);
         //render_flag = true;
         set_render_flag();
-        if (tile != nullptr) {
-          tile->world->block_update(gx, gy, gz);
-        }
+        lightflag = true;
+        // if (tile != nullptr) {
+        //   tile->world->block_update(gx, gy, gz);
+        // }
         //cout << render_index.first << ' ' << render_index.second << " x" << endl;
         //render_index.first = -(render_index.first+2);
 }
@@ -400,40 +410,106 @@ void Pixel::del(bool remove_faces) {
 }
 
 void Pixel::lighting_update() {
-    
+  if (lightflag) {
+    calculate_lightlevel(30);
+    lightflag = false;
+  }
 }
 
 void Pixel::reset_lightlevel() {
+  sunlight = 0;
   if (value != 0) {
-    lightlevel = blocks->blocks[value]->lightlevel;
+    blocklight = blocks->blocks[value]->lightlevel;
   } else {
-    lightlevel = 0;
+    blocklight = 0;
   }
 }
 
-void Pixel::calculate_lightlevel() {
+void Pixel::calculate_lightlevel(int recursion_level) {
+  if (tile == nullptr or value != 0 or recursion_level < 0) {
+    return;
+  }
+  bool dodebug = false;// and glfwGetTime() > 15;
+  const int decrement = 1;
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
-  //cout << gx << ' ' << gy << ' ' << gz << ' ' << scale << endl;
-  for (int axis = 0; axis < 3; axis ++) {
-    for (int dir = -1; dir < 2; dir += 2) {
-      int offset[3] = {0,0,0};
-      offset[axis] += dir;
-      Block* other = world->get_global(offset[0]*scale+gx, offset[1]*scale+gy, offset[2]*scale+gz, scale);
-      if (other == nullptr) {
-        continue;
+  if (dodebug) cout << "light " << gx << ' ' << gy << ' ' << gz << ' ' << scale << endl;
+  int oldsunlight = sunlight;
+  int oldblocklight = blocklight;
+  bool changed = false;
+  if (dodebug) cout << sunlight << ' ' << blocklight << endl;
+  const ivec3 dirs[6] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
+  //sunlight = 0;
+  blocklight = 0;
+  for (ivec3 dir : dirs) {
+    Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
+    int rely = gy % tile->world->chunksize;
+    if (rely+scale == tile->world->chunksize or rely+scale == 0) {
+      sunlight = 10;
+    }
+    if (block != nullptr) {
+      int newdec = decrement;
+      if (dir.y == 1) {
+        newdec = 0;
       }
-      other->all_side([&] (Pixel* pix) {
-        //cout << pix->get_lightlevel(-offset[0], -offset[1], -offset[2]) << ',' << lightlevel << endl;
-        if (pix->value == 0 and pix->get_lightlevel(-offset[0], -offset[1], -offset[2]) < lightlevel*0.9f) {
-          pix->lightlevel = lightlevel*0.9f;
-          //cout << "setting light level" << endl;
-          pix->render_update();
-        }
-      }, -offset[0], -offset[1], -offset[2]);
-      //cout << offset[0] << ' ' << offset[1] << ' ' << offset[2] << endl;
+      int othersunlight = block->get_sunlight(-dir.x, -dir.y, -dir.z);
+      if (othersunlight-newdec > sunlight and othersunlight+newdec != oldsunlight) {
+        sunlight = othersunlight-newdec;
+      }
+      int otherblocklight = block->get_blocklight(-dir.x, -dir.y, -dir.z);
+      if (dodebug) cout << ' ' << othersunlight << ' ' << otherblocklight << ' ' << dir.x << ' ' << dir.y << ' ' << dir.z << endl;
+      if (otherblocklight-decrement > blocklight and otherblocklight+decrement != oldblocklight) {
+        blocklight = otherblocklight-decrement;
+      }
     }
   }
+  if (dodebug) cout << sunlight << ' ' << blocklight << endl;
+  // cout << "others --" << endl;
+  // if (changed) {
+  //   for (ivec3 dir : dirs) {
+  //     //tile->world->light_update(gx+dir.x*scale, gy+dir.y*scale, gz_dir
+  //     Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
+  //     if (block != nullptr) {
+  //       block->calculate_lightlevel(recursion_level-1);
+  //     }
+  //   }
+  //   set_render_flag();
+  // }
+  // return;
+  if (sunlight != oldsunlight or blocklight != oldblocklight) {
+    for (ivec3 dir : dirs) {
+      int newdec = decrement;
+      if (dir.y == 1) {
+        newdec = 0;
+      }
+      Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
+      if (block != nullptr) {
+        int othersunlight = block->get_sunlight(-dir.x, -dir.y, -dir.z);
+        int otherblocklight = block->get_blocklight(-dir.x, -dir.y, -dir.z);
+        // cout << othersunlight << ' ' << otherblocklight << endl;
+        if (sunlight-newdec > othersunlight or blocklight-decrement > otherblocklight
+        or oldsunlight > othersunlight or oldblocklight > otherblocklight) {
+          // cout << "doing it?" << endl;
+          //tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, 1)->get_pix()->calculate_lightlevel();
+          //block->calculate_lightlevel();
+          block->all_side([&] (Pixel* pix) {
+            pix->calculate_lightlevel(recursion_level-1);
+          }, -dir.x, -dir.y, -dir.z);
+          // cout << "done doing it?" << endl;
+        }
+        
+        block->all_side([&] (Pixel* pix) {
+          pix->set_render_flag();
+        }, -dir.x, -dir.y, -dir.z);
+      }
+    }
+    set_render_flag();
+  }
+  // cout << "done --" << endl;
+  
+  // if (oldsunlight != sunlight or oldblocklight != blocklight) {
+  //   render_update();
+  // }
 }
 
 void Pixel::rotate(int axis, int dir) {
@@ -550,6 +626,8 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
         return;
     }
     
+    
+    
     MemVecs vecs;
     
     gx += px*scale;
@@ -589,6 +667,7 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
       int minscale = blocks->blocks[value]->minscale;
       
       const GLfloat uvmax = scale;
+      const float lightmax = 10.0f;
       // /char mat = tex_index;
       /*GLfloat new_uvs[] = {
           0.0f, 1.0f * scale/minscale,
@@ -632,7 +711,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
               x + scale, y + scale, z,
               x + scale, y, z
           };
-          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(0,0,1) : 1 ), minscale, mat[5]);//0.4f
+          float faceblocklight = 0, facesunlight = 1;
+          if (block != nullptr) {
+            faceblocklight = block->get_blocklight(0,0,1) / lightmax;
+            facesunlight = block->get_sunlight(0,0,1) / lightmax;
+          }
+          vecs.add_face(face, new_uvs, 0.7f * facesunlight, faceblocklight, minscale, mat[5]);//0.4f
       }
       
       block = collider->get_global(gx, gy-scale, gz, scale);
@@ -654,8 +738,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
               x + scale, y, z + scale,
               x, y, z + scale,
           };
-          
-          vecs.add_face(face, new_uvs, 0.5f * ( (block!=nullptr) ? block->get_lightlevel(0,1,0) : 1 ), minscale, mat[4]);
+          float faceblocklight = 0, facesunlight = 1;
+          if (block != nullptr) {
+            faceblocklight = block->get_blocklight(0, 1, 0) / lightmax;
+            facesunlight = block->get_sunlight(0, 1, 0) / lightmax;
+          }
+          vecs.add_face(face, new_uvs, 0.5f * facesunlight, faceblocklight, minscale, mat[4]);
       }
       
       block = collider->get_global(gx-scale, gy, gz, scale);
@@ -677,7 +765,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
               x, y + scale, z,
               x, y, z
           };
-          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(1,0,0) : 1 ), minscale, mat[3]);
+          float faceblocklight = 0, facesunlight = 1;
+          if (block != nullptr) {
+            faceblocklight = block->get_blocklight(1, 0, 0) / lightmax;
+            facesunlight = block->get_sunlight(1, 0, 0) / lightmax;
+          }
+          vecs.add_face(face, new_uvs, 0.7f * facesunlight, faceblocklight, minscale, mat[3]);
       }
       
       block = collider->get_global(gx, gy, gz+scale, scale);
@@ -699,7 +792,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
               x, y + scale, z + scale,
               x, y, z + scale
           };
-          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(0,0,-1) : 1 ), minscale, mat[2]);
+          float faceblocklight = 0, facesunlight = 1;
+          if (block != nullptr) {
+            faceblocklight = block->get_blocklight(0, 0, -1) / lightmax;
+            facesunlight = block->get_sunlight(0, 0, -1) / lightmax;
+          }
+          vecs.add_face(face, new_uvs, 0.7f * facesunlight, faceblocklight, minscale, mat[2]);
       }
       
       block = collider->get_global(gx, gy+scale, gz, scale);
@@ -722,7 +820,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
               x + scale, y + scale, z,
               x, y + scale, z,
           };
-          vecs.add_face(face, new_uvs, 0.9f * ( (block!=nullptr) ? block->get_lightlevel(0,-1,0) : 1 ), minscale, mat[1]);//top
+          float faceblocklight = 0, facesunlight = 1;
+          if (block != nullptr) {
+            faceblocklight = block->get_blocklight(0, -1, 0) / lightmax;
+            facesunlight = block->get_sunlight(0, -1, 0) / lightmax;
+          }
+          vecs.add_face(face, new_uvs, 0.9f * facesunlight, faceblocklight, minscale, mat[1]);//top
       }
       
       block = collider->get_global(gx+scale, gy, gz, scale);
@@ -744,7 +847,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
               x + scale, y + scale, z + scale,
               x + scale, y, z + scale
           };
-          vecs.add_face(face, new_uvs, 0.7f * ( (block!=nullptr) ? block->get_lightlevel(-1,0,0) : 1 ), minscale, mat[0]); //0.4f
+          float faceblocklight = 0, facesunlight = 1;
+          if (block != nullptr) {
+            faceblocklight = block->get_blocklight(-1, 0, 0) / lightmax;
+            facesunlight = block->get_sunlight(-1, 0, 0) / lightmax;
+          }
+          vecs.add_face(face, new_uvs, 0.7f * facesunlight, faceblocklight, minscale, mat[0]); //0.4f
       }
     }
     
@@ -896,15 +1004,26 @@ char Chunk::get() const {
     cout << "error: get() called on chunk object" << endl;
 }
 
-void Chunk::calculate_lightlevel() {
+void Chunk::lighting_update() {
     for (int x = 0; x < csize; x ++) {
         for (int y = csize-1; y >= 0; y --) {
             for (int z = 0; z < csize; z ++) {
-                blocks[x][y][z]->calculate_lightlevel();
+                blocks[x][y][z]->lighting_update();
             }
         }
     }
 }
+
+void Chunk::calculate_lightlevel(int recursion_level) {
+    for (int x = 0; x < csize; x ++) {
+        for (int y = csize-1; y >= 0; y --) {
+            for (int z = 0; z < csize; z ++) {
+                blocks[x][y][z]->calculate_lightlevel(recursion_level);
+            }
+        }
+    }
+}
+
 void Chunk::all(function<void(Pixel*)> func) {
     for (int x = 0; x < csize; x ++) {
         for (int y = csize-1; y >= 0; y --) {
@@ -994,7 +1113,7 @@ void Chunk::all_side(function<void(Pixel*)> func, int dx, int dy, int dz) {
     }
 }
 
-float Chunk::get_lightlevel(int dx, int dy, int dz) {
+int Chunk::get_blocklight(int dx, int dy, int dz) {
     int x_start = 0;
     int x_end = csize;
     int y_start = 0;
@@ -1014,20 +1133,20 @@ float Chunk::get_lightlevel(int dx, int dy, int dz) {
         z_end = 1 + z_start;
     }
     
-    float lightlevel = 0;
+    int lightlevel = 0;
     int num = 0;
     
     //cout << "for loop:" << endl;
     for (int x = x_start; x < x_end; x ++) {
         for (int y = y_start; y < y_end; y ++) {
             for (int z = z_start; z < z_end; z ++) {
-                float level = blocks[x][y][z]->get_lightlevel(dx, dy, dz);
+                float level = blocks[x][y][z]->get_blocklight(dx, dy, dz);
                 if (level == -1) {
                     cout << "blocks.h error" << endl;
                     crash(485934759257949384);
                     return -1;
                 }
-                if (blocks[x][y][z]->is_air(dx,dy,dz)) {
+                if (blocks[x][y][z]->is_air(dx,dy,dz) or level != 0) {
                     if (level != 1) {
                     //cout << level << ' ' << x << ' ' << y << ' ' << z << endl;
                 }
@@ -1039,6 +1158,56 @@ float Chunk::get_lightlevel(int dx, int dy, int dz) {
     }
     if (num == 0) {
         return 0;
+    } else {
+        return  lightlevel/num;
+    }
+}
+
+int Chunk::get_sunlight(int dx, int dy, int dz) {
+    int x_start = 0;
+    int x_end = csize;
+    int y_start = 0;
+    int y_end = csize;
+    int z_start = 0;
+    int z_end = csize;
+    if (dx != 0) {
+        x_start = (int)( dx/2.0f + 0.5f );
+        x_end = 1 + x_start;
+    }
+    if (dy != 0) {
+        y_start = (int)( dy/2.0f + 0.5f );
+        y_end = 1 + y_start;
+    }
+    if (dz != 0) {
+        z_start = (int)( dz/2.0f + 0.5f );
+        z_end = 1 + z_start;
+    }
+    
+    int lightlevel = 0;
+    int num = 0;
+    
+    //cout << "for loop:" << endl;
+    for (int x = x_start; x < x_end; x ++) {
+        for (int y = y_start; y < y_end; y ++) {
+            for (int z = z_start; z < z_end; z ++) {
+                int level = blocks[x][y][z]->get_sunlight(dx, dy, dz);
+                if (level == -1) {
+                    cout << "blocks.h error" << endl;
+                    crash(485934759257949384);
+                    return -1;
+                }
+                if (blocks[x][y][z]->is_air(dx,dy,dz) or level != 0) {
+                    if (level != 1) {
+                      //cout << level << ' ' << x << ' ' << y << ' ' << z << endl;
+                    }
+                    lightlevel += level;
+                    num ++;
+                }
+            }
+        }
+    }
+    if (num == 0) {
+        return 2;
     } else {
         return  lightlevel/num;
     }

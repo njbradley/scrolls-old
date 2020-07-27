@@ -79,12 +79,12 @@ TileLoop::iterator TileLoop::end() {
 
 
 
-World::World(string newname, int newseed): loader(seed), seed(newseed), name(newname), closing_world(false) {
+World::World(string newname, int newseed): loader(seed), seed(newseed), name(newname), closing_world(false), sunlight(1) {
     setup_files();
     startup();
 }
 
-World::World(string oldname): loader(seed), name(oldname), closing_world(false) {
+World::World(string oldname): loader(seed), name(oldname), closing_world(false), sunlight(1) {
     //unzip();
     load_data_file();
     loader.seed = seed;
@@ -114,6 +114,9 @@ void World::load_data_file() {
         if (buff == "view_dist") {
             ifile >> view_dist;
         }
+        if (buff == "daytime") {
+          ifile >> daytime;
+        }
         getline(ifile, buff);
     }
 }
@@ -124,6 +127,7 @@ void World::save_data_file() {
     ofile << "Scrolls data file of world '" + name + "'\n";
     ofile << "seed:" << seed << endl;
     ofile << "view_dist:" << view_dist << endl;
+    ofile << "daytime:" << daytime << endl;
     ofile.close();
 }
 
@@ -138,6 +142,7 @@ void World::setup_files() {
 void World::startup() {
     //load_image();
     //generative_setup_world(seed);
+    last_time = glfwGetTime();
     ifstream ifile("saves/" + name + "/player.txt");
     if (ifile.good()) {
       player = new Player(this, ifile);
@@ -293,11 +298,29 @@ void World::get_async_loaded_chunks() {
 }
 
 void World::timestep() {
+  double now = glfwGetTime();
+  double dt = now - last_time;
+  last_time = now;
+  
   ivec3 chunk(player->position/float(chunksize) - vec3(player->position.x<0, player->position.y<0, player->position.z<0));
   if (tiles.find(chunk) != tiles.end() or player->flying) {
     player->timestep();
   }
   //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
+  daytime += dt;
+  if (daytime > 200) {
+    daytime -= 200;
+  }
+  
+  sunlight = 0;
+  if (daytime > 40 and daytime < 60) {
+    sunlight = (daytime-40)/20.0f;
+  } else if (daytime > 60 and daytime < 140) {
+    sunlight = 1;
+  } else if (daytime > 140 and daytime < 160) {
+    sunlight = -(daytime-140)/20.0f + 1;
+  }
+  //cout << daytime << ' ' << sunlight << endl;
   mobcount = 0;
   timestep_clock ++;
   int i = 0;
@@ -403,13 +426,17 @@ void World::block_update(int x, int y, int z) {
   
 }
 
+void World::light_update(int x, int y, int z) {
+  light_updates.emplace(ivec3(x,y,z));
+}
+
 void World::render() {
     if (lighting_flag) {
       //update_lighting();
       lighting_flag = false;
     }
     bool changed = false;
-    //cout << "back in render" << endl;
+    //cout << "start render" << endl;
     //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
     TileLoop loop(this);
       for (pair<ivec3, Tile*> kvpair : loop) {
@@ -454,6 +481,7 @@ void World::render() {
         glvecs.writelock.unlock();
       }
     }
+    //cout << "end render" << endl;
 }
 
 void World::update_lighting() {

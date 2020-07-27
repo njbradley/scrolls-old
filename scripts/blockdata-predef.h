@@ -49,7 +49,7 @@ class BlockData { public:
     int minscale;
     string name;
     string rcaction;
-    float lightlevel;
+    int lightlevel;
     DropTable droptable;
     double clumpyness;
     string clumpy_group;

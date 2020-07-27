@@ -36,11 +36,13 @@ class Block: public Collider { public:
     virtual char get() const = 0;                 //get the value of the block. these two methods are exclusive for pixel/chunk, but same reaseon as above
     //virtual void set(char val, int direction = -1, BlockExtra* extras = nullptr) = 0;
     virtual void del(bool remove_faces) = 0;
-    virtual void calculate_lightlevel() = 0;
+    //virtual void calculate_lightlevel() = 0;
+    virtual void calculate_lightlevel(int recursion_level) = 0;
     virtual Pixel* get_pix() = 0;
     // returns a pixel pointer if the object is a pixel,
     // otherwise returns nullptr
-    virtual float get_lightlevel(int,int,int) = 0;
+    virtual int get_sunlight(int dx, int dy, int dz) = 0;
+    virtual int get_blocklight(int dx, int dy, int dz) = 0;
     virtual void all(function<void(Pixel*)>) = 0;
     virtual void all_side(function<void(Pixel*)>,int,int,int) = 0;
     Block(int x, int y, int z, int newscale, Chunk* newparent);
@@ -52,6 +54,7 @@ class Block: public Collider { public:
     virtual Block * get_global(int,int,int,int) = 0;
     virtual void render_update() = 0;
     virtual void save_to_file(ostream&) = 0;
+    virtual void lighting_update() = 0;
     Block* raycast(Collider* world, double* x, double* y, double* z, double dx, double dy, double dz, double time);
     Block* get_world();
     vec3 get_position() const;
@@ -73,10 +76,12 @@ public:
     char value;
     char direction;
     pair<int,int> render_index;
-    float lightlevel = 1;
+    int blocklight;
+    int sunlight;
     BlockExtra* extras = nullptr;
     Tile* tile;
     BlockGroup* physicsgroup;
+    bool lightflag = true;
     //int num;
     //ItemContainer* container;
     
@@ -90,14 +95,15 @@ public:
     // runs the function only on blocks touching the
     // side specified by the three ints, dx, dy, dz.
     Pixel* get_pix();
-    float get_lightlevel(int dx, int dy, int dz);
+    int get_sunlight(int dx, int dy, int dz);
+    int get_blocklight(int dx, int dy, int dz);
     void set(char val, int direction = -1, BlockExtra* extras = nullptr, bool update = true);
     // sets the value, direction, and BlockExtra of the pixel
     void render_update();
     void tick();
     void random_tick();
     void del(bool remove_faces);
-    void calculate_lightlevel();
+    void calculate_lightlevel(int recurstion_level);
     void reset_lightlevel();
     void rotate(int axis, int dir);
     void lighting_update();
@@ -132,10 +138,12 @@ class Chunk: public Block { public:
     Pixel* get_pix();
     char get() const;
     //void set(char val, int direction, BlockExtra* extras);
-    void calculate_lightlevel();
+    void lighting_update();
+    void calculate_lightlevel(int recursion_level);
     void all(function<void(Pixel*)> func);
     void all_side(function<void(Pixel*)>,int,int,int);
-    float get_lightlevel(int dx, int dy, int dz);
+    int get_sunlight(int dx, int dy, int dz);
+    int get_blocklight(int dx, int dy, int dz);
     void render(RenderVecs* vecs, Collider*, int gx, int gy, int gz);
     void del(bool remove_faces);
     void render_update();

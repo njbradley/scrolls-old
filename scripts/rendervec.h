@@ -9,16 +9,17 @@ using std::endl;
 
 
 
-void MemVecs::add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat newlight, GLint minscale, GLint mat) {
+void MemVecs::add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat sunlight, GLfloat blocklight, GLint minscale, GLint mat) {
     verts.insert(verts.end(), newverts, newverts+6*3);
     uvs.insert(uvs.end(), newuvs, newuvs+6*2);
     for (int i = 0; i < 6; i ++) {
-        light.push_back(newlight);
+        light.push_back(sunlight);
+        light.push_back(blocklight);
         mats.push_back(minscale);
         mats.push_back(mat);
     }
     num_verts += 6;
-    if ( verts.size()/3 != num_verts or uvs.size()/2 != num_verts or light.size() != num_verts or mats.size()/2 != num_verts) {
+    if ( verts.size()/3 != num_verts or uvs.size()/2 != num_verts or light.size()/2 != num_verts or mats.size()/2 != num_verts) {
       cout << "ERR: unbalanced vectors in MemVecs::add_face" << endl;
       crash(8327490283652347);
     }
@@ -30,7 +31,7 @@ pair<int,int> MemVecs::add(MemVecs* newvecs) {
   light.insert(light.end(), newvecs->light.begin(), newvecs->light.end());
   mats.insert(mats.end(), newvecs->mats.begin(), newvecs->mats.end());
   num_verts += newvecs->num_verts;
-  if ( verts.size()/3 != num_verts or uvs.size()/2 != num_verts or light.size() != num_verts or mats.size()/2 != num_verts) {
+  if ( verts.size()/3 != num_verts or uvs.size()/2 != num_verts or light.size()/2 != num_verts or mats.size()/2 != num_verts) {
     cout << "ERR: unbalanced vectors in MemVecs::add" << endl;
     crash(3928657839029036);
   }
@@ -42,7 +43,7 @@ void MemVecs::del(pair<int,int> index) {
   int end = start + index.second*6;
   verts.erase(verts.begin()+start*3, verts.begin()+end*3);
   uvs.erase(uvs.begin()+start*2, uvs.begin()+end*2);
-  light.erase(light.begin()+start, light.begin()+end);
+  light.erase(light.begin()+start*2, light.begin()+end*2);
   mats.erase(mats.begin()+start*2, mats.begin()+end*2);
 }
   
@@ -59,7 +60,7 @@ void MemVecs::edit(pair<int,int> index, MemVecs* newvecs) {
   int start = index.first;
   verts.insert(verts.begin()+start*3, newvecs->verts.begin(), newvecs->verts.end());
   uvs.insert(uvs.begin()+start*2, newvecs->uvs.begin(), newvecs->uvs.end());
-  light.insert(light.begin()+start, newvecs->light.begin(), newvecs->light.end());
+  light.insert(light.begin()+start*2, newvecs->light.begin(), newvecs->light.end());
   mats.insert(mats.begin()+start*2, newvecs->mats.begin(), newvecs->mats.end());
   
 }
@@ -81,7 +82,7 @@ void GLVecs::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, in
     glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
     glBufferData(GL_ARRAY_BUFFER, start_size*2*sizeof(GLfloat), NULL, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-    glBufferData(GL_ARRAY_BUFFER, start_size*sizeof(GLfloat), NULL, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, start_size*2*sizeof(GLfloat), NULL, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
     glBufferData(GL_ARRAY_BUFFER, start_size*2*sizeof(GLint), NULL, GL_STATIC_DRAW);
     
@@ -115,7 +116,7 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
             glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
             glBufferSubData(GL_ARRAY_BUFFER, location*2*sizeof(GLfloat), newvecs->uvs.size()*sizeof(GLfloat), &newvecs->uvs.front());
             glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-            glBufferSubData(GL_ARRAY_BUFFER, location*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
+            glBufferSubData(GL_ARRAY_BUFFER, location*2*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
             glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
             glBufferSubData(GL_ARRAY_BUFFER, location*2*sizeof(GLint), newvecs->mats.size()*sizeof(GLfloat), &newvecs->mats.front());
         
@@ -137,7 +138,7 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
     glBufferSubData(GL_ARRAY_BUFFER, num_verts*2*sizeof(GLfloat), newvecs->uvs.size()*sizeof(GLfloat), &newvecs->uvs.front());
     int mid3 = clock();
     glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-    glBufferSubData(GL_ARRAY_BUFFER, num_verts*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
+    glBufferSubData(GL_ARRAY_BUFFER, num_verts*2*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
     int mid4 = clock();
     glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
     glBufferSubData(GL_ARRAY_BUFFER, num_verts*2*sizeof(GLint), newvecs->mats.size()*sizeof(GLfloat), &newvecs->mats.front());
@@ -248,7 +249,7 @@ void GLVecs::clean() {
         glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
         glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLfloat), size*2*sizeof(GLfloat), &zerosf.front());
         glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-        glBufferSubData(GL_ARRAY_BUFFER, start*sizeof(GLfloat), size*sizeof(GLfloat), &zerosf.front());
+        glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLfloat), size*sizeof(GLfloat), &zerosf.front());
         glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
         glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLint), size*2*sizeof(GLint), &zerosi.front());
     }
@@ -271,7 +272,7 @@ void GLVecs::edit( pair<int,int> index, MemVecs* newvecs) {
     glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
     glBufferSubData(GL_ARRAY_BUFFER, location*2*sizeof(GLfloat), newvecs->uvs.size()*sizeof(GLfloat), &newvecs->uvs.front());
     glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-    glBufferSubData(GL_ARRAY_BUFFER, location*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
+    glBufferSubData(GL_ARRAY_BUFFER, location*2*sizeof(GLfloat), newvecs->light.size()*sizeof(GLfloat), &newvecs->light.front());
     glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
     glBufferSubData(GL_ARRAY_BUFFER, location*2*sizeof(GLint), newvecs->mats.size()*sizeof(GLfloat), &newvecs->mats.front());
     

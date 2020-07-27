@@ -16,6 +16,7 @@ class Tile {
 		World* world;
 		std::timed_mutex writelock;
 		bool deleting;
+		bool lightflag = true;
 		vector<DisplayEntity*> entities;
 		vector<FallingBlockEntity*> block_entities;
 		Tile(ivec3 position, World* world);

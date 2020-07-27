@@ -49,6 +49,7 @@ class World: public Collider {
     vector<ivec3> loading_chunks;
     vector<ivec3> deleting_chunks;
     unordered_set<ivec3,ivec3_hash> block_updates;
+    unordered_set<ivec3,ivec3_hash> light_updates;
     //mutable std::shared_timed_mutex tiles_lock;
     char* tmparr;
     public:
@@ -67,6 +68,9 @@ class World: public Collider {
         bool closing_world;
         int timestep_clock = 0;
         int mobcount;
+        float sunlight;
+        double daytime = 30;
+        double last_time;
 				
         static const int chunksize = 64;
         
@@ -86,6 +90,7 @@ class World: public Collider {
         void tick();
         void drop_ticks();
         void block_update(int,int,int);
+        void light_update(int,int,int);
         void update_lighting();
         void load_nearby_chunks();
         void get_async_loaded_chunks();

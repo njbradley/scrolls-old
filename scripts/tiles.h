@@ -19,15 +19,12 @@ Block* Tile::generate(ivec3 pos) {
 }
 
 void Tile::update_lighting() {
-  chunk->all([=] (Pixel* pix) {
-    pix->reset_lightlevel();
-    //cout << pix->lightlevel << endl;
-  });
+  
   for (int x = 0; x < chunksize; x ++) {
     for (int z = 0; z < chunksize; z ++) {
       int y = chunksize-1;
-      while (y >= pos.y and chunk->get_global(x,y,z,1)->get() == 0) {
-        chunk->get_global(x,y,z,1)->get_pix()->lightlevel = 1;
+      while (y >= 0 and chunk->get_global(x,y,z,1)->get() == 0) {
+        chunk->get_global(x,y,z,1)->get_pix()->sunlight = 10;
         y--;
       }
     }
@@ -36,10 +33,17 @@ void Tile::update_lighting() {
 
 void Tile::render(GLVecs* glvecs) {
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {
-    //update_lighting();
+  if (lightflag) {
+      update_lighting();
+      // for (int i = 0; i < 10; i ++) {
+      //   chunk->calculate_lightlevel();
+      // }
+    lightflag = false;
+  }
     //chunk->calculate_lightlevel();
     if (!deleting) {
        //cout << world << endl;
+       chunk->lighting_update();
 	     chunk->render(glvecs, world, 0, 0, 0);
      }
      // for (int i = entities.size()-1; i >= 0; i --) {
