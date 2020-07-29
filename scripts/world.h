@@ -312,17 +312,20 @@ void World::timestep() {
   }
   //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
   daytime += dt;
-  if (daytime > 200) {
-    daytime -= 200;
+  if (daytime > 2000) {
+    daytime -= 2000;
+  }
+  if (daytime < 0) {
+    daytime += 2000;
   }
   
   sunlight = 0;
-  if (daytime > 40 and daytime < 60) {
-    sunlight = (daytime-40)/20.0f;
-  } else if (daytime > 60 and daytime < 140) {
+  if (daytime > 450 and daytime < 500) {
+    sunlight = (daytime-450)/50.0f;
+  } else if (daytime > 500 and daytime < 1500) {
     sunlight = 1;
-  } else if (daytime > 140 and daytime < 160) {
-    sunlight = -(daytime-140)/20.0f + 1;
+  } else if (daytime > 1500 and daytime < 1550) {
+    sunlight = -(daytime-1500)/50.0f + 1;
   }
   //cout << daytime << ' ' << sunlight << endl;
   mobcount = 0;
@@ -440,43 +443,19 @@ void World::render() {
       lighting_flag = false;
     }
     bool changed = false;
-    //cout << "start render" << endl;
-    //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
     TileLoop loop(this);
-      for (pair<ivec3, Tile*> kvpair : loop) {
-          //double before = clock();
-          //chunks[kvpair.first]->all([](Pixel* pix) {
-          //    pix->lightlevel = -1;
-          //});
-          //double during = clock();
-          //chunks[kvpair.first]->calculate_light_level();
-          //double after = clock();
-          //chunks[kvpair.first]->calculate_light_level();
-          // if (tiles[kvpair.first]->chunk->render_flag) {
-          //   cout << "render " << kvpair.first.x << ' ' << kvpair.first.y << ' ' << kvpair.first.z << endl;
-          // }
-          if (tiles.find(kvpair.first) != tiles.end() and std::find(deleting_chunks.begin(), deleting_chunks.end(), kvpair.first) == deleting_chunks.end()) {
-            changed = changed or kvpair.second->chunk->render_flag;
-            kvpair.second->render(&glvecs);
-            // if (tiles[kvpair.first] == nullptr) {
-            //   empty.push_back(kvpair.first);
-            // } else {
-            //   tiles[kvpair.first]->render(&glvecs);
-            // }
-          }
-          //cout << "rendered chunk " << kvpair.first.first << ' ' << kvpair.first.second << endl;
-          //render_chunk_vectors(kvpair.first);
-          //cout << during - before << ' ' << after - during << ' ' << clock()-after << endl;
-      }
-      for (pair<int,int> render_index : dead_render_indexes) {
-        glvecs.del(render_index);
-        changed = true;
-      }
-      dead_render_indexes.clear();
-    //  tiles_lock.unlock();
-    //}
+    
+    for (pair<ivec3, Tile*> kvpair : loop) {
+        changed = changed or kvpair.second->chunk->render_flag;
+        kvpair.second->render(&glvecs);
+    }
+    for (pair<int,int> render_index : dead_render_indexes) {
+      glvecs.del(render_index);
+      changed = true;
+    }
+    dead_render_indexes.clear();
+    
     if (changed) {
-			//cout << "changed" << endl;
       glvecs.clean();
       if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
         int before = clock();
@@ -485,17 +464,13 @@ void World::render() {
         glvecs.writelock.unlock();
       }
     }
-    //cout << "end render" << endl;
 }
 
 void World::update_lighting() {
-  //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
   TileLoop loop(this);
-    for (pair<ivec3,Tile*> kvpair : loop) {
-      kvpair.second->update_lighting();
-    }
-  //  tiles_lock.unlock();
-  //}
+  for (pair<ivec3,Tile*> kvpair : loop) {
+    kvpair.second->update_lighting();
+  }
 }
 
 Block* World::get_global(int x, int y, int z, int scale) {
