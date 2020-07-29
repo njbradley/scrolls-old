@@ -27,6 +27,7 @@ using std::ifstream;
 using namespace glm;
 
 #include "crafting-predef.h"
+#include "commands-predef.h"
 
 class Menu { public:
     virtual void render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs) = 0;
@@ -88,6 +89,10 @@ class TextInputMenu: public Menu { public:
   TextInputMenu(string head, bool is_filter, function<void(string)> after_func);
   void render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs);
   void close(World*);
+};
+
+class CommandMenu: public TextInputMenu { public:
+  CommandMenu(function<void(CommandFunc)> after);
 };
 
 #endif

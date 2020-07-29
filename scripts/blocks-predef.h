@@ -104,6 +104,8 @@ public:
     void random_tick();
     void del(bool remove_faces);
     void calculate_lightlevel(int recurstion_level);
+    void calculate_sunlight(int recurstion_level);
+    void calculate_blocklight(int recurstion_level);
     void reset_lightlevel();
     void rotate(int axis, int dir);
     void lighting_update();

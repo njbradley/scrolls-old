@@ -36,6 +36,7 @@ using namespace glm;
 #include "scripts/blockphysics.h"
 #include "scripts/multithreading.h"
 #include "scripts/mobs.h"
+#include "scripts/commands.h"
 
 
 #include "scripts/cross-platform.h"
@@ -927,17 +928,31 @@ int main( void )
 				main_menu();
 			} else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
 				inven_menu();
+			} else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS) {
+				menu = new CommandMenu([&](CommandFunc func) {
+					func(world, cout);
+					delete menu;
+					menu = nullptr;
+				});
 			} else if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
 				menu = new CraftingMenu(1, [&]() {
 					delete menu;
 					menu = nullptr;
 				});
+			} else if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) {
+				cout << "njbradley is king" << endl;
 			} else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 				world->glvecs.clean();
 			} else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
 				world->player->flying = true;
 			} else if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
 				world->player->flying = false;
+			} else if (glfwGetKey(window, GLFW_KEY_O ) == GLFW_PRESS) {
+				debug_visible = true;
+			} else if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
+				debug_visible = false;
+			} else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
+				hard_crash(1);
 			}
 		} else {
 			if (glfwGetKey(window, GLFW_KEY_ESCAPE ) == GLFW_PRESS) {
@@ -946,15 +961,7 @@ int main( void )
 				menu = nullptr;
 			}
 		}
-		if (glfwGetKey(window, GLFW_KEY_O ) == GLFW_PRESS) {
-			debug_visible = true;
-		} else if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
-			debug_visible = false;
-		} else if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) {
-			cout << "njbradley is king" << endl;
-		} else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
-			hard_crash(1);
-		} else if (glfwGetKey(window, GLFW_KEY_Q ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
+		if (glfwGetKey(window, GLFW_KEY_Q ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
 			//world->closing_world = true;
 			playing = false;
 		} else if (glfwWindowShouldClose(window)) {

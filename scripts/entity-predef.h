@@ -88,12 +88,15 @@ public:
   pair<int,int> render_index;
   bool render_flag;
   bool dead_falling;
+  int sunlight = 10;
+  int blocklight = 0;
   DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos,
     vector<DisplayEntity*> newlimbs);
   DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos);
   DisplayEntity(World* nworld, istream& ifile);
   ~DisplayEntity();
   void render(RenderVecs* allvecs);
+  void calc_light(vec3 offset, vec2 ang);
   virtual void on_timestep();
   virtual void to_file(ostream& ofile);
   //void die();

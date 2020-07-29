@@ -58,9 +58,9 @@ class World: public Collider {
         unordered_set<BlockGroup*> physicsgroups;
     		vector<pair<int,int> > dead_render_indexes;
         int seed;
+        int difficulty = 1;
         string name;
         int view_dist = 3;
-        float sun = 0.0f;
         GLVecs glvecs;
         TerrainLoader loader;
         bool lighting_flag;

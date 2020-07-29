@@ -379,4 +379,18 @@ void TextInputMenu::close(World* world) {
 
 
 
+CommandMenu::CommandMenu(function<void(CommandFunc)> after_func): TextInputMenu("commands", false, [=] (string str) {
+    stringstream ss(str);
+    Command command(ss);
+    after_func(command.func);
+  }) {
+  
+}
+
+// void CommandMenu::string_callback(string str) {
+//   stringstream ss(str);
+//   Command command(ss);
+//   return command.func;
+// }
+
 #endif

@@ -590,6 +590,9 @@ void DisplayEntity::render(RenderVecs* allvecs) {
   // });
   // block->render(&vecs, int(position.x), int(position.y), int(position.z));
   //
+  
+  
+  
   if (render_flag) {
     vecs.clear();
     block.block->all([=] (Pixel* pix) {
@@ -640,6 +643,11 @@ void DisplayEntity::render(RenderVecs* allvecs) {
     translated.verts[i*3+0] += position.x;
     translated.verts[i*3+1] += position.y;
     translated.verts[i*3+2] += position.z;
+    
+    translated.light[i*2+0] = int(translated.light[i*2+0]*sunlight)/10.0f;
+    if (translated.light[i*2+1] == 0) {
+      translated.light[i*2+1] = blocklight/10.0f;
+    }
   }
   
   if (render_index == pair<int,int>(-1,0)) {
@@ -656,7 +664,31 @@ void DisplayEntity::render(RenderVecs* allvecs) {
   // cout << endl;
 }
 
+
+void DisplayEntity::calc_light(vec3 offset, vec2 ang) {
+  vec3 rotpos;
+  float tmpx;
+  tmpx = position.x * cos(ang.y) - position.y * sin(ang.y);
+  rotpos.y = position.x * sin(ang.y) + position.y * cos(ang.y);
+  
+  rotpos.x = tmpx * cos(ang.x) - position.z * sin(ang.x);
+  rotpos.z = tmpx * sin(ang.x) + position.z * cos(ang.x);
+  
+  Block* b = world->get_global(rotpos.x+offset.x, rotpos.y+offset.y, rotpos.z+offset.z, 1);
+  if (b != nullptr) {
+    sunlight = b->get_pix()->sunlight;
+    blocklight = b->get_pix()->blocklight;
+  } else {
+    sunlight = 10;
+    blocklight = 0;
+  }
+  for (DisplayEntity* limb : limbs) {
+    limb->calc_light(offset+rotpos, ang+angle);
+  }
+}
+
 void DisplayEntity::on_timestep() {
+  calc_light(vec3(0,0,0), vec2(0,0));
   render(&world->glvecs);
   //vel += vec3(0.0,0,-0.08);
 }

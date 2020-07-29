@@ -305,13 +305,18 @@ void Pixel::random_tick() {
   //   cout << "spawned skeleton at " << gx << ' ' << gy << ' ' << gz << endl;
   // }
   
-  // if (value == blocks->names["grass"] and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1) {
-  //   world->summon(new Pig(tile->world, vec3(gx, gy+5, gz)));
-  // }
-  //
-  // if ((value == blocks->names["snow"]) and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1) {
-  //   world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
-  // }
+  Block* above = world->get_global(gx, gy+scale, gz, 1);
+  if (value == blocks->names["grass"] and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1) {
+    world->summon(new Pig(tile->world, vec3(gx, gy+5, gz)));
+  }
+  
+  if (tile->world->difficulty > 0) {
+    if ((value == blocks->names["snow"]) and tile->entities.size() < 1 and above != nullptr and above->get() == 0
+    and above->get_pix()->sunlight == 10 and tile->world->sunlight < 0.1) {
+      cout << "skeleton spawned" << endl;
+      world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
+    }
+  }
 }
 
 void Pixel::tick() {
@@ -411,13 +416,14 @@ void Pixel::del(bool remove_faces) {
 
 void Pixel::lighting_update() {
   if (lightflag) {
-    calculate_lightlevel(30);
+    calculate_blocklight(30);
+    calculate_sunlight(50);
     lightflag = false;
   }
 }
 
 void Pixel::reset_lightlevel() {
-  sunlight = 0;
+  sunlight = 10;
   if (value != 0) {
     blocklight = blocks->blocks[value]->lightlevel;
   } else {
@@ -425,6 +431,169 @@ void Pixel::reset_lightlevel() {
   }
 }
 
+void Pixel::calculate_sunlight(int recursion_level) {
+  if (tile == nullptr or value != 0 or recursion_level < 0) {
+    return;
+  }
+  const int decrement = 1;
+  int gx, gy, gz;
+  global_position(&gx, &gy, &gz);
+  Block* above = tile->world->get_global(gx, gy+scale, gz, scale);
+  int oldsunlight = sunlight;
+  sunlight = 0;
+  if (above != nullptr) {
+    above->all_side([&] (Pixel* pix) {
+      if (pix->sunlight == 10 or sunlight == 10) {
+        sunlight = 10;
+      } else if (pix->sunlight > 0 and pix->sunlight + decrement > sunlight and pix->sunlight + decrement != oldsunlight) {
+        sunlight = pix->sunlight + decrement;
+      }
+    }, 0, -1, 0);
+  } else {
+    sunlight = 10;
+  }
+  const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
+  
+  if (sunlight != 10) {
+    for (ivec3 dir : dirs) {
+      if (dir.y != 1) {
+        Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
+        int dec = (dir.y == -1) ? decrement : -decrement;
+        if (block != nullptr) {
+          block->all_side([&] (Pixel* pix) {
+            if (pix->sunlight - decrement > sunlight and pix->sunlight - dec != oldsunlight) {
+              sunlight = pix->sunlight - decrement;
+            }
+          }, -dir.x, -dir.y, -dir.z);
+        }
+      }
+    }
+  }
+  
+  bool changed = oldsunlight != sunlight;
+  if (changed) {
+    for (ivec3 dir : dirs) {
+      Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
+      if (block != nullptr) {
+        int dec = (dir.y == -1) ? decrement : -decrement;
+        block->all_side([&] (Pixel* pix) {
+          if (pix->sunlight < sunlight + dec or pix->sunlight + dec == oldsunlight
+          or (pix->sunlight - dec == oldsunlight and sunlight < oldsunlight)) {
+            pix->calculate_sunlight(recursion_level-1);
+          }
+          if (changed) pix->set_render_flag();
+        }, -dir.x, -dir.y, -dir.z);
+      }
+    }
+  }
+}
+
+void Pixel::calculate_blocklight(int recursion_level) {
+  if (tile == nullptr or value != 0 or recursion_level < 0) {
+    return;
+  }
+  const int decrement = 1;
+  int gx, gy, gz;
+  global_position(&gx, &gy, &gz);
+  const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
+  int oldblocklight = blocklight;
+  blocklight = 0;
+  for (ivec3 dir : dirs) {
+    Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
+    if (block != nullptr) {
+      block->all_side([&] (Pixel* pix) {
+        if (pix->blocklight - decrement*pix->scale > blocklight and pix->blocklight + decrement*scale != oldblocklight) {
+          blocklight = pix->blocklight - decrement*pix->scale;
+        }
+      }, -dir.x, -dir.y, -dir.z);
+    }
+  }
+  
+  bool changed = oldblocklight != blocklight;
+  for (ivec3 dir : dirs) {
+    Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
+    if (block != nullptr) {
+      block->all_side([&] (Pixel* pix) {
+        if (pix->blocklight < blocklight - decrement*scale or (pix->blocklight + decrement*scale == oldblocklight and blocklight < oldblocklight)) {
+          pix->calculate_blocklight(recursion_level-1);
+        }
+        if (changed) pix->set_render_flag();
+      }, -dir.x, -dir.y, -dir.z);
+    }
+  }
+}
+        
+
+void Pixel::calculate_lightlevel(int recursion_level) {
+  cout << "bad " << endl;
+  exit(1);
+  if (tile == nullptr or value != 0) {
+    return;
+  }
+  
+  const int decrement = 1;
+  int gx, gy, gz;
+  global_position(&gx, &gy, &gz);
+  bool dodebug = false or glfwGetTime() > 15;
+  if (recursion_level < 0) {
+    dodebug = true;
+    //cout << "recursed to death" << endl;
+  }
+  vector<pair<ivec3,Pixel*> > neighbors;
+  vector<Pixel*> dependants;
+  int oldsunlight = sunlight;
+  int oldblocklight = blocklight;
+  if (dodebug) cout << "light " << gx << ' ' << gy << ' ' << gz << ' ' << scale << endl;
+  if (dodebug) cout << sunlight << ' ' << blocklight << endl;
+  sunlight = 0;
+  blocklight = 0;
+  const ivec3 dirs[6] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
+  for (ivec3 dir : dirs) {
+    Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
+    if (block != nullptr) {
+      block->all_side([&] (Pixel* pix) {
+        int newdec = decrement;
+        int oppdec = decrement;
+        if (dir.y == 1) newdec = 0;
+        if (dir.y == -1) oppdec = 0;
+        
+        if (pix->sunlight+oppdec == oldsunlight or pix->blocklight+decrement == oldblocklight) {
+          dependants.push_back(pix);
+        } else {
+          neighbors.emplace_back(dir, pix);
+          if (pix->sunlight - newdec > sunlight) {
+            sunlight = pix->sunlight - newdec;
+          }
+          if (pix->blocklight - decrement > blocklight) {
+            blocklight = pix->blocklight - decrement;
+          }
+        }
+      }, -dir.x, -dir.y, -dir.z);
+    } else if (dir.y == 1) {
+      sunlight = 10;
+    }
+  }
+  if (sunlight != oldsunlight or blocklight != oldblocklight) {
+    for (Pixel* pix : dependants) {
+      pix->calculate_lightlevel(recursion_level-1);
+    }
+  }
+  for (pair<ivec3,Pixel*> p : neighbors) {
+    ivec3 dir = p.first;
+    Pixel* pix = p.second;
+    int newdec = decrement;
+    if (dir.y == 1) newdec = 0;
+    
+    if (sunlight - newdec > pix->sunlight or blocklight - decrement > pix->blocklight) {
+      pix->calculate_lightlevel(recursion_level-1);
+    }
+  }
+  if (dodebug) cout << "done " << endl;
+}
+    
+    
+  
+/*
 void Pixel::calculate_lightlevel(int recursion_level) {
   if (tile == nullptr or value != 0 or recursion_level < 0) {
     return;
@@ -510,7 +679,7 @@ void Pixel::calculate_lightlevel(int recursion_level) {
   // if (oldsunlight != sunlight or oldblocklight != blocklight) {
   //   render_update();
   // }
-}
+}*/
 
 void Pixel::rotate(int axis, int dir) {
   const int positive[18] {

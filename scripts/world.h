@@ -117,6 +117,9 @@ void World::load_data_file() {
         if (buff == "daytime") {
           ifile >> daytime;
         }
+        if (buff == "difficulty") {
+          ifile >> difficulty;
+        }
         getline(ifile, buff);
     }
 }
@@ -126,6 +129,7 @@ void World::save_data_file() {
     ofstream ofile(path);
     ofile << "Scrolls data file of world '" + name + "'\n";
     ofile << "seed:" << seed << endl;
+    ofile << "difficulty:" << difficulty << endl;
     ofile << "view_dist:" << view_dist << endl;
     ofile << "daytime:" << daytime << endl;
     ofile.close();
@@ -520,7 +524,7 @@ Block* World::get_global(int x, int y, int z, int scale) {
     try {
       return tiles.at(pos)->chunk->get_global(ox, oy, oz, scale);
     } catch (std::out_of_range& ex) {
-      cout << "world get_global caught " << ex.what() << endl;
+      cout << "world get_global caught " << ex.what() <<  " with pos " << pos.x << ' ' << pos.y << ' ' << pos.z << endl;
       return nullptr;
     }
 }
