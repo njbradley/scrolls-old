@@ -4,4 +4,5 @@ block enthead {
 	:item_dropped: chips 1
 	:rotation_enabled:
 	:default_direction: 1
+	:clumpy-group: tree
 }

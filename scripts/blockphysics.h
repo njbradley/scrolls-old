@@ -312,6 +312,7 @@ BlockGroup* BlockGroup::make_group(char val, World* world, ivec3 pos) {
 	if (name == "crafting-group") return new CraftingGroup(world, pos);
 	if (name == "chest-group") return new ChestGroup(world, pos);
 	if (name == "backpack-group") return new BackpackGroup(world, pos);
+	if (name == "ghost-group") return new DissolveGroup(world, pos);
 	return new BlockGroup(world, pos);
 }
 
@@ -326,6 +327,7 @@ BlockGroup* BlockGroup::from_file(World* world, istream& ifile) {
 	if (name == "crafting-group") return new CraftingGroup(world, ifile);
 	if (name == "chest-group") return new ChestGroup(world, ifile);
 	if (name == "backpack-group") return new BackpackGroup(world, ifile);
+	if (name == "ghost-group") return new DissolveGroup(world, ifile);
 	return new BlockGroup(world, ifile);
 }
 
@@ -340,6 +342,7 @@ bool BlockGroup::is_persistant(char val) {
 	if (name == "crafting-group") return true;
 	if (name == "chest-group") return true;
 	if (name == "backpack-group") return true;
+	if (name == "ghost-group") return true;
 	return false;
 }
 
@@ -734,6 +737,41 @@ bool CraftingGroup::rcaction() {
 
 bool CraftingGroup::persistant() {
 	return true;
+}
+
+
+
+
+
+
+
+
+
+DissolveGroup::DissolveGroup(World* world, ivec3 starting_pos): BlockGroup(world, starting_pos) {
+	
+}
+
+DissolveGroup::DissolveGroup(World* world, istream& ifile): BlockGroup(world, ifile) {
+	
+}
+
+bool DissolveGroup::persistant() {
+	return true;
+}
+
+void DissolveGroup::tick() {
+	ivec3 pos;
+	int index = rand()%block_poses.size();
+	int i = 0;
+	for (ivec3 p : block_poses) {
+		if (index == i) {
+			pos = p;
+			break;
+		}
+		i++;
+	}
+	world->set(pos.x, pos.y, pos.z, 0);
+	block_poses.erase(pos);
 }
 
 #endif

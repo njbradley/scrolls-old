@@ -87,12 +87,13 @@ class TextInputMenu: public Menu { public:
   function<void(string)> after;
   
   TextInputMenu(string head, bool is_filter, function<void(string)> after_func);
-  void render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs);
+  virtual void render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs);
   void close(World*);
 };
 
 class CommandMenu: public TextInputMenu { public:
   CommandMenu(function<void(CommandFunc)> after);
+  virtual void render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs);
 };
 
 #endif

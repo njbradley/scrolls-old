@@ -74,8 +74,8 @@ vector<DisplayEntity*> Mob::get_limbs(World* world, string name) {
 	return list;
 }
 
-void Mob::on_timestep() {
-	DisplayEntity::on_timestep();
+void Mob::on_timestep(double deltatime) {
+	DisplayEntity::on_timestep(deltatime);
 	if (dead_falling) {
 		if ( consts[4]) {
 			ivec3 pos(glm::round(position + blockpos));
@@ -186,6 +186,8 @@ Mob* Mob::from_file(World* nworld, istream& ifile) {
 	ifile >> name;
 	if (name == "skeleton") return new Skeleton(nworld, ifile);
 	if (name == "pig") return new Pig(nworld, ifile);
+	if (name == "ent") return new Ent(nworld, ifile);
+	if (name == "ghost") return new Ghost(nworld, ifile);
 	
 	return new Mob(nworld, ifile);
 }
@@ -200,8 +202,8 @@ Pig::Pig(World* nworld, istream& ifile): Mob(nworld, ifile), next_point(position
 	
 }
 
-void Pig::on_timestep() {
-	Mob::on_timestep();
+void Pig::on_timestep(double deltatime) {
+	Mob::on_timestep(deltatime);
 	if (dead_falling) {
 		
 	}
@@ -229,11 +231,11 @@ void Pig::on_timestep() {
 			}
 			angle.x = lon;
 		  if (consts[4]) {
-		    vel.x += 0.2 * dist.x;
-		    vel.z += 0.2 * dist.z;
+		    vel.x += 5 * dist.x * deltatime;
+		    vel.z += 5 * dist.z * deltatime;
 		  } else {
-		    vel.x += 0.02 * dist.x;
-		    vel.z += 0.02 * dist.z;
+		    vel.x += 0.5 * dist.x * deltatime;
+		    vel.z += 0.5 * dist.z * deltatime;
 		  }
 		  if (consts[4] and (consts[0] or consts[2] or consts[3] or consts[5])) {
 		    vel.y = 20;
@@ -257,8 +259,8 @@ Biped::Biped(World* nworld, istream& ifile): Mob(nworld, ifile) {
 	
 }
 
-void Biped::on_timestep() {
-	Mob::on_timestep();
+void Biped::on_timestep(double deltatime) {
+	Mob::on_timestep(deltatime);
 	if (!dead_falling) {
 		if (int(position.x - next_point.x) == 0 and int(position.z - next_point.z) == 0) {
 			if (rand()%100 == 0) {
@@ -283,11 +285,11 @@ void Biped::on_timestep() {
 			}
 			angle.x = lon;
 		  if (consts[4]) {
-		    vel.x += 0.2 * dist.x;
-		    vel.z += 0.2 * dist.z;
+				vel.x += 5 * dist.x * deltatime;
+		    vel.z += 5 * dist.z * deltatime;
 		  } else {
-		    vel.x += 0.02 * dist.x;
-		    vel.z += 0.02 * dist.z;
+		    vel.x += 0.5 * dist.x * deltatime;
+		    vel.z += 0.5 * dist.z * deltatime;
 		  }
 		  if (consts[4] and (consts[0] or consts[2] or consts[3] or consts[5])) {
 		    vel.y = 20;
@@ -312,14 +314,14 @@ Skeleton::Skeleton(World* nworld, istream& ifile): Biped(nworld, ifile), attack_
 	
 }
 
-void Skeleton::on_timestep() {
-	Biped::on_timestep();
+void Skeleton::on_timestep(double deltatime) {
+	Biped::on_timestep(deltatime);
 	vec3 dist_to_player = world->player->position - (position + box2 / 2.0f);
 	if (glm::length(dist_to_player) < 50) {
 		next_point = world->player->position;
 	}
 	if (attack_recharge > 0) {
-		attack_recharge -= 0.01;
+		attack_recharge -= deltatime;
 	}
 	limbs[2]->angle.y = attack_recharge;
 	limbs[3]->angle.y = attack_recharge;
@@ -329,6 +331,121 @@ void Skeleton::on_timestep() {
     vel -= (dist_to_player + vec3(0,1,0)) * 2.0f;
 		attack_recharge = 1;
   }
+}
+
+
+
+
+
+
+
+Ghost::Ghost(World* nworld, vec3 start_pos): Mob(nworld, start_pos, "ghost"), next_point(start_pos) {
+	
+}
+
+Ghost::Ghost(World* nworld, istream& ifile): Mob(nworld, ifile), next_point(position) {
+	
+}
+
+void Ghost::on_timestep(double deltatime) {
+	Mob::on_timestep(deltatime);
+	if (glm::length(world->player->position - vec3(position)) < 50) {
+		target = world->player;
+	} else if (glm::length(target->position - vec3(position)) > 70) {
+		target = nullptr;
+	}
+	if (target != nullptr) {
+		next_point = target->position;
+	} else if (glm::length(position-vec3(next_point)) < 1 or rand()%400 == 0) {
+		next_point = ivec3(position) + ivec3(rand()%10-5, rand()%10-5, rand()%10-5);
+	}
+	vec3 to_target = vec3(next_point) - position;
+	if (glm::length(to_target) > 0.05) {
+		to_target /= glm::length(to_target);
+	}
+	
+}
+
+
+
+Ent::Ent(World* nworld, vec3 start_pos): Mob(nworld, start_pos, "ent") {
+	
+}
+
+Ent::Ent(World* nworld, istream& ifile): Mob(nworld, ifile) {
+	
+}
+
+void Ent::on_timestep(double deltatime) {
+	Mob::on_timestep(deltatime);
+	if (target == nullptr) {
+		if (grab_angle > 0) {
+			grab_angle -= 3.14/2 * 0.5 * deltatime;
+		} else if (glm::length(world->player->position - position) < 10) {
+			target = world->player;
+			vec3 to_target = target->position - position;
+			double lon =  atan2(to_target.z, to_target.x);
+			angle.x = lon;
+		}
+	} else {
+		if (grab_angle < 3.14*3/4) {
+			if (!grabbed) {
+				grab_angle += 3.14*3/4 * 2 * deltatime;
+			}
+		} else {
+			vec3 to_target = target->position - position;
+			double lon =  atan2(to_target.z, to_target.x);
+			if (glm::length(target->position - position) < 12 and std::abs(angle.x - lon) < 3.14/6) {
+				grabbed = true;
+				force = 20;
+				target->damage(0);
+			} else {
+				target = nullptr;
+			}
+		}
+		
+		if (grabbed) {
+			vec3 tmp(-1 * sin(-grab_angle * 0.5), cos(-grab_angle * 0.5), 0);
+			vec3 posoff(0,0,0);
+			
+			posoff.x = tmp.x * cos(angle.x) - tmp.z * sin(angle.x);
+			posoff.y = tmp.y;
+			posoff.z = tmp.x * sin(angle.x) + tmp.z * cos(angle.x);
+			
+			target->position = position + posoff * 9.0f;
+			target->vel.y = 0;
+			vec3 targetvel = target->vel;
+			target->vel = vec3(0,0,0);
+			if (attack_recharge <= 0) {
+				target->damage(0);
+				if (target->health <= 0) {
+					target = nullptr;
+					grabbed = false;
+				}
+				attack_recharge = 1;
+			}
+			if (grab_angle > 0) {
+				grab_angle -= 3.14/2 * 0.5 * deltatime;
+			} else {
+				grab_angle = 0;
+			}
+			force -= glm::length(targetvel);
+			if (force < 0) {
+				target->vel = targetvel * 200.0f + vec3(0,10,0);
+				grabbed = false;
+				target = nullptr;
+			}
+		}
+	}
+	double lat = -grab_angle * 0.5;
+	angle.y = lat*2/3;
+	limbs[0]->angle.y = lat;
+	for (DisplayEntity* limb : limbs[0]->limbs) {
+		limb->angle.y = lat/2;
+	}
+	if (attack_recharge > 0) {
+		attack_recharge -= deltatime;
+	}
 }
 
 // void Mob::tick() {

@@ -319,7 +319,7 @@ void World::timestep() {
     daytime += 2000;
   }
   
-  sunlight = 0;
+  sunlight = 0.1;
   if (daytime > 450 and daytime < 500) {
     sunlight = (daytime-450)/50.0f;
   } else if (daytime > 500 and daytime < 1500) {

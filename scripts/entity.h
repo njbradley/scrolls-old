@@ -38,10 +38,11 @@ world(nworld), position(pos), box1(hitbox1), box2(hitbox2), alive(true), immune(
 
 void Entity::timestep() {
         
-    on_timestep();
     // Compute time difference between current and last frame
     float currentTime(glfwGetTime());
     deltaTime = (currentTime - lastTime);
+    
+    on_timestep(deltaTime);
     if (deltaTime > 0.2f) {
         deltaTime = 0.2f;
         cout << "warning: had to drop ticks" << endl;
@@ -290,6 +291,10 @@ void Entity::calc_constraints() {
     //print(position);
 }
 
+void Entity::damage(int amount) {
+  health -= amount;
+}
+
 // void Entity::calc_constraints() {
 //     //int begin = clock();
 //     vec3 coords_array[3] = {{0,1,1}, {1,0,1}, {1,1,0}};
@@ -522,7 +527,7 @@ void Entity::drag(bool do_drag, float deltaTime) {
     }
 }
 
-void Entity::on_timestep() {
+void Entity::on_timestep(double deltatime) {
   
 }
 
@@ -687,7 +692,7 @@ void DisplayEntity::calc_light(vec3 offset, vec2 ang) {
   }
 }
 
-void DisplayEntity::on_timestep() {
+void DisplayEntity::on_timestep(double deltatime) {
   calc_light(vec3(0,0,0), vec2(0,0));
   render(&world->glvecs);
   //vel += vec3(0.0,0,-0.08);
@@ -747,8 +752,8 @@ Block* NamedEntity::loadblock(string name) {
   return Block::from_file(ifile, 0, 0, 0, size, nullptr, nullptr);
 }
 
-void NamedEntity::on_timestep() {
-  DisplayEntity::on_timestep();
+void NamedEntity::on_timestep(double deltatime) {
+  DisplayEntity::on_timestep(deltatime);
   return;
   vec3 dist_to_player = world->player->position - (position + box2 / 2.0f);
   double lon =  atan2(dist_to_player.z, dist_to_player.x);
@@ -816,8 +821,8 @@ void FallingBlockEntity::to_file(ostream& ofile) {
   group->to_file(ofile);
 }
 
-void FallingBlockEntity::on_timestep() {
-  DisplayEntity::on_timestep();
+void FallingBlockEntity::on_timestep(double deltatime) {
+  DisplayEntity::on_timestep(deltatime);
   if (consts[4]) {
     group->copy_to_world(position);
     delete group;

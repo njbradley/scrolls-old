@@ -363,6 +363,7 @@ void TextInputMenu::render(GLFWwindow* window, World* world, Player* player, Mem
     text_buff = "";
   }
   if (glfwGetKey(window, GLFW_KEY_ENTER ) == GLFW_PRESS) {
+    text += '\n';
     close(world);
   }
 }
@@ -380,11 +381,32 @@ void TextInputMenu::close(World* world) {
 
 
 CommandMenu::CommandMenu(function<void(CommandFunc)> after_func): TextInputMenu("commands", false, [=] (string str) {
-    stringstream ss(str);
-    Command command(ss);
-    after_func(command.func);
+    if (str != "" and str[str.length()-1] == '\n') {
+      stringstream ss(str);
+      Command command(ss);
+      after_func(command.func);
+    }
   }) {
   
+}
+
+void CommandMenu::render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs) {
+  draw_text(uivecs, header, -0.5, 0.75f, 3);
+  draw_text(uivecs, text + '|', -0.5, 0.0f, 1);
+  if (text_buff != "") {
+    for (char c : text_buff) {
+      if (c == '\b') {
+        text = text.substr(0, text.length()-1);
+      } else {
+        text += c;
+      }
+    }
+    text_buff = "";
+  }
+  if (glfwGetKey(window, GLFW_KEY_ENTER ) == GLFW_PRESS) {
+    text += '\n';
+    close(world);
+  }
 }
 
 // void CommandMenu::string_callback(string str) {

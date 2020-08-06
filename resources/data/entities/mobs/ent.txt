@@ -1,0 +1,8 @@
+mob ent {
+	:health: 20
+	:box1: -1.5 0 -1.5
+	:box2: 1.5 5 1.5
+	:blockpath: ent-stalk
+	:blockpos: -1.5 0 -1.5
+	:limbs: [ 0 4 0 entbody ]
+}

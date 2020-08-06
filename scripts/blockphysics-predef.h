@@ -121,6 +121,12 @@ class PipePacket { public:
 	PipePacket(Item item, bool water);
 };
 
+class DissolveGroup: public BlockGroup { public:
+	DissolveGroup(World* world, ivec3 starting_pos);
+	DissolveGroup(World* world, istream& ifile);
+	virtual bool persistant();
+	virtual void tick();
+};
 
 
 #endif

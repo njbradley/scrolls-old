@@ -33,6 +33,8 @@ using namespace glm;
 #include "../scripts/multithreading.h"
 
 #include "../scripts/cross-platform.h"
+#include "../scripts/mobs.h"
+#include "../scripts/commands.h"
 
 #include "../scripts/classes.h"
 
@@ -697,6 +699,7 @@ int main( int numargs, const char** args)
 	GLuint uiTextureID  = glGetUniformLocation(uiProgram, "myTextureSampler");
 	GLuint viewdistID = glGetUniformLocation(programID, "view_distance");
 	GLuint clearcolorID = glGetUniformLocation(programID, "clear_color");
+	GLuint sunlightID = glGetUniformLocation(programID, "sunlight");
 	
 	int num_tris;
 	int num_ui_tris;
@@ -858,6 +861,7 @@ int main( int numargs, const char** args)
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 		glUniform3f(clearcolorID, clearcolor.x, clearcolor.y, clearcolor.z);
 		glUniform1i(viewdistID, view_distance);
+		glUniform1f(sunlightID, 1.0f);
 		
 		
 		int ids[num_blocks];

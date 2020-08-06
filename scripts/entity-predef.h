@@ -45,7 +45,8 @@ class Entity { public:
     void move(vec3 change, float deltaTime);
     void fall_damage(float velocity);
     void drag(bool do_drag, float deltaTime);
-    virtual void on_timestep();
+    virtual void damage(int amount);
+    virtual void on_timestep(double deltatime);
     virtual void tick();
     bool colliding(const Entity* other);
     virtual void kill();
@@ -97,7 +98,7 @@ public:
   ~DisplayEntity();
   void render(RenderVecs* allvecs);
   void calc_light(vec3 offset, vec2 ang);
-  virtual void on_timestep();
+  virtual void on_timestep(double deltatime);
   virtual void to_file(ostream& ofile);
   //void die();
 };
@@ -111,7 +112,7 @@ public:
   NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, string name, vec3 newblockpos);
   NamedEntity(World* nworld, istream& ifile);
   Block* loadblock(string name);
-  void on_timestep();
+  void on_timestep(double deltatime);
 };
 
 class FallingBlockEntity: public DisplayEntity, public Collider {
@@ -122,7 +123,7 @@ public:
   void calc_constraints();
   Block * get_global(int,int,int,int);
   vec3 get_position() const;
-  void on_timestep();
+  void on_timestep(double deltatime);
   virtual void to_file(ostream& ofile);
   //virtual void to_file(ostream& ofile);
 };

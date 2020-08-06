@@ -28,7 +28,7 @@ class Mob: public NamedEntity { public:
 	// ivec3 last_point;
 	Mob(World* world, vec3 start_pos, string newname);
 	Mob(World* world, istream& ifile);
-	virtual void on_timestep();
+	virtual void on_timestep(double deltatime);
 	virtual void to_file(ostream& ofile);
 	static void fall_apart(DisplayEntity* entity);
 	static Mob* from_file(World* nworld, istream& ifile);
@@ -43,21 +43,41 @@ class Pig: public Mob { public:
 	ivec3 next_point;
 	Pig(World* world, vec3 start_pos);
 	Pig(World* nworld, istream& ifile);
-	virtual void on_timestep();
+	virtual void on_timestep(double deltatime);
 };
 
 class Biped: public Mob { public:
 	ivec3 next_point;
 	Biped(World* nworld, vec3 start_pos, string name);
 	Biped(World* nworld, istream& ifile);
-	virtual void on_timestep();
+	virtual void on_timestep(double deltatime);
 };
 
 class Skeleton: public Biped { public:
 	float attack_recharge;
 	Skeleton(World* nworld, vec3 start_pos);
 	Skeleton(World* nworld, istream& ifile);
-	virtual void on_timestep();
+	virtual void on_timestep(double deltatime);
+};
+
+class Ghost: public Mob { public:
+	float attack_recharge = 0;
+	ivec3 next_point;
+	Entity* target = nullptr;
+	Ghost(World* nworld, vec3 start_pos);
+	Ghost(World* nworld, istream& ifile);
+	virtual void on_timestep(double deltatime);
+};
+
+class Ent: public Mob { public:
+	double grab_angle = 0;
+	bool grabbed = false;
+	double force = 0;
+	Entity* target = nullptr;
+	double attack_recharge = 0;
+	Ent(World* nworld, vec3 start_pos);
+	Ent(World* nworld, istream& ifile);
+	virtual void on_timestep(double deltatime);
 };
 
 #endif
