@@ -11,6 +11,7 @@ class MobData { public:
 	vec3 box2;
 	string blockpath;
 	vec3 blockpos;
+	int emitted_light;
 	vector<pair<vec3,string> > limbs;
 	MobData(istream& ifile);
 };
@@ -60,13 +61,27 @@ class Skeleton: public Biped { public:
 	virtual void on_timestep(double deltatime);
 };
 
-class Ghost: public Mob { public:
-	float attack_recharge = 0;
+class FlyingMob: public Mob { public:
 	ivec3 next_point;
 	Entity* target = nullptr;
+	FlyingMob(World* nworld, vec3 start_pos, string newname);
+	FlyingMob(World* nworld, istream& ifile);
+	virtual void on_timestep(double deltatime);
+	virtual void random_point();
+};
+
+class Ghost: public FlyingMob { public:
+	float attack_recharge = 0;
 	Ghost(World* nworld, vec3 start_pos);
 	Ghost(World* nworld, istream& ifile);
 	virtual void on_timestep(double deltatime);
+};
+
+class Glofly: public FlyingMob { public:
+	Glofly(World* nworld, vec3 start_pos);
+	Glofly(World* nworld, istream& ifile);
+	virtual void on_timestep(double deltatime);
+	virtual void random_point();
 };
 
 class Ent: public Mob { public:

@@ -4,7 +4,7 @@
 #include <sstream>
 #include <chrono>
 #include <thread>
-#include <boost/asio.hpp>
+//#include <boost/asio.hpp>
 
 using std::stringstream;
 
@@ -306,7 +306,7 @@ int main( void )
 	load_settings();
 	min_ms_per_frame = 1000.0/max_fps;
 	
-	boost::asio::io_service io_service;
+	//boost::asio::io_service io_service;
 	
 	cout.precision(10);
 	
@@ -534,7 +534,7 @@ int main( void )
 	threadmanager->rendering = true;
 	//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, &num_tris);
 	
-	boost::asio::high_resolution_timer timer(io_service);
+	//boost::asio::high_resolution_timer timer(io_service);
 	
 	
 	while (playing) {
@@ -689,8 +689,8 @@ int main( void )
 			//cout << time << ' ' << newtime << ' ' << currentTime << endl;
 			//sleepshort(int(sleep_needed));
 			
-			timer.expires_after(std::chrono::microseconds(int(sleep_needed*1000)));
-			timer.wait();
+			//timer.expires_after(std::chrono::microseconds(int(sleep_needed*1000)));
+			//timer.wait();
 			
 			// while (glfwGetTime() < time) {
 			// 	std::this_thread::yield();
@@ -701,7 +701,7 @@ int main( void )
 			//
 	    // ::SetWaitableTimer(timer, &ft, 0, NULL, NULL, 0);
 	    // ::WaitForSingleObject(timer, INFINITE);
-			//std::this_thread::sleep_for(std::chrono::milliseconds((int)(min_ms_per_frame-ms)));
+			std::this_thread::sleep_for(std::chrono::milliseconds(int(min_ms_per_frame-ms)));
 		}
 		
 		
@@ -724,6 +724,7 @@ int main( void )
 		//-----------------------------------------------------FIRST DRAW CALL-------------------------------------------------------------------------------------------------------------------------//
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		
+		int start = clock();
 		glBindVertexArray(VertexArrayID);
 		
 		
@@ -752,7 +753,6 @@ int main( void )
 			glBindTexture(GL_TEXTURE_2D_ARRAY, block_textures[i]);
 		}
 		
-		int start = clock();
 		// if (!world->glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
 		// 	cout << "glvecs lock has timed out" << endl;
 		// 	exit(1);
@@ -923,6 +923,7 @@ int main( void )
 			cout << "swap " << time << endl;
 		}
 		
+		start = clock();
 		if (menu == nullptr) {
 			if (glfwGetKey(window, GLFW_KEY_M ) == GLFW_PRESS) {
 				main_menu();
@@ -944,9 +945,9 @@ int main( void )
 			} else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 				world->glvecs.clean();
 			} else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
-				world->player->flying = true;
+				world->player->spectator = true;
 			} else if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
-				world->player->flying = false;
+				world->player->spectator = false;
 			} else if (glfwGetKey(window, GLFW_KEY_O ) == GLFW_PRESS) {
 				debug_visible = true;
 			} else if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
@@ -968,7 +969,10 @@ int main( void )
 			//world->closing_world = true;
 			playing = false;
 		}
-		
+		int menutime = clock() - start;
+		if (menutime > 1) {
+			cout << "menutime " << menutime << endl;
+		}
 		// if (world->is_world_closed()) {
 		// 	playing = false;
 		// }

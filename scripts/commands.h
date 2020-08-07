@@ -41,6 +41,7 @@ Command::Command(istream& ifile) {
 				else if (name == "pig") func = [=](World* world, ostream& console) {world->summon(new Pig(world, pos)); };
 				else if (name == "ghost") func = [=](World* world, ostream& console) {world->summon(new Ghost(world, pos)); };
 				else if (name == "ent") func = [=](World* world, ostream& console) {world->summon(new Ent(world, pos)); };
+				else if (name == "glofly") func = [=](World* world, ostream& console) {world->summon(new Glofly(world, pos)); };
 				else func = [=](World* world, ostream& console) {world->summon(new Mob(world, pos, name)); };
 			} else {
 				func = throwerror("summon is a function");

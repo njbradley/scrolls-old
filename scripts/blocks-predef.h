@@ -80,6 +80,7 @@ public:
     pair<int,int> render_index;
     int blocklight;
     int sunlight;
+    int entitylight;
     BlockExtra* extras = nullptr;
     Tile* tile;
     BlockGroup* physicsgroup;

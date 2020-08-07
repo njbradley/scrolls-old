@@ -3,7 +3,7 @@
 
 #include "mobs-predef.h"
 
-MobData::MobData(istream& ifile): box1(-1,-1,-1), box2(1,1,1), blockpos(-1,-1,-1), health(5) {
+MobData::MobData(istream& ifile): box1(-1,-1,-1), box2(1,1,1), blockpos(-1,-1,-1), health(5), emitted_light(0) {
 	string buff;
   ifile >> buff;
   if (buff != "mob") {
@@ -21,6 +21,8 @@ MobData::MobData(istream& ifile): box1(-1,-1,-1), box2(1,1,1), blockpos(-1,-1,-1
         ifile >> box2.x >> box2.y >> box2.z;
       } else if (varname == "health") {
 				ifile >> health;
+      } else if (varname == "emitted_light") {
+				ifile >> emitted_light;
       } else if (varname == "blockpath") {
         ifile >> blockpath;
       } else if (varname == "blockpos") {
@@ -61,7 +63,9 @@ MobStorage::MobStorage() {
 Mob::Mob(World* nworld, vec3 start_pos, string newname):
 NamedEntity(nworld, start_pos, mobstorage->mobdata[newname]->box1, mobstorage->mobdata[newname]->box2, mobstorage->mobdata[newname]->blockpath,
 	mobstorage->mobdata[newname]->blockpos, get_limbs(nworld, newname)), name(newname) {
-		health = mobstorage->mobdata[newname]->health;
+		MobData* data = mobstorage->mobdata[newname];
+		health = data->health;
+		emitted_light = data->emitted_light;
 	// cout << "mob summoned init " << this << " pos ";
 	// print (position);
 }
@@ -188,6 +192,7 @@ Mob* Mob::from_file(World* nworld, istream& ifile) {
 	if (name == "pig") return new Pig(nworld, ifile);
 	if (name == "ent") return new Ent(nworld, ifile);
 	if (name == "ghost") return new Ghost(nworld, ifile);
+	if (name == "glofly") return new Glofly(nworld, ifile);
 	
 	return new Mob(nworld, ifile);
 }
@@ -337,34 +342,94 @@ void Skeleton::on_timestep(double deltatime) {
 
 
 
-
-
-Ghost::Ghost(World* nworld, vec3 start_pos): Mob(nworld, start_pos, "ghost"), next_point(start_pos) {
-	
+FlyingMob::FlyingMob(World* nworld, vec3 start_pos, string newname): Mob(nworld, start_pos, newname), next_point(start_pos) {
+	flying = true;
 }
 
-Ghost::Ghost(World* nworld, istream& ifile): Mob(nworld, ifile), next_point(position) {
-	
+FlyingMob::FlyingMob(World* nworld, istream& ifile): Mob(nworld, ifile), next_point(position) {
+	flying = true;
 }
 
-void Ghost::on_timestep(double deltatime) {
+void FlyingMob::random_point() {
+	next_point = ivec3(position) + ivec3(rand()%10-5, rand()%10-5, rand()%10-5);
+}
+
+void FlyingMob::on_timestep(double deltatime) {
 	Mob::on_timestep(deltatime);
-	if (glm::length(world->player->position - vec3(position)) < 50) {
-		target = world->player;
-	} else if (glm::length(target->position - vec3(position)) > 70) {
-		target = nullptr;
-	}
+	// if (glm::length(world->player->position - vec3(position)) < 20) {
+	// 	target = world->player;
+	// } else if (glm::length(target->position - vec3(position)) > 30) {
+	// 	target = nullptr;
+	// }
 	if (target != nullptr) {
 		next_point = target->position;
-	} else if (glm::length(position-vec3(next_point)) < 1 or rand()%400 == 0) {
-		next_point = ivec3(position) + ivec3(rand()%10-5, rand()%10-5, rand()%10-5);
+	} else if (glm::length(position-vec3(next_point)) < 1 or glm::length(position-vec3(next_point)) > 50 or rand()%400 == 0) {
+		random_point();
 	}
 	vec3 to_target = vec3(next_point) - position;
 	if (glm::length(to_target) > 0.05) {
 		to_target /= glm::length(to_target);
 	}
+	angle.x = atan2(to_target.z, to_target.x);
+	angle.y = atan2(to_target.y, glm::length(vec2(to_target.x, to_target.z)));
+	vel += to_target * 25.0f * float(deltatime);
+	vel *= 0.95;
+}
+
+
+
+
+
+Ghost::Ghost(World* nworld, vec3 start_pos): FlyingMob(nworld, start_pos, "ghost") {
 	
 }
+
+Ghost::Ghost(World* nworld, istream& ifile): FlyingMob(nworld, ifile) {
+	
+}
+
+void Ghost::on_timestep(double deltatime) {
+	FlyingMob::on_timestep(deltatime);
+}
+
+
+
+
+
+
+Glofly::Glofly(World* nworld, vec3 start_pos): FlyingMob(nworld, start_pos, "glofly") {
+	
+}
+
+Glofly::Glofly(World* nworld, istream& ifile): FlyingMob(nworld, ifile) {
+	
+}
+
+void Glofly::on_timestep(double deltatime) {
+	FlyingMob::on_timestep(deltatime);
+	
+}
+
+void Glofly::random_point() {
+	next_point = ivec3(position) + ivec3(rand()%10-5, rand()%10-5, rand()%10-5);
+	int i = 0;
+	while (i < 20 and world->get(next_point.x, next_point.y - i - 10, next_point.z) == 0) {
+		i ++;
+	}
+	next_point.y -= i;
+	i = 0;
+	while (i < 20 and world->get(next_point.x, next_point.y + i, next_point.z) != 0) {
+		i ++;
+	}
+	next_point.y += i;
+}
+
+
+
+
+
+
+
 
 
 

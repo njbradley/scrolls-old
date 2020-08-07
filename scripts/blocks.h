@@ -437,6 +437,7 @@ void Pixel::reset_lightlevel() {
     sunlight = 10;
     blocklight = 0;
   }
+  entitylight = 0;
 }
 
 void Pixel::calculate_sunlight(int recursion_level) {
@@ -534,7 +535,7 @@ void Pixel::calculate_blocklight(int recursion_level) {
   global_position(&gx, &gy, &gz);
   const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
   int oldblocklight = blocklight;
-  blocklight = 0;
+  blocklight = entitylight;
   for (ivec3 dir : dirs) {
     Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
     if (block != nullptr) {

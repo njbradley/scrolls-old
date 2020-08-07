@@ -202,13 +202,13 @@ void World::save_groups() {
 
 void World::spawn_player() {
   player = new Player(this, vec3(10,loader.terrain->get_height(ivec2(10,10))+7,10));
-  player->flying = false;
+  player->spectator = false;
   player->autojump = true;
   player->health = 10;
 }
 
 void World::load_nearby_chunks() {
-  if (!player->flying) {
+  if (!player->spectator) {
     int px = player->position.x/chunksize - (player->position.x<0);
     int py = player->position.y/chunksize - (player->position.y<0);
     int pz = player->position.z/chunksize - (player->position.z<0);

@@ -49,11 +49,13 @@ void Entity::timestep() {
     }
     //cout << vel.x << ' ' << vel.y << ' ' << vel.z << endl;
     move(vel*deltaTime, deltaTime);
-    if (!flying) {
+    if (!spectator) {
         calc_constraints();
-        vel += vec3(0,-40,0) * deltaTime;
     } else {
         vel.y = 0;
+    }
+    if (!spectator and !flying) {
+        vel += vec3(0,-40,0) * deltaTime;
     }
     //for (bool b : consts) {
     //    cout << b << ' ';
@@ -574,7 +576,7 @@ Entity(nworld, vec3(0,0,0), vec3(0,0,0), vec3(0,0,0)), block(nullptr), render_in
   ifile >> position.x >> position.y >> position.z;
   ifile >> vel.x >> vel.y >> vel.z;
   ifile >> angle.x >> angle.y;
-  ifile >> health;
+  ifile >> health >> emitted_light;
   ifile >> flying >> alive >> immune >> dead_falling;
 }
 
@@ -583,7 +585,7 @@ void DisplayEntity::to_file(ostream& ofile) {
   ofile << position.x << ' ' << position.y << ' ' << position.z << endl;
   ofile << vel.x << ' ' << vel.y << ' ' << vel.z << endl;
   ofile << angle.x << ' ' << angle.y << endl;
-  ofile << health << endl;
+  ofile << health << ' ' << emitted_light << endl;
   ofile << flying << ' ' << alive << ' ' << immune << ' ' << dead_falling << endl;
 }
 
@@ -680,13 +682,43 @@ void DisplayEntity::calc_light(vec3 offset, vec2 ang) {
   rotpos.z = tmpx * sin(ang.x) + position.z * cos(ang.x);
   
   Block* b = world->get_global(rotpos.x+offset.x, rotpos.y+offset.y, rotpos.z+offset.z, 1);
-  if (b != nullptr) {
-    sunlight = b->get_pix()->sunlight;
-    blocklight = b->get_pix()->blocklight;
+  if (emitted_light == 0) {
+    if (b != nullptr) {
+      sunlight = b->get_pix()->sunlight;
+      blocklight = b->get_pix()->blocklight;
+    } else {
+      sunlight = 10;
+      blocklight = 0;
+    }
   } else {
-    sunlight = 10;
-    blocklight = 0;
+    if (b != nullptr) {
+      Pixel* pix = b->get_pix();
+      ivec3 newpos;
+      pix->global_position(&newpos.x, &newpos.y, &newpos.z);
+      sunlight = pix->sunlight;
+      if (newpos != lit_block) {
+        Block* bb = world->get_global(lit_block.x, lit_block.y, lit_block.z, 1);
+        if (bb != nullptr) {
+          bb->get_pix()->entitylight = 0;
+          bb->get_pix()->render_update();
+        }
+        if (pix->blocklight < emitted_light) {
+          pix->entitylight = emitted_light;
+          pix->render_update();
+          lit_block = newpos;
+        }
+      }
+      if (pix->blocklight < emitted_light) {
+        blocklight = emitted_light;
+      } else {
+        blocklight = pix->blocklight;
+      }
+    } else {
+      sunlight = 10;
+      blocklight = emitted_light;
+    }
   }
+  
   for (DisplayEntity* limb : limbs) {
     limb->calc_light(offset+rotpos, ang+angle);
   }
@@ -702,6 +734,13 @@ DisplayEntity::~DisplayEntity() {
   //cout << render_index.first << ',' << render_index.second << " deleted! " << endl;
   // position.y -= 1000;
   // render();
+  if (emitted_light > 0) {
+    Block* b = world->get_global(lit_block.x, lit_block.y, lit_block.z, 1);
+    if (b != nullptr) {
+      b->get_pix()->entitylight = 0;
+      b->get_pix()->render_update();
+    }
+  }
   if (render_index.first != -1) {
     //world->glvecs.del(render_index);
     world->dead_render_indexes.push_back(render_index);

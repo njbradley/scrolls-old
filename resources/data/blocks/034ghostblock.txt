@@ -2,4 +2,5 @@ block ghostblock {
 	:break_times: [axe:0 pickaxe:0 shovel:0 sword:0 null:0]
 	:textures: [ghostblock]
 	:clumpy_group: ghost-group
+	:lightlevel: 3
 }

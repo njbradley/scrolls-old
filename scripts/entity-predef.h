@@ -34,6 +34,7 @@ class Entity { public:
     bool consts[7]; // constraints for entity, posx, pos y, pos z, neg x, neg y, neg z
     bool alive;
     bool immune;
+    bool spectator = false;
     World* world;
     
     Entity(World* nworld, vec3 pos, vec3 hitbox1, vec3 hitbox2);
@@ -91,6 +92,8 @@ public:
   bool dead_falling;
   int sunlight = 10;
   int blocklight = 0;
+  int emitted_light = 0;
+  ivec3 lit_block;
   DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos,
     vector<DisplayEntity*> newlimbs);
   DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos);

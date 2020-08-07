@@ -69,7 +69,7 @@ class World: public Collider {
         int timestep_clock = 0;
         int mobcount;
         float sunlight;
-        double daytime = 30;
+        double daytime = 500;
         double last_time;
 				
         static const int chunksize = 64;
