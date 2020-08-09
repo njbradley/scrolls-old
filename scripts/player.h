@@ -71,7 +71,8 @@ Player::Player(World* newworld, istream& ifile):
 		ifile >> selitem;
 		ifile >> position.x >> position.y >> position.z;
 		ifile >> vel.x >> vel.y >> vel.z >> angle.x >> angle.y;
-		ifile >> health >> flying >> autojump;
+		ifile >> health >> max_health >> damage_health >> healing_health >> healing_speed;
+		ifile >> flying >> autojump;
 		glfwSetMouseButtonCallback(window, mouse_button_call);
 		glfwSetScrollCallback(window, scroll_callback);
 }
@@ -82,7 +83,8 @@ void Player::save_to_file(ostream& ofile) {
 	ofile << selitem << ' ';
 	ofile << position.x << ' ' << position.y << ' ' << position.z << ' ';
 	ofile << vel.x << ' ' << vel.y << ' ' << vel.z << ' ' << angle.x << ' ' << angle.y << ' ';
-	ofile << health << ' ' << flying << ' ' << autojump << ' ';
+	ofile << health << ' ' << max_health << ' ' << damage_health << ' ' << healing_health << ' ' << healing_speed << ' ';
+	ofile << flying << ' ' << autojump << ' ';
 }
 	
 mat4 Player::getViewMatrix(){
@@ -718,14 +720,27 @@ void Player::computeMatricesFromInputs(){
 
 void Player::render_ui(MemVecs * uivecs) {
 	///hearts
-	float scale = 0.1f;
-	int i;
-	for (i = 0; i < health; i ++) {
-		draw_icon(uivecs, 3, i*scale, 1-scale, scale, scale);
+	// float scale = 0.1f;
+	// int i;
+	// for (i = 0; i < health; i ++) {
+	// 	draw_icon(uivecs, 3, i*scale, 1-scale, scale, scale);
+	// }
+	// for (; i < 10; i ++) {
+	// 	draw_icon(uivecs, 2, i*scale, 1-scale, scale, scale);
+	// }
+	
+	/// draw empty bar
+	draw_icon(uivecs, 6, -0.5, 1-0.1*aspect_ratio, 0.1, 0.1*aspect_ratio);
+	draw_icon(uivecs, 8, 0.4, 1-0.1*aspect_ratio, 0.1, 0.1*aspect_ratio);
+	draw_icon(uivecs, 7, -0.4, 1-0.1*aspect_ratio, 0.8, 0.1*aspect_ratio);
+	
+	draw_icon(uivecs, 9, -0.45, 1 - 0.1*aspect_ratio, (health - damage_health)/10 * 0.9, 0.1*aspect_ratio);
+	if (damage_health > 0) {
+		draw_icon(uivecs, 10, (health - damage_health)/10 * 0.9 - 0.45, 1 - 0.1*aspect_ratio, damage_health/10 * 0.9, 0.1*aspect_ratio);
+	} else if (healing_health > 0) {
+		draw_icon(uivecs, 11, health/10 * 0.9 - 0.45, 1 - 0.1*aspect_ratio, healing_health/10 * 0.9, 0.1*aspect_ratio);
 	}
-	for (; i < 10; i ++) {
-		draw_icon(uivecs, 2, i*scale, 1-scale, scale, scale);
-	}
+	
 	inven.render(uivecs, -0.5f, -1.0f);
 	draw_text(uivecs, "\\/", -0.45f+selitem*0.1f, -0.85f);
 	Item* sel = inven.get(selitem);

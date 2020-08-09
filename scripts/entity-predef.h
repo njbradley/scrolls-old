@@ -25,7 +25,6 @@ class Entity { public:
     vec2 angle;
     vec3 box1;
     vec3 box2;
-    int health;
     float lastTime;
     float deltaTime;
     bool flying;
@@ -36,6 +35,11 @@ class Entity { public:
     bool immune;
     bool spectator = false;
     World* world;
+    double max_health;
+    double health;
+    double healing_health = 0;
+    double damage_health = 0;
+    double healing_speed = 0;
     
     Entity(World* nworld, vec3 pos, vec3 hitbox1, vec3 hitbox2);
     void timestep();
@@ -46,7 +50,8 @@ class Entity { public:
     void move(vec3 change, float deltaTime);
     void fall_damage(float velocity);
     void drag(bool do_drag, float deltaTime);
-    virtual void damage(int amount);
+    void damage(double amount);
+    void heal(double amount, double speed);
     virtual void on_timestep(double deltatime);
     virtual void tick();
     bool colliding(const Entity* other);

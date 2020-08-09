@@ -47,6 +47,24 @@ void Entity::timestep() {
         deltaTime = 0.2f;
         cout << "warning: had to drop ticks" << endl;
     }
+    
+    if (damage_health > 0.01) {
+      double decrement = std::pow(0.99,1/deltaTime);
+      health -= damage_health*decrement;
+      damage_health -= damage_health*decrement;
+      healing_health = 0;
+    } else {
+      damage_health = 0;
+    }
+    if (healing_health > 0.01) {
+      double increment = std::min(healing_speed * deltaTime, healing_health);
+      health += increment;
+      healing_health -= increment;
+      damage_health = 0;
+    } else {
+      healing_health = 0;
+    }
+    
     //cout << vel.x << ' ' << vel.y << ' ' << vel.z << endl;
     move(vel*deltaTime, deltaTime);
     if (!spectator) {
@@ -293,8 +311,21 @@ void Entity::calc_constraints() {
     //print(position);
 }
 
-void Entity::damage(int amount) {
-  health -= amount;
+void Entity::damage(double amount) {
+  damage_health += amount;
+  if (damage_health > health) {
+    damage_health = health + 0.05;
+  }
+}
+
+void Entity::heal(double amount, double speed) {
+  healing_health += amount;
+  if (healing_speed > speed or healing_speed < 0.01) {
+    healing_speed = speed;
+  }
+  if (health + healing_health > max_health) {
+    healing_health = max_health - health;
+  }
 }
 
 // void Entity::calc_constraints() {
@@ -506,7 +537,7 @@ void Entity::move(vec3 change, float deltaTime) {
 
 void Entity::fall_damage(float velocity) {
     if (velocity > 30) {
-        health -= (int)(velocity-30)/2;
+        damage((velocity-30)/2);
     }
 }
 
@@ -576,7 +607,8 @@ Entity(nworld, vec3(0,0,0), vec3(0,0,0), vec3(0,0,0)), block(nullptr), render_in
   ifile >> position.x >> position.y >> position.z;
   ifile >> vel.x >> vel.y >> vel.z;
   ifile >> angle.x >> angle.y;
-  ifile >> health >> emitted_light;
+  ifile >> health >> max_health >> damage_health >> healing_health >> healing_speed;
+  ifile >> emitted_light;
   ifile >> flying >> alive >> immune >> dead_falling;
 }
 
@@ -585,7 +617,8 @@ void DisplayEntity::to_file(ostream& ofile) {
   ofile << position.x << ' ' << position.y << ' ' << position.z << endl;
   ofile << vel.x << ' ' << vel.y << ' ' << vel.z << endl;
   ofile << angle.x << ' ' << angle.y << endl;
-  ofile << health << ' ' << emitted_light << endl;
+  ofile << health << ' ' << max_health << ' ' << damage_health << ' ' << healing_health << ' ' << healing_speed << endl;
+  ofile << emitted_light << endl;
   ofile << flying << ' ' << alive << ' ' << immune << ' ' << dead_falling << endl;
 }
 
@@ -763,13 +796,11 @@ DisplayEntity::~DisplayEntity() {
 NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, string name, vec3 newblockpos,
   vector<DisplayEntity*> newlimbs):
   DisplayEntity(nworld, starting_pos, hitbox1, hitbox2, loadblock(name), newblockpos, newlimbs), nametype(name), pointing(0) {
-  health = 1;
   //block->rotate(1, 1);
 }
 
 NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, string name, vec3 newblockpos):
   DisplayEntity(nworld, starting_pos, hitbox1, hitbox2, loadblock(name), newblockpos), nametype(name), pointing(0) {
-  health = 1;
   //block->rotate(1, 1);
 }
 
@@ -822,7 +853,7 @@ void NamedEntity::on_timestep(double deltatime) {
     world->player->vel += (dist_to_player + vec3(0,1,0)) * 5.0f;
     vel -= (dist_to_player + vec3(0,1,0)) * 3.0f;
   }
-  if (health < 0) {
+  if (health <= 0) {
     for (int x = 0; x < block.block->scale; x ++) {
       for (int y = 0; y < block.block->scale; y ++) {
         for (int z = 0; z < block.block->scale; z ++) {

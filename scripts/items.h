@@ -135,9 +135,12 @@ bool Item::do_rcaction(World* world) {
     string command;
     getline(ss, command, '-');
     if (command == "heal") {
-      int amount;
+      double amount, speed;
       ss >> amount;
-      world->player->health += amount;
+      char lett;
+      ss >> lett;
+      ss >> speed;
+      world->player->heal(amount, speed);
     }
     return true;
   }

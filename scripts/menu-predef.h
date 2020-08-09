@@ -92,7 +92,7 @@ class TextInputMenu: public Menu { public:
 };
 
 class CommandMenu: public TextInputMenu { public:
-  CommandMenu(function<void(CommandFunc)> after);
+  CommandMenu(function<void()> after);
   virtual void render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs);
 };
 

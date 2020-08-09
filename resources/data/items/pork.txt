@@ -1,3 +1,3 @@
 item pork {
-	:rcaction: heal-4
+	:rcaction: heal-4-0.75
 }

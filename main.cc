@@ -930,8 +930,7 @@ int main( void )
 			} else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
 				inven_menu();
 			} else if (glfwGetKey(window, GLFW_KEY_SEMICOLON) == GLFW_PRESS) {
-				menu = new CommandMenu([&](CommandFunc func) {
-					func(world, cout);
+				menu = new CommandMenu([&]() {
 					delete menu;
 					menu = nullptr;
 				});

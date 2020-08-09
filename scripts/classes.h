@@ -7,6 +7,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <functional>
+#include <unordered_map>
+using std::unordered_map;
 using glm::vec3;
 using glm::ivec3;
 using glm::vec2;
@@ -81,6 +83,10 @@ class Tile;
 class TerrainLoader;
 class TerrainObject;
 class TerrainObjectMerger;
+class Program;
+template <typename T> class CommandConst;
+template <typename T> class CommandVar;
+template <typename T, typename ... Tparams> class CommandMethod;
 
 //////////////////////// GLOBAL VARIABLES ////////////////////////
 bool render_flag;

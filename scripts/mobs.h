@@ -65,6 +65,7 @@ NamedEntity(nworld, start_pos, mobstorage->mobdata[newname]->box1, mobstorage->m
 	mobstorage->mobdata[newname]->blockpos, get_limbs(nworld, newname)), name(newname) {
 		MobData* data = mobstorage->mobdata[newname];
 		health = data->health;
+		max_health = data->health;
 		emitted_light = data->emitted_light;
 	// cout << "mob summoned init " << this << " pos ";
 	// print (position);

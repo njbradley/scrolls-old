@@ -229,7 +229,7 @@ void BlockGroup::copy_to_block() {
 		}
 	} else {
 		Pixel* orig = world->get_global(position.x, position.y, position.z, 1)->get_pix();
-		pix->set(orig->value, orig->direction, orig->extras);
+		pix->set(orig->value, orig->direction, orig->extras, false);
 		block = pix;
 	}
 }

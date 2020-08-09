@@ -205,6 +205,7 @@ void World::spawn_player() {
   player->spectator = false;
   player->autojump = true;
   player->health = 10;
+  player->max_health = 10;
 }
 
 void World::load_nearby_chunks() {
