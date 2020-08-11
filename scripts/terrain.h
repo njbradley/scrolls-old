@@ -151,7 +151,7 @@ int Tree::priority() {
 
 
 
-BigTree::BigTree(TerrainObjectMerger* merger): TerrainObject(merger->parent, ivec3(50,100,50), 100) {
+BigTree::BigTree(TerrainObjectMerger* merger): TerrainObject(merger->parent, ivec3(50,100,50), 1000) {
 	
 }
 

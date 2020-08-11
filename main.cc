@@ -165,6 +165,8 @@ void load_settings() {
 				fullscreen = name == "true";
 			} else if (name == "max_fps") {
 				ifile >> max_fps;
+			} else if (name == "view_dist") {
+				ifile >> view_dist;
 			} else if (name == "alloc_memory") {
 				ifile >> allocated_memory;
 				allocated_memory *= 6;
@@ -527,7 +529,7 @@ int main( void )
 	bool reaching_max_fps = true;
 	double slow_frame = 0;
 	int slow_tick = 0;
-	int view_distance = 100;
+	int view_distance = view_dist * World::chunksize;
 	bool dologtime = false;
 	
 	

@@ -111,9 +111,6 @@ void World::load_data_file() {
         if (buff == "seed") {
             ifile >> seed;
         }
-        if (buff == "view_dist") {
-            ifile >> view_dist;
-        }
         if (buff == "daytime") {
           ifile >> daytime;
         }
@@ -130,7 +127,6 @@ void World::save_data_file() {
     ofile << "Scrolls data file of world '" + name + "'\n";
     ofile << "seed:" << seed << endl;
     ofile << "difficulty:" << difficulty << endl;
-    ofile << "view_dist:" << view_dist << endl;
     ofile << "daytime:" << daytime << endl;
     ofile.close();
 }
@@ -215,7 +211,7 @@ void World::load_nearby_chunks() {
     int pz = player->position.z/chunksize - (player->position.z<0);
     //px = 0;
     //pz = 0;
-    const int maxrange = 2;
+    const int maxrange = view_dist;
     // ivec3 pos(px,py,pz);
     // if (!tiles.count(pos) and std::find(loading_chunks.begin(), loading_chunks.end(), pos) == loading_chunks.end()) {
     //   //load_chunk(ivec3(x,y,z));
@@ -245,7 +241,7 @@ void World::load_nearby_chunks() {
       }
     }
     //crash(17658654574687);
-    const double max_distance = std::sqrt((maxrange/2+1)*(maxrange/2+1)*2);
+    const double max_distance = std::sqrt((maxrange)*(maxrange)*2);
     //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
       TileLoop loop(this);
       for (pair<ivec3,Tile*> kv : loop) {

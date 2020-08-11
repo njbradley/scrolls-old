@@ -51,6 +51,7 @@ class Entity { public:
     void fall_damage(float velocity);
     void drag(bool do_drag, float deltaTime);
     void damage(double amount);
+    void use_stamina(double amount);
     void heal(double amount, double speed);
     virtual void on_timestep(double deltatime);
     virtual void tick();

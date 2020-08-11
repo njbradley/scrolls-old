@@ -62,6 +62,7 @@ void Entity::timestep() {
       healing_health -= increment;
       damage_health = 0;
     } else {
+      healing_speed = 0;
       healing_health = 0;
     }
     
@@ -325,6 +326,16 @@ void Entity::heal(double amount, double speed) {
   }
   if (health + healing_health > max_health) {
     healing_health = max_health - health;
+  }
+}
+
+void Entity::use_stamina(double amount) {
+  if (healing_health > 0) {
+    if (healing_health < amount) {
+      healing_health = 0;
+    } else {
+      healing_health -= amount;
+    }
   }
 }
 

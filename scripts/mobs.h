@@ -291,11 +291,11 @@ void Biped::on_timestep(double deltatime) {
 			}
 			angle.x = lon;
 		  if (consts[4]) {
-				vel.x += 5 * dist.x * deltatime;
-		    vel.z += 5 * dist.z * deltatime;
+				vel.x += 30 * dist.x * deltatime;
+		    vel.z += 30 * dist.z * deltatime;
 		  } else {
-		    vel.x += 0.5 * dist.x * deltatime;
-		    vel.z += 0.5 * dist.z * deltatime;
+		    vel.x += 2 * dist.x * deltatime;
+		    vel.z += 2 * dist.z * deltatime;
 		  }
 		  if (consts[4] and (consts[0] or consts[2] or consts[3] or consts[5])) {
 		    vel.y = 20;

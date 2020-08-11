@@ -630,6 +630,8 @@ void Player::computeMatricesFromInputs(){
 		nspeed /= 10;
 	}
 	
+	double stamina_cost = 0;
+	
 	// Move forward
 	if (glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS){
 		// vec3 dir_const = vec3(1,0,0)*(float)consts[0] + vec3(0,0,1)*(float)consts[2] + vec3(-1,0,0)*(float)consts[3] + vec3(0,0,-1)*(float)consts[5];
@@ -640,24 +642,29 @@ void Player::computeMatricesFromInputs(){
 		// 	}
 		// }
 		vel += forward * deltaTime * nspeed;
+		stamina_cost += glm::dot(vel, forward);
 	}
 	// Move backward
 	if (glfwGetKey( window, GLFW_KEY_S ) == GLFW_PRESS){
 		vel -= forward * deltaTime * nspeed;
+		stamina_cost += glm::dot(vel, -forward);
 	}
 	// Strafe right
 	if (glfwGetKey( window, GLFW_KEY_D ) == GLFW_PRESS){
 			vel += right * deltaTime * nspeed;
+			stamina_cost += glm::dot(vel, right);
 	}
 	// Strafe left
 	if (glfwGetKey( window, GLFW_KEY_A ) == GLFW_PRESS){
 			vel -= right * deltaTime * nspeed;
+			stamina_cost += glm::dot(vel, -right);
 	}
 	if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS){
 		if (flying) {
 			position += up * deltaTime * speed;
 		} else if (consts[4]) {
 			vel.y = 15;// = vec3(0,10,0);//up * deltaTime * speed;
+			stamina_cost += vel.y;
 		}
 	}
 	if (glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS){
@@ -665,6 +672,8 @@ void Player::computeMatricesFromInputs(){
 			position -= up * deltaTime * speed;
 		}
 	}
+	
+	use_stamina(stamina_cost/30 * deltaTime);
 	
 	for (int i = 0; i < 10; i ++) {
 		if (glfwGetKey(window, (i != 9) ? GLFW_KEY_1 + i : GLFW_KEY_0)) {

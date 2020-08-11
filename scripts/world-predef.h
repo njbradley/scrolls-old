@@ -45,6 +45,8 @@ class TileLoop { public:
 };
   
 
+int view_dist = 3;
+
 class World: public Collider {
     vector<ivec3> loading_chunks;
     vector<ivec3> deleting_chunks;
@@ -60,7 +62,6 @@ class World: public Collider {
         int seed;
         int difficulty = 1;
         string name;
-        int view_dist = 3;
         GLVecs glvecs;
         TerrainLoader loader;
         bool lighting_flag;

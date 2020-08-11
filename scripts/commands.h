@@ -14,7 +14,9 @@ CommandVoidFunc printmessage(string message) {
 	return [=](Program* program) {*program->out << message << endl; };
 }
 
-
+bool is_string_char(char c) {
+	return c != ' ' and c != '+' and c != '-' and c != '/' and c != '*' and c != ';' and c != '(' and c != ')' and c != ',';
+}
 
 
 
@@ -26,8 +28,6 @@ template <typename Type> CommandConst<Type>::CommandConst(Type newval): value(ne
 template <typename Type> CommandFunc<Type> CommandConst<Type>::getfunc() {
 	Type val = value;
 	return [=] (Program* program) {
-		cout << "get const" << endl;
-		cout << val << endl;
 		return val;
 	};
 }
@@ -41,10 +41,20 @@ template <typename Tret, typename ... Tparams> CommandMethod<Tret,Tparams...>::C
 }
 
 template <typename Tret, typename ... Tparams> CommandFunc<Tret> CommandMethod<Tret,Tparams...>::getfunc(CommandFunc<Tparams> ... params) {
+	function<Tret(Program*,Tparams ...)> capturefunc = func;
 	return [=] (Program* program) {
-		func(program, (params(program)) ...);
+		return capturefunc(program, (params(program)) ...);
 	};
 }
+
+// '<lambda closure object>CommandMethod<T, Tparams>::
+// getfunc(CommandFunc<Tparams>...) [with Tret = int;
+// Tparams = {double}; CommandFunc<Type> = std::function<int(Program*)>]
+// ::<lambda(Program*)>{std::function<int(Program*, double)>((*(const std::function<int(Program*, double)>*)(& capturefunc)))
+// 	, std::function<double(Program*)>((*(const std::function<double(Program*)>*)(& params#0)))}'
+// CommandMethod<T, Tparams>::getfunc(CommandFunc<Tparams>...)
+// [with Tret = int; Tparams = {double}; CommandFunc<Type> = std::function<int(Program*)>]
+// ::<lambda(Program*)>' to 'CommandFunc<int> {aka std::function<int(Program*)>}
 
 template <typename Type> CommandVar<Type>::CommandVar(Type* newref): ref(newref), unique(false) {
 	
@@ -61,23 +71,110 @@ template <typename Type> CommandVar<Type>::~CommandVar() {
 }
 
 template <typename Type> CommandFunc<Type> CommandVar<Type>::getfunc() {
+	Type* reference = ref;
 	return [=] (Program* program) {
-		return *ref;
+		return *reference;
 	};
 }
 
 template <typename Type> CommandVoidFunc CommandVar<Type>::setfunc(CommandFunc<Type> newval) {
+	Type* reference = ref;
 	return [=] (Program* program) {
-		cout << "hi" << endl;
-		cout << newval(program) << endl;
-		*ref = newval(program);
+		*reference = newval(program);
 	};
 }
 
 
 
+template <typename Type> CommandOperator<Type>::CommandOperator(char newoper): oper(newoper) {
+	
+}
 
+template <typename Type> CommandFunc<Type> CommandOperator<Type>::getfunc(CommandFunc<Type> first, CommandFunc<Type> second) {
+	if (oper == '+') {
+		return [=] (Program* program) {
+			return first(program) + second(program);
+		};
+	}
+	if (oper == '-') {
+		return [=] (Program* program) {
+			return first(program) - second(program);
+		};
+	}
+	if (oper == '*') {
+		return [=] (Program* program) {
+			return first(program) * second(program);
+		};
+	}
+	if (oper == '/') {
+		return [=] (Program* program) {
+			return first(program) / second(program);
+		};
+	}
+	if (oper == '%') {
+		return [=] (Program* program) {
+			return first(program) % second(program);
+		};
+	}
+	return CommandNullFunc<Type>();
+}
 
+template <> CommandFunc<double> CommandOperator<double>::getfunc(CommandFunc<double> first, CommandFunc<double> second) {
+	if (oper == '+') {
+		return [=] (Program* program) {
+			return first(program) + second(program);
+		};
+	}
+	if (oper == '-') {
+		return [=] (Program* program) {
+			return first(program) - second(program);
+		};
+	}
+	if (oper == '*') {
+		return [=] (Program* program) {
+			return first(program) * second(program);
+		};
+	}
+	if (oper == '/') {
+		return [=] (Program* program) {
+			return first(program) / second(program);
+		};
+	}
+	return CommandNullFunc<double>();
+}
+
+template <> CommandFunc<vec3> CommandOperator<vec3>::getfunc(CommandFunc<vec3> first, CommandFunc<vec3> second) {
+	if (oper == '+') {
+		return [=] (Program* program) {
+			return first(program) + second(program);
+		};
+	}
+	if (oper == '-') {
+		return [=] (Program* program) {
+			return first(program) - second(program);
+		};
+	}
+	if (oper == '*') {
+		return [=] (Program* program) {
+			return first(program) * second(program);
+		};
+	}
+	if (oper == '/') {
+		return [=] (Program* program) {
+			return first(program) / second(program);
+		};
+	}
+	return CommandNullFunc<vec3>();
+}
+
+template <> CommandFunc<string> CommandOperator<string>::getfunc(CommandFunc<string> first, CommandFunc<string> second) {
+	if (oper == '+') {
+		return [=] (Program* program) {
+			return first(program) + second(program);
+		};
+	}
+	return CommandNullFunc<string>();
+}
 
 
 
@@ -86,73 +183,101 @@ template <typename Type> CommandVoidFunc CommandVar<Type>::setfunc(CommandFunc<T
 
 
 template <typename Type> CommandFunc<Type> Command::parse(istream& ifile) {
-	char type = ifile.peek();
-	while (type == ' ') {
-		ifile.get();
-		type = ifile.peek();
-	}
-	if (type == '$') {
-		string id;
-		char lett;
-		ifile.get();
-		
-		while ((lett = ifile.peek()) != ' ' and lett != '(' and lett != '+' and lett != '=' and lett != '-' and lett != ';' and !ifile.eof()) {
-			id.push_back(ifile.get());
+	CommandFunc<Type> ret;
+	vector<CommandFunc<Type> > funcs;
+	vector<char> opers;
+	bool isoper = true;
+	
+	
+	while (isoper) {
+		char type = ifile.peek();
+		while (type == ' ' and !ifile.eof()) {
+			ifile.get();
+			type = ifile.peek();
 		}
-		cout << "id " << id << endl;
+		if (type == '$') {
+			string id;
+			char lett;
+			ifile.get();
+			
+			while (is_string_char(ifile.peek()) and !ifile.eof()) {
+				id.push_back(ifile.get());
+			}
+			lett = ifile.peek();
+			while (lett == ' ' and !ifile.eof()) {
+				ifile.get();
+				lett = ifile.peek();
+			}
+			
+			if (lett == '(') {
+				ifile.get();
+				funcs.push_back(get_method<Type>(ifile, id));
+			} else {
+				funcs.push_back(get_var<Type>(id));
+			}
+		} else {
+			CommandFunc<Type> func = parse_const<Type>(ifile);
+			funcs.push_back(func);
+		}
+		
+		char lett = ifile.peek();
 		while (lett == ' ' and !ifile.eof()) {
 			ifile.get();
 			lett = ifile.peek();
 		}
 		
-		if (lett == '(') {
+		isoper = lett == '+' or lett == '-' or lett == '*' or lett == '/' or lett == '%';
+		if (isoper) {
+			opers.push_back(lett);
 			ifile.get();
-			return get_method<Type>(ifile, id);
-		} else {
-			cout << "getvar " << endl;
-			return get_var<Type>(id);
 		}
-	} else {
-		cout << "const" << endl;
-		CommandFunc<Type> func = parse_const<Type>(ifile);
-		cout << func(program) << endl;
-		return func;
 	}
+	
+	vector<vector<char> > oper_order {{'*', '/', '%'}, {'+', '-'}};
+	
+	for (vector<char>& search_opers : oper_order) {
+		for (int i = 0; i < opers.size(); i ++) {
+			for (char search_oper : search_opers) {
+				if (opers[i] == search_oper) {
+					CommandOperator<Type> coper(search_oper);
+					funcs[i] = coper.getfunc(funcs[i], funcs[i+1]);
+					funcs.erase(funcs.begin() + i+1);
+					opers.erase(opers.begin() + i);
+					i --;
+					break;
+				}
+			}
+		}
+	}
+	
+	return funcs[0];
 }
 
 
 template <typename Type> CommandFunc<Type> Command::parse_const(istream& ifile) {
 	Type val;
 	ifile >> val;
-	cout << val << endl;
-	CommandFunc<Type> func;
-	if (true) {
-		CommandConst<Type> comconst(val);
-		func = comconst.getfunc();
-		cout << func(program) << endl;
-	}
-	
-	cout << func(program) << endl;
-	return func;
+	CommandConst<Type> comconst(val);
+	return comconst.getfunc();
 }
 
-// template <> CommandFunc<ivec3> Command::parse_const<ivec3>(istream& ifile) {
-// 	ivec3 val;
-// 	ifile >> val.x >> val.y >> val.z;
-// 	CommandConst<ivec3> comconst(val);
-// 	return comconst.getfunc();
-// }
-//
-// template <> CommandFunc<vec3> Command::parse_const<vec3>(istream& ifile) {
-// 	vec3 val;
-// 	ifile >> val.x >> val.y >> val.z;
-// 	CommandConst<vec3> comconst(val);
-// 	return comconst.getfunc();
-// }
+template <> CommandFunc<ivec3> Command::parse_const<ivec3>(istream& ifile) {
+	ivec3 val;
+	ifile >> val.x >> val.y >> val.z;
+	CommandConst<ivec3> comconst(val);
+	return comconst.getfunc();
+}
+
+template <> CommandFunc<vec3> Command::parse_const<vec3>(istream& ifile) {
+	vec3 val;
+	ifile >> val.x >> val.y >> val.z;
+	CommandConst<vec3> comconst(val);
+	return comconst.getfunc();
+}
 
 template <> CommandFunc<string> Command::parse_const<string>(istream& ifile) {
 	string val;
-	while (ifile.peek() != ' ' and ifile.peek() != ')' and ifile.peek() != ',' and ifile.peek() != ';') {
+	while ((is_string_char(ifile.peek()) or ifile.peek() == '-') and !ifile.eof()) {
 		val.push_back(ifile.get());
 	}
 	CommandConst<string> comconst(val);
@@ -172,27 +297,17 @@ CommandMethod<Tret,Tparams...,Tparamfirst,Tparamsleft...> method, CommandFunc<Tp
 	return parse_func<Tret>(ifile, CommandMethodTemplate<Tparamsleft...>(), method, paramfuncs..., funcval);
 }
 
-// template <typename Tret, typename ... Tparams, int progress, typename Tparamfirst, typename ... Tparamsleft> CommandFunc<Tret>
-// Command::parse_func(istream& ifile, CommandMethod<Tret,Tparams...,Tparamfirst,Tparamsleft...> method, CommandFunc<Tparams> ... paramfuncs) {
-// 	CommandFunc<Tparamfirst> funcval = parse<Tparamfirst>(ifile);
-// 	return parse_func<Tret, Tparams..., Tparamfirst, progress+1, Tparamsleft...>(ifile, paramfuncs..., funcval);
-// }
-
 template <typename Tret, typename ... Tparams> CommandFunc<Tret>
 Command::parse_func(istream& ifile, CommandMethodTemplate<> templ,
 CommandMethod<Tret,Tparams...> method, CommandFunc<Tparams> ... paramfuncs) {
 	return method.getfunc(paramfuncs...);
 }
 
-// template <typename Tret, typename ... Tparams, int progress> CommandFunc<Tret>
-// Command::parse_func(istream& ifile, CommandMethod<Tret,Tparams...> method, CommandFunc<Tparams> ... paramfuncs) {
-// 	return method.getfunc(paramfuncs...);
-// }
-
 
 template <typename Type> CommandFunc<Type> Command::get_var(string id) {
 	*program->errout << "ERR: this type is not supported as a variable" << endl;
-	return CommandFunc<Type>();
+	program->error = true;
+	return CommandNullFunc<Type>();
 }
 
 template <> CommandFunc<int> Command::get_var<int>(string id) {
@@ -207,6 +322,10 @@ template <> CommandFunc<string> Command::get_var<string>(string id) {
 	return program->stringvars.at(id).getfunc();
 }
 
+template <> CommandFunc<vec3> Command::get_var<vec3>(string id) {
+	return program->vec3vars.at(id).getfunc();
+}
+
 
 
 CommandVoidFunc Command::set_var(istream& ifile, string id) {
@@ -215,30 +334,82 @@ CommandVoidFunc Command::set_var(istream& ifile, string id) {
 	}
 	if (program->doublevars.find(id) != program->doublevars.end()) {
 		CommandFunc<double> func = parse<double>(ifile);
-		cout << "set_var" << endl;
-		cout << func(program) << endl;
 		return program->doublevars.at(id).setfunc(func);
 	}
 	if (program->stringvars.find(id) != program->stringvars.end()) {
 		return program->stringvars.at(id).setfunc(parse<string>(ifile));
 	}
+	if (program->stringvars.find(id) != program->stringvars.end()) {
+		return program->stringvars.at(id).setfunc(parse<string>(ifile));
+	}
+	if (program->vec3vars.find(id) != program->vec3vars.end()) {
+		return program->vec3vars.at(id).setfunc(parse<vec3>(ifile));
+	}
+	*program->errout << "ERR: no variable '" << id << "' found" << endl;
+	program->error = true;
 }
 
+CommandVoidFunc Command::set_oper_var(istream& ifile, string id, char oper) {
+	if (program->intvars.find(id) != program->intvars.end()) {
+		CommandOperator<int> coper(oper);
+		return program->intvars.at(id).setfunc(coper.getfunc(get_var<int>(id), parse<int>(ifile)));
+	}
+	if (program->doublevars.find(id) != program->doublevars.end()) {
+		CommandOperator<double> coper(oper);
+		CommandFunc<double> func = parse<double>(ifile);
+		return program->doublevars.at(id).setfunc(coper.getfunc(get_var<double>(id),func));
+	}
+	if (program->stringvars.find(id) != program->stringvars.end()) {
+		CommandOperator<string> coper(oper);
+		return program->stringvars.at(id).setfunc(coper.getfunc(get_var<string>(id), parse<string>(ifile)));
+	}
+	if (program->vec3vars.find(id) != program->vec3vars.end()) {
+		CommandOperator<vec3> coper(oper);
+		return program->vec3vars.at(id).setfunc(coper.getfunc(get_var<vec3>(id), parse<vec3>(ifile)));
+	}
+}
 
 template <typename Type> CommandFunc<Type> Command::get_method(istream& ifile, string id) {
 	*program->errout << "ERR: no methods defined for this type" << endl;
-	return CommandFunc<Type>();
+	program->error = true;
+	return CommandNullFunc<Type>();
 }
 
 template <> CommandFunc<void> Command::get_method<void>(istream& ifile, string id) {
 	if (id == "world.setblock") {
 		return parse_func<void>(ifile, program->worldsetblock.templ, program->worldsetblock);
+	} else if (id == "world.summon") {
+		return parse_func<void>(ifile, program->worldsummon.templ, program->worldsummon);
 	} else if (id == "printd") {
 		return parse_func<void>(ifile, program->printd.templ, program->printd);
 	} else if (id == "prints") {
 		return parse_func<void>(ifile, program->prints.templ, program->prints);
+	} else if (id == "printv3") {
+		return parse_func<void>(ifile, program->printv3.templ, program->printv3);
 	} else {
-		return CommandFunc<void>();
+		*program->errout << "ERR: no method by the name of '" << id << "'" << endl;
+		program->error = true;
+		return CommandNullFunc<void>();
+	}
+}
+
+template <> CommandFunc<int> Command::get_method<int>(istream& ifile, string id) {
+	if (id == "round") {
+		return parse_func<int>(ifile, program->dtoi.templ, program->dtoi);
+	} else {
+		*program->errout << "ERR: no method by the name of '" << id << "'" << endl;
+		program->error = true;
+		return CommandNullFunc<int>();
+	}
+}
+
+template <> CommandFunc<ivec3> Command::get_method<ivec3>(istream& ifile, string id) {
+	if (id == "round") {
+		return parse_func<ivec3>(ifile, program->vec3toivec3.templ, program->vec3toivec3);
+	} else {
+		*program->errout << "ERR: no method by the name of '" << id << "'" << endl;
+		program->error = true;
+		return CommandNullFunc<ivec3>();
 	}
 }
 
@@ -246,21 +417,28 @@ Command::Command(Program* newprogram, istream& ifile): program(newprogram) {
 	string id;
 	char lett;
 	
-	while ((lett = ifile.peek()) != ' ' and lett != '(' and lett != '+' and lett != '=' and lett != '-') {
+	while (is_string_char(ifile.peek()) and !ifile.eof()) {
 		id.push_back(ifile.get());
 	}
-	cout << id << endl;
-	while (lett == ' ') {
+	lett = ifile.peek();
+	while (lett == ' ' and !ifile.eof()) {
 		ifile.get();
 		lett = ifile.peek();
 	}
-	cout << lett << endl;
 	if (lett == '(') {
 		ifile.get();
 		func = get_method<void>(ifile, id);
 	} else if (lett == '=') {
 		ifile.get();
 		func = set_var(ifile, id);
+	} else if (lett == '+' or lett == '-' or lett == '*' or lett == '/' or lett == '%') {
+		char oper = ifile.get();
+		if (ifile.peek() == '=') {
+			ifile.get();
+			func = set_oper_var(ifile, id, oper);
+		} else {
+			*program->errout << "ERR: did you mean '" << oper << "=' ?" << endl;
+		}
 	}
 }
 
@@ -274,20 +452,45 @@ Command::Command(Program* newprogram, istream& ifile): program(newprogram) {
 
 
 Program::Program(World* nworld, ostream* newout, ostream* newerrout, istream& ifile): world(nworld), out(newout), errout(newerrout),
-worldsetblock([] (Program* program, double pos, string blockname, int direction) {
-	//program->world->set(pos.x, pos.y, pos.z, blocks->names[blockname], direction);
+worldsummon([] (Program* program, vec3 pos, string entityname) {
+	DisplayEntity* entity;
+	if (entityname == "pig") entity = new Pig(program->world, pos);
+	else if (entityname == "skeleton") entity = new Skeleton(program->world, pos);
+  else if (entityname == "ent") entity = new Ent(program->world, pos);
+	else if (entityname == "glofly") entity = new Glofly(program->world, pos);
+	else if (entityname == "ghost") entity = new Ghost(program->world, pos);
+	else entity = new Mob(program->world, pos, entityname);
+	
+	program->world->summon(entity);
+}),
+worldsetblock([] (Program* program, ivec3 pos, string blockname, int direction) {
+	program->world->set(pos.x, pos.y, pos.z, blocks->names[blockname], direction);
 }),
 printd([] (Program* program, double val) {
-	cout << "printd function" << endl;
-	cout << val << " val " << endl;
 	*program->out << val << endl;
 }),
 prints([] (Program* program, string val) {
 	*program->out << val << endl;
 }),
+printv3([] (Program* program, vec3 val) {
+	*program->out << val.x << ' ' << val.y << ' ' << val.z << endl;
+}),
+dtoi([] (Program* program, double val) {
+	return int(val);
+}),
+vec3toivec3([] (Program* program, vec3 val) {
+	return ivec3(val);
+}),
 doublevars({
 	{"world.time", CommandVar<double>(&world->daytime)},
+	{"me.health", CommandVar<double>(&world->player->health)},
+	{"me.max_health", CommandVar<double>(&world->player->max_health)},
+}),
+vec3vars({
+	{"me.pos", CommandVar<vec3>(&world->player->position)},
+	{"me.vel", CommandVar<vec3>(&world->player->vel)},
 }) {
+	error = false;
 	string buf;
 	while (!ifile.eof()) {
 		lines.emplace_back(this, ifile);
@@ -296,8 +499,12 @@ doublevars({
 }
 
 void Program::run() {
-	for (Command& command : lines) {
-		command.func(this);
+	if (error) {
+		*errout << "ERR: the program compiled with errors" << endl;
+	} else {
+		for (Command& command : lines) {
+			command.func(this);
+		}
 	}
 }
 
