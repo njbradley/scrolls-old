@@ -125,8 +125,8 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
         }
     }
     if (num_verts+newvecs->light.size() > size_alloc) {
-        cout << "ran out of memory!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
-        cout << num_verts << ' ' << size_alloc << endl;
+        //cout << "ran out of memory!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+        //cout << num_verts << ' ' << size_alloc << endl;
         writelock.unlock();
         crash(2);
     }
@@ -229,7 +229,7 @@ void GLVecs::del(pair<int,int> index) {
 }
 
 void GLVecs::clean() {
-  if (writelock.try_lock_for(std::chrono::seconds(1))) {
+  //if (writelock.try_lock_for(std::chrono::seconds(1))) {
     //cout << 207 << endl;
     //int start = clock();
 		int max = 0;
@@ -243,22 +243,24 @@ void GLVecs::clean() {
     for (pair<int,int> index : empty) {
         int start = index.first*6;
         int size = index.second*6;
-        
-        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-        glBufferSubData(GL_ARRAY_BUFFER, start*3*sizeof(GLfloat), size*3*sizeof(GLfloat), &zerosf.front());
-        glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-        glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLfloat), size*2*sizeof(GLfloat), &zerosf.front());
-        glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-        glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLfloat), size*sizeof(GLfloat), &zerosf.front());
-        glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
-        glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLint), size*2*sizeof(GLint), &zerosi.front());
+        if (writelock.try_lock_for(std::chrono::seconds(1))) {
+          glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+          glBufferSubData(GL_ARRAY_BUFFER, start*3*sizeof(GLfloat), size*3*sizeof(GLfloat), &zerosf.front());
+          glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+          glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLfloat), size*2*sizeof(GLfloat), &zerosf.front());
+          glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
+          glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLfloat), size*sizeof(GLfloat), &zerosf.front());
+          glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
+          glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLint), size*2*sizeof(GLint), &zerosi.front());
+          writelock.unlock();
+        }
     }
-    writelock.unlock();
+  //  writelock.unlock();
     // int all = clock() - start;
     // if (all > 2) {
     //   cout << all << " clean" << endl;
     // }
-  }
+  //}
 }
 
 void GLVecs::edit( pair<int,int> index, MemVecs* newvecs) {

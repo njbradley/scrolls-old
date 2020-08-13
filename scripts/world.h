@@ -79,12 +79,12 @@ TileLoop::iterator TileLoop::end() {
 
 
 
-World::World(string newname, int newseed): loader(seed), seed(newseed), name(newname), closing_world(false), sunlight(1) {
+World::World(string newname, int newseed): loader(seed), seed(newseed), name(newname), closing_world(false), sunlight(1), commandprogram(this,&cout,&cout) {
     setup_files();
     startup();
 }
 
-World::World(string oldname): loader(seed), name(oldname), closing_world(false), sunlight(1) {
+World::World(string oldname): loader(seed), name(oldname), closing_world(false), sunlight(1), commandprogram(this,&cout,&cout) {
     //unzip();
     load_data_file();
     loader.seed = seed;
@@ -146,6 +146,7 @@ void World::startup() {
     ifstream ifile("saves/" + name + "/player.txt");
     if (ifile.good()) {
       player = new Player(this, ifile);
+      set_player_vars();
     } else {
       spawn_player();
     }
@@ -202,6 +203,15 @@ void World::spawn_player() {
   player->autojump = true;
   player->health = 10;
   player->max_health = 10;
+  
+  set_player_vars();
+}
+
+void World::set_player_vars() {
+  commandprogram.vec3vars["me.pos"] = CommandVar<vec3>(&player->position);
+  commandprogram.vec3vars["me.vel"] = CommandVar<vec3>(&player->vel);
+  commandprogram.doublevars["me.health"] = CommandVar<double>(&player->health);
+  
 }
 
 void World::load_nearby_chunks() {
@@ -304,7 +314,7 @@ void World::timestep() {
   last_time = now;
   
   ivec3 chunk(player->position/float(chunksize) - vec3(player->position.x<0, player->position.y<0, player->position.z<0));
-  if (tiles.find(chunk) != tiles.end() or player->flying) {
+  if (tiles.find(chunk) != tiles.end() or player->spectator) {
     player->timestep();
   }
   //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
@@ -316,7 +326,7 @@ void World::timestep() {
     daytime += 2000;
   }
   
-  sunlight = 0.1;
+  sunlight = 0;
   if (daytime > 450 and daytime < 500) {
     sunlight = (daytime-450)/50.0f;
   } else if (daytime > 500 and daytime < 1500) {
@@ -329,11 +339,13 @@ void World::timestep() {
   timestep_clock ++;
   int i = 0;
   TileLoop loop(this);
+  
   for (pair<ivec3, Tile*> kvpair : loop) {
       kvpair.second->timestep();
       mobcount += kvpair.second->entities.size() + kvpair.second->block_entities.size();
     i ++;
   }
+  
     //cout << "total " << entities << endl;
   //  tiles_lock.unlock();
   //}

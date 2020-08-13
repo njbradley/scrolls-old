@@ -404,6 +404,10 @@ void Pixel::render_update() {
         //render_index.first = -(render_index.first+2);
 }
 
+void Pixel::set_all_render_flags() {
+  render_flag = true;
+}
+
 void Pixel::del(bool remove_faces) {
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);
@@ -676,23 +680,28 @@ void Pixel::rotate_to_origin(int* mats, int* dirs, int rotation) {
   }
 }
 
-void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int gz) {
+void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int gz, int depth, bool faces[6], bool render_null) {
     if (!render_flag) {
         return;
     }
     
     MemVecs vecs;
     
-    gx += px*scale;
-    gy += py*scale;
-    gz += pz*scale;
+    int newscale = scale;
+    if (scale < depth) {
+      newscale = depth;
+    } else {
+      gx += px*scale;
+      gy += py*scale;
+      gz += pz*scale;
+    }
     //cout << "render" << gx << ' ' << gy << ' ' << gz << ' '<< scale << endl;
     GLfloat x = gx;
     GLfloat y = gy;
     GLfloat z = gz;
     render_flag = false;
     
-    if (value == 0) {
+    if (value == 0 or depth < 0) {
       if (render_index.first > -1) {
         allvecs->del(render_index);
         render_index = pair<int,int>(-1, 0);
@@ -719,16 +728,16 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
        
       int minscale = blocks->blocks[value]->minscale;
       
-      const GLfloat uvmax = scale;
+      const GLfloat uvmax = newscale;
       const float lightmax = 10.0f;
       // /char mat = tex_index;
       /*GLfloat new_uvs[] = {
-          0.0f, 1.0f * scale/minscale,
-          1.0f * scale/minscale, 1.0f * scale/minscale,
-          1.0f * scale/minscale, 0.0f,
-          1.0f * scale/minscale, 0.0f,
+          0.0f, 1.0f * newscale/minscale,
+          1.0f * newscale/minscale, 1.0f * newscale/minscale,
+          1.0f * newscale/minscale, 0.0f,
+          1.0f * newscale/minscale, 0.0f,
           0.0f, 0.0f,
-          0.0f, 1.0f * scale/minscale
+          0.0f, 1.0f * newscale/minscale
       };*/
       // GLfloat new_uvs[] = {
       //     0.0f, 1.0f,
@@ -745,8 +754,8 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
       
       
       
-      block = collider->get_global(gx, gy, gz-scale, scale);
-      if (block == nullptr or block->is_air(0, 0, 1)) {
+      block = collider->get_global(gx, gy, gz-newscale, newscale);
+      if (faces[5] and ((block != nullptr and block->is_air(0, 0, 1)) or (block == nullptr and render_null))) {
           GLfloat new_uvs[] = {
               0.0f, uvmax,
               uvmax, uvmax,
@@ -757,12 +766,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
           };
           rotate_uv(new_uvs,dirs[5]);
           GLfloat face[] = {
-              x + scale, y, z,
+              x + newscale, y, z,
               x, y, z,
-              x, y + scale, z,
-              x, y + scale, z,
-              x + scale, y + scale, z,
-              x + scale, y, z
+              x, y + newscale, z,
+              x, y + newscale, z,
+              x + newscale, y + newscale, z,
+              x + newscale, y, z
           };
           float faceblocklight = 0, facesunlight = 1;
           if (block != nullptr) {
@@ -772,8 +781,8 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
           vecs.add_face(face, new_uvs, 0.7f * facesunlight, faceblocklight, minscale, mat[5]);//0.4f
       }
       
-      block = collider->get_global(gx, gy-scale, gz, scale);
-      if (block == nullptr or block->is_air(0, 1, 0)) {
+      block = collider->get_global(gx, gy-newscale, gz, newscale);
+      if (faces[4] and ((block != nullptr and block->is_air(0, 1, 0)) or (block == nullptr and render_null))) {
           GLfloat new_uvs[] = {
               0.0f, uvmax,
               uvmax, uvmax,
@@ -784,12 +793,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
           };
           rotate_uv(new_uvs,dirs[4]);
           GLfloat face[] = {
-              x, y, z + scale,
+              x, y, z + newscale,
               x, y, z,
-              x + scale, y, z,
-              x + scale, y, z,
-              x + scale, y, z + scale,
-              x, y, z + scale,
+              x + newscale, y, z,
+              x + newscale, y, z,
+              x + newscale, y, z + newscale,
+              x, y, z + newscale,
           };
           float faceblocklight = 0, facesunlight = 1;
           if (block != nullptr) {
@@ -799,8 +808,8 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
           vecs.add_face(face, new_uvs, 0.5f * facesunlight, faceblocklight, minscale, mat[4]);
       }
       
-      block = collider->get_global(gx-scale, gy, gz, scale);
-      if (block == nullptr or block->is_air(1, 0, 0)) {
+      block = collider->get_global(gx-newscale, gy, gz, newscale);
+      if (faces[3] and ((block != nullptr and block->is_air(1, 0, 0)) or (block == nullptr and render_null))) {
           GLfloat new_uvs[] = {
               0.0f, uvmax,
               uvmax, uvmax,
@@ -812,10 +821,10 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
           rotate_uv(new_uvs,dirs[3]);
           GLfloat face[] = {
               x, y, z,
-              x, y, z + scale,
-              x, y + scale, z + scale,
-              x, y + scale, z + scale,
-              x, y + scale, z,
+              x, y, z + newscale,
+              x, y + newscale, z + newscale,
+              x, y + newscale, z + newscale,
+              x, y + newscale, z,
               x, y, z
           };
           float faceblocklight = 0, facesunlight = 1;
@@ -826,8 +835,8 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
           vecs.add_face(face, new_uvs, 0.7f * facesunlight, faceblocklight, minscale, mat[3]);
       }
       
-      block = collider->get_global(gx, gy, gz+scale, scale);
-      if (block == nullptr or block->is_air(0, 0, -1)) {
+      block = collider->get_global(gx, gy, gz+newscale, newscale);
+      if (faces[2] and ((block != nullptr and block->is_air(0, 0, -1)) or (block == nullptr and render_null))) {
           GLfloat new_uvs[] = {
               0.0f, uvmax,
               uvmax, uvmax,
@@ -838,12 +847,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
           };
           rotate_uv(new_uvs,dirs[2]);
           GLfloat face[] = {
-              x, y, z + scale,
-              x + scale, y, z + scale,
-              x + scale, y + scale, z + scale,
-              x + scale, y + scale, z + scale,
-              x, y + scale, z + scale,
-              x, y, z + scale
+              x, y, z + newscale,
+              x + newscale, y, z + newscale,
+              x + newscale, y + newscale, z + newscale,
+              x + newscale, y + newscale, z + newscale,
+              x, y + newscale, z + newscale,
+              x, y, z + newscale
           };
           float faceblocklight = 0, facesunlight = 1;
           if (block != nullptr) {
@@ -853,8 +862,8 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
           vecs.add_face(face, new_uvs, 0.7f * facesunlight, faceblocklight, minscale, mat[2]);
       }
       
-      block = collider->get_global(gx, gy+scale, gz, scale);
-      if (block == nullptr or block->is_air(0, -1, 0)) {
+      block = collider->get_global(gx, gy+newscale, gz, newscale);
+      if (faces[1] and ((block != nullptr and block->is_air(0, -1, 0)) or (block == nullptr and render_null))) {
           GLfloat new_uvs[] = {
               0.0f, uvmax,
               uvmax, uvmax,
@@ -866,12 +875,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
           rotate_uv(new_uvs,dirs[1]);
           GLfloat face[] = {
             
-              x, y + scale, z,
-              x, y + scale, z + scale,
-              x + scale, y + scale, z + scale,
-              x + scale, y + scale, z + scale,
-              x + scale, y + scale, z,
-              x, y + scale, z,
+              x, y + newscale, z,
+              x, y + newscale, z + newscale,
+              x + newscale, y + newscale, z + newscale,
+              x + newscale, y + newscale, z + newscale,
+              x + newscale, y + newscale, z,
+              x, y + newscale, z,
           };
           float faceblocklight = 0, facesunlight = 1;
           if (block != nullptr) {
@@ -881,8 +890,8 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
           vecs.add_face(face, new_uvs, 0.9f * facesunlight, faceblocklight, minscale, mat[1]);//top
       }
       
-      block = collider->get_global(gx+scale, gy, gz, scale);
-      if (block == nullptr or block->is_air(-1, 0, 0)) {
+      block = collider->get_global(gx+newscale, gy, gz, newscale);
+      if (faces[0] and ((block != nullptr and block->is_air(-1, 0, 0)) or (block == nullptr and render_null))) {
           GLfloat new_uvs[] = {
               0.0f, uvmax,
               uvmax, uvmax,
@@ -893,12 +902,12 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
           };
           rotate_uv(new_uvs,dirs[0]);
           GLfloat face[] = {
-              x + scale, y, z + scale,
-              x + scale, y, z,
-              x + scale, y + scale, z,
-              x + scale, y + scale, z,
-              x + scale, y + scale, z + scale,
-              x + scale, y, z + scale
+              x + newscale, y, z + newscale,
+              x + newscale, y, z,
+              x + newscale, y + newscale, z,
+              x + newscale, y + newscale, z,
+              x + newscale, y + newscale, z + newscale,
+              x + newscale, y, z + newscale
           };
           float faceblocklight = 0, facesunlight = 1;
           if (block != nullptr) {
@@ -1019,6 +1028,7 @@ Chunk* Pixel::resolve(function<char(ivec3)> gen_func) {
     //cout << newchunk->blocks[x][y][z] << '-' << endl;
     return subdivide(gen_func);
   }
+  value = val;
   return nullptr;
 }
 
@@ -1269,17 +1279,38 @@ int Chunk::get_sunlight(int dx, int dy, int dz) {
     }
 }
 
-void Chunk::render(RenderVecs* vecs, Collider* collider, int gx, int gy, int gz) {
-    if (render_flag) {
-        render_flag = false;
-        for (int x = 0; x < csize; x ++) {
-            for (int y = 0; y < csize; y ++) {
-                for (int z = 0; z < csize; z ++) {
-                    blocks[x][y][z]->render(vecs, collider, gx + px*scale, gy + py*scale, gz + pz*scale);
-                }
-            }
+void Chunk::render(RenderVecs* vecs, Collider* collider, int gx, int gy, int gz, int depth, bool faces[6], bool render_null) {
+  if (render_flag) {
+    render_flag = false;
+    if (depth < scale) {
+      for (int x = 0; x < csize; x ++) {
+        for (int y = 0; y < csize; y ++) {
+          for (int z = 0; z < csize; z ++) {
+            blocks[x][y][z]->render(vecs, collider, gx + px*scale, gy + py*scale, gz + pz*scale, depth, faces, render_null);
+          }
         }
+      }
+    } else {
+      bool chosen = false;
+      for (int y = csize-1; y >= 0; y --) {
+        for (int x = 0; x < csize; x ++) {
+          for (int z = 0; z < csize; z ++) {
+            if (!chosen and !blocks[x][y][z]->is_air(0,0,0)) {
+              if (depth == scale) {
+                blocks[x][y][z]->render(vecs, collider, gx + px*scale, gy + py*scale, gz + pz*scale, depth, faces, render_null);
+              } else {
+                blocks[x][y][z]->render(vecs, collider, gx, gy, gz, depth, faces, render_null);
+              }
+              chosen = true;
+            } else {
+              blocks[x][y][z]->render(vecs, collider, gx + px*scale, gy + py*scale, gz + pz*scale, -69, faces ,render_null);
+            }
+          }
+        }
+      }
+      
     }
+  }
 }
 
 void Chunk::del(bool remove_faces) {
@@ -1298,6 +1329,17 @@ void Chunk::render_update() {
         for (int y = 0; y < csize; y ++) {
             for (int z = 0; z < csize; z ++) {
                 blocks[x][y][z]->render_update();
+            }
+        }
+    }
+}
+
+void Chunk::set_all_render_flags() {
+    render_flag = true;
+    for (int x = 0; x < csize; x ++) {
+        for (int y = 0; y < csize; y ++) {
+            for (int z = 0; z < csize; z ++) {
+                blocks[x][y][z]->set_all_render_flags();
             }
         }
     }

@@ -16,6 +16,7 @@
 #include "terrain-predef.h"
 #include "blocks-predef.h"
 #include "collider-predef.h"
+#include "commands-predef.h"
 #include <future>
 #include <thread>
 #include <mutex>
@@ -63,6 +64,7 @@ class World: public Collider {
         int difficulty = 1;
         string name;
         GLVecs glvecs;
+        Program commandprogram;
         TerrainLoader loader;
         bool lighting_flag;
         Player* player;
@@ -86,6 +88,7 @@ class World: public Collider {
         void setup_files();
         void startup();
         void spawn_player();
+        void set_player_vars();
         void render();
         void timestep();
         void tick();

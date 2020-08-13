@@ -50,11 +50,12 @@ class Block: public Collider { public:
     Block(int x, int y, int z, int newscale, Chunk* newparent);
     void world_to_local(int x, int y, int z, int* lx, int* ly, int* lz) const;
     void global_position(int*, int*, int*) const;
-    virtual void render(RenderVecs*, Collider*, int, int, int) = 0;
+    virtual void render(RenderVecs* vecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null) = 0;
     virtual void rotate(int axis, int direction) = 0;
     virtual bool is_air(int, int, int) const = 0;
     virtual Block * get_global(int,int,int,int) = 0;
     virtual void render_update() = 0;
+    virtual void set_all_render_flags() = 0;
     virtual void save_to_file(ostream&) = 0;
     virtual void lighting_update() = 0;
     Block* raycast(Collider* world, double* x, double* y, double* z, double dx, double dy, double dz, double time);
@@ -102,6 +103,7 @@ public:
     void set(char val, int direction = -1, BlockExtra* extras = nullptr, bool update = true);
     // sets the value, direction, and BlockExtra of the pixel
     void render_update();
+    void set_all_render_flags();
     void tick();
     void random_tick();
     void del(bool remove_faces);
@@ -113,7 +115,7 @@ public:
     void lighting_update();
     bool is_air(int dx, int dy, int dz) const;
     Block* get_global(int x, int y, int z, int scale);
-    void render(RenderVecs*, Collider*, int, int,int);
+    void render(RenderVecs* vecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null);
     Chunk* subdivide();
     // splits the pixel into a chunk with 8 pixels of the
     // same value in it
@@ -141,6 +143,7 @@ class Chunk: public Block { public:
     Block * get(int x, int y, int z) const;
     Pixel* get_pix();
     char get() const;
+    void set_all_render_flags();
     //void set(char val, int direction, BlockExtra* extras);
     void lighting_update();
     void calculate_lightlevel(int recursion_level);
@@ -148,7 +151,7 @@ class Chunk: public Block { public:
     void all_side(function<void(Pixel*)>,int,int,int);
     int get_sunlight(int dx, int dy, int dz);
     int get_blocklight(int dx, int dy, int dz);
-    void render(RenderVecs* vecs, Collider*, int gx, int gy, int gz);
+    void render(RenderVecs* vecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null);
     void del(bool remove_faces);
     void render_update();
     void rotate(int axis, int dir);

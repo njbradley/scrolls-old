@@ -643,14 +643,14 @@ void DisplayEntity::render(RenderVecs* allvecs) {
   //
   
   
-  
   if (render_flag) {
     vecs.clear();
     block.block->all([=] (Pixel* pix) {
       pix->render_index = pair<int,int>(-1,0);
       pix->set_render_flag();
     });
-    block.block->render(&vecs, &block, 0, 0, 0);
+    bool faces[] = {true,true,true,true,true,true};
+    block.block->render(&vecs, &block, 0, 0, 0, 1, faces, true);
     for (int i = 0; i < vecs.num_verts; i++) {
       vecs.verts[i*3+0] += blockpos.x;
       vecs.verts[i*3+1] += blockpos.y;
@@ -700,14 +700,12 @@ void DisplayEntity::render(RenderVecs* allvecs) {
       translated.light[i*2+1] = blocklight/10.0f;
     }
   }
-  
   if (render_index == pair<int,int>(-1,0)) {
     render_index = allvecs->add(&translated);
   } else {
     allvecs->edit(render_index, &translated); //ERR: passes problemic vector? segfault deep in allvecs.edit, where translated.verts is added on
   }
   //cout << render_index.first << ',' << render_index.second << ' ' << vecs.num_verts << endl;
-  
   // cout << position.x << ' ' << position.y << ' ' << position.z << endl;
   // for (bool b : consts) {
   //   cout << b << ' ';

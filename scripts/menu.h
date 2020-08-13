@@ -385,8 +385,9 @@ CommandMenu::CommandMenu(function<void()> after_func): TextInputMenu("commands",
       str.erase(str.length()-1);
       cout << "full command" << endl << str << endl;
       stringstream ss(str);
-      Program program(world, &cout, &cout, ss);
-      program.run();
+      world->commandprogram.lines.clear();
+      world->commandprogram.parse_lines(ss);
+      world->commandprogram.run();
       after_func();
     }
   }) {

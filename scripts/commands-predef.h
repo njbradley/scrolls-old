@@ -34,6 +34,7 @@ template <typename Type> class CommandVar { public:
 	bool unique;
 	CommandVar(Type* newref);
 	CommandVar(Type val);
+	CommandVar();
 	~CommandVar();
 	CommandFunc<Type> getfunc();
 	CommandVoidFunc setfunc(CommandFunc<Type> newval);
@@ -65,6 +66,7 @@ class Command { public:
 	template <typename Type> CommandFunc<Type> get_var(string id);
 	template <typename Type> CommandFunc<Type> get_method(istream& ifile, string id);
 	CommandVoidFunc set_var(istream& ifile, string id);
+	void new_var(istream& ifile, string type, string id);
 	CommandVoidFunc set_oper_var(istream& ifile, string id, char oper);
 };
 
@@ -87,7 +89,8 @@ class Program { public:
 	CommandMethod<void,vec3> printv3;
 	CommandMethod<int,double> dtoi;
 	CommandMethod<ivec3,vec3> vec3toivec3;
-	Program(World* world, ostream* newout, ostream* newerrout, istream& ifile);
+	Program(World* world, ostream* newout, ostream* newerrout);
+	void parse_lines(istream& ifile);
 	void run();
 };
 

@@ -136,17 +136,19 @@ void dump_emptys() {
 
 
 void crash(long long err_code) {
-	cout << "fatal error encountered! shutting down cleanly: err code: " << err_code << endl;
-	dump_buffers();
-	dump_emptys();
+	if (!errors) {
+		cout << "fatal error encountered! shutting down cleanly: err code: " << err_code << endl;
+	}
+	//dump_buffers();
+	//dump_emptys();
 	errors = true;
 	playing = false;
 }
 
 void hard_crash(long long err_code) {
 	cout << "fatal error encountered! unable to close cleanly: err code: " << err_code << endl;
-	dump_buffers();
-	dump_emptys();
+	//dump_buffers();
+	//dump_emptys();
 	errors = true;
 	wait();
 	exit(1);
@@ -190,7 +192,8 @@ void load_settings() {
 		ofile << "fullscreen: false" << endl;
 		ofile << "dims: 1600 900" << endl;
 		ofile << "max_fps: 90" << endl;
-		ofile << "alloc_memory: 500000" << endl;
+		ofile << "alloc_memory: 700000" << endl;
+		ofile << "view_dist: 3" << endl;
 		load_settings();
 	}
 }
@@ -529,7 +532,7 @@ int main( void )
 	bool reaching_max_fps = true;
 	double slow_frame = 0;
 	int slow_tick = 0;
-	int view_distance = view_dist * World::chunksize;
+	int view_distance = view_dist * World::chunksize * 10;
 	bool dologtime = false;
 	
 	
@@ -541,18 +544,18 @@ int main( void )
 	
 	while (playing) {
 		
-		int begin = clock();
+		double begin = glfwGetTime();
 		if (menu == nullptr) {
 			world->timestep();
 			//test->timestep(world);
 			world->player->computeMatricesFromInputs();
 		}
-		int time = clock() - begin;
-		if (dologtime and time > 1) {
+		double time = glfwGetTime() - begin;
+		if (dologtime and time > 0.001) {
 			cout << "timestep " << time << endl;
 		}
 		
-		begin = clock();
+		begin = glfwGetTime();
 		if (debug_visible) {
 			debugstream.str("");
 			debugstream << std::fixed;
@@ -604,7 +607,7 @@ int main( void )
 			//cout << "rendering!!!!" << endl;
 			//auto fut =  std::async([&] () {world->render();});//();
 			//world->render();
-			num_tris = threadmanager->render_num_verts/3;//world->glvecs.num_verts/3;
+			num_tris = world->glvecs.num_verts/3;//world->glvecs.num_verts/3;
 			//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, matbuffer, &num_tris, render_flag);
 			render_flag = false;
 		}
@@ -676,8 +679,8 @@ int main( void )
 			slow_tick = 0;
 		}
 		
-		time = clock() - begin;
-		if (dologtime and time > 1) {
+		time = glfwGetTime() - begin;
+		if (dologtime and time > 0.001) {
 			cout << "debug " << time << endl;
 		}
 		
@@ -726,7 +729,7 @@ int main( void )
 		//-----------------------------------------------------FIRST DRAW CALL-------------------------------------------------------------------------------------------------------------------------//
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		
-		int start = clock();
+		double start = glfwGetTime();
 		glBindVertexArray(VertexArrayID);
 		
 		
@@ -755,15 +758,15 @@ int main( void )
 			glBindTexture(GL_TEXTURE_2D_ARRAY, block_textures[i]);
 		}
 		
-		// if (!world->glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
-		// 	cout << "glvecs lock has timed out" << endl;
-		// 	exit(1);
-		// }
-		time = clock() - start;
-		if (time > 5) {
+		if (!world->glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
+			cout << "glvecs lock has timed out" << endl;
+			exit(1);
+		}
+		time = glfwGetTime() - start;
+		if (dologtime and time > 0.001) {
 			cout << "unlocking took " << time << endl;
 		}
-		start = clock();
+		start = glfwGetTime();
 		
 		// Bind our texture in Texture Unit 0
 		//glActiveTexture(GL_TEXTURE0);
@@ -826,20 +829,20 @@ int main( void )
 		glDisableVertexAttribArray(2);
 		glDisableVertexAttribArray(3);
 		
-		//world->glvecs.writelock.unlock();
+		world->glvecs.writelock.unlock();
 		
-		int all = clock() - start;
-		if (all > 2) {
+		double all = glfwGetTime() - start;
+		if (dologtime and all > 0.001) {
 			cout << all << " render time" << endl;
 		}
 		
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		//-----------------------------------------------------SECOND DRAW CALL------------------------------------------------------------------------------------------------------------------------//
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		begin = clock();
+		begin = glfwGetTime();
 		make_ui_buffer(world->player, debugstream.str(), vertex_ui_buffer, uv_ui_buffer, mat_ui_buffer, &num_ui_tris);
-		int buffertime = clock() - begin;
-		if (dologtime and buffertime > 1) {
+		double buffertime = glfwGetTime() - begin;
+		if (dologtime and buffertime > 0.001) {
 			cout << "buffer " << buffertime << ' ';
 		}
 		//allow trancaperancy
@@ -912,20 +915,20 @@ int main( void )
 		//*/
 		// Swap buffers
 		
-		time = clock() - begin;
-		if (dologtime and time > 1) {
+		time = glfwGetTime() - begin;
+		if (dologtime and time > 0.001) {
 			cout << "ui " << time << endl;
 		}
 		
-		begin = clock();
+		begin = glfwGetTime();
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-		time = clock() - begin;
-		if (dologtime and time > 1) {
+		time = glfwGetTime() - begin;
+		if (dologtime and time > 0.001) {
 			cout << "swap " << time << endl;
 		}
 		
-		start = clock();
+		start = glfwGetTime();
 		if (menu == nullptr) {
 			if (glfwGetKey(window, GLFW_KEY_M ) == GLFW_PRESS) {
 				main_menu();
@@ -954,7 +957,9 @@ int main( void )
 			} else if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
 				debug_visible = false;
 			} else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
-				hard_crash(1);
+				dump_buffers();
+				dump_emptys();
+				crash(1);
 			}
 		} else {
 			if (glfwGetKey(window, GLFW_KEY_ESCAPE ) == GLFW_PRESS) {
@@ -970,8 +975,8 @@ int main( void )
 			//world->closing_world = true;
 			playing = false;
 		}
-		int menutime = clock() - start;
-		if (menutime > 1) {
+		double menutime = glfwGetTime() - start;
+		if (dologtime and menutime > 0.001) {
 			cout << "menutime " << menutime << endl;
 		}
 		// if (world->is_world_closed()) {

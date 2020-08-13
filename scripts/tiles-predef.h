@@ -14,6 +14,9 @@ class Tile {
 		Block* chunk;
 		int chunksize;
 		World* world;
+		int render_depth = 1;
+		bool render_faces[6] = {true,true,true,true,true,true};
+		bool optimized_render = true;
 		std::timed_mutex writelock;
 		bool deleting;
 		bool lightflag = true;

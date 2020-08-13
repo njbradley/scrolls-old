@@ -18,6 +18,17 @@ bool is_string_char(char c) {
 	return c != ' ' and c != '+' and c != '-' and c != '/' and c != '*' and c != ';' and c != '(' and c != ')' and c != ',';
 }
 
+template <typename T> void debuglog(T val) {
+	cout << val << endl;
+}
+
+template <> void debuglog<vec3>(vec3 val) {
+	cout << val.x << ' ' << val.y << ' ' << val.z << endl;
+}
+
+template <> void debuglog<ivec3>(ivec3 val) {
+	cout << val.x << ' ' << val.y << ' ' << val.z << endl;
+}
 
 
 
@@ -28,6 +39,8 @@ template <typename Type> CommandConst<Type>::CommandConst(Type newval): value(ne
 template <typename Type> CommandFunc<Type> CommandConst<Type>::getfunc() {
 	Type val = value;
 	return [=] (Program* program) {
+		//cout << "const return ";
+		//debuglog<Type>(val);
 		return val;
 	};
 }
@@ -60,12 +73,18 @@ template <typename Type> CommandVar<Type>::CommandVar(Type* newref): ref(newref)
 	
 }
 
+template <typename Type> CommandVar<Type>::CommandVar(): ref(nullptr), unique(false) {
+	
+}
+
 template <typename Type> CommandVar<Type>::CommandVar(Type val): unique(true) {
 	ref = new Type(val);
+	cout << "generating new ref " << ref << endl;
 }
 
 template <typename Type> CommandVar<Type>::~CommandVar() {
 	if (unique) {
+		cout << "deleting ref " << ref << endl;
 		delete ref;
 	}
 }
@@ -73,6 +92,8 @@ template <typename Type> CommandVar<Type>::~CommandVar() {
 template <typename Type> CommandFunc<Type> CommandVar<Type>::getfunc() {
 	Type* reference = ref;
 	return [=] (Program* program) {
+		//cout << "return var ";
+		//debuglog<Type>(*reference);
 		return *reference;
 	};
 }
@@ -81,6 +102,8 @@ template <typename Type> CommandVoidFunc CommandVar<Type>::setfunc(CommandFunc<T
 	Type* reference = ref;
 	return [=] (Program* program) {
 		*reference = newval(program);
+		///cout << "new val ";
+		//debuglog<Type>(*reference);
 	};
 }
 
@@ -339,15 +362,30 @@ CommandVoidFunc Command::set_var(istream& ifile, string id) {
 	if (program->stringvars.find(id) != program->stringvars.end()) {
 		return program->stringvars.at(id).setfunc(parse<string>(ifile));
 	}
-	if (program->stringvars.find(id) != program->stringvars.end()) {
-		return program->stringvars.at(id).setfunc(parse<string>(ifile));
-	}
 	if (program->vec3vars.find(id) != program->vec3vars.end()) {
 		return program->vec3vars.at(id).setfunc(parse<vec3>(ifile));
 	}
 	*program->errout << "ERR: no variable '" << id << "' found" << endl;
 	program->error = true;
+	return CommandNullFunc<void>();
 }
+
+void Command::new_var(istream& ifile, string type, string id) {
+	if (type == "int") {
+		program->intvars.emplace(id, 0);
+	} else if (type == "float") {
+		program->doublevars.emplace(id, 0.0);
+	} else if (type == "string") {
+		program->stringvars.emplace(id, string(""));
+	} else if (type == "vec3") {
+		program->vec3vars.emplace(id, vec3(0,0,0));
+	} else {
+		*program->errout << "ERR: no type called '" << type << "' " << endl;
+		program->error = true;
+	}
+}
+	
+	
 
 CommandVoidFunc Command::set_oper_var(istream& ifile, string id, char oper) {
 	if (program->intvars.find(id) != program->intvars.end()) {
@@ -413,7 +451,7 @@ template <> CommandFunc<ivec3> Command::get_method<ivec3>(istream& ifile, string
 	}
 }
 
-Command::Command(Program* newprogram, istream& ifile): program(newprogram) {
+Command::Command(Program* newprogram, istream& ifile): program(newprogram), func(CommandNullFunc<void>()) {
 	string id;
 	char lett;
 	
@@ -431,6 +469,22 @@ Command::Command(Program* newprogram, istream& ifile): program(newprogram) {
 	} else if (lett == '=') {
 		ifile.get();
 		func = set_var(ifile, id);
+	} else if (id == "int" or id == "float" or id == "string" or id == "vec3") {
+		string type = id;
+		id = "";
+		while (is_string_char(ifile.peek()) and !ifile.eof()) {
+			id.push_back(ifile.get());
+		}
+		lett = ifile.peek();
+		while (lett == ' ' and !ifile.eof()) {
+			ifile.get();
+			lett = ifile.peek();
+		}
+		new_var(ifile, type, id);
+		if (lett == '=') {
+			ifile.get();
+			func = set_var(ifile, id);
+		}
 	} else if (lett == '+' or lett == '-' or lett == '*' or lett == '/' or lett == '%') {
 		char oper = ifile.get();
 		if (ifile.peek() == '=') {
@@ -451,7 +505,7 @@ Command::Command(Program* newprogram, istream& ifile): program(newprogram) {
 
 
 
-Program::Program(World* nworld, ostream* newout, ostream* newerrout, istream& ifile): world(nworld), out(newout), errout(newerrout),
+Program::Program(World* nworld, ostream* newout, ostream* newerrout): world(nworld), out(newout), errout(newerrout),
 worldsummon([] (Program* program, vec3 pos, string entityname) {
 	DisplayEntity* entity;
 	if (entityname == "pig") entity = new Pig(program->world, pos);
@@ -483,13 +537,16 @@ vec3toivec3([] (Program* program, vec3 val) {
 }),
 doublevars({
 	{"world.time", CommandVar<double>(&world->daytime)},
-	{"me.health", CommandVar<double>(&world->player->health)},
-	{"me.max_health", CommandVar<double>(&world->player->max_health)},
+	{"me.health", CommandVar<double>()},
 }),
 vec3vars({
-	{"me.pos", CommandVar<vec3>(&world->player->position)},
-	{"me.vel", CommandVar<vec3>(&world->player->vel)},
+	{"me.pos", CommandVar<vec3>()},
+	{"me.vel", CommandVar<vec3>()},
 }) {
+	
+}
+
+void Program::parse_lines(istream& ifile) {
 	error = false;
 	string buf;
 	while (!ifile.eof()) {
@@ -507,7 +564,6 @@ void Program::run() {
 		}
 	}
 }
-
 
 
 

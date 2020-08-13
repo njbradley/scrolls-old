@@ -622,9 +622,6 @@ void Player::computeMatricesFromInputs(){
 	
 	
 	float nspeed = speed;
-	if (flying) {
-		nspeed *= 3;
-	}
 	
 	if (!consts[4]) {
 		nspeed /= 10;
@@ -632,43 +629,64 @@ void Player::computeMatricesFromInputs(){
 	
 	double stamina_cost = 0;
 	
-	// Move forward
-	if (glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS){
-		// vec3 dir_const = vec3(1,0,0)*(float)consts[0] + vec3(0,0,1)*(float)consts[2] + vec3(-1,0,0)*(float)consts[3] + vec3(0,0,-1)*(float)consts[5];
-		// if (length(dir_const-forward) < 0.9f and (consts[0] or consts[2] or consts[3] or consts[5]) and autojump and not consts[6]) {
-		// 	vel.y = 6;
-		// 	if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS) {
-		// 		vel.y = 10;
-		// 	}
-		// }
-		vel += forward * deltaTime * nspeed;
-		stamina_cost += glm::dot(vel, forward);
-	}
-	// Move backward
-	if (glfwGetKey( window, GLFW_KEY_S ) == GLFW_PRESS){
-		vel -= forward * deltaTime * nspeed;
-		stamina_cost += glm::dot(vel, -forward);
-	}
-	// Strafe right
-	if (glfwGetKey( window, GLFW_KEY_D ) == GLFW_PRESS){
-			vel += right * deltaTime * nspeed;
-			stamina_cost += glm::dot(vel, right);
-	}
-	// Strafe left
-	if (glfwGetKey( window, GLFW_KEY_A ) == GLFW_PRESS){
-			vel -= right * deltaTime * nspeed;
-			stamina_cost += glm::dot(vel, -right);
-	}
-	if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS){
-		if (flying) {
-			position += up * deltaTime * speed;
-		} else if (consts[4]) {
-			vel.y = 15;// = vec3(0,10,0);//up * deltaTime * speed;
-			stamina_cost += vel.y;
+	if (!spectator) {
+		// Move forward
+		if (glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS){
+			// vec3 dir_const = vec3(1,0,0)*(float)consts[0] + vec3(0,0,1)*(float)consts[2] + vec3(-1,0,0)*(float)consts[3] + vec3(0,0,-1)*(float)consts[5];
+			// if (length(dir_const-forward) < 0.9f and (consts[0] or consts[2] or consts[3] or consts[5]) and autojump and not consts[6]) {
+			// 	vel.y = 6;
+			// 	if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS) {
+			// 		vel.y = 10;
+			// 	}
+			// }
+			vel += forward * deltaTime * nspeed;
+			stamina_cost += glm::dot(vel, forward);
 		}
-	}
-	if (glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS){
-		if (flying) {
+		// Move backward
+		if (glfwGetKey( window, GLFW_KEY_S ) == GLFW_PRESS){
+			vel -= forward * deltaTime * nspeed;
+			stamina_cost += glm::dot(vel, -forward);
+		}
+		// Strafe right
+		if (glfwGetKey( window, GLFW_KEY_D ) == GLFW_PRESS){
+				vel += right * deltaTime * nspeed;
+				stamina_cost += glm::dot(vel, right);
+		}
+		// Strafe left
+		if (glfwGetKey( window, GLFW_KEY_A ) == GLFW_PRESS){
+				vel -= right * deltaTime * nspeed;
+				stamina_cost += glm::dot(vel, -right);
+		}
+		if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS){
+			if (consts[4]) {
+				vel.y = 15;// = vec3(0,10,0);//up * deltaTime * speed;
+				stamina_cost += vel.y;
+			}
+		}
+		
+	} else {
+		
+		nspeed = 75;
+		
+		if (glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS){
+			position += forward * deltaTime * nspeed;
+		}
+		// Move backward
+		if (glfwGetKey( window, GLFW_KEY_S ) == GLFW_PRESS){
+			position -= forward * deltaTime * nspeed;
+		}
+		// Strafe right
+		if (glfwGetKey( window, GLFW_KEY_D ) == GLFW_PRESS){
+			position += right * deltaTime * nspeed;
+		}
+		// Strafe left
+		if (glfwGetKey( window, GLFW_KEY_A ) == GLFW_PRESS){
+			position -= right * deltaTime * nspeed;
+		}
+		if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS){
+			position += up * deltaTime * speed;
+		}
+		if (glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS){
 			position -= up * deltaTime * speed;
 		}
 	}
