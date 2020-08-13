@@ -62,6 +62,7 @@ class World: public Collider {
     		vector<pair<int,int> > dead_render_indexes;
         int seed;
         int difficulty = 1;
+        bool generation = true;
         string name;
         GLVecs glvecs;
         Program commandprogram;

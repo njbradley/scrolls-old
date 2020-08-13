@@ -10,12 +10,16 @@
 
 Block* Tile::generate(ivec3 pos) {
   Pixel* pix = new Pixel(pos.x,pos.y,pos.z,0,chunksize,nullptr,this);
-  Chunk* chunk = pix->resolve([=] (ivec3 position) {return world->loader.gen_func(position);});
-	if (chunk == nullptr) {
-		return pix;
-	} else {
-		return chunk;
-	}
+  if (world->generation) {
+    Chunk* chunk = pix->resolve([=] (ivec3 position) {return world->loader.gen_func(position);});
+  	if (chunk == nullptr) {
+  		return pix;
+  	} else {
+  		return chunk;
+  	}
+  } else {
+    return pix;
+  }
 }
 
 void Tile::update_lighting() {
@@ -98,6 +102,12 @@ void Tile::save() {
   stringstream path;
   path << "saves/" << world->name << "/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
   //cout << "saving '" << path.str() << "' to file\n";
+  if (!world->generation) {
+    ifstream ifile(path.str());
+    if (!ifile.good()) {
+      return;
+    }
+  }
   ofstream ofile(path.str(), ios::binary);
   chunk->save_to_file(ofile);
   ofile << endl << entities.size() << endl;

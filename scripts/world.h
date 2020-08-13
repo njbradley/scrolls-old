@@ -117,6 +117,11 @@ void World::load_data_file() {
         if (buff == "difficulty") {
           ifile >> difficulty;
         }
+        if (buff == "generation") {
+          string gen;
+          ifile >> gen;
+          generation = gen == "on";
+        }
         getline(ifile, buff);
     }
 }
@@ -128,6 +133,7 @@ void World::save_data_file() {
     ofile << "seed:" << seed << endl;
     ofile << "difficulty:" << difficulty << endl;
     ofile << "daytime:" << daytime << endl;
+    ofile << "generation:" << (generation ? "on" : "off") << endl;
     ofile.close();
 }
 
