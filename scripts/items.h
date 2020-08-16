@@ -96,12 +96,14 @@ string Item::descript() {
   if (data->tool == "null") {
     return data->name;
   } else {
-    return data->name + "\nSharpness " + std::to_string(sharpness) + "\nWeight " + std::to_string(weight);
+    stringstream ss;
+    ss << data->name << "\nSharpness " << sharpness << "\nWeight " << weight;
+    return ss.str();
   }
 }
 
-void Item::damage(double time) {
-  sharpness -= 0.1/data->damage;
+void Item::damage(Player* player, BlockData* data) {
+  sharpness -= 0.1;
   if (sharpness < 0) {
     sharpness = 0;
   }
@@ -186,7 +188,7 @@ void Item::sharpen(double speed, double force) {
 /////////////////////////////////////// ITEMdada ////////////////////////////////
 
 ItemData::ItemData(ifstream & ifile):
-stackable(true), onplace(nullptr), rcaction("null"), damage(1), starting_weight(0),
+stackable(true), onplace(nullptr), rcaction("null"), starting_weight(0),
 starting_sharpness(0), tool("null"), sharpenable(false) {
   
   string buff;
@@ -213,8 +215,8 @@ starting_sharpness(0), tool("null"), sharpenable(false) {
         stackable = false;
       } else if (varname == "rcaction") {
         ifile >> rcaction;
-      } else if (varname == "damage") {
-        ifile >> damage;
+      } else if (varname == "toughness") {
+        ifile >> toughness;
       } else if (varname == "weight") {
         ifile >> starting_weight;
         sharpenable = true;

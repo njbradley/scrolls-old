@@ -112,7 +112,7 @@ void DropTable::drop(ItemContainer* result, Player* player, Item* break_item) {
 
 BlockData::BlockData(ifstream & ifile):
 default_direction(0), rotation_enabled(false), minscale(1), rcaction("null"), lightlevel(0),
-clumpyness(0.9), clumpy_group("") {
+clumpyness(0.9), clumpy_group(""), toughness(0) {
   string buff;
   ifile >> buff;
   if (buff != "block") {
@@ -147,6 +147,8 @@ clumpyness(0.9), clumpy_group("") {
         rotation_enabled = true;
       } else if (varname == "minscale") {
         ifile >> minscale;
+      } else if (varname == "toughness") {
+        ifile >> toughness;
       } else if (varname == "rcaction") {
         ifile >> rcaction;
       } else if (varname == "lightlevel") {

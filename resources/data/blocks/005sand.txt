@@ -1,5 +1,6 @@
 block sand {
 	:break_times: [axe:0.08 pickaxe:0.08 shovel:0.08 sword:0.05 null:0.12]
+	:toughness: 0.2
 	:textures: [sand]
 	:clumpy_group: ground
 }

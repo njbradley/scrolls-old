@@ -487,14 +487,14 @@ void Player::left_mouse() {
 	}
 	double time_needed = item->dig_time(pix->get());
 	if (timeout > time_needed) {
-		if (tool != "null") {
-			item->damage(time_needed);
-		}
 		char newitem;
 		if (item->isnull) {
 			newitem = Item::ondig_null(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
 		} else {
 			newitem = item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+		}
+		if (tool != "null") {
+			item->damage(this, blocks->blocks[newitem]);
 		}
 		if (newitem != 0) {
 			blocks->blocks[newitem]->droptable.drop(&inven, this, item);

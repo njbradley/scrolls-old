@@ -43,6 +43,7 @@ class DropTable { public:
 
 class BlockData { public:
     map<string,double> hardness;
+    double toughness;
     int texture[6];
     int default_direction;
     bool rotation_enabled;

@@ -1,5 +1,6 @@
 block grass {
 	:break_times: [axe:0.7 pickaxe:0.7 shovel:0.2 sword:0.4 null:0.8]
+	:toughness: 0.5
 	:textures: [grass]
 	:item_dropped: [dirt 1, (% 0.25) grass 1]
 	:clumpy_group: ground

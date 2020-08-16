@@ -34,7 +34,7 @@ public:
   Item(ItemData* newdata);
   Item(istream& ifile);
   Item(ItemData* newdata, double newsharpness, double newweight);
-  void damage(double time);
+  void damage(Player* player, BlockData* data);
   double dig_time(char val);
   bool do_rcaction(World* world);
   char ondig(World* world, int x, int y, int z);
@@ -53,7 +53,7 @@ class ItemData {
         string name;
         CharArray* onplace;
         string rcaction;
-        int damage;
+        double toughness;
         int starting_weight;
         int starting_sharpness;
         bool sharpenable;
