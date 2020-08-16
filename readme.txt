@@ -27,6 +27,7 @@ much guidance for what to do. A few pointers:
   and more recipes.
  -Skeletons spawn in the snow, so watch out for them sneaking up on you, they blend right in
  -Pigs are a great source of food, they spawn in the grassy areas
+ -The night is pitch black, so make sure to craft some lanterns and place them down when it starts to get dark
  
 Controls:
 WASD - movement
@@ -45,15 +46,19 @@ O/P - show/hide debug menu
 R - force cleaning of memory vectors
 F/G - enter/exit spectator mode
 
-Version 0.3 (in dev):
+Version 0.3:
  Additions:
  -many new randomly generated terrain structures
  -block physics is now working! now blocks fall if they are not attached to another block they stick to
- -monsters have been added! When they die they become part of the landscape, instead of just dropping their loot
+ -monsters have been added! When they die they become part of the landscape, and you can mine their bodies to get loot
  -player movement has been improved, you can now go up one block steps automatically without losing your velocity
  -you can also construct ladders out of blocks that the player can climb, and the player can stand in gaps in the wall
- -finally fixed most of the bugs and lag from multithreading
- -working on multiplayer worlds and servers
+ -biomes have been added, right now there are only two but soon there will be much more
+ -lighting is finally working! there is a day/night cycle, and at night you need lamps to be able to see
+ -tools have been overhauled, with a new durability system. every tool has a weight level and a sharpness level
+  when you mine, the sharpness decreases. you can craft a grindstone to sharpen the tool, but that wears away
+  and decreases the weight
+ -chests have been changed, now every block holds one item, but if you place chests next to each other they combine up to 10 spots
 
 Version 0.2:
  Additions:

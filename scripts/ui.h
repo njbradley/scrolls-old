@@ -23,7 +23,9 @@ void set_screen_dims(int x, int y) {
 }
 
 void render_debug(MemVecs * vecs, string message) {
+	message = "Scrolls Alpha 0.3\n" + message;
 	draw_text(vecs, message, -1, 1-pix_y);
+	draw_text(vecs, "Work in progress", 0.5, 1-pix_y);
 	draw_text(vecs, "X", -pix_x/2, -pix_y/2);
 }
 

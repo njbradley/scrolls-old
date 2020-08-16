@@ -65,7 +65,7 @@ GLuint mat_ui_buffer;
 
 int allocated_memory;
 
-bool debug_visible = true;
+bool debug_visible = false;
 bool fullscreen = false;
 
 bool playing = true;
@@ -188,8 +188,8 @@ void load_settings() {
 	} else {
 		create_dir("saves");
 		ofstream ofile("saves/settings.txt");
-		ofile << "fov: 110" << endl;
-		ofile << "fullscreen: false" << endl;
+		ofile << "fov: 90" << endl;
+		ofile << "fullscreen: true" << endl;
 		ofile << "dims: 1600 900" << endl;
 		ofile << "max_fps: 90" << endl;
 		ofile << "alloc_memory: 700000" << endl;
