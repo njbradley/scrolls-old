@@ -178,11 +178,16 @@ char Item::ondig_null(World* world, int x, int y, int z) {
     return type;
 }
 
+void Item::sharpen(double speed, double force) {
+  sharpness += speed*0.1;
+  weight -= speed*0.01;
+}
+
 /////////////////////////////////////// ITEMdada ////////////////////////////////
 
 ItemData::ItemData(ifstream & ifile):
 stackable(true), onplace(nullptr), rcaction("null"), damage(1), starting_weight(0),
-starting_sharpness(0), tool("null") {
+starting_sharpness(0), tool("null"), sharpenable(false) {
   
   string buff;
   ifile >> buff;
@@ -212,8 +217,10 @@ starting_sharpness(0), tool("null") {
         ifile >> damage;
       } else if (varname == "weight") {
         ifile >> starting_weight;
+        sharpenable = true;
       } else if (varname == "sharpness") {
         ifile >> starting_sharpness;
+        sharpenable = true;
       } else if (varname == "tool") {
         ifile >> tool;
       } else if (varname == "texture") {

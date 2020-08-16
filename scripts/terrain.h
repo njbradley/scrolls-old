@@ -6,7 +6,81 @@
 #include "generative.h"
 #include <math.h>
 
+
+constexpr double merge_threshold = 0.2;
 const int chunksize = World::chunksize;
+
+TerrainBase::TerrainBase(TerrainLoader* loader): parent(loader) {
+	
+}
+
+
+
+
+
+TerrainBaseMerger::TerrainBaseMerger(TerrainBase* newfirst, TerrainBase* newsecond): TerrainBase(newfirst->parent), first(newfirst), second(newsecond) {
+	
+}
+
+int TerrainBaseMerger::get_height(ivec2 pos) {
+	if (second == nullptr) {
+		return first->get_height(pos);
+	}
+	ivec3 pos3(pos.x, 0, pos.y);
+	double wetness = parent->get_wetness(pos3);
+	double temp = parent->get_temp(pos3);
+	double elev = parent->get_elev(pos3);
+	double bestscore = first->valid_score(wetness, temp, elev);
+	double nextscore = second->valid_score(wetness, temp, elev);
+	double diff = bestscore-nextscore;
+	
+	double bestweight = 0.5+(diff/merge_threshold)*0.5;
+	double nextweight = 0.5-(diff/merge_threshold)*0.5;
+	int bestheight = first->get_height(pos);
+	int nextheight = second->get_height(pos);
+	int height = bestheight * bestweight + nextheight * nextweight;
+	return height;
+}
+
+char TerrainBaseMerger::gen_func(ivec3 pos) {
+	if (second == nullptr) {
+		return first->gen_func(pos);
+	}
+	double wetness = parent->get_wetness(pos);
+	double temp = parent->get_temp(pos);
+	double elev = parent->get_elev(pos);
+	double bestscore = first->valid_score(wetness, temp, elev);
+	double nextscore = second->valid_score(wetness, temp, elev);
+	//cout << '-' << bestscore << ' ' << nextscore << endl;
+	double diff = bestscore-nextscore;
+	
+	double bestweight = 0.5+(diff/merge_threshold)*0.5;
+	double nextweight = 0.5-(diff/merge_threshold)*0.5;
+	int bestheight = first->get_height(ivec2(pos.x, pos.z));
+	int nextheight = second->get_height(ivec2(pos.x, pos.z));
+	int height = bestheight * bestweight + nextheight * nextweight;
+	if (randfloat(parent->seed, pos.x, pos.y, pos.z, 2432) < nextweight) {
+		return second->gen_func(pos + ivec3(0, nextheight - height, 0));
+	} else {
+		return first->gen_func(pos + ivec3(0, bestheight - height, 0));
+	}
+}
+
+double TerrainBaseMerger::valid_score(double wetness, double temp, double elev) {
+	exit(1);
+}
+
+string TerrainBaseMerger::name() {
+	if (second == nullptr) {
+		return first->name();
+	} else {
+		return first->name() + '-' + second->name();
+	}
+}
+
+
+
+
 
 
 TerrainObject::TerrainObject(TerrainLoader* loader, ivec3 nsize, int nradius): parent(loader), size(nsize), radius(nradius) {
@@ -67,12 +141,14 @@ char TerrainObjectMerger::gen_func(ivec3 pos) {
 	int priority = 0;
 	for (TerrainObject* obj : objs) {
 		ivec3 nearest = obj->get_nearest(pos);
-		if (obj->priority() > priority and nearest.x <= 0 and nearest.y <= 0 and nearest.z <= 0
-			and nearest.x > -obj->size.x and nearest.y > -obj->size.y and nearest.z > -obj->size.z ) {
-			char newval = obj->gen_func(pos + nearest, -nearest);
-			if (newval != -1) {
-				val = newval;
-				priority = obj->priority();
+		if (obj->is_valid(pos+nearest)) {
+			if (obj->priority() > priority and nearest.x <= 0 and nearest.y <= 0 and nearest.z <= 0
+				and nearest.x > -obj->size.x and nearest.y > -obj->size.y and nearest.z > -obj->size.z ) {
+				char newval = obj->gen_func(pos + nearest, -nearest);
+				if (newval != -1) {
+					val = newval;
+					priority = obj->priority();
+				}
 			}
 		}
 	}
@@ -80,12 +156,63 @@ char TerrainObjectMerger::gen_func(ivec3 pos) {
 }
 
 
-TerrainLoader::TerrainLoader(int nseed): objmerger(this), seed(nseed) {
-	terrain = new Land(this);
+TerrainLoader::TerrainLoader(int nseed): objmerger(this), seed(nseed),
+ 	bases({new Mountains(this), new Plains(this)}) {
+	
 }
 
 TerrainLoader::~TerrainLoader() {
-	delete terrain;
+	for (TerrainBase* base : bases) {
+		delete base;
+	}
+}
+
+TerrainBaseMerger TerrainLoader::get_base(ivec3 pos) {
+	double wetness = get_wetness(pos);
+	double temp = get_temp(pos);
+	double elev = get_elev(pos);
+	TerrainBase* bestbase = nullptr;
+	double bestscore = 0;
+	TerrainBase* nextbase = nullptr;
+	double nextscore = 0;
+	for (TerrainBase* base : bases) {
+		double score = base->valid_score(wetness, temp, elev);
+		if (score > bestscore) {
+			nextbase = bestbase;
+			nextscore = bestscore;
+			bestbase = base;
+			bestscore = score;
+		} else if (score > nextscore) {
+			nextbase = base;
+			nextscore = score;
+		}
+	}
+	double diff = bestscore-nextscore;
+	if (diff < merge_threshold and nextbase != nullptr) {
+		//cout << bestscore << ' ' << nextscore << endl;
+		return TerrainBaseMerger(bestbase, nextbase);
+	}
+	return TerrainBaseMerger(bestbase, nullptr);
+}
+
+string TerrainLoader::get_biome_name(ivec3 pos) {
+	return get_base(pos).name();
+}
+
+double TerrainLoader::get_wetness(ivec3 pos) {
+	return scaled_perlin(pos.x, pos.z, 1, 100, seed, 100);
+}
+
+double TerrainLoader::get_temp(ivec3 pos) {
+	return scaled_perlin(pos.x, pos.z, 1, 100, seed, 101);
+}
+
+double TerrainLoader::get_elev(ivec3 pos) {
+	return scaled_perlin(pos.x, pos.z, 1, 100, seed, 102);
+}
+
+int TerrainLoader::get_height(ivec2 pos) {
+	return get_base(ivec3(pos.x, 0, pos.y)).get_height(pos);
 }
 
 char TerrainLoader::gen_func(ivec3 pos) {
@@ -93,44 +220,94 @@ char TerrainLoader::gen_func(ivec3 pos) {
 	if (objval != -1) {
 		return objval;
 	} else {
-		return terrain->gen_func(pos);
+		//cout << "start gen func" << endl;
+		char val = get_base(pos).gen_func(pos);
+		//cout << "end gen func" << endl;
+		return val;
 	}
 }
 
 
 
 
-Land::Land(TerrainLoader* loader): parent(loader) {
+Plains::Plains(TerrainLoader* loader): TerrainBase(loader) {
 	
 }
 
-int Land::get_height(ivec2 pos) {
+int Plains::get_height(ivec2 pos) {
 	return int(get_heightmap(pos.x, pos.y, parent->seed))/2;
 }
 
-char Land::gen_func(ivec3 pos) {
+char Plains::gen_func(ivec3 pos) {
 	int height = get_height(ivec2(pos.x, pos.z));
 	if (pos.y < height-5) {
 			return blocks->names["rock"];
 	} if (pos.y < height-1) {
 			return blocks->names["dirt"];
 	} if (pos.y < height) {
-			if (pos.y > 80) {
-				return blocks->names["snow"];
-			} else {
-				return blocks->names["grass"];
-			}
+			return blocks->names["grass"];
 	}
 	return 0;
 }
 
+double Plains::valid_score(double wetness, double temp, double elev) {
+	return 1-elev;
+}
+
+string Plains::name() {
+	return "plains";
+}
 
 
-Tree::Tree(TerrainObjectMerger* merger): TerrainObject(merger->parent, ivec3(10,10,10), 20) {
+
+
+
+Mountains::Mountains(TerrainLoader* loader): TerrainBase(loader) {
+	
+}
+
+int Mountains::get_height(ivec2 pos) {
+	return int(get_heightmap(pos.x, pos.y, parent->seed+343));
+}
+
+char Mountains::gen_func(ivec3 pos) {
+	int height = get_height(ivec2(pos.x, pos.z));
+	if (pos.y < height-5) {
+			return blocks->names["shale"];
+	} if (pos.y < height-2) {
+			return blocks->names["rock"];
+	} if (pos.y < height-1) {
+			return blocks->names["dirt"];
+	} if (pos.y < height) {
+			return blocks->names["snow"];
+	}
+	return 0;
+}
+
+double Mountains::valid_score(double wetness, double temp, double elev) {
+	return elev;
+}
+
+string Mountains::name() {
+	return "mountains";
+}
+
+
+
+Tree::Tree(TerrainObjectMerger* merger): TerrainObject(merger->parent, ivec3(10,15,10), 20) {
 	
 }
 
 char Tree::gen_func(ivec3 offset, ivec3 pos) {
+	if (parent->get_biome_name(offset) == "mountains") {
+		if (pos.x == 5 and pos.z == 5 and pos.y < 7) {
+			return blocks->names["bark"];
+		} else if (pos.y > 3 and glm::length(vec2(pos.x-5,pos.z-5)) + (pos.y-3)/2 <
+		3+randfloat(parent->seed, offset.x+pos.x, offset.y+pos.y, offset.z+pos.z, 2634928)) {
+			return blocks->names["leaves"];
+		}
+		return -1;
+	}
 	if (pos.x == 5 and pos.z == 5 and pos.y < 7) {
 		return blocks->names["bark"];
 	} else if (pos.y > 4 and glm::length(vec3(5,5,5)-vec3(pos)) < 4) {
@@ -141,11 +318,15 @@ char Tree::gen_func(ivec3 offset, ivec3 pos) {
 
 ivec3 Tree::get_nearest(ivec3 pos) {
 	ivec2 pos2d = get_nearest_2d(ivec2(pos.x, pos.z));
-	return ivec3(pos2d.x, parent->terrain->get_height(pos2d+5+ivec2(pos.x, pos.z)) - pos.y, pos2d.y);
+	return ivec3(pos2d.x, parent->get_height(pos2d+5+ivec2(pos.x, pos.z)) - pos.y, pos2d.y);
 }
 
 int Tree::priority() {
 	return 5;
+}
+
+bool Tree::is_valid(ivec3 pos) {
+	return true;
 }
 
 
@@ -157,7 +338,7 @@ BigTree::BigTree(TerrainObjectMerger* merger): TerrainObject(merger->parent, ive
 
 char BigTree::gen_func(ivec3 offset, ivec3 pos) {
 	
-	pos.y -= (parent->terrain->get_height(ivec2(offset.x+pos.x, offset.z+pos.z)) - offset.y)*(1 - pos.y/200.0);
+	pos.y -= (parent->get_height(ivec2(offset.x+pos.x, offset.z+pos.z)) - offset.y)*(1 - pos.y/200.0);
 	
 	int seed = hash4(parent->seed, offset.x, offset.y, offset.z, 0);
 	double angle = atan2(pos.x-25, pos.z-25)*30;
@@ -185,11 +366,15 @@ char BigTree::gen_func(ivec3 offset, ivec3 pos) {
 
 ivec3 BigTree::get_nearest(ivec3 pos) {
 	ivec2 pos2d = get_nearest_2d(ivec2(pos.x, pos.z));
-	return ivec3(pos2d.x, parent->terrain->get_height(pos2d+25+ivec2(pos.x, pos.z)) - pos.y - 20, pos2d.y);
+	return ivec3(pos2d.x, parent->get_height(pos2d+25+ivec2(pos.x, pos.z)) - pos.y - 20, pos2d.y);
 }
 
 int BigTree::priority() {
 	return 11;
+}
+
+bool BigTree::is_valid(ivec3 pos) {
+	return true;
 }
 
 
@@ -206,11 +391,15 @@ char Cave::gen_func(ivec3 offset, ivec3 pos) {
 
 ivec3 Cave::get_nearest(ivec3 pos) {
 	ivec2 pos2d = get_nearest_2d(ivec2(pos.x, pos.z));
-	return ivec3(pos2d.x, parent->terrain->get_height(pos2d+5+ivec2(pos.x, pos.z)) - pos.y - 5, pos2d.y);
+	return ivec3(pos2d.x, parent->get_height(pos2d+5+ivec2(pos.x, pos.z)) - pos.y - 5, pos2d.y);
 }
 
 int Cave::priority() {
 	return 1;
+}
+
+bool Cave::is_valid(ivec3 pos) {
+	return true;
 }
 
 
@@ -229,6 +418,10 @@ FileTerrain::FileTerrain(TerrainObjectMerger* merger, string path): TerrainObjec
 	ifile >> ignore_air;
 	string buff;
 	getline(ifile, buff, ':');
+	stringstream biomestr(buff);
+	while (biomestr >> buff) {
+		biomes.emplace(buff);
+	}
 	data = new char[scale*scale*scale];
 	ifile.read(data, scale*scale*scale);
 	if (ignore_air) {
@@ -250,11 +443,15 @@ char FileTerrain::gen_func(ivec3 offset, ivec3 pos) {
 
 ivec3 FileTerrain::get_nearest(ivec3 pos) {
 	ivec2 pos2d = get_nearest_2d(ivec2(pos.x, pos.z));
-	return ivec3(pos2d.x, parent->terrain->get_height(pos2d+ivec2(size.x/2,size.z/2)+ivec2(pos.x, pos.z)) - pos.y - size.y/2, pos2d.y);
+	return ivec3(pos2d.x, parent->get_height(pos2d+ivec2(size.x/2,size.z/2)+ivec2(pos.x, pos.z)) - pos.y - size.y/2, pos2d.y);
 }
 
 int FileTerrain::priority() {
 	return priority_level;
+}
+
+bool FileTerrain::is_valid(ivec3 pos) {
+	return biomes.count(parent->get_biome_name(pos)) > 0;
 }
 
 #endif

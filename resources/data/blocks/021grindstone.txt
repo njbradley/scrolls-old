@@ -1,6 +1,8 @@
 block grindstone {
 	:break_times: [axe:3 pickaxe:0.7 shovel:4 sword:5 null:10]
-	:textures: [grindstone]
+	:textures: [grindstone-side grindstone-end grindstone-side grindstone-side grindstone-end grindstone-side]
+	:default_direction: 1
+	:rotation_enabled:
 	:item_dropped: grindstone 1
 	:clumpy_group: grindstone-group
 }

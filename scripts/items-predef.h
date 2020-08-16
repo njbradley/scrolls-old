@@ -40,6 +40,7 @@ public:
   char ondig(World* world, int x, int y, int z);
   void to_file(ostream& ofile);
   string descript();
+  void sharpen(double speed, double force);
   
   static char ondig_null(World* world, int x, int y, int z);
 };
@@ -55,6 +56,7 @@ class ItemData {
         int damage;
         int starting_weight;
         int starting_sharpness;
+        bool sharpenable;
         string tool;
             
         ItemData(ifstream & ifile);

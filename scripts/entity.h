@@ -566,7 +566,7 @@ void Entity::drag(bool do_drag, float deltaTime) {
             vel *= vec3(ground_drag, side_drag, ground_drag);
         }
     } else {
-        float air_drag = 1;//-5*deltaTime;
+        float air_drag = 1-2*deltaTime;
         vel *= vec3(air_drag, 1, air_drag);
     }
 }
@@ -648,6 +648,7 @@ void DisplayEntity::render(RenderVecs* allvecs) {
     block.block->all([=] (Pixel* pix) {
       pix->render_index = pair<int,int>(-1,0);
       pix->set_render_flag();
+      pix->sunlight = lightmax;
     });
     bool faces[] = {true,true,true,true,true,true};
     block.block->render(&vecs, &block, 0, 0, 0, 1, faces, true);
@@ -695,9 +696,9 @@ void DisplayEntity::render(RenderVecs* allvecs) {
     translated.verts[i*3+1] += position.y;
     translated.verts[i*3+2] += position.z;
     
-    translated.light[i*2+0] = int(translated.light[i*2+0]*sunlight)/10.0f;
+    translated.light[i*2+0] = int(translated.light[i*2+0]*sunlight)/lightmax;
     if (translated.light[i*2+1] == 0) {
-      translated.light[i*2+1] = blocklight/10.0f;
+      translated.light[i*2+1] = blocklight/lightmax;
     }
   }
   if (render_index == pair<int,int>(-1,0)) {

@@ -8,6 +8,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
 using std::unordered_map;
 using glm::vec3;
 using glm::ivec3;
@@ -17,6 +18,7 @@ using std::cout;
 using std::endl;
 using std::string;
 using std::function;
+using std::unordered_set;
 
 void crash(long long);
 void hard_crash(long long);
@@ -40,8 +42,8 @@ struct vec3_comparator {
 
 struct ivec3_hash {
 	size_t operator() (const ivec3& pos) const {
-		string all = std::to_string(pos.x) + std::to_string(pos.y) + std::to_string(pos.z);
-		return std::hash<string>{}(all);
+    std::hash<int> ihash;
+		return ihash(pos.x) ^ ihash(pos.y) ^ ihash(pos.z);
 	}
 };
 

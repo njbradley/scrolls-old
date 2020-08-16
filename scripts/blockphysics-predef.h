@@ -30,11 +30,12 @@ class BlockGroup { public:
 	void set_pix_pointers();
 	void erase_from_world();
 	void copy_to_world(ivec3 newpos);
+	virtual void custom_textures(int mats[6], int dirs[6]);
 	virtual AxleInterface* cast_axle();
 	virtual void add_item(ItemStack stack);
 	//virtual PipeInterface* cast_pipe();
 	virtual void tick();
-	virtual bool rcaction();
+	virtual bool rcaction(Player* player, Item* item);
 	virtual bool persistant();
 	virtual void on_update();
 	virtual void link();
@@ -69,7 +70,7 @@ class AxleGroup: public AxleInterface { public:
 	void on_update();
 	void find_neighbors();
 	void rotate(AxleInterface* sender, double amount, double force);
-	bool rcaction();
+	bool rcaction(Player* player, Item* item);
 	void link();
 	void to_file(ostream& ofile);
 private:
@@ -77,24 +78,25 @@ private:
 };
 
 class GrindstoneGroup: public AxleInterface { public:
-	ItemContainer input;
-	double progress;
+	double speed = 0;
+	double force = 0;
 	GrindstoneGroup(World* world, ivec3 spos);
 	GrindstoneGroup(World* world, istream& ifile);
-	bool rcaction();
+	bool rcaction(Player* player, Item* item);
 	void rotate(AxleInterface* sender, double amount, double force);
+	void custom_textures(int mats[6], int dirs[6]);
 	void to_file(ostream& ofile);
 };
 
 // class WheelGroup: public AxleInterface { public:
 // 	vector<AxleInterface*> ports;
-// 	bool rcaction();
+// 	bool rcaction(Player* player, Item* item);
 
 class ChestGroup: public BlockGroup { public:
 	ItemContainer inven;
 	ChestGroup(World* world, ivec3 spos);
 	ChestGroup(World* world, istream& ifile);
-	virtual bool rcaction();
+	virtual bool rcaction(Player* player, Item* item);
 	void add_item(ItemStack stack);
 	void on_update();
 	void update_inven_size();
@@ -105,13 +107,13 @@ class ChestGroup: public BlockGroup { public:
 class BackpackGroup: public ChestGroup { public:
 	BackpackGroup(World* world, ivec3 spos);
 	BackpackGroup(World* world, istream& ifile);
-	bool rcaction();
+	bool rcaction(Player* player, Item* item);
 };
 
 class CraftingGroup: public BlockGroup { public:
 	CraftingGroup(World* world, ivec3 starting_pos);
 	CraftingGroup(World* world, istream& ifile);
-	bool rcaction();
+	bool rcaction(Player* player, Item* item);
 	bool persistant();
 };
 

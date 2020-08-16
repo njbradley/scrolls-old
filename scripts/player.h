@@ -430,8 +430,8 @@ void Player::right_mouse() {
 	//Pixel* pix = target->get_pix();
 	if (blocks->blocks[pix->value]->rcaction != "null" and !shifting) {
 		blocks->blocks[pix->value]->do_rcaction(pix);
-	} else if (pix->physicsgroup != nullptr and !shifting and pix->physicsgroup->rcaction()) {
-		cout << "did rcaction" << endl;
+	} else if (pix->physicsgroup != nullptr and !shifting and pix->physicsgroup->rcaction(this, inhand)) {
+		
 	} else {
 		if (!inhand->isnull and inhand->data->onplace != nullptr) {
 			Item* item = inven.get(selitem);
@@ -624,13 +624,18 @@ void Player::computeMatricesFromInputs(){
 	float nspeed = speed;
 	
 	if (!consts[4]) {
-		nspeed /= 10;
+		nspeed /= 3;
 	}
 	
 	double stamina_cost = 0;
 	
 	if (!spectator) {
 		// Move forward
+		
+		if (glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS){
+			nspeed /= 4;
+		}
+		
 		if (glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS){
 			// vec3 dir_const = vec3(1,0,0)*(float)consts[0] + vec3(0,0,1)*(float)consts[2] + vec3(-1,0,0)*(float)consts[3] + vec3(0,0,-1)*(float)consts[5];
 			// if (length(dir_const-forward) < 0.9f and (consts[0] or consts[2] or consts[3] or consts[5]) and autojump and not consts[6]) {
@@ -658,7 +663,7 @@ void Player::computeMatricesFromInputs(){
 				stamina_cost += glm::dot(vel, -right);
 		}
 		if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS){
-			if (consts[4]) {
+			if (consts[4] and vel.y > -0.5) {
 				vel.y = 15;// = vec3(0,10,0);//up * deltaTime * speed;
 				stamina_cost += vel.y;
 			}

@@ -235,7 +235,13 @@ int Pixel::get_sunlight(int dx, int dy, int dz) {
 }
 
 int Pixel::get_blocklight(int dx, int dy, int dz) {
-  return blocklight;
+  const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
+  ivec3 source_dir = -dirs[lightsource];
+  if (source_dir.x == dx and source_dir.y == dy and source_dir.z == dz) {
+    return blocklight;
+  } else {
+    return blocklight*0.875;
+  }
 }
 
 bool Pixel::is_air(int dx, int dy, int dz) const {
@@ -313,13 +319,14 @@ void Pixel::random_tick() {
   // }
   
   Block* above = world->get_global(gx, gy+scale, gz, 1);
-  if (value == blocks->names["grass"] and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1) {
+  if (value == blocks->names["grass"] and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1
+  and tile->world->mobcount < 20) {
     world->summon(new Pig(tile->world, vec3(gx, gy+5, gz)));
   }
   
   if (tile->world->difficulty > 0) {
     if ((value == blocks->names["snow"]) and tile->entities.size() < 1 and above != nullptr and above->get() == 0
-    and above->get_pix()->sunlight == 10 and tile->world->sunlight < 0.1) {
+    and tile->world->mobcount < 20 and above->get_pix()->sunlight == lightmax and tile->world->sunlight < 0.1) {
       cout << "skeleton spawned" << endl;
       world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
     }
@@ -428,24 +435,47 @@ void Pixel::del(bool remove_faces) {
 void Pixel::lighting_update() {
   if (light_flag) {
     light_flag = false;
-    calculate_blocklight(30);
-    calculate_sunlight(50);
+    unordered_set<ivec3,ivec3_hash> poses;
+    unordered_set<ivec3,ivec3_hash> next_poses;
+    calculate_blocklight(poses);
+    while (poses.size() > 0) {
+      for (ivec3 pos : poses) {
+        Block* b =tile->world->get_global(pos.x, pos.y, pos.z, 1);
+        if (b != nullptr) b->get_pix()->calculate_blocklight(next_poses);
+      }
+      poses.swap(next_poses);
+      next_poses.clear();
+    }
+    
+    poses.clear();
+    next_poses.clear();
+    calculate_sunlight(poses);
+    while (poses.size() > 0) {
+      for (ivec3 pos : poses) {
+        Block* b =tile->world->get_global(pos.x, pos.y, pos.z, 1);
+        if (b != nullptr) b->get_pix()->calculate_sunlight(next_poses);
+      }
+      poses.swap(next_poses);
+      next_poses.clear();
+    }
   }
 }
 
 void Pixel::reset_lightlevel() {
+  lightsource = -1;
   if (value != 0) {
     sunlight = 0;
     blocklight = blocks->blocks[value]->lightlevel;
   } else {
-    sunlight = 10;
+    sunlight = 0;
     blocklight = 0;
   }
   entitylight = 0;
 }
 
-void Pixel::calculate_sunlight(int recursion_level) {
-  if (tile == nullptr or value != 0 or recursion_level < 0) {
+/*
+void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
+  if (tile == nullptr or value != 0) {
     return;
   }
   const int decrement = 1;
@@ -461,10 +491,10 @@ void Pixel::calculate_sunlight(int recursion_level) {
       }
     }, 0, -1, 0);
   } else {
-    abovesun = 10;
+    abovesun = lightmax;
   }
-  if (abovesun == 10) {
-    sunlight = 10;
+  if (abovesun == lightmax) {
+    sunlight = lightmax;
   } else {
     int sidesun = 0;
     const ivec3 dirs[] = {{-1,0,0}, {0,0,-1}, {1,0,0}, {0,0,1}};
@@ -511,7 +541,10 @@ void Pixel::calculate_sunlight(int recursion_level) {
       if (block != nullptr) {
         block->all_side([&] (Pixel* pix) {
           if (pix->sunlight < sunlight-decrement or (pix->sunlight == oldsunlight-decrement and sunlight < oldsunlight)) {
-            pix->calculate_sunlight(recursion_level-1);
+            ivec3 pos;
+            pix->global_position(&pos.x, &pos.y, &pos.z);
+            next_poses.emplace(pos);
+            //pix->calculate_sunlight(recursion_level-1);
             pix->set_render_flag();
           }
         }, -dir.x, -dir.y, -dir.z);
@@ -522,16 +555,63 @@ void Pixel::calculate_sunlight(int recursion_level) {
     if (below != nullptr) {
       below->all_side([&] (Pixel* pix) {
         if (pix->sunlight < sunlight + decrement or (pix->sunlight == oldsunlight-decrement and sunlight < oldsunlight)) {
-          pix->calculate_sunlight(recursion_level-1);
+          ivec3 pos;
+          pix->global_position(&pos.x, &pos.y, &pos.z);
+          next_poses.emplace(pos);
+          //pix->calculate_sunlight(recursion_level-1);
           pix->set_render_flag();
         }
       }, 0, 1, 0);
     }
   }
+}*/
+
+void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
+  if (tile == nullptr or value != 0) {
+    return;
+  }
+  const int decrement = 1;
+  int gx, gy, gz;
+  global_position(&gx, &gy, &gz);
+  const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
+  int oldsunlight = sunlight;
+  sunlight = 0;
+  for (ivec3 dir : dirs) {
+    int newdec = dir.y == 1 ? 0 : decrement;
+    int oppdec = dir.y == -1 ? 0 : decrement;
+    Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
+    if (block != nullptr) {
+      block->all_side([&] (Pixel* pix) {
+        if (pix->tile != tile and dir.y == 1 and pix->tile->lightflag) {
+          sunlight = lightmax;
+        } else if (pix->sunlight - newdec*pix->scale > sunlight and pix->sunlight + oppdec*scale != oldsunlight) {
+          sunlight = pix->sunlight - newdec*pix->scale;
+        }
+      }, -dir.x, -dir.y, -dir.z);
+    } else if (dir.y == 1) {
+      sunlight = lightmax;
+    }
+  }
+  
+  bool changed = oldsunlight != sunlight;
+  for (ivec3 dir : dirs) {
+    int newdec = dir.y == -1 ? 0 : decrement;
+    Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
+    if (block != nullptr) {
+      block->all_side([&] (Pixel* pix) {
+        if (pix->sunlight < sunlight - newdec*scale or (pix->sunlight + newdec*scale == oldsunlight and sunlight < oldsunlight)) {
+          ivec3 pos;
+          pix->global_position(&pos.x, &pos.y, &pos.z);
+          next_poses.emplace(pos);
+        }
+        if (changed) pix->set_render_flag();
+      }, -dir.x, -dir.y, -dir.z);
+    }
+  }
 }
 
-void Pixel::calculate_blocklight(int recursion_level) {
-  if (tile == nullptr or value != 0 or recursion_level < 0) {
+void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
+  if (tile == nullptr or value != 0) {
     return;
   }
   const int decrement = 1;
@@ -540,28 +620,39 @@ void Pixel::calculate_blocklight(int recursion_level) {
   const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
   int oldblocklight = blocklight;
   blocklight = entitylight;
+  int oldsource = lightsource;
+  lightsource = -1;
+  int index = 0;
   for (ivec3 dir : dirs) {
     Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
     if (block != nullptr) {
+      int inverse_index = index<3 ? index + 3 : index - 3;
       block->all_side([&] (Pixel* pix) {
-        if (pix->blocklight - decrement*pix->scale > blocklight and pix->blocklight + decrement*scale != oldblocklight) {
+        if (pix->blocklight - decrement*pix->scale > blocklight and pix->lightsource != inverse_index) {
           blocklight = pix->blocklight - decrement*pix->scale;
+          lightsource = index;
         }
       }, -dir.x, -dir.y, -dir.z);
     }
+    index ++;
   }
   
   bool changed = oldblocklight != blocklight;
+  index = 0;
   for (ivec3 dir : dirs) {
     Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
     if (block != nullptr) {
+      int inverse_index = index<3 ? index + 3 : index - 3;
       block->all_side([&] (Pixel* pix) {
-        if (pix->blocklight < blocklight - decrement*scale or (pix->blocklight + decrement*scale == oldblocklight and blocklight < oldblocklight)) {
-          pix->calculate_blocklight(recursion_level-1);
+        if (pix->blocklight < blocklight - decrement*scale or (pix->lightsource == inverse_index and blocklight < oldblocklight)) {
+          ivec3 pos;
+          pix->global_position(&pos.x, &pos.y, &pos.z);
+          next_poses.emplace(pos);
         }
         if (changed) pix->set_render_flag();
       }, -dir.x, -dir.y, -dir.z);
     }
+    index ++;
   }
 }
         
@@ -720,6 +811,9 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
         mat[i] = blocks->blocks[value]->texture[i];
       }
       int dirs[6] {0,0,0,0,0,0};
+      if (physicsgroup != nullptr) {
+        physicsgroup->custom_textures(mat, dirs);
+      }
       
       if (direction != blocks->blocks[value]->default_direction) {
         rotate_to_origin(mat, dirs, blocks->blocks[value]->default_direction);
@@ -729,7 +823,6 @@ void Pixel::render(RenderVecs* allvecs, Collider* collider, int gx, int gy, int 
       int minscale = blocks->blocks[value]->minscale;
       
       const GLfloat uvmax = newscale;
-      const float lightmax = 10.0f;
       // /char mat = tex_index;
       /*GLfloat new_uvs[] = {
           0.0f, 1.0f * newscale/minscale,
@@ -975,7 +1068,7 @@ Chunk* Pixel::subdivide(function<char(ivec3)> gen_func) {
                 char val = gen_func(ivec3(gx+x*scale/csize, gy+y*scale/csize, gz+z*scale/csize));
                 Pixel* pix = new Pixel(x, y, z, val, scale/csize, newchunk, tile);
                 //cout << gx+x*scale/csize << ' ' << gy+y*scale/csize << ' ' << gz+z*scale/csize << endl;
-                Chunk* subdivided = pix->resolve(gen_func);
+                Chunk* subdivided = pix->resolve();
                 if (subdivided == nullptr) {
                    newchunk->blocks[x][y][z] = pix;
                 } else {
@@ -997,40 +1090,75 @@ Chunk* Pixel::subdivide(function<char(ivec3)> gen_func) {
     return newchunk;
 }
 
-Chunk* Pixel::resolve(function<char(ivec3)> gen_func) {
+Chunk* Pixel::resolve() {
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
-  //cout << gx << ' ' << gy << ' ' << gz << "res" << endl;
-  bool shell = true;
-  bool full = true;
-  char val = gen_func(ivec3(gx, gy, gz));
-  for (int ox = 0; ox < scale and shell; ox ++) {
-    for (int oy = 0; oy < scale and shell; oy ++) {
-      for (int oz = 0; oz < scale and shell; oz ++) {
-        char newval = gen_func(ivec3(gx+ox, gy+oy, gz+oz));
-        if (newval != val) {
-          if (ox == 0 or ox == scale-1 or oy == 0 or oy == scale-1 or oz == 0 or oz == scale-1) {
-            shell = false;
+  ivec3 gpos(gx, gy, gz);
+  bool solid = true;
+  char val = world->loader.gen_func(gpos);
+  Chunk* chunk = new Chunk(px, py, pz, scale, parent);
+  int newscale = scale/csize;
+  for (int x = 0; x < csize; x ++) {
+    for (int y = 0; y < csize; y ++) {
+      for (int z = 0; z < csize; z ++) {
+        ivec3 pos(x,y,z);
+        char newval = world->loader.gen_func(gpos+pos*newscale);
+        Pixel* pix = new Pixel(x, y, z, newval, newscale, chunk, tile);
+        solid = solid and val == newval;
+        if (newscale > 1) {
+          Chunk* result = pix->resolve();
+          if (result == nullptr) {
+            chunk->blocks[x][y][z] = pix;
+          } else {
+            solid = false;
+            delete pix;
+            chunk->blocks[x][y][z] = result;
           }
-          full = false;
+        } else {
+          chunk->blocks[x][y][z] = pix;
         }
       }
     }
   }
-  if (shell) {
-    if (val == 0 and !full) {
-      //cout << "subdivide again" << endl;
-      //cout << newchunk->blocks[x][y][z] << '-' << endl;
-      return subdivide(gen_func);
-    }
+  if (solid) {
+    chunk->del(false);
+    delete chunk;
+    return nullptr;
   } else {
-    //cout << "subdivide again" << endl;
-    //cout << newchunk->blocks[x][y][z] << '-' << endl;
-    return subdivide(gen_func);
+    return chunk;
   }
-  value = val;
-  return nullptr;
 }
+
+// Chunk* Pixel::resolve(function<char(ivec3)> gen_func) {
+//   int gx, gy, gz;
+//   global_position(&gx, &gy, &gz);
+//   //cout << gx << ' ' << gy << ' ' << gz << "res" << endl;
+//   bool shell = true;
+//   bool full = true;
+//   char val = gen_func(ivec3(gx, gy, gz));
+//   for (int ox = 0; ox < scale and shell; ox ++) {
+//     for (int oy = 0; oy < scale and shell; oy ++) {
+//       for (int oz = 0; oz < scale and shell; oz ++) {
+//         char newval = gen_func(ivec3(gx+ox, gy+oy, gz+oz));
+//         if (newval != val) {
+//           if (ox == 0 or ox == scale-1 or oy == 0 or oy == scale-1 or oz == 0 or oz == scale-1) {
+//             shell = false;
+//           }
+//           full = false;
+//         }
+//       }
+//     }
+//   }
+//   if (shell) {
+//     if (val == 0 and !full) {
+//       return subdivide(gen_func);
+//     }
+//   } else {
+//     return subdivide(gen_func);
+//   }
+//   value = val;
+//   return nullptr;
+// }
 
 void Pixel::save_to_file(ostream& of) {
     if (extras == nullptr) {

@@ -16,6 +16,7 @@
 
 #define csize 2
 
+const float lightmax = 20.0f;
 
 /*
  *this is the file with classes for storing blocks. the main idea is blocks are stored in power of two containers. Block is the base virtual class,
@@ -66,14 +67,14 @@ class Block: public Collider { public:
 };
 
 class Pixel: public Block {
-  void rotate_uv(GLfloat* uvs, int rot);
+  static void rotate_uv(GLfloat* uvs, int rot);
   // takes in a glfloat array 12 long and
   // rotates the face rottimes clockwise
-  void rotate_from_origin(int* mats, int* dirs, int rotation);
+  static void rotate_from_origin(int* mats, int* dirs, int rotation);
   // takes in two arrays 6 long, the texture and rotation of
   // every face, and rotates everything to direction rotation
   // from origin
-  void rotate_to_origin(int* mats, int* dirs, int rotation);
+  static void rotate_to_origin(int* mats, int* dirs, int rotation);
   // same as above but rotates from a location to the origin
 public:
     char value;
@@ -82,6 +83,7 @@ public:
     int blocklight;
     int sunlight;
     int entitylight;
+    int lightsource = -1;
     BlockExtra* extras = nullptr;
     Tile* tile;
     BlockGroup* physicsgroup;
@@ -108,8 +110,8 @@ public:
     void random_tick();
     void del(bool remove_faces);
     void calculate_lightlevel(int recurstion_level);
-    void calculate_sunlight(int recurstion_level);
-    void calculate_blocklight(int recurstion_level);
+    void calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses);
+    void calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses);
     void reset_lightlevel();
     void rotate(int axis, int dir);
     void lighting_update();
@@ -126,7 +128,7 @@ public:
     // into the parent. if this pixel has no parent it is up
     // to the function caller to properly replace the pixel
     // with the chunk
-    Chunk* resolve(function<char(ivec3)> gen_func);
+    Chunk* resolve();
     // defines the chunk based on the function, like subdivide
     // but doesn't force one division
     // if the pixel is divided a chunk will be returned and

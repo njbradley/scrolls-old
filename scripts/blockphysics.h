@@ -278,6 +278,10 @@ void BlockGroup::copy_to_world(ivec3 newpos) {
 	}
 }
 
+void BlockGroup::custom_textures(int mats[6], int dirs[6]) {
+	
+}
+
 AxleInterface* BlockGroup::cast_axle() {
 	return nullptr;
 }
@@ -289,7 +293,7 @@ void BlockGroup::tick() {
 	}
 }
 
-bool BlockGroup::rcaction() {
+bool BlockGroup::rcaction(Player* player, Item* item) {
 	return false;
 }
 
@@ -501,7 +505,7 @@ bool AxleGroup::calc_is_valid() {
 	return false;
 }
 
-bool AxleGroup::rcaction() {
+bool AxleGroup::rcaction(Player* player, Item* item) {
 	rotate(this, 0.25, 0.1);
 	return true;
 }
@@ -581,41 +585,49 @@ void AxleGroup::to_file(ostream& ofile) {
 
 
 
-GrindstoneGroup::GrindstoneGroup(World* nworld, ivec3 starting_pos): AxleInterface(nworld, starting_pos), input(1) {
+GrindstoneGroup::GrindstoneGroup(World* nworld, ivec3 starting_pos): AxleInterface(nworld, starting_pos) {
 	//find_group();
 }
 
-bool GrindstoneGroup::rcaction() {
-	if (menu == nullptr) {
-		menu = new InventoryMenu("grindstone", &input, [&] () {
-			delete menu;
-			menu = nullptr;
-		});
+bool GrindstoneGroup::rcaction(Player* player, Item* item) {
+	if (!item->isnull and item->data->sharpenable) {
+		item->sharpen(speed + 0.5, force + 0.5);
+		return true;
 	}
-	return true;
+	// if (menu == nullptr) {
+	// 	menu = new InventoryMenu("grindstone", &input, [&] () {
+	// 		delete menu;
+	// 		menu = nullptr;
+	// 	});
+	// }
+	return false;
 }
 
-void GrindstoneGroup::rotate(AxleInterface* sender, double amount, double force) {
+void GrindstoneGroup::rotate(AxleInterface* sender, double amount, double newforce) {
 	cout << "recieved rotation" << endl;
-	Item* item = input.get(0);
-	if (!item->isnull) {
-		progress += amount;
-		if (progress >= 1) {
-			item->sharpness += 1;
-			item->weight -= 0.1;
-			progress = 0;
-		}
-	}
+	speed = amount;
+	force = newforce;
+	// Item* item = input.get(0);
+	// if (!item->isnull) {
+	// 	progress += amount;
+	// 	if (progress >= 1) {
+	// 		item->sharpness += 1;
+	// 		item->weight -= 0.1;
+	// 		progress = 0;
+	// 	}
+	// }
 }
 
-GrindstoneGroup::GrindstoneGroup(World* nworld, istream& ifile): AxleInterface(nworld, ifile), input(ifile) {
-	ifile >> progress;
+void GrindstoneGroup::custom_textures(int mats[6], int dirs[6]) {
+	
+}
+
+GrindstoneGroup::GrindstoneGroup(World* nworld, istream& ifile): AxleInterface(nworld, ifile) {
+	
 }
 
 void GrindstoneGroup::to_file(ostream& ofile) {
 	BlockGroup::to_file(ofile);
-	input.save_to_file(ofile);
-	ofile << progress << endl;
 }
 
 
@@ -632,7 +644,7 @@ ChestGroup::ChestGroup(World* nworld, istream& ifile): BlockGroup(nworld, ifile)
 	
 }
 
-bool ChestGroup::rcaction() {
+bool ChestGroup::rcaction(Player* player, Item* item) {
 	menu = new InventoryMenu("chest", &inven, [&] () {
 		delete menu;
 		menu = nullptr;
@@ -681,7 +693,7 @@ BackpackGroup::BackpackGroup(World* world, istream& ifile): ChestGroup(world, if
 	
 }
 
-bool BackpackGroup::rcaction() {
+bool BackpackGroup::rcaction(Player* player, Item* item) {
 	menu = new InventoryMenu("chest", &inven, [&] () {
 		int num_items = 0;
 		for (ItemStack stack : inven.items) {
@@ -710,7 +722,7 @@ CraftingGroup::CraftingGroup(World* nworld, istream& ifile): BlockGroup(nworld, 
 	
 }
 
-bool CraftingGroup::rcaction() {
+bool CraftingGroup::rcaction(Player* player, Item* item) {
 	int level = 1;
 	bool found = false;
 	for (int i = 0; i < 3; i ++) {

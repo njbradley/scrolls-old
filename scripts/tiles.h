@@ -11,7 +11,7 @@
 Block* Tile::generate(ivec3 pos) {
   Pixel* pix = new Pixel(pos.x,pos.y,pos.z,0,chunksize,nullptr,this);
   if (world->generation) {
-    Chunk* chunk = pix->resolve([=] (ivec3 position) {return world->loader.gen_func(position);});
+    Chunk* chunk = pix->resolve();
   	if (chunk == nullptr) {
   		return pix;
   	} else {
@@ -28,7 +28,7 @@ void Tile::update_lighting() {
     for (int z = 0; z < chunksize; z ++) {
       int y = chunksize-1;
       while (y >= 0 and chunk->get_global(x,y,z,1)->get() == 0) {
-        chunk->get_global(x,y,z,1)->get_pix()->sunlight = 10;
+        chunk->get_global(x,y,z,1)->get_pix()->sunlight = lightmax;
         y--;
       }
     }
@@ -195,7 +195,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
       //   new NamedEntity(world, vec3(3.5,-0.5,2.5), vec3(0,0,0), vec3(1,1,1), "pigfoot", vec3(0,0,0)),
       //
       // };
-      entities.push_back(new Skeleton(world, pos*chunksize + 32 + ivec3(0,5,0)));
+      //entities.push_back(new Skeleton(world, pos*chunksize + 32 + ivec3(0,5,0)));
       //entities.push_back(new NamedEntity(world, pos*chunksize+32 + ivec3(0,5,0), vec3(0,0,0), vec3(2,2,2), "pighead", vec3(0,0,0)));
       // entities.push_back(new NamedEntity(world, pos*chunksize+32 + ivec3(0,5,0), vec3(-1,0,-1), vec3(1,4,1), "skeleton", vec3(-2.5,0,-2.5), limbs));
   	}

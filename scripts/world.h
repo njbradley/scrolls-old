@@ -204,7 +204,7 @@ void World::save_groups() {
 }
 
 void World::spawn_player() {
-  player = new Player(this, vec3(10,loader.terrain->get_height(ivec2(10,10))+7,10));
+  player = new Player(this, vec3(10,loader.get_height(ivec2(10,10))+7,10));
   player->spectator = false;
   player->autojump = true;
   player->health = 10;

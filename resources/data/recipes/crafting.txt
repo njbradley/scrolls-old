@@ -1,0 +1,3 @@
+3 chips 1 grass 1 flint 1
+1 crafting 1
+1
