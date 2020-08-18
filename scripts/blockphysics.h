@@ -317,6 +317,7 @@ BlockGroup* BlockGroup::make_group(char val, World* world, ivec3 pos) {
 	if (name == "chest-group") return new ChestGroup(world, pos);
 	if (name == "backpack-group") return new BackpackGroup(world, pos);
 	if (name == "ghost-group") return new DissolveGroup(world, pos);
+	if (name == "anvil-group") return new AnvilGroup(world, pos);
 	return new BlockGroup(world, pos);
 }
 
@@ -332,6 +333,7 @@ BlockGroup* BlockGroup::from_file(World* world, istream& ifile) {
 	if (name == "chest-group") return new ChestGroup(world, ifile);
 	if (name == "backpack-group") return new BackpackGroup(world, ifile);
 	if (name == "ghost-group") return new DissolveGroup(world, ifile);
+	if (name == "anvil-group") return new AnvilGroup(world, ifile);
 	return new BlockGroup(world, ifile);
 }
 
@@ -347,6 +349,7 @@ bool BlockGroup::is_persistant(char val) {
 	if (name == "chest-group") return true;
 	if (name == "backpack-group") return true;
 	if (name == "ghost-group") return true;
+	if (name == "anvil-group") return true;
 	return false;
 }
 
@@ -737,9 +740,7 @@ bool CraftingGroup::rcaction(Player* player, Item* item) {
 		}
 	}
 	if ((found and block_poses.size() == level*level) or size == ivec3(1,1,1)) {
-		cout << "setting menu" << endl;
 		menu = new CraftingMenu(level, [&] () {
-			cout << "done! " << endl;
 			delete menu;
 			menu = nullptr;
 		});
@@ -754,6 +755,26 @@ bool CraftingGroup::persistant() {
 
 
 
+
+AnvilGroup::AnvilGroup(World* nworld, ivec3 starting_pos): BlockGroup(nworld, starting_pos) {
+	
+}
+
+AnvilGroup::AnvilGroup(World* nworld, istream& ifile): BlockGroup(nworld, ifile) {
+	
+}
+
+bool AnvilGroup::rcaction(Player* player, Item* item) {
+	menu = new ToolMenu([&] () {
+		delete menu;
+		menu = nullptr;
+	});
+	return true;
+}
+
+bool AnvilGroup::persistant() {
+	return true;
+}
 
 
 

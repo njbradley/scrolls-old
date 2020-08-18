@@ -151,10 +151,10 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
     // dump_buffers();
     
     int all = clock() - start;
-    if (all > 2) {
-      cout << all << " add " << old_num_verts/6 << ' ' << newvecs->num_verts/6 << endl;
-      cout << mid1-start << ' ' << mid2-mid1 << ' ' << mid3-mid2 << ' ' << mid4-mid3 << ' ' << mid5-mid4 << endl;
-    }
+    // if (all > 2) {
+    //   cout << all << " add " << old_num_verts/6 << ' ' << newvecs->num_verts/6 << endl;
+    //   cout << mid1-start << ' ' << mid2-mid1 << ' ' << mid3-mid2 << ' ' << mid4-mid3 << ' ' << mid5-mid4 << endl;
+    // }
     return pair<int,int>(old_num_verts/6, newvecs->num_verts/6);
   }
 }

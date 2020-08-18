@@ -1,3 +1,6 @@
 item rock {
 	:block: rock
+	:sharpness: 0
+	:weight: 5
+	:reach: 1
 }

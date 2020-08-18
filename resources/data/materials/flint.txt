@@ -1,0 +1,4 @@
+material flint {
+	:toughness: 14
+	:elastic: 0
+}

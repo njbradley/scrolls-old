@@ -1,0 +1,3 @@
+2 chips 1 rock 1
+1 anvil 1
+2

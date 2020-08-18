@@ -26,14 +26,21 @@ class CharArray { public:
 class Item {
 public:
   ItemData* data;
-  double durability;
   double sharpness;
+  double reach;
   double weight;
   bool isnull;
+  bool modified;
+  bool stackable;
+  vector<Item> addons;
   
   Item(ItemData* newdata);
   Item(istream& ifile);
-  Item(ItemData* newdata, double newsharpness, double newweight);
+  Item(ItemData* newdata, double newsharpness, double newweight, double newreach);
+  double get_sharpness();
+  double get_weight();
+  double get_reach();
+  string get_name();
   void damage(Player* player, BlockData* data);
   double dig_time(char val);
   bool do_rcaction(World* world);
@@ -41,6 +48,7 @@ public:
   void to_file(ostream& ofile);
   string descript();
   void sharpen(double speed, double force);
+  void render(MemVecs* vecs, float x, float y);
   
   static char ondig_null(World* world, int x, int y, int z);
 };
@@ -54,8 +62,9 @@ class ItemData {
         CharArray* onplace;
         string rcaction;
         double toughness;
-        int starting_weight;
-        int starting_sharpness;
+        double starting_weight;
+        double starting_sharpness;
+        double starting_reach;
         bool sharpenable;
         string tool;
             

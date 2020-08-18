@@ -49,9 +49,39 @@ void Menu::end(World* world) {
 }
 
 
+
+
+
+
+ItemMenu::ItemMenu(): in_hand(nullptr, 0) {
+  
+}
+
+void ItemMenu::on_item_click(ItemContainer* container, int index, int button) {
+  if (button == 1) {
+    if (!in_hand.item.isnull or !container->items[index].item.isnull) {
+      if (in_hand.item.data != container->items[index].item.data or !in_hand.item.stackable or ! container->items[index].item.stackable) {
+        ItemStack tmp = in_hand;
+        in_hand = container->items[index];
+        container->items[index] = tmp;
+      } else {
+        container->items[index].count += in_hand.count;
+        in_hand = ItemStack(nullptr, 0);
+      }
+    }
+  } else if (button == 2) {
+    if (in_hand.item.isnull) {
+      in_hand = container->items[index];
+      int total = in_hand.count;
+      in_hand.count = total/2;
+      container->items[index].count = total/2 + total%2;
+    }
+  }
+}
+
 //////////////////////////////////// InventoryMenu ////////////////////////////////////////
 
-InventoryMenu::InventoryMenu(string head, ItemContainer* start_other, function<void()> after_func): header(head), after(after_func), other(start_other), in_hand(nullptr, 0), button(1) {
+InventoryMenu::InventoryMenu(string head, ItemContainer* start_other, function<void()> after_func): header(head), after(after_func), other(start_other), button(1) {
   start();
 }
 
@@ -97,34 +127,142 @@ void InventoryMenu::render(GLFWwindow* window, World* world, Player* player, Mem
       index = int(xpos*10+5);
     }
     if (container != nullptr and index != -1) {
-      if (button == 1) {
-        if (in_hand.item.data != container->items[index].item.data or !in_hand.item.data->stackable or ! container->items[index].item.data->stackable) {
-          ItemStack tmp = in_hand;
-          in_hand = container->items[index];
-          container->items[index] = tmp;
-        } else {
-          container->items[index].count += in_hand.count;
-          in_hand = ItemStack(nullptr, 0);
-        }
-      } else if (button == 2) {
-        if (in_hand.item.isnull) {
-          in_hand = container->items[index];
-          int total = in_hand.count;
-          in_hand.count = total/2;
-          container->items[index].count = total/2 + total%2;
-        }
-      }
+      on_item_click(container, index, button);
     }
   }
 }
+
 
 void InventoryMenu::close(World* world) {
   end(world);
   after();
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ToolMenu::ToolMenu(function<void()> after_func):
+after(after_func), button(1), inputs(2), output(1) {
+  start();
+}
+
+void ToolMenu::render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs) {
+  /////rendering
+  
+  glfwGetCursorPos(window, &xpos, &ypos);
+  xpos = xpos/screen_x*2-1;
+  ypos = 1-ypos/screen_y*2;
+  
+  player->inven.render(uivecs, -0.5f, -1);
+  player->backpack.render(uivecs, -0.5f, -0.5f);
+  inputs.render(uivecs, -0.5f, 0.5f);
+  output.render(uivecs, -0.5f, 0);
+  
+  
+  if (!in_hand.item.isnull) {
+    in_hand.render(uivecs, float(xpos)-0.05f, float(ypos)-0.05f);
+    draw_text(uivecs, in_hand.item.descript(), float(xpos)+0.05f, float(ypos)+0.05f);
+  }
+  
+  /////input precesseing
+  
+  int last_button = button;
+  button = 0;
+  if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+    button = 1;
+  } else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+    button = 2;
+  }
+  if (button != 0 and last_button == 0) {
+    ItemContainer* container = nullptr;
+    int index = -1;
+    pair<ItemContainer*,int> location(nullptr,-1);
+    if (ypos < -1+0.1f*aspect_ratio and ypos > -1) {
+      container = &player->inven;
+    } else if (ypos < -0.5f+0.1f*aspect_ratio and ypos > -0.5f) {
+      container = &player->backpack;
+    } else if (ypos < 0.1f*aspect_ratio and ypos > 0) {
+      container = &output;
+      if (!output.get(0)->isnull and combining and !in_hand.item.isnull) {
+      }
+    } else if (ypos < 0.5f+0.1f*aspect_ratio and ypos > 0.5f) {
+      container = &inputs;
+      if (!inputs.get(0)->isnull and !inputs.get(1)->isnull and breaking and !in_hand.item.isnull) {
+      }
+    }
+    
+    if (xpos < 0.5f and xpos > -0.5f) {
+      index = int(xpos*10+5);
+    }
+    if (container != nullptr and index != -1 and index < container->items.size()) {
+      on_item_click(container, index, button);
+      
+      if (output.get(0)->isnull) {
+        if (combining) {
+          inputs.items[0] = ItemStack(Item(nullptr), 0);
+          inputs.items[1] = ItemStack(Item(nullptr), 0);
+          combining = false;
+        }
+      } else if (inputs.get(0)->isnull or inputs.get(1)->isnull) {
+        if (breaking) {
+          output.items[0] = ItemStack(Item(nullptr), 0);
+          breaking = false;
+        }
+      }
+      
+      if (!inputs.get(0)->isnull and !inputs.get(1)->isnull and (output.get(0)->isnull or combining) and !breaking) {
+        Item newitem = *inputs.get(0);
+        newitem.addons.push_back(*inputs.get(1));
+        output.add(ItemStack(newitem, 1));
+        combining = true;
+      } else {
+        if (combining) {
+          output.items[0] = ItemStack(Item(nullptr), 0);
+        }
+        combining = false;
+      }
+      
+      if (!output.get(0)->isnull and output.get(0)->addons.size() > 0 and
+      ((inputs.get(0)->isnull and inputs.get(1)->isnull) or breaking) and !combining) {
+        Item item = *output.get(0);
+        Item addon = item.addons.back();
+        item.addons.pop_back();
+        inputs.add(ItemStack(item, 1));
+        inputs.add(ItemStack(addon, 1));
+        breaking = true;
+      } else {
+        if (breaking) {
+          inputs.items[0] = ItemStack(Item(nullptr), 0);
+          inputs.items[1] = ItemStack(Item(nullptr), 0);
+        }
+        breaking = false;
+      }
+    }
+  }
+}
+
+
+void ToolMenu::close(World* world) {
+  end(world);
+  after();
+}
+
+
 /////////////////////////////////////////craftingh ///////////////////////////////////////
 
-CraftingMenu::CraftingMenu(int newlevel, function<void()> after_func): level(newlevel), after(after_func), in_hand(nullptr, 0), page(0), button(1) {
+CraftingMenu::CraftingMenu(int newlevel, function<void()> after_func): level(newlevel), after(after_func), page(0), button(1) {
   start();
   get_recipes();
   render_page();
@@ -215,27 +353,7 @@ void CraftingMenu::render(GLFWwindow* window, World* world, Player* player, MemV
     }
     bool changed = false;
     if (container != nullptr and index != -1) {
-      if (button == 1) {
-        if (in_hand.item.data != container->items[index].item.data or !in_hand.item.data->stackable or ! container->items[index].item.data->stackable) {
-          // different items in hand and spot, swap
-          ItemStack tmp = in_hand;
-          in_hand = container->items[index];
-          container->items[index] = tmp;
-          changed = true;
-        } else {
-          container->items[index].count += in_hand.count;
-          in_hand = ItemStack(nullptr, 0);
-          changed = true;
-        }
-      } else if (button == 2) {
-        if (in_hand.item.isnull) {
-          in_hand = container->items[index];
-          int total = in_hand.count;
-          in_hand.count = total/2;
-          container->items[index].count = total/2 + total%2;
-          changed = true;
-        }
-      }
+      on_item_click(container, index, button);
     }
     if (container == nullptr and index != -1) {
       for (int i = 0; i < len_page; i ++) {

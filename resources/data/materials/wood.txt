@@ -1,0 +1,4 @@
+material wood {
+	:toughness: 10
+	:elastic: 4
+}

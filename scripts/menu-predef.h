@@ -36,9 +36,14 @@ class Menu { public:
     void end(World*);
 };
 
-class InventoryMenu: public Menu { public:
+class ItemMenu: public Menu { public:
+  ItemStack in_hand;
+  ItemMenu();
+  void on_item_click(ItemContainer* container, int index, int button);
+};
+
+class InventoryMenu: public ItemMenu { public:
     string header;
-    ItemStack in_hand;
     function<void()> after;
     ItemContainer* other;
     int button;
@@ -49,8 +54,21 @@ class InventoryMenu: public Menu { public:
     void close(World*);
 };
 
-class CraftingMenu: public Menu { public:
-  ItemStack in_hand;
+class ToolMenu: public ItemMenu { public:
+  function<void()> after;
+  ItemContainer inputs;
+  ItemContainer output;
+  int button;
+  double xpos, ypos;
+  bool combining = false;
+  bool breaking = false;
+  
+  ToolMenu(function<void()> after_func);
+  void render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs);
+  void close(World*);
+};
+
+class CraftingMenu: public ItemMenu { public:
   function<void()> after;
   int button;
   int level;

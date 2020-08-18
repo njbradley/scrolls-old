@@ -117,6 +117,13 @@ class CraftingGroup: public BlockGroup { public:
 	bool persistant();
 };
 
+class AnvilGroup: public BlockGroup { public:
+	AnvilGroup(World* world, ivec3 starting_pos);
+	AnvilGroup(World* world, istream& ifile);
+	bool rcaction(Player* player, Item* item);
+	bool persistant();
+};
+
 class PipePacket { public:
 	Item item;
 	bool water;

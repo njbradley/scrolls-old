@@ -61,15 +61,17 @@ void CharArray::place(World* world, int x, int y, int z, int dx, int dy, int dz)
 ///
 
 
-Item::Item(ItemData* newdata): data(newdata), isnull(data == nullptr) {
+Item::Item(ItemData* newdata): data(newdata), isnull(data == nullptr), modified(false) {
   if (!isnull) {
     sharpness = data->starting_sharpness;
     weight = data->starting_weight;
+    reach = data->starting_reach;
+    stackable = data->stackable;
   }
 }
 
-Item::Item(ItemData* newdata, double newsharpness, double newweight): data(newdata), isnull(data == nullptr),
-sharpness(newsharpness), weight(newweight) {
+Item::Item(ItemData* newdata, double newsharpness, double newweight, double newreach): data(newdata), isnull(data == nullptr),
+sharpness(newsharpness), weight(newweight), reach(newreach), stackable(false), modified(true) {
   
 }
 
@@ -82,22 +84,86 @@ Item::Item(istream& ifile) {
   } else {
     isnull = false;
     if (name == "~") {
-      ifile >> name >> sharpness >> weight;
+      ifile >> name >> sharpness >> weight >> reach;
       data = itemstorage->items[name];
+      modified = true;
     } else {
       data = itemstorage->items[name];
       sharpness = data->starting_sharpness;
       weight = data->starting_weight;
+      reach = data->starting_reach;
+      modified = false;
+    }
+    while (ifile.peek() == ' ' and !ifile.eof()) {
+      ifile.get();
+    }
+    if (ifile.peek() == '[') {
+      ifile.get();
+      do {
+        addons.emplace_back(ifile);
+        while (ifile.peek() == ' ' and !ifile.eof()) {
+          ifile.get();
+        }
+      } while (ifile.peek() != ']');
+      ifile.get();
     }
   }
 }
 
+double Item::get_sharpness() {
+  double sharp = 0;
+  if (data->sharpenable) {
+    sharp = sharpness;
+  }
+  for (Item& addon : addons) {
+    if (addon.sharpness > sharp) {
+      sharp = addon.sharpness;
+    }
+  }
+  return sharp;
+}
+
+double Item::get_weight() {
+  double new_weight = 0;
+  if (data->sharpenable) {
+    new_weight = weight;
+  }
+  for (Item& addon : addons) {
+    new_weight += addon.get_weight();
+  }
+  return new_weight;
+}
+
+double Item::get_reach() {
+  double new_reach = 0;
+  if (data->sharpenable) {
+    new_reach = reach;
+  }
+  for (Item& addon : addons) {
+    new_reach += addon.get_reach();
+  }
+  return new_reach;
+}
+
+string Item::get_name() {
+  string name = data->name;
+  if (addons.size() > 0) {
+    name = addons[0].get_name() + " on a " + name;
+  }
+  if (addons.size() > 1) {
+    for (int i = 1; i < addons.size(); i ++) {
+      name = addons[i].get_name() + " and " + name;
+    }
+  }
+  return name;
+}
+
 string Item::descript() {
-  if (data->tool == "null") {
-    return data->name;
+  if (!data->sharpenable) {
+    return get_name();
   } else {
     stringstream ss;
-    ss << data->name << "\nSharpness " << sharpness << "\nWeight " << weight;
+    ss << get_name() << "\nSharpness " << get_sharpness() << "\nWeight " << get_weight() << "\nReach " << get_reach();
     return ss.str();
   }
 }
@@ -117,10 +183,11 @@ double Item::dig_time(char val) {
     if (data->tool == "null") {
       time = blocks->blocks[val]->hardness[data->tool];
     } else {
-      if (sharpness <= 0) {
+      double sharp = get_sharpness();
+      if (sharp <= 0) {
         time = 999999999;
       }
-      time = blocks->blocks[val]->hardness[data->tool]/(sharpness*weight); //balance point
+      time = blocks->blocks[val]->hardness[data->tool]/(sharp*get_weight()); //balance point
     }
     double nulltime = blocks->blocks[val]->hardness["null"];
     if (nulltime < time) {
@@ -153,10 +220,17 @@ void Item::to_file(ostream& ofile) {
   if (data == nullptr) {
     ofile << "null ";
   } else {
-    if (data->tool != "null") {
-      ofile << "~ " << data->name << ' ' << sharpness << ' ' << weight << ' ';
+    if (modified) {
+      ofile << "~ " << data->name << ' ' << sharpness << ' ' << weight << ' ' << reach << ' ';
     } else {
       ofile << data->name << ' ';
+    }
+    if (addons.size() > 0) {
+      ofile << "[ ";
+      for (Item& item : addons) {
+        item.to_file(ofile);
+      }
+      ofile << "] ";
     }
   }
 }
@@ -183,13 +257,23 @@ char Item::ondig_null(World* world, int x, int y, int z) {
 void Item::sharpen(double speed, double force) {
   sharpness += speed*0.1;
   weight -= speed*0.01;
+  modified = true;
+  stackable = false;
 }
+
+void Item::render(MemVecs* vecs, float x, float y) {
+  draw_image_uv(vecs, "items.bmp", x, y, 0.1f, 0.1f*aspect_ratio, 0, 1, float(data->texture)/itemstorage->total_images, float(data->texture+1)/itemstorage->total_images);
+  for (Item& item : addons) {
+    item.render(vecs, x, y + 0.05f);
+  }
+}
+
 
 /////////////////////////////////////// ITEMdada ////////////////////////////////
 
 ItemData::ItemData(ifstream & ifile):
 stackable(true), onplace(nullptr), rcaction("null"), starting_weight(0),
-starting_sharpness(0), tool("null"), sharpenable(false) {
+starting_sharpness(0), starting_reach(0), tool("null"), sharpenable(false) {
   
   string buff;
   ifile >> buff;
@@ -222,6 +306,9 @@ starting_sharpness(0), tool("null"), sharpenable(false) {
         sharpenable = true;
       } else if (varname == "sharpness") {
         ifile >> starting_sharpness;
+        sharpenable = true;
+      } else if (varname == "reach") {
+        ifile >> starting_reach;
         sharpenable = true;
       } else if (varname == "tool") {
         ifile >> tool;
@@ -262,7 +349,7 @@ ItemStack::ItemStack(Item newitem, int newcount): item(newitem), count(newcount)
 }
 
 void ItemStack::render(MemVecs* vecs, float x, float y) {
-  draw_image_uv(vecs, "items.bmp", x, y, 0.1f, 0.1f*aspect_ratio, 0, 1, float(item.data->texture)/itemstorage->total_images, float(item.data->texture+1)/itemstorage->total_images);
+  item.render(vecs, x, y);
   draw_text(vecs, std::to_string(count), x+0.02, y+0.02f);
 }
 
@@ -316,9 +403,10 @@ ItemContainer::ItemContainer(ItemContainer* first, ItemContainer* second) {
 }
 
 bool ItemContainer::add(ItemStack itemstack) {
-    if (itemstack.item.data->stackable) {
+    if (itemstack.item.stackable) {
       for (int i = 0; i < items.size(); i ++) {
-        if (itemstack.item.data == items[i].item.data) {
+        if (itemstack.item.data == items[i].item.data
+          and itemstack.item.addons.size() < 0 and items[i].item.addons.size() < 0) {
           items[i].count += itemstack.count;
           return true;
         }

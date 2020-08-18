@@ -37,6 +37,7 @@ using namespace glm;
 #include "scripts/multithreading.h"
 #include "scripts/mobs.h"
 #include "scripts/commands.h"
+#include "scripts/materials.h"
 
 
 #include "scripts/cross-platform.h"
@@ -234,7 +235,7 @@ void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLu
 
 
 void inven_menu() {
-	menu = new InventoryMenu("hi", nullptr, [&] () {
+	menu = new ToolMenu( [&] () {
 		delete menu;
 		menu = nullptr;
 	});
@@ -315,6 +316,7 @@ int main( void )
 	
 	cout.precision(10);
 	
+	matstorage = new MaterialStorage();
 	blocks = new BlockStorage();
 	
 	itemstorage = new ItemStorage();

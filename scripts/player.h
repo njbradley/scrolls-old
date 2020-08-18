@@ -663,7 +663,7 @@ void Player::computeMatricesFromInputs(){
 				stamina_cost += glm::dot(vel, -right);
 		}
 		if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS){
-			if (consts[4] and vel.y > -0.5) {
+			if (consts[4] and vel.y > -10) {
 				vel.y = 15;// = vec3(0,10,0);//up * deltaTime * speed;
 				stamina_cost += vel.y;
 			}
