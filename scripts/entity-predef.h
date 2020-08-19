@@ -78,8 +78,8 @@ class Player: public Entity {
     //virtual void calc_constraints();
 		mat4 getViewMatrix();
 		mat4 getProjectionMatrix();
-		void right_mouse();
-		void left_mouse();
+		void right_mouse(double dt);
+		void left_mouse(double dt);
     void raycast(Pixel** hit, vec3* hitpos, DisplayEntity** entity);
 		void mouse_button();
 		void computeMatricesFromInputs();

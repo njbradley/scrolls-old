@@ -1,5 +1,5 @@
 block enthead {
-	:break_times: [axe:0.5 pickaxe:0.7 shovel:1.0 sword:0.9 null:1.0]
+	:material: wood
 	:textures: [ent-mouth log-end ent-mouth ent-mouth log-end ent-mouth]
 	:item_dropped: chips 1
 	:rotation_enabled:

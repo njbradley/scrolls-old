@@ -11,6 +11,7 @@ using std::map;
 #include "blockdata-predef.h"
 #include "menu-predef.h"
 #include "blocks-predef.h"
+#include "materials-predef.h"
 #include "cross-platform.h"
 
 
@@ -49,7 +50,7 @@ void BlockExtra::save_to_file(ostream& ofile) {
 
 
 
-DropTable::DropTable(istream& ifile): item_name("null"), count(0), tool("null"), sharpness(0), prob(1) {
+DropTable::DropTable(istream& ifile): item_name("null"), count(0), force(0), sharpness(0), prob(1) {
   char lett;
   ifile >> lett;
   if (lett == '(') {
@@ -57,12 +58,8 @@ DropTable::DropTable(istream& ifile): item_name("null"), count(0), tool("null"),
     while (lett != ')') {
       if (lett == '%') {
         ifile >> prob;
-      } else if (lett == 'T') {
-        ifile >> tool;
-        if (tool.back() == ')') {
-          tool.pop_back();
-          break;
-        }
+      } else if (lett == 'F') {
+        ifile >> force;
       } else if (lett == 'S') {
         ifile >> sharpness;
       }
@@ -82,7 +79,7 @@ DropTable::DropTable(istream& ifile): item_name("null"), count(0), tool("null"),
   }
 }
 
-DropTable::DropTable(): item_name("null"), count(0), tool("null"), sharpness(0), prob(1) {
+DropTable::DropTable(): item_name("null"), count(0), force(0), sharpness(0), prob(1) {
   
 }
 
@@ -94,8 +91,8 @@ void DropTable::drop(ItemContainer* result, Player* player, Item* break_item) {
     is_prob = prob >= random;
   }
   if (is_prob) {
-    if (tool == "null" or break_item->data->tool == tool) {
-      if (sharpness == 0 or sharpness <= break_item->sharpness) {
+    if (force == 0 or force <= break_item->get_weight()) {
+      if (sharpness == 0 or sharpness <= break_item->get_sharpness()) {
         if (tables.size() > 0) {
           for (int i = 0; i < tables.size(); i ++) {
             tables[i].drop(result, player, break_item);
@@ -112,7 +109,7 @@ void DropTable::drop(ItemContainer* result, Player* player, Item* break_item) {
 
 BlockData::BlockData(ifstream & ifile):
 default_direction(0), rotation_enabled(false), minscale(1), rcaction("null"), lightlevel(0),
-clumpyness(0.9), clumpy_group(""), toughness(0) {
+clumpyness(0.9), clumpy_group("") {
   string buff;
   ifile >> buff;
   if (buff != "block") {
@@ -126,18 +123,10 @@ clumpyness(0.9), clumpy_group(""), toughness(0) {
     getline(ifile, buff, ':');
     getline(ifile, varname, ':');
     while (!ifile.eof() and varname != "") {
-      if (varname == "break_times") {
-        getline(ifile, buff, '[');
-        string all;
-        getline(ifile, all, ']');
-        stringstream ss(all);
-        string word;
-        while (ss >> word) {
-          stringstream wordss(word);
-          string tool;
-          getline(wordss, tool, ':');
-          wordss >> hardness[tool];
-        }
+      if (varname == "material") {
+        string matname;
+        ifile >> matname;
+        material = matstorage->materials[matname];
       } else if (varname == "textures") {
         getline(ifile, buff, '[');
         getline(ifile, tex_str, ']');
@@ -147,8 +136,6 @@ clumpyness(0.9), clumpy_group(""), toughness(0) {
         rotation_enabled = true;
       } else if (varname == "minscale") {
         ifile >> minscale;
-      } else if (varname == "toughness") {
-        ifile >> toughness;
       } else if (varname == "rcaction") {
         ifile >> rcaction;
       } else if (varname == "lightlevel") {

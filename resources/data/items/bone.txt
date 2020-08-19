@@ -1,3 +1,4 @@
 item bone {
 	:block: bone
+	:material: bone
 }

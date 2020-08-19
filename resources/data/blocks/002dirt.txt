@@ -1,5 +1,5 @@
 block dirt {
-	:break_times: [axe:0.5 pickaxe:0.5 shovel:0.1 sword:0.5 null:0.5]
+	:material: dirt
 	:toughness: 0.3
 	:textures: [dirt]
 	:item_dropped: [dirt 1, (% 0.1) gravel 1, (% 0.1) flint 1]

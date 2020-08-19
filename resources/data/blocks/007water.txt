@@ -1,4 +1,4 @@
 block water {
-	:break_times: [axe:100 pickaxe:100 shovel:100 sword:100 null:100]
+	:material: water
 	:textures: [water]
 }

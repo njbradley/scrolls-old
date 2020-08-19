@@ -1,5 +1,5 @@
 block glofly {
-	:break_times: [axe:0.5 pickaxe:0.5 shovel:0.5 sword:0.5 null:0.5]
+	:material: glofly
 	:textures: [glofly-side glofly-face glofly-side glofly-top glofly-back glofly-side]
 	:default_direction: 1
 	:rotation_enabled:

@@ -31,8 +31,8 @@ class BlockExtra { public:
 
 class DropTable { public:
   double prob;
-  string tool;
   double sharpness;
+  double force;
   vector<DropTable> tables;
   string item_name;
   int count;
@@ -42,8 +42,7 @@ class DropTable { public:
 };
 
 class BlockData { public:
-    map<string,double> hardness;
-    double toughness;
+    Material* material;
     int texture[6];
     int default_direction;
     bool rotation_enabled;

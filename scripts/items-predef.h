@@ -29,6 +29,7 @@ public:
   double sharpness;
   double reach;
   double weight;
+  double area;
   bool isnull;
   bool modified;
   bool stackable;
@@ -40,11 +41,14 @@ public:
   double get_sharpness();
   double get_weight();
   double get_reach();
+  double get_area();
   string get_name();
-  void damage(Player* player, BlockData* data);
+  pair<Item*,int> get_head(int depth = 0);
+  void damage(Player* player, BlockData* data, double time);
   double dig_time(char val);
   bool do_rcaction(World* world);
   char ondig(World* world, int x, int y, int z);
+  void trim();
   void to_file(ostream& ofile);
   string descript();
   void sharpen(double speed, double force);
@@ -66,7 +70,7 @@ class ItemData {
         double starting_sharpness;
         double starting_reach;
         bool sharpenable;
-        string tool;
+        Material* material;
             
         ItemData(ifstream & ifile);
         ~ItemData();

@@ -1,5 +1,5 @@
 block snow {
-	:break_times: [axe:0.3 pickaxe:0.8 shovel:0.1 sword:0.4 null:0.3]
+	:material: snow
 	:toughness: 0
 	:textures: [snow]
 }

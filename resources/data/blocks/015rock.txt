@@ -1,5 +1,5 @@
 block rock {
-	:break_times: [axe:3 pickaxe:0.7 shovel:4 sword:5 null:10]
+	:material: stone
 	:textures: [stone]
 	:item_dropped: (T pickaxe S 2) rock 1
 }

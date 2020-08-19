@@ -1,5 +1,5 @@
 block pigbody {
-	:break_times: [axe:0.5 pickaxe:0.7 shovel:0.4 sword:0.3 null:1.0]
+	:material: flesh
 	:item_dropped: [pork 1, bone 1]
 	:textures: [pigbody]
 	:clumpy_group: pig

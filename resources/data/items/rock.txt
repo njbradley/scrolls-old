@@ -3,4 +3,5 @@ item rock {
 	:sharpness: 0
 	:weight: 5
 	:reach: 1
+	:material: stone
 }

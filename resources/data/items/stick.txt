@@ -3,4 +3,5 @@ item stick {
 	:sharpness: 1
 	:weight: 1
 	:reach: 4
+	:material: wood
 }

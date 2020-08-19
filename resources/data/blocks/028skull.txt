@@ -1,5 +1,5 @@
 block skull {
-	:break_times: [axe:0.5 pickaxe:0.7 shovel:1.0 sword:0.9 null:1.0]
+	:material: bone
 	:textures: [bone-top skull bone-top]
 	:item_dropped: skull 1
 	:clumpy_group: bone-group

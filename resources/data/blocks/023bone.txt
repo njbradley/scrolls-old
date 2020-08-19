@@ -1,5 +1,5 @@
 block bone {
-	:break_times: [axe:0.5 pickaxe:0.7 shovel:1.0 sword:0.9 null:1.0]
+	:material: bone
 	:textures: [bone-side bone-top bone-side bone-side bone-top bone-side]
 	:item_dropped: bone 1
 	:rotation_enabled:

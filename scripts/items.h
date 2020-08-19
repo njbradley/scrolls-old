@@ -10,7 +10,7 @@ using std::function;
 #include "world-predef.h"
 #include "blockdata-predef.h"
 #include "cross-platform.h"
-
+#include "materials-predef.h"
 
 //////////////////////////// CHARARRAY ////////////////////////////////////
 
@@ -110,22 +110,37 @@ Item::Item(istream& ifile) {
   }
 }
 
-double Item::get_sharpness() {
-  double sharp = 0;
-  if (data->sharpenable) {
-    sharp = sharpness;
-  }
-  for (Item& addon : addons) {
-    if (addon.sharpness > sharp) {
-      sharp = addon.sharpness;
+pair<Item*,int> Item::get_head(int depth) {
+  if (addons.size() > 0) {
+    int highest_depth = -1;
+    Item* head = nullptr;
+    for (Item& item : addons) {
+      pair<Item*,int> result = item.get_head(depth+1);
+      if (result.second >= highest_depth) {
+        head = result.first;
+        highest_depth = result.second;
+      }
     }
+    return pair<Item*,int>(head, highest_depth);
+  } else if (!isnull and data->sharpenable) {
+    return pair<Item*,int>(this, depth);
+  } else {
+    return pair<Item*,int>(nullptr, -1);
   }
-  return sharp;
+}
+
+double Item::get_sharpness() {
+  Item* head = get_head().first;
+  if (head == nullptr) {
+    return 0;
+  } else {
+    return head->sharpness;
+  }
 }
 
 double Item::get_weight() {
   double new_weight = 0;
-  if (data->sharpenable) {
+  if (!isnull and data->sharpenable) {
     new_weight = weight;
   }
   for (Item& addon : addons) {
@@ -136,7 +151,7 @@ double Item::get_weight() {
 
 double Item::get_reach() {
   double new_reach = 0;
-  if (data->sharpenable) {
+  if (!isnull and data->sharpenable) {
     new_reach = reach;
   }
   for (Item& addon : addons) {
@@ -168,33 +183,66 @@ string Item::descript() {
   }
 }
 
-void Item::damage(Player* player, BlockData* data) {
-  sharpness -= 0.1;
-  if (sharpness < 0) {
-    sharpness = 0;
+void Item::damage(Player* player, BlockData* blockdata, double time) {
+  if (isnull) {
+    return;
+  }
+  double force = get_weight();
+  Item* head = get_head().first;
+  if (head != nullptr) {
+    double sharp = head->sharpness;
+    double score = blockdata->material->collision_score(head->data->material, sharp, force);
+    double added_sharpness = sharp - head->data->starting_sharpness;
+    if (added_sharpness > 0) {
+      double decrement = std::max(0.1*time, sharp*std::pow(0.9, 1/time));
+      head->sharpness -= decrement;
+      head->weight -= decrement/3;
+    } else {
+      double decrement = 0.1*time;
+      head->sharpness -= decrement/3;
+      head->weight -= decrement;
+    }
+    trim();
+  }
+}
+
+void Item::trim() {
+  for (int i = addons.size() - 1; i >= 0; i --) {
+    if (addons[i].weight <= 0) {
+      addons.erase(addons.begin() + i);
+    } else {
+      addons[i].trim();
+    }
+  }
+  
+  if (weight <= 0) {
+    isnull = true;
+    data = nullptr;
+    addons.clear();
   }
 }
 
 double Item::dig_time(char val) {
   double time;
-  if (isnull) {
-    return blocks->blocks[val]->hardness["null"];
+  Item* head = get_head().first;
+  Material* mater;
+  double sharp;
+  double force;
+  if (head != nullptr) {
+    mater = data->material;
+    sharp = head->sharpness;
+    force = get_weight();
   } else {
-    if (data->tool == "null") {
-      time = blocks->blocks[val]->hardness[data->tool];
-    } else {
-      double sharp = get_sharpness();
-      if (sharp <= 0) {
-        time = 999999999;
-      }
-      time = blocks->blocks[val]->hardness[data->tool]/(sharp*get_weight()); //balance point
-    }
-    double nulltime = blocks->blocks[val]->hardness["null"];
-    if (nulltime < time) {
-      return nulltime;
-    } else {
-      return time;
-    }
+    mater = matstorage->materials["fist"];
+    sharp = 1;
+    force = 1;
+  }
+  BlockData* blockdata = blocks->blocks[val];
+  double score = -blockdata->material->collision_score(mater, sharp, force);
+  if (score > 0) {
+    return blockdata->material->toughness / score;
+  } else {
+    return 999999999;
   }
 }
 
@@ -239,13 +287,6 @@ char Item::ondig(World* world, int x, int y, int z) {
     char type = world->get(x,y,z);
     world->set(x,y,z,0);
     return type;
-    //double random = (rand()%1000/1000.0);
-    //double prob = blocks->blocks[type]->hardness[tool];// - ((damage-1)-time)*0.2;
-    //cout << prob << ' ' << random << endl;
-    //if (prob > random) {
-    //    world->set(x,y,z,0);
-    //}
-    //dig_pickaxe(world, x, y, z, random);
 }
 
 char Item::ondig_null(World* world, int x, int y, int z) {
@@ -255,16 +296,19 @@ char Item::ondig_null(World* world, int x, int y, int z) {
 }
 
 void Item::sharpen(double speed, double force) {
-  sharpness += speed*0.1;
-  weight -= speed*0.01;
-  modified = true;
-  stackable = false;
+  Item* head = get_head().first;
+  if (head != nullptr) {
+    head->sharpness += speed*0.1;
+    head->weight -= speed*0.01;
+    head->modified = true;
+    head->stackable = false;
+  }
 }
 
 void Item::render(MemVecs* vecs, float x, float y) {
   draw_image_uv(vecs, "items.bmp", x, y, 0.1f, 0.1f*aspect_ratio, 0, 1, float(data->texture)/itemstorage->total_images, float(data->texture+1)/itemstorage->total_images);
   for (Item& item : addons) {
-    item.render(vecs, x, y + 0.05f);
+    item.render(vecs, x, y + 0.075f);
   }
 }
 
@@ -273,7 +317,7 @@ void Item::render(MemVecs* vecs, float x, float y) {
 
 ItemData::ItemData(ifstream & ifile):
 stackable(true), onplace(nullptr), rcaction("null"), starting_weight(0),
-starting_sharpness(0), starting_reach(0), tool("null"), sharpenable(false) {
+starting_sharpness(0), starting_reach(0), sharpenable(false) {
   
   string buff;
   ifile >> buff;
@@ -297,6 +341,10 @@ starting_sharpness(0), starting_reach(0), tool("null"), sharpenable(false) {
         onplace = new CharArray(arr, 1, 1, 1);
       } else if (varname == "non_stackable") {
         stackable = false;
+      } else if (varname == "material") {
+        string matname;
+        ifile >> matname;
+        material = matstorage->materials[matname];
       } else if (varname == "rcaction") {
         ifile >> rcaction;
       } else if (varname == "toughness") {
@@ -310,8 +358,6 @@ starting_sharpness(0), starting_reach(0), tool("null"), sharpenable(false) {
       } else if (varname == "reach") {
         ifile >> starting_reach;
         sharpenable = true;
-      } else if (varname == "tool") {
-        ifile >> tool;
       } else if (varname == "texture") {
         ifile >> tex_str;
       }

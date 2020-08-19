@@ -54,6 +54,7 @@ class Collider;
 class Chunk;
 class Pixel;
 class World;
+class Material;
 class Item;
 class BlockData;
 class Entity;

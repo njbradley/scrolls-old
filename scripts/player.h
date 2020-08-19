@@ -382,7 +382,7 @@ void Player::raycast(Pixel** hit, vec3* hitpos, DisplayEntity** target_entity) {
 	
 }
 
-void Player::right_mouse() {
+void Player::right_mouse(double deltatime) {
 	//cout << "riht" << endl;
 	if (timeout < 0) {
 		return;
@@ -450,7 +450,7 @@ void Player::right_mouse() {
 	}
 }
 
-void Player::left_mouse() {
+void Player::left_mouse(double deltatime) {
 	//cout << "lefftt" << endl;
 	vec3 hitpos;
 	Pixel* pix;
@@ -481,20 +481,14 @@ void Player::left_mouse() {
 	//cout << ':' << x << ' ' << y << ' ' << z << endl;
 	
 	Item* item = inven.get(selitem);
-	string tool = "null";
-	if (!item->isnull) {
-		tool = item->data->tool;
-	}
 	double time_needed = item->dig_time(pix->get());
-	if (timeout > time_needed) {
+	//item->damage(this, blocks->blocks[pix->get()], deltatime);
+	if (false and timeout > time_needed) {
 		char newitem;
 		if (item->isnull) {
 			newitem = Item::ondig_null(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
 		} else {
 			newitem = item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
-		}
-		if (tool != "null") {
-			item->damage(this, blocks->blocks[newitem]);
 		}
 		if (newitem != 0) {
 			blocks->blocks[newitem]->droptable.drop(&inven, this, item);
@@ -706,11 +700,11 @@ void Player::computeMatricesFromInputs(){
 	}
 	
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-		left_mouse();
+		left_mouse(deltaTime);
 		timeout += deltaTime;
 	}
 	else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
-		right_mouse();
+		right_mouse(deltaTime);
 		timeout += deltaTime;
 	} else {
 		timeout = 0;

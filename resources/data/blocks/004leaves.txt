@@ -1,5 +1,5 @@
 block leaves {
-	:break_times: [axe:0.08 pickaxe:0.08 shovel:0.08 sword:0.05 null:0.12]
+	:material: leaves
 	:toughness: 0
 	:textures: [leaves]
 	:item_dropped: (% 0.5) leaves 1

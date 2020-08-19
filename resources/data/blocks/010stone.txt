@@ -1,5 +1,5 @@
 block stone {
-	:break_times: [axe:3 pickaxe:0.7 shovel:4 sword:5 null:10]
+	:material: stone
 	:toughness: 13
 	:textures: [smooth-stone]
 	:item_dropped: stone 1
