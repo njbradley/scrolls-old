@@ -405,21 +405,25 @@ SelectMenu::SelectMenu(string head, vector<string> & opts, function<void(string)
 
 void SelectMenu::render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs) {
     int i = 0;
-    draw_text(uivecs, header, -0.5, 0.75f, 3);
-    for (string name : options) {
-        draw_text(uivecs, name, -0.4f, 0.5f - i*0.1f, 2);
-        i++;
-    }
+    draw_text(uivecs, header, 0, 0.65f, 3, "center");
+
     bool last_click = click;
     click = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-    if (click and !last_click) {
-	      double xpos, ypos;
-	      glfwGetCursorPos(window, &xpos, &ypos);
-        int index = (int)((double)ypos/screen_y*20) - 4;
-        if (index >= 0 and index < options.size()) {
-            chosen = options[index];
+	  double xpos, ypos;
+	  glfwGetCursorPos(window, &xpos, &ypos);
+
+    float xp = (xpos - (screen_x/2.0f)) / (screen_x/2.0f);
+    float yp = (ypos - (screen_y/2.0f)) / -(screen_y/2.0f);
+
+    for (int i=0; i<options.size(); i++){
+      draw_text(uivecs, options[i], 0, 0.4f - i*0.15f, 2, "center");
+      if (click and !last_click) {
+        if (collide_last_text(xp, yp)) {
+          chosen = options[i];
         }
+      }
     }
+
     last_click = click;
     if (chosen != "") {
         close(world);
@@ -468,8 +472,8 @@ TextInputMenu::TextInputMenu(string head, bool have_filter, function<void(string
 }
 
 void TextInputMenu::render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs) {
-  draw_text(uivecs, header, -0.5, 0.75f, 3);
-  draw_text(uivecs, text + '|', -0.5, 0.0f, 2);
+  draw_text(uivecs, header, 0, 0.65f, 3, "center");
+  draw_text(uivecs, text + '|', -0.0f, 0.0f, 2, "center");
   if (text_buff != "") {
     for (char c : text_buff) {
       if (c == '\b') {
