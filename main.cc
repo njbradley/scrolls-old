@@ -910,7 +910,7 @@ int main( void )
 		glDisableVertexAttribArray(2);
 		
 		
-		// desable trancparency
+		// disable transparency
 		glEnable(GL_DEPTH_TEST);
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
