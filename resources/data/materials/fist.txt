@@ -1,0 +1,4 @@
+material fist {
+	:toughness: 3
+	:elastic: 2
+}

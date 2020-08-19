@@ -1,0 +1,4 @@
+material steel {
+	:toughness: 30
+	:elastic: 2
+}

@@ -1,0 +1,4 @@
+material flesh {
+	:toughness: 3
+	:elastic: 2
+}

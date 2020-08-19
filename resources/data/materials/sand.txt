@@ -1,0 +1,4 @@
+material sand {
+	:toughness: 0
+	:elastic: 0
+}
