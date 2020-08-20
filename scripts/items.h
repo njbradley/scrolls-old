@@ -138,13 +138,14 @@ double Item::get_sharpness() {
   }
 }
 
-double Item::get_weight() {
+double Item::get_weight(double totalreach) {
   double new_weight = 0;
   if (!isnull and data->sharpenable) {
     new_weight = weight;
+    totalreach += reach;
   }
   for (Item& addon : addons) {
-    new_weight += addon.get_weight();
+    new_weight += addon.get_weight(totalreach) * totalreach;
   }
   return new_weight;
 }
@@ -229,7 +230,7 @@ double Item::dig_time(char val) {
   double sharp;
   double force;
   if (head != nullptr) {
-    mater = data->material;
+    mater = head->data->material;
     sharp = head->sharpness;
     force = get_weight();
   } else {
@@ -240,10 +241,12 @@ double Item::dig_time(char val) {
   BlockData* blockdata = blocks->blocks[val];
   double score = -blockdata->material->collision_score(mater, sharp, force);
   if (score > 0) {
-    return blockdata->material->toughness / score;
+    time = 10 / score;
   } else {
-    return 999999999;
+    time = 999999999;
   }
+  cout << time << endl;
+  return time;
 }
 
 bool Item::do_rcaction(World* world) {

@@ -33,11 +33,19 @@ double Material::collision_score(Material* other, double sharpness, double force
 	double toughness_diff = toughness - other->toughness;
 	double elastic_diff = elastic - sharpness;
 	
+	double sharp_buff = 0;
+	
 	if (elastic_diff < 0) {
-		elastic_diff /= 4;
+		sharp_buff = elastic_diff;
+		elastic_diff = 0;
 	}
 	
 	double score = toughness_diff + elastic_diff;
+	cout << score << endl;
+	if (score < 0) {
+		score += sharp_buff/2;
+	}
+	cout << score << endl;
 	score *= force;
 	
 	cout << "score " << score << endl;

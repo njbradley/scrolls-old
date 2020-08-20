@@ -39,7 +39,7 @@ public:
   Item(istream& ifile);
   Item(ItemData* newdata, double newsharpness, double newweight, double newreach);
   double get_sharpness();
-  double get_weight();
+  double get_weight(double reach = 0);
   double get_reach();
   double get_area();
   string get_name();
