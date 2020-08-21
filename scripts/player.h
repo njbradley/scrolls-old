@@ -482,8 +482,15 @@ void Player::left_mouse(double deltatime) {
 	
 	Item* item = inven.get(selitem);
 	double time_needed = item->dig_time(pix->get());
-	//item->damage(this, blocks->blocks[pix->get()], deltatime);
-	if (false and timeout > time_needed) {
+	double damage_per_sec = 1/time_needed;
+	
+	if (pix != block_breaking) {
+		break_progress = 0;
+		block_breaking = pix;
+	}
+	break_progress += damage_per_sec * deltatime;
+	item->damage(this, blocks->blocks[pix->get()], deltatime);
+	if (break_progress >= 1) {
 		char newitem;
 		if (item->isnull) {
 			newitem = Item::ondig_null(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));

@@ -1,7 +1,7 @@
 item stick {
 	:onplace: 6 1 1 : 1 1 1 1 1 1
-	:sharpness: 1
-	:weight: 1
-	:reach: 2
+	:sharpness: 2
+	:weight: 1.5
+	:reach: 3
 	:material: wood
 }

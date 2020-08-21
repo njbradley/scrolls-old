@@ -87,12 +87,14 @@ Item::Item(istream& ifile) {
       ifile >> name >> sharpness >> weight >> reach;
       data = itemstorage->items[name];
       modified = true;
+      stackable = false;
     } else {
       data = itemstorage->items[name];
       sharpness = data->starting_sharpness;
       weight = data->starting_weight;
       reach = data->starting_reach;
       modified = false;
+      stackable = data->stackable;
     }
     while (ifile.peek() == ' ' and !ifile.eof()) {
       ifile.get();
@@ -185,25 +187,37 @@ string Item::descript() {
 }
 
 void Item::damage(Player* player, BlockData* blockdata, double time) {
-  if (isnull) {
+  if (isnull or !data->sharpenable) {
     return;
   }
-  double force = get_weight();
+  double force = std::max(get_weight(),1.0);
   Item* head = get_head().first;
   if (head != nullptr) {
     double sharp = head->sharpness;
-    double score = blockdata->material->collision_score(head->data->material, sharp, force);
+    double dig_time = blockdata->material->dig_time(head->data->material, sharp, force);
+    double multiplier = 1/(1+std::exp(head->data->material->material_score(blockdata->material))) * 2;
+    double damage_per_sec = force / head->data->material->toughness * multiplier * 0.1;//head->data->starting_weight / dig_time * multiplier;
     double added_sharpness = sharp - head->data->starting_sharpness;
     if (added_sharpness > 0) {
-      double decrement = std::max(0.1*time, sharp*std::pow(0.9, 1/time));
+      double decrement = damage_per_sec * time;//std::max(0.1*time, sharp*std::pow(0.9, 1/time));
       head->sharpness -= decrement;
       head->weight -= decrement/3;
     } else {
-      double decrement = 0.1*time;
-      head->sharpness -= decrement/3;
+      double decrement = damage_per_sec * time;
+      if (head->sharpness > 0) {
+        head->sharpness -= decrement/3;
+      } else {
+        head->sharpness = 0;
+      }
       head->weight -= decrement;
     }
+    modified = true;
     trim();
+    if (weight < 0) {
+      isnull = true;
+      weight = 1;
+      sharpness = 1;
+    }
   }
 }
 
@@ -232,20 +246,14 @@ double Item::dig_time(char val) {
   if (head != nullptr) {
     mater = head->data->material;
     sharp = head->sharpness;
-    force = get_weight();
+    force = std::max(get_weight(),1.0);
   } else {
     mater = matstorage->materials["fist"];
     sharp = 1;
     force = 1;
   }
   BlockData* blockdata = blocks->blocks[val];
-  double score = -blockdata->material->collision_score(mater, sharp, force);
-  if (score > 0) {
-    time = 10 / score;
-  } else {
-    time = 999999999;
-  }
-  cout << time << endl;
+  time = blockdata->material->dig_time(mater, sharp, force);
   return time;
 }
 
@@ -454,8 +462,8 @@ ItemContainer::ItemContainer(ItemContainer* first, ItemContainer* second) {
 bool ItemContainer::add(ItemStack itemstack) {
     if (itemstack.item.stackable) {
       for (int i = 0; i < items.size(); i ++) {
-        if (itemstack.item.data == items[i].item.data
-          and itemstack.item.addons.size() < 0 and items[i].item.addons.size() < 0) {
+        if (itemstack.item.data == items[i].item.data) {
+          //and itemstack.item.addons.size() < 0 and items[i].item.addons.size() < 0) {
           items[i].count += itemstack.count;
           return true;
         }

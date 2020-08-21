@@ -1,4 +1,4 @@
 material bone {
-	:toughness: 16
+	:toughness: 13
 	:elastic: 1.5
 }

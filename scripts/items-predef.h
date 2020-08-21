@@ -26,13 +26,13 @@ class CharArray { public:
 class Item {
 public:
   ItemData* data;
-  double sharpness;
-  double reach;
-  double weight;
+  double sharpness = 0;
+  double reach = 1;
+  double weight = 1;
   double area;
   bool isnull;
   bool modified;
-  bool stackable;
+  bool stackable = false;
   vector<Item> addons;
   
   Item(ItemData* newdata);

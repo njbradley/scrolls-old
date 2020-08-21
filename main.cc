@@ -4,6 +4,7 @@
 #include <sstream>
 #include <chrono>
 #include <thread>
+#include <iomanip>
 //#include <boost/asio.hpp>
 
 using std::stringstream;
@@ -962,6 +963,34 @@ int main( void )
 				dump_buffers();
 				dump_emptys();
 				crash(1);
+			} else if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS) {
+				map<Material*,char> mat_blocks;
+				for (pair<char,BlockData*> kv : blocks->blocks) {
+					if (kv.second != nullptr) {
+						mat_blocks[kv.second->material] = kv.first;
+					}
+				}
+				ofstream ofile("dig_times.txt");
+				vector<char> blockchars;
+				ofile << std::setw(30) << ' ';
+				vector<string> mats {"wood", "snow", "stone", "bone", "dirt", "grass", "leaves", "sand"};
+				for (string name : mats) {
+					Material* mat = matstorage->materials[name];
+					ofile << std::setw(15) << mat->name;
+					blockchars.push_back(blocks->names[name]);
+				}
+				ofile << endl;
+				for (ItemStack& itemstack : world->player->inven.items) {
+					if (!itemstack.item.isnull) {
+						stringstream name;
+						name << itemstack.item.get_name() << " s" << itemstack.item.get_sharpness() << " w" << itemstack.item.get_weight();
+						ofile << std::setw(30) << name.str();
+						for (char c : blockchars) {
+							ofile << std::setw(15) << itemstack.item.dig_time(c);
+						}
+						ofile << endl;
+					}
+				}
 			}
 		} else {
 			if (glfwGetKey(window, GLFW_KEY_ESCAPE ) == GLFW_PRESS) {

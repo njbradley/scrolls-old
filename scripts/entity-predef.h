@@ -66,7 +66,9 @@ class Player: public Entity {
 	mat4 ProjectionMatrix;
 	vec3 pointing;
 	int selitem;
-	
+	double break_progress = 0;
+  Pixel* block_breaking;
+  
 	public:
 		ItemContainer inven;
 		ItemContainer backpack;

@@ -26,50 +26,65 @@ Material::Material(istream& ifile): toughness(0), elastic(0) {
 	}
 }
 
-double Material::collision_score(Material* other, double sharpness, double force) {
-	cout << name << " t" << toughness << " e" << elastic << ' ';
-	cout << other->name << " t" << other->toughness << " e" << other->elastic << endl;
+double Material::material_score(Material* other) {
+	return (toughness - other->toughness);
+}
+
+double Material::damage(Material* other, double sharpness, double force) {
+	// cout << "damage calc" << endl;
+	double damage_taken = force;
+	double elastic_buff = (elastic - sharpness);
+	if (elastic_buff > 0) {
+		damage_taken -= elastic_buff;
+	}
+	if (damage_taken < 0) {
+		damage_taken = 0;
+	}
+	// cout << "damage " << damage_taken << endl;
+	double score = material_score(other);
+	// cout << "score " << score << endl;
+	double multiplier = 1/(1+exp(0.1*score));
+	// cout << "multiplier " << multiplier << endl;
+	return damage_taken * multiplier;
+}
+
+double Material::dig_time(Material* other, double sharpness, double force) {
+	// cout << name << " t" << toughness << " e" << elastic << ' ';
+	// cout << other->name << " t" << other->toughness << " e" << other->elastic << endl;
+	// cout << 's' << sharpness << " f" << force << endl;
 	
-	double toughness_diff = toughness - other->toughness;
+	
+	double score = material_score(other);
+	// cout << "score " << score << endl;
+	double multiplier = 1/(1+exp(0.1*score));
+	// cout << "multiplier " << multiplier << endl;
+	
+	multiplier = (1-multiplier) * 2;
+	
+	double tough_diff = toughness - force;
 	double elastic_diff = elastic - sharpness;
 	
-	double sharp_buff = 0;
+	if (elastic_diff < 0) elastic_diff = -1 + std::pow(0.5, -elastic_diff);
+	if (tough_diff < 0) tough_diff = -1 + std::pow(0.5,-tough_diff);
 	
-	if (elastic_diff < 0) {
-		sharp_buff = elastic_diff;
-		elastic_diff = 0;
-	}
+	// cout << elastic_diff << ' ' << tough_diff << endl;
 	
-	double score = toughness_diff + elastic_diff;
-	cout << score << endl;
-	if (score < 0) {
-		score += sharp_buff/2;
-	}
-	cout << score << endl;
-	score *= force;
+	double total = elastic_diff + tough_diff;
 	
-	cout << "score " << score << endl;
+	double time = std::pow(1.5,total);
+	// cout << "time " << time << endl;
+	return time;
 	
-	return score;
-	
-	// double score = 0;
-	// const double elastic_buff = 3;
-	// if (other->elastic > elastic) {
-	// 	score += std::min((other->elastic - elastic) * elastic_buff, other->toughness);
-	// } else {
-	// 	score -= std::min((elastic - other->elastic) * elastic_buff, toughness);
-	// }
-	// cout << "elastic score " << score << endl;
-	// score += (other->toughness - toughness) * 1;
-	// cout << "material score " << score << endl;
-	// const double sharpness_buff = 1;
-	// if (elastic > 0) {
-	// 	score *= force * std::min(sharpness / elastic, sharpness_buff);
-	// } else {
-	// 	score *= force * sharpness_buff;
-	// }
-	// cout << "final score " << score << endl;
-	// return score;
+	// double def_elastic_percent = elastic / (elastic + toughness);
+	// double attack_sharp_percent = sharpness / (sharpness + force);
+	// cout << def_elastic_percent << ' ' << attack_sharp_percent << endl;
+	// double matching_score = 1 - std::abs(def_elastic_percent - attack_sharp_percent);
+	// cout << matching_score << endl;
+	// double damage_taken = damage(other, sharpness, force) / toughness;
+	// cout << damage_taken << endl;
+	// double time = 1 / (damage_taken * matching_score);
+	// cout << "time " << time << endl;
+	// return time;
 }
 
 
