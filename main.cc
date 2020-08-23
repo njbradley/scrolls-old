@@ -986,11 +986,13 @@ int main( void )
 						name << itemstack.item.get_name() << " s" << itemstack.item.get_sharpness() << " w" << itemstack.item.get_weight();
 						ofile << std::setw(30) << name.str();
 						for (char c : blockchars) {
-							ofile << std::setw(15) << itemstack.item.dig_time(c);
+							Pixel pix(0,0,0,c,1,nullptr,nullptr);
+							ofile << std::setw(15) << 1.0/itemstack.item.collision(&pix);
 						}
 						ofile << endl;
 					}
 				}
+				crash(443456765);
 			}
 		} else {
 			if (glfwGetKey(window, GLFW_KEY_ESCAPE ) == GLFW_PRESS) {

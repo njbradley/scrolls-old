@@ -1,4 +1,4 @@
 material stone {
-	:toughness: 15
+	:toughness: 32
 	:elastic: 0
 }

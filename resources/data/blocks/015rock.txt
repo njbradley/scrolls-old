@@ -1,5 +1,5 @@
 block rock {
 	:material: stone
 	:textures: [stone]
-	:item_dropped: (T pickaxe S 2) rock 1
+	:item_dropped: rock 1
 }

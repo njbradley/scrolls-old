@@ -15,6 +15,7 @@ class Material { public:
 	double damage(Material* other, double sharpness, double force);
 	double dig_time(Material* other, double sharpness, double force);
 	double material_score(Material* other);
+	double collision_force(Material* other, double sharpness, double force);
 };
 
 class MaterialStorage { public:

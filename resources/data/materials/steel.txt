@@ -1,4 +1,4 @@
 material steel {
-	:toughness: 30
+	:toughness: 100
 	:elastic: 2
 }

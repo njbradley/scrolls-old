@@ -41,18 +41,19 @@ public:
   double get_sharpness();
   double get_weight(double reach = 0);
   double get_reach();
-  double get_area();
   string get_name();
-  pair<Item*,int> get_head(int depth = 0);
-  void damage(Player* player, BlockData* data, double time);
-  double dig_time(char val);
+  pair<Item*,double> get_head(double depth = 0);
+  double get_recharge_time();
+  //void damage(Player* player, BlockData* data, double time);
+  //double dig_time(char val);
+  double collision(Pixel* pix);
   bool do_rcaction(World* world);
   char ondig(World* world, int x, int y, int z);
   void trim();
   void to_file(ostream& ofile);
   string descript();
   void sharpen(double speed, double force);
-  void render(MemVecs* vecs, float x, float y);
+  void render(MemVecs* vecs, float x, float y, float scale = 0.1f);
   
   static char ondig_null(World* world, int x, int y, int z);
 };
@@ -108,6 +109,7 @@ class ItemContainer {
         Item* use(int index);
         bool contains(ItemStack);
         bool take(ItemStack);
+        void make_single(int index);
         void render(MemVecs* vecs, float x, float y);
         void save_to_file(ostream&);
         void clear();

@@ -112,20 +112,20 @@ Item::Item(istream& ifile) {
   }
 }
 
-pair<Item*,int> Item::get_head(int depth) {
+pair<Item*,double> Item::get_head(double depth) {
   if (addons.size() > 0) {
-    int highest_depth = -1;
+    double highest_depth = -1;
     Item* head = nullptr;
     for (Item& item : addons) {
-      pair<Item*,int> result = item.get_head(depth+1);
+      pair<Item*,int> result = item.get_head(depth + reach);
       if (result.second >= highest_depth) {
         head = result.first;
         highest_depth = result.second;
       }
     }
-    return pair<Item*,int>(head, highest_depth);
+    return pair<Item*,double>(head, highest_depth);
   } else if (!isnull and data->sharpenable) {
-    return pair<Item*,int>(this, depth);
+    return pair<Item*,double>(this, depth + reach);
   } else {
     return pair<Item*,int>(nullptr, -1);
   }
@@ -153,14 +153,7 @@ double Item::get_weight(double totalreach) {
 }
 
 double Item::get_reach() {
-  double new_reach = 0;
-  if (!isnull and data->sharpenable) {
-    new_reach = reach;
-  }
-  for (Item& addon : addons) {
-    new_reach += addon.get_reach();
-  }
-  return new_reach;
+  return get_head().second;
 }
 
 string Item::get_name() {
@@ -181,81 +174,134 @@ string Item::descript() {
     return get_name();
   } else {
     stringstream ss;
-    ss << get_name() << "\nSharpness " << get_sharpness() << "\nWeight " << get_weight() << "\nReach " << get_reach();
+    ss.precision(2);
+    ss << get_name()
+    << "\nSharpness " << get_sharpness()
+    << "\nWeight " << get_weight()
+    << "\nReach " << get_reach()
+    << "\nSpeed " << get_recharge_time();
     return ss.str();
   }
 }
 
-void Item::damage(Player* player, BlockData* blockdata, double time) {
-  if (isnull or !data->sharpenable) {
-    return;
-  }
-  double force = std::max(get_weight(),1.0);
+// void Item::damage(Player* player, BlockData* blockdata, double time) {
+//   if (isnull or !data->sharpenable) {
+//     return;
+//   }
+//   double force = std::max(get_weight(),1.0);
+//   Item* head = get_head().first;
+//   if (head != nullptr) {
+//     double sharp = head->sharpness;
+//     double dig_time = blockdata->material->dig_time(head->data->material, sharp, force);
+//     double multiplier = 1/(1+std::exp(head->data->material->material_score(blockdata->material))) * 2;
+//     double damage_per_sec = force / head->data->material->toughness * multiplier * 0.1;//head->data->starting_weight / dig_time * multiplier;
+//     double added_sharpness = sharp - head->data->starting_sharpness;
+//     if (added_sharpness > 0) {
+//       double decrement = damage_per_sec * time;//std::max(0.1*time, sharp*std::pow(0.9, 1/time));
+//       head->sharpness -= decrement;
+//       head->weight -= decrement/3;
+//     } else {
+//       double decrement = damage_per_sec * time;
+//       if (head->sharpness > 0) {
+//         head->sharpness -= decrement/3;
+//       } else {
+//         head->sharpness = 0;
+//       }
+//       head->weight -= decrement;
+//     }
+//     head->modified = true;
+//     trim();
+//     if (weight < 0) {
+//       isnull = true;
+//       weight = 1;
+//       sharpness = 1;
+//     }
+//   }
+// }
+
+double Item::collision(Pixel* pix) {
+  BlockData* blockdata = blocks->blocks[pix->value];
+  double force = get_weight();
   Item* head = get_head().first;
-  if (head != nullptr) {
-    double sharp = head->sharpness;
-    double dig_time = blockdata->material->dig_time(head->data->material, sharp, force);
-    double multiplier = 1/(1+std::exp(head->data->material->material_score(blockdata->material))) * 2;
-    double damage_per_sec = force / head->data->material->toughness * multiplier * 0.1;//head->data->starting_weight / dig_time * multiplier;
-    double added_sharpness = sharp - head->data->starting_sharpness;
-    if (added_sharpness > 0) {
-      double decrement = damage_per_sec * time;//std::max(0.1*time, sharp*std::pow(0.9, 1/time));
-      head->sharpness -= decrement;
-      head->weight -= decrement/3;
-    } else {
-      double decrement = damage_per_sec * time;
-      if (head->sharpness > 0) {
-        head->sharpness -= decrement/3;
-      } else {
-        head->sharpness = 0;
-      }
-      head->weight -= decrement;
-    }
-    modified = true;
-    trim();
-    if (weight < 0) {
-      isnull = true;
-      weight = 1;
-      sharpness = 1;
-    }
+  double sharp = get_sharpness();
+  Material* mat;
+  if (head == nullptr or head->isnull or !head->data->sharpenable) {
+    sharpness = 1;
+    force = 1;
+    mat = matstorage->materials["fist"];
+  } else {
+    mat = head->data->material;
+  }
+  cout << 's' << sharp << " f" << force << endl;
+  double mat_collision = blockdata->material->collision_force(mat, sharp, force);
+  if (mat_collision < 1) {
+    mat_collision = std::pow(0.8, (1-mat_collision));
+  }
+  cout << "mat coll " << mat_collision << endl;
+  double leftover_sharp = sharp - blockdata->material->elastic - mat->elastic;
+  cout << "leftover sharp " << leftover_sharp << endl;
+	double score = blockdata->material->material_score(mat);// + leftover_sharp;
+	double multiplier = 1/(1+exp(0.4*score));
+  cout << "multiplier " << multiplier << endl;
+  
+  double block_damage = (mat_collision * multiplier) / blockdata->material->toughness;
+  double item_damage = 1-multiplier;
+  cout << "bni damage " << block_damage << ' ' << item_damage << endl;
+  
+  if (head != nullptr and !head->isnull and head->data->sharpenable) {
+    item_damage /= head->weight;
+    head->weight -= item_damage;
+    head->modified = true;
+    head->stackable = false;
+  }
+  
+  trim();
+  return block_damage;
+}
+
+double Item::get_recharge_time() {
+  if (isnull or !data->sharpenable) {
+    return 0.25;
+  } else {
+    return 0.25 + get_weight() / 8;
   }
 }
 
 void Item::trim() {
   for (int i = addons.size() - 1; i >= 0; i --) {
-    if (addons[i].weight <= 0) {
+    if (addons[i].data->sharpenable and addons[i].weight <= 0) {
       addons.erase(addons.begin() + i);
     } else {
       addons[i].trim();
     }
   }
   
-  if (weight <= 0) {
+  if (!isnull and data->sharpenable and weight <= 0) {
     isnull = true;
     data = nullptr;
     addons.clear();
   }
 }
 
-double Item::dig_time(char val) {
-  double time;
-  Item* head = get_head().first;
-  Material* mater;
-  double sharp;
-  double force;
-  if (head != nullptr) {
-    mater = head->data->material;
-    sharp = head->sharpness;
-    force = std::max(get_weight(),1.0);
-  } else {
-    mater = matstorage->materials["fist"];
-    sharp = 1;
-    force = 1;
-  }
-  BlockData* blockdata = blocks->blocks[val];
-  time = blockdata->material->dig_time(mater, sharp, force);
-  return time;
-}
+// double Item::dig_time(char val) {
+//   double time;
+//   Item* head = get_head().first;
+//   Material* mater;
+//   double sharp;
+//   double force;
+//   if (head != nullptr) {
+//     mater = head->data->material;
+//     sharp = head->sharpness;
+//     force = std::max(get_weight(),1.0);
+//   } else {
+//     mater = matstorage->materials["fist"];
+//     sharp = 1;
+//     force = 1;
+//   }
+//   BlockData* blockdata = blocks->blocks[val];
+//   time = blockdata->material->dig_time(mater, sharp, force);
+//   return time;
+// }
 
 bool Item::do_rcaction(World* world) {
   if (!isnull and data->rcaction != "null") {
@@ -316,10 +362,16 @@ void Item::sharpen(double speed, double force) {
   }
 }
 
-void Item::render(MemVecs* vecs, float x, float y) {
-  draw_image_uv(vecs, "items.bmp", x, y, 0.1f, 0.1f*aspect_ratio, 0, 1, float(data->texture)/itemstorage->total_images, float(data->texture+1)/itemstorage->total_images);
-  for (Item& item : addons) {
-    item.render(vecs, x, y + 0.075f);
+void Item::render(MemVecs* vecs, float x, float y, float scale) {
+  if (isnull) {
+    draw_image_uv(vecs, "items.bmp", x, y, scale, scale*aspect_ratio, 0, 1, 0.0f, 1.0f/itemstorage->total_images);
+  } else {
+    draw_image_uv(vecs, "items.bmp", x, y, scale, scale*aspect_ratio, 0, 1, float(data->texture)/itemstorage->total_images, float(data->texture+1)/itemstorage->total_images);
+    int i = 0;
+    for (Item& item : addons) {
+      item.render(vecs, x + scale*i*0.3f, y + scale, scale);
+      i ++;
+    }
   }
 }
 
@@ -462,7 +514,8 @@ ItemContainer::ItemContainer(ItemContainer* first, ItemContainer* second) {
 bool ItemContainer::add(ItemStack itemstack) {
     if (itemstack.item.stackable) {
       for (int i = 0; i < items.size(); i ++) {
-        if (itemstack.item.data == items[i].item.data) {
+        if (itemstack.item.data == items[i].item.data and items[i].item.stackable) {
+          //cout << "add " << items[i].item.stackable << ' ' << items[i].item.get_name() << endl;
           //and itemstack.item.addons.size() < 0 and items[i].item.addons.size() < 0) {
           items[i].count += itemstack.count;
           return true;
@@ -527,6 +580,17 @@ bool ItemContainer::take(ItemStack itemstack) {
     }
   }
   return false;
+}
+
+void ItemContainer::make_single(int index) {
+  if (items[index].count > 1) {
+    ItemStack newstack = items[index];
+    newstack.count --;
+    items[index].item.stackable = false;
+    add(newstack);
+    newstack.count = 1;
+    items[index] = newstack;
+  }
 }
 
 void ItemContainer::render(MemVecs* vecs, float x, float y) {

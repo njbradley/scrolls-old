@@ -1,4 +1,4 @@
 material grass {
-	:toughness: 4
-	:elastic: 2
+	:toughness: 1.5
+	:elastic: 1
 }

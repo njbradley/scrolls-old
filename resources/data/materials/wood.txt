@@ -1,4 +1,4 @@
 material wood {
-	:toughness: 10
+	:toughness: 15
 	:elastic: 4
 }

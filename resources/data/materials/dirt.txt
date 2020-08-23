@@ -1,4 +1,4 @@
 material dirt {
-	:toughness: 3
+	:toughness: 1
 	:elastic: 1
 }

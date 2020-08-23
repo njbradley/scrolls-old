@@ -68,6 +68,8 @@ class Player: public Entity {
 	int selitem;
 	double break_progress = 0;
   Pixel* block_breaking;
+  double attack_recharge = 0;
+  double total_attack_recharge = 0.2;
   
 	public:
 		ItemContainer inven;

@@ -480,33 +480,41 @@ void Player::left_mouse(double deltatime) {
 	//cout << "skdfls " << int(pix->value) << endl;
 	//cout << ':' << x << ' ' << y << ' ' << z << endl;
 	
-	Item* item = inven.get(selitem);
-	double time_needed = item->dig_time(pix->get());
-	double damage_per_sec = 1/time_needed;
-	
-	if (pix != block_breaking) {
-		break_progress = 0;
-		block_breaking = pix;
-	}
-	break_progress += damage_per_sec * deltatime;
-	item->damage(this, blocks->blocks[pix->get()], deltatime);
-	if (break_progress >= 1) {
-		char newitem;
-		if (item->isnull) {
-			newitem = Item::ondig_null(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
-		} else {
-			newitem = item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+	if (attack_recharge <= 0) {
+		
+		if (pix != block_breaking) {
+			break_progress = 0;
+			block_breaking = pix;
 		}
-		if (newitem != 0) {
-			blocks->blocks[newitem]->droptable.drop(&inven, this, item);
+		
+		Item* item = inven.get(selitem);
+		if (!item->isnull and item->data->sharpenable and inven.items[selitem].count > 1) {
+			inven.make_single(selitem);
 		}
-		// string item_name = blocks->blocks[newitem]->item;
-		// if (item_name != "null") {
-		// 	if (!inven.add(ItemStack(Item(itemstorage->items[item_name]), 1))) {
-		// 		backpack.add(ItemStack(Item(itemstorage->items[item_name]), 1));
-		// 	}
-		// }
-		timeout = 0;
+		break_progress += item->collision(pix);
+		cout << break_progress << endl;
+		
+		if (true and break_progress >= 1) {
+			// double time_needed = item->dig_time(pix->get());
+			// double damage_per_sec = 1/time_needed;
+			//
+			// item->damage(this, blocks->blocks[pix->get()], deltatime);
+			char newitem;
+			if (item->isnull) {
+				newitem = Item::ondig_null(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+			} else {
+				newitem = item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+			}
+			if (newitem != 0) {
+				blocks->blocks[newitem]->droptable.drop(&inven, this, item);
+			}
+			break_progress = 0;
+		}
+		attack_recharge = item->get_recharge_time();
+		total_attack_recharge = item->get_recharge_time();
+		if (total_attack_recharge <= 0) {
+			total_attack_recharge = 0.2;
+		}
 	}
 	//world->mark_render_update(pair<int,int>((int)position.x/world->chunksize - (position.x<0), (int)position.z/world->chunksize - (position.z<0)));
 }
@@ -574,7 +582,11 @@ void Player::computeMatricesFromInputs(){
 	// Compute time difference between current and last frame
 	double currentTime = glfwGetTime();
 	float deltaTime = float(currentTime - lastTime);
-
+	
+	if (attack_recharge > 0) {
+		attack_recharge -= deltaTime;
+	}
+	
 	// Get mouse position
 	double xpos, ypos;
 	glfwGetCursorPos(window, &xpos, &ypos);
@@ -778,8 +790,9 @@ void Player::render_ui(MemVecs * uivecs) {
 	draw_text(uivecs, "\\/", -0.45f+selitem*0.1f, -0.85f);
 	Item* sel = inven.get(selitem);
 	if (!sel->isnull) {
-		draw_text(uivecs, sel->descript(), -0.25f, -0.7f);
+		draw_text(uivecs, sel->descript(), -0.25f, -0.65f);
 	}
+	sel->render(uivecs, 0.75, -1 - 0.5 * (attack_recharge / total_attack_recharge), 0.25);
 }
 
 #endif

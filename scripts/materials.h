@@ -27,7 +27,8 @@ Material::Material(istream& ifile): toughness(0), elastic(0) {
 }
 
 double Material::material_score(Material* other) {
-	return (toughness - other->toughness);
+	double score = (toughness - other->toughness);
+	return score;
 }
 
 double Material::damage(Material* other, double sharpness, double force) {
@@ -87,6 +88,14 @@ double Material::dig_time(Material* other, double sharpness, double force) {
 	// return time;
 }
 
+double Material::collision_force(Material* other, double sharpness, double force) {
+	cout << "mat coll force " << elastic << ' ' << other->elastic << ' ' << sharpness << endl;
+	cout << force << endl;
+	double absorbed_force = std::max(elastic + other->elastic - sharpness, 0.0);
+	force -= absorbed_force;
+	cout << force << endl;
+	return force;
+}
 
 
 
