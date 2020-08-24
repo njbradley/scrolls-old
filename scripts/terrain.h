@@ -121,7 +121,7 @@ ivec2 TerrainObject::get_nearest_2d(ivec2 pos) {
 
 
 TerrainObjectMerger::TerrainObjectMerger(TerrainLoader* newparent): parent(newparent) {
-	objs = vector<TerrainObject*> {new Tree(this), new Cave(this), new BigTree(this)};
+	objs = vector<TerrainObject*> {new Tree(this), new Cave(this), new BigTree(this), new TallTree(this)};
 	vector<string> files;
 	get_files_folder("resources/data/terrain", &files);
 	for (string file : files) {
@@ -225,7 +225,7 @@ char TerrainLoader::gen_func(ivec3 pos) {
 		val = get_base(pos).gen_func(pos);
 		//cout << "end gen func" << endl;
 	}
-	if (val == 0 and pos.y < 100) {
+	if (val == 0 and pos.y < 96) {
 		return blocks->names["water"];
 	}
 	return val;
@@ -265,13 +265,44 @@ string Plains::name() {
 
 
 
+Forest::Forest(TerrainLoader* loader): TerrainBase(loader) {
+	
+}
+
+int Forest::get_height(ivec2 pos) {
+	return int(get_heightmap(pos.x, pos.y, parent->seed))*2/3;
+}
+
+char Forest::gen_func(ivec3 pos) {
+	int height = get_height(ivec2(pos.x, pos.z));
+	if (pos.y < height-5) {
+			return blocks->names["rock"];
+	} if (pos.y < height-1) {
+			return blocks->names["dirt"];
+	} if (pos.y < height) {
+			return blocks->names["grass"];
+	}
+	return 0;
+}
+
+double Forest::valid_score(double wetness, double temp, double elev) {
+	return 1-elev + wetness;
+}
+
+string Forest::name() {
+	return "forest";
+}
+
+
+
+
 
 Mountains::Mountains(TerrainLoader* loader): TerrainBase(loader) {
 	
 }
 
 int Mountains::get_height(ivec2 pos) {
-	return int(get_heightmap(pos.x, pos.y, parent->seed+343));
+	return int(get_heightmap(pos.x, pos.y, parent->seed))*3/4;
 }
 
 char Mountains::gen_func(ivec3 pos) {
@@ -332,6 +363,41 @@ int Tree::priority() {
 bool Tree::is_valid(ivec3 pos) {
 	return true;
 }
+
+
+
+
+TallTree::TallTree(TerrainObjectMerger* merger): TerrainObject(merger->parent, ivec3(20,40,20), 30) {
+	
+}
+
+char TallTree::gen_func(ivec3 offset, ivec3 pos) {
+	double center_dist = glm::length(vec2(pos.x-10,pos.z-10));
+	int start_leaves = 10 + hash4(parent->seed, offset.x, offset.y, offset.z, 45356) % 10;
+	double leaves_frill = 2*randfloat(parent->seed, offset.x+pos.x, offset.y+pos.y, offset.z+pos.z, 2634928);
+	
+	if (center_dist < 4 - pos.y/40.0 * 4) {
+		return blocks->names["bark"];
+	} else if (pos.y > start_leaves and center_dist + (pos.y-start_leaves)/3 < 8 + leaves_frill) {
+		return blocks->names["leaves"];
+	}
+	return -1;
+}
+
+ivec3 TallTree::get_nearest(ivec3 pos) {
+	ivec2 pos2d = get_nearest_2d(ivec2(pos.x, pos.z));
+	return ivec3(pos2d.x, parent->get_height(pos2d+5+ivec2(pos.x, pos.z)) - pos.y, pos2d.y);
+}
+
+int TallTree::priority() {
+	return 5;
+}
+
+bool TallTree::is_valid(ivec3 pos) {
+	return true;
+}
+
+
 
 
 

@@ -846,7 +846,7 @@ int main( void )
 		}
 		
 		glUniform1iv(TextureID, num_blocks, ids);
-	 	
+		
 		
 		glDrawArrays(GL_TRIANGLES, world->transparent_glvecs.offset, world->transparent_glvecs.num_verts);
 		

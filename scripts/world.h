@@ -95,7 +95,6 @@ void World::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int
   glvecs.set_buffers(verts, uvs, light, mats, start_size);
   transparent_glvecs.set_buffers_prealloc(verts, uvs, light, mats, start_size*0.1, start_size - start_size*0.25);
   glvecs.size_alloc = start_size - start_size*0.25;
-  cout << transparent_glvecs.offset << endl;
 }
 
 void World::unzip() {

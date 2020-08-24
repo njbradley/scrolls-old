@@ -654,70 +654,75 @@ void MatchSidesGroup::custom_textures(int mats[6], int dirs[6], ivec3 position) 
 	int first_open = -1, first_closed = -1;
 	
 	for (int axis = 0; axis < 3; axis ++) {
-		ivec3 pos(0,0,0), neg(0,0,0);
-		pos[axis] = 1;
-		neg[axis] = -1;
-		const ivec2 all_dirs[] {{-1,0}, {0,1}, {1,0}, {0,-1}};
-		vector<int> open_dirs;
+		const ivec2 all_dirs[] = {{-1,0}, {0,1}, {1,0}, {0,-1}};
+		bool sides[4];
 		int i = 0;
 		for (ivec2 dir : all_dirs) {
 			ivec3 dir3(0,0,0);
 			if (axis == 0) {
 				dir3 = ivec3(0, dir.y, dir.x);
 			} else if (axis == 1) {
-				dir3 = ivec3(dir.x, 0, dir.y);
+				dir3 = ivec3(dir.y, 0, -dir.x);
 			} else if (axis == 2) {
-				dir3 = ivec3(dir.x, dir.y, 0);
+				dir3 = ivec3(-dir.x, dir.y, 0);
 			}
-			if (block_poses.count(position+dir3) == 0) {
-				open_dirs.push_back(i);
-				if (first_open == -1) {
-					first_open = i;
-				}
-			} else if (first_closed == -1) {
-				first_closed = i;
-			}
+			sides[i] = block_poses.count(position+dir3) > 0;
 			i++;
 		}
 		
+		bool side_mats[6][4] = {
+			{false, false, false, false},
+			{false, false, false, true},
+			{false, true, false, true},
+			{false, true, true, false},
+			{true, true, true, false},
+			{true, true, true, true}
+		};
 		
-		if (open_dirs.size() == 0) {
-			mats[axis] += 5;
-			mats[axis+3] += 5;
-		} else if (open_dirs.size() == 1) {
-			mats[axis] += 4;
-			mats[axis+3] += 4;
-			dirs[axis] = first_open;
-		} else if (open_dirs.size() == 2) {
-			if (open_dirs[1] - open_dirs[0] == 2) {
-				mats[axis] += 2;
-				mats[axis+3] += 2;
-				dirs[axis] = first_closed;
-			} else {
-				mats[axis] += 3;
-				mats[axis+3] += 3;
-				if (open_dirs[1] - open_dirs[0] == 1) {
-					dirs[axis] = first_open;
-				} else {
-					dirs[axis] = 3;
+		for (int pos_neg = 0; pos_neg < 2; pos_neg ++) {
+			
+			int offset = 0;
+			bool match = false;
+			int mat = -2;
+			bool newsides[4];
+			for (int i = 0; i < 4; i ++) {
+				newsides[i] = sides[i];
+			}
+			
+			while (!match and offset < 4) {
+				
+				
+				for (int j = 0; j < 6; j ++) {
+					bool all_same = true;
+					for (int k = 0; k < 4; k ++) {
+						if (side_mats[j][k] != newsides[k]) {
+							all_same = false;
+						}
+					}
+					if (all_same) {
+						match = true;
+						mat = j;
+						break;
+					}
+				}
+				if (!match) {
+					int tmp = newsides[3];
+					newsides[3] = newsides[2];
+					newsides[2] = newsides[1];
+					newsides[1] = newsides[0];
+					newsides[0] = tmp;
+					offset ++;
 				}
 			}
-		} else if (open_dirs.size() == 3) {
-			mats[axis] += 1;
-			mats[axis+3] += 1;
-			dirs[axis] = first_closed;
-		}
-		
-		if (true) {
-			dirs[axis + 3] = dirs[axis];
-		}
-	}
-	
-	for (int i = 0; i < 6; i ++) {
-		if (dirs[i] < 0) {
-			dirs[i] += 3;
-		} else if (dirs[i] >= 4) {
-			dirs[i] -= 3;
+			
+			mats[axis + 3*pos_neg] += mat;
+			dirs[axis + 3*pos_neg] = offset;
+			
+			//cout << offset << ' ' << pos_neg << ' ' << axis << ' ' << sides[0] << sides[1] << sides[2] << sides[3] << ' ';
+			bool tmp = sides[0];
+			sides[0] = sides[2];
+			sides[2] = tmp;
+			//cout  << sides[0] << sides[1] << sides[2] << sides[3] << endl;
 		}
 	}
 }

@@ -232,21 +232,21 @@ double Item::collision(Pixel* pix) {
   } else {
     mat = head->data->material;
   }
-  cout << 's' << sharp << " f" << force << endl;
+  //cout << 's' << sharp << " f" << force << endl;
   double mat_collision = blockdata->material->collision_force(mat, sharp, force);
   if (mat_collision < 1) {
     mat_collision = std::pow(0.8, (1-mat_collision));
   }
-  cout << "mat coll " << mat_collision << endl;
+  //cout << "mat coll " << mat_collision << endl;
   double leftover_sharp = sharp - blockdata->material->elastic - mat->elastic;
-  cout << "leftover sharp " << leftover_sharp << endl;
+  //cout << "leftover sharp " << leftover_sharp << endl;
 	double score = blockdata->material->material_score(mat);// + leftover_sharp;
 	double multiplier = 1/(1+exp(0.4*score));
   cout << "multiplier " << multiplier << endl;
   
   double block_damage = (mat_collision * multiplier) / blockdata->material->toughness;
   double item_damage = 1-multiplier;
-  cout << "bni damage " << block_damage << ' ' << item_damage << endl;
+  //cout << "bni damage " << block_damage << ' ' << item_damage << endl;
   
   if (head != nullptr and !head->isnull and head->data->sharpenable) {
     item_damage /= head->weight;

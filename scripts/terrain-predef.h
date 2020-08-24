@@ -73,6 +73,14 @@ class Plains: public TerrainBase { public:
 	virtual string name();
 };
 
+class Forest: public TerrainBase { public:
+	Forest(TerrainLoader* newparent);
+	virtual int get_height(ivec2 pos);
+	virtual char gen_func(ivec3 pos);
+	virtual double valid_score(double wetness, double temp, double elev);
+	virtual string name();
+};
+
 class Mountains: public TerrainBase { public:
 	Mountains(TerrainLoader* newparent);
 	virtual int get_height(ivec2 pos);
@@ -84,6 +92,15 @@ class Mountains: public TerrainBase { public:
 class Tree: public TerrainObject {
 public:
 	Tree(TerrainObjectMerger*);
+	char gen_func(ivec3,ivec3);
+	ivec3 get_nearest(ivec3);
+	int priority();
+	bool is_valid(ivec3);
+};
+
+class TallTree: public TerrainObject {
+public:
+	TallTree(TerrainObjectMerger*);
 	char gen_func(ivec3,ivec3);
 	ivec3 get_nearest(ivec3);
 	int priority();

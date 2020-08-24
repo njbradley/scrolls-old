@@ -128,7 +128,6 @@ GLuint loadBMP_array_folder(string dirpath, bool transparency = false) {
 	}
 	int width, height, nrChannels;
 	unsigned char* img_data = stbi_load((dirpath + "/" + img_paths[0]).c_str(), &width, &height, &nrChannels, transparency ? 4 : 3);
-	cout << nrChannels << endl;
 	nrChannels = transparency ? 4 : 3;
 	unsigned char* all_data = new unsigned char[width*height*nrChannels*img_paths.size()];
 	for (int i = 0; i < width*height*nrChannels; i ++) {

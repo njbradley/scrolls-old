@@ -418,8 +418,12 @@ void Pixel::set_all_render_flags() {
 void Pixel::del(bool remove_faces) {
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);
-    if (remove_faces) {
-      world->glvecs.del(render_index);
+    if (remove_faces and tile != nullptr) {
+      if (render_transparent) {
+        tile->world->transparent_glvecs.del(render_index);
+      } else {
+        tile->world->glvecs.del(render_index);
+      }
     }
     if (extras != nullptr) {
       delete extras;

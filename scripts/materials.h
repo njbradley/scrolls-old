@@ -89,11 +89,11 @@ double Material::dig_time(Material* other, double sharpness, double force) {
 }
 
 double Material::collision_force(Material* other, double sharpness, double force) {
-	cout << "mat coll force " << elastic << ' ' << other->elastic << ' ' << sharpness << endl;
-	cout << force << endl;
+	//cout << "mat coll force " << elastic << ' ' << other->elastic << ' ' << sharpness << endl;
+	//cout << force << endl;
 	double absorbed_force = std::max(elastic + other->elastic - sharpness, 0.0);
 	force -= absorbed_force;
-	cout << force << endl;
+	//cout << force << endl;
 	return force;
 }
 
