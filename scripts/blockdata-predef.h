@@ -53,6 +53,7 @@ class BlockData { public:
     DropTable droptable;
     double clumpyness;
     string clumpy_group;
+    bool transparent;
     BlockExtra* extras = nullptr;
     
     BlockData(ifstream & ifile);

@@ -217,14 +217,18 @@ int TerrainLoader::get_height(ivec2 pos) {
 
 char TerrainLoader::gen_func(ivec3 pos) {
 	char objval = objmerger.gen_func(pos);
+	char val;
 	if (objval != -1) {
-		return objval;
+		val = objval;
 	} else {
 		//cout << "start gen func" << endl;
-		char val = get_base(pos).gen_func(pos);
+		val = get_base(pos).gen_func(pos);
 		//cout << "end gen func" << endl;
-		return val;
 	}
+	if (val == 0 and pos.y < 100) {
+		return blocks->names["water"];
+	}
+	return val;
 }
 
 

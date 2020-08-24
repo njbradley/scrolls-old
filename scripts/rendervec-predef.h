@@ -45,10 +45,12 @@ class GLVecs: public RenderVecs {
         GLuint matbuffer;
         vector<pair<int,int>> empty;
         int size_alloc;
+        int offset = 0;
         int num_verts = 0;
         std::timed_mutex writelock;
         
         void set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size);
+        void set_buffers_prealloc(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size, int newoffset);
         pair<int,int> add(MemVecs* newvecs);
         void del(pair<int,int> index);
         void clean();

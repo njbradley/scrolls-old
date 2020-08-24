@@ -91,6 +91,13 @@ World::World(string oldname): loader(seed), name(oldname), closing_world(false),
     startup();
 }
 
+void World::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size) {
+  glvecs.set_buffers(verts, uvs, light, mats, start_size);
+  transparent_glvecs.set_buffers_prealloc(verts, uvs, light, mats, start_size*0.1, start_size - start_size*0.25);
+  glvecs.size_alloc = start_size - start_size*0.25;
+  cout << transparent_glvecs.offset << endl;
+}
+
 void World::unzip() {
   ifstream ifile("saves/" + name + "/worlddata.txt");
   if (ifile.good()) {
@@ -462,7 +469,7 @@ void World::render() {
     
     for (pair<ivec3, Tile*> kvpair : loop) {
         changed = changed or kvpair.second->chunk->render_flag;
-        kvpair.second->render(&glvecs);
+        kvpair.second->render(&glvecs, &transparent_glvecs);
     }
     for (pair<int,int> render_index : dead_render_indexes) {
       glvecs.del(render_index);
@@ -472,12 +479,13 @@ void World::render() {
     
     if (changed) {
       glvecs.clean();
-      if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
-        int before = clock();
+      transparent_glvecs.clean();
+      //if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
+        //int before = clock();
         glFinish();
         //cout << "glfinish time " << clock() - before << endl;
-        glvecs.writelock.unlock();
-      }
+        //glvecs.writelock.unlock();
+      //}
     }
 }
 

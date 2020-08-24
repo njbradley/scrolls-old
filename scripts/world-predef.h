@@ -65,6 +65,7 @@ class World: public Collider {
         bool generation = true;
         string name;
         GLVecs glvecs;
+        GLVecs transparent_glvecs;
         Program commandprogram;
         TerrainLoader loader;
         bool lighting_flag;
@@ -80,6 +81,7 @@ class World: public Collider {
         
         World(string newname, int newseed);
         World(string oldname);
+        void set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size);
         vec3 get_position() const;
         void unzip();
         void load_groups();

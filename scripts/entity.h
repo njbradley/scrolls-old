@@ -651,7 +651,7 @@ void DisplayEntity::render(RenderVecs* allvecs) {
       pix->sunlight = lightmax;
     });
     bool faces[] = {true,true,true,true,true,true};
-    block.block->render(&vecs, &block, 0, 0, 0, 1, faces, true);
+    block.block->render(&vecs, &vecs, &block, 0, 0, 0, 1, faces, true);
     for (int i = 0; i < vecs.num_verts; i++) {
       vecs.verts[i*3+0] += blockpos.x;
       vecs.verts[i*3+1] += blockpos.y;

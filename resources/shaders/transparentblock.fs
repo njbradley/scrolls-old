@@ -7,7 +7,7 @@ flat in ivec2 material;
 in float vertex_dist;
 
 // Ouput data
-out vec4 color;
+out vec3 color;
 
 // Values that stay constant for the whole mesh.
 const int num_blocks = 3;
@@ -27,13 +27,8 @@ void main(){
 	//return;
 	for( int i = 0; i < num_blocks; i ++) {
 		if (material.x-1 == i) {
-			vec4 tex = texture( myTextureSampler[i], vec3(UV.x, UV.y, material.y) );
-			if (tex.a < 0.05) {
-				discard;
-			}
-			vec3 color3 = tex.bgr * max(lightLevel.y, sunlight*lightLevel.x);
-			color3 = (color3*(1-dist) + clear_color*dist);
-			color = vec4(color3.x, color3.y, color3.z, tex.a);
+			color = texture( myTextureSampler[i], vec3(UV.x, UV.y, material.y) ).bgr * max(lightLevel.y, sunlight*lightLevel.x);
+			color = (color*(1-dist) + clear_color*dist);
 			break;
 		}
 	}

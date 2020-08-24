@@ -120,29 +120,31 @@ GLuint loadBMP_image_folder(string dirpath, bool transparency) {
 	return textureID;
 }
 
-GLuint loadBMP_array_folder(string dirpath) {
+GLuint loadBMP_array_folder(string dirpath, bool transparency = false) {
 	vector<string> img_paths;
 	get_files_folder(dirpath, &img_paths);
 	if (img_paths.size() < 0) {
 		exit(1);
 	}
 	int width, height, nrChannels;
-	unsigned char* img_data = stbi_load((dirpath + "/" + img_paths[0]).c_str(), &width, &height, &nrChannels, 3);
-	unsigned char* all_data = new unsigned char[width*height*3*img_paths.size()];
-	for (int i = 0; i < width*height*3; i ++) {
+	unsigned char* img_data = stbi_load((dirpath + "/" + img_paths[0]).c_str(), &width, &height, &nrChannels, transparency ? 4 : 3);
+	cout << nrChannels << endl;
+	nrChannels = transparency ? 4 : 3;
+	unsigned char* all_data = new unsigned char[width*height*nrChannels*img_paths.size()];
+	for (int i = 0; i < width*height*nrChannels; i ++) {
 		all_data[i] = img_data[i];
 	}
 	stbi_image_free(img_data);
 	
 	for (int i = 1; i < img_paths.size(); i ++) {
 		int newwidth, newheight, newnrChannels;
-		img_data = stbi_load((dirpath + "/" + img_paths[i]).c_str(), &newwidth, &newheight, &newnrChannels, 3);
+		img_data = stbi_load((dirpath + "/" + img_paths[i]).c_str(), &newwidth, &newheight, &newnrChannels, transparency ? 4 : 3);
 		if (newwidth != width or newheight != newheight) {
 			cout << "error in load_array_folder, image sizes are not the same" << endl;
 			exit(2);
 		}
-		for (int j = 0; j < width*height*3; j ++) {
-			all_data[i*width*height*3 + j] = img_data[j];
+		for (int j = 0; j < width*height*nrChannels; j ++) {
+			all_data[i*width*height*nrChannels + j] = img_data[j];
 		}
 		stbi_image_free(img_data);
 	}
@@ -162,8 +164,11 @@ GLuint loadBMP_array_folder(string dirpath) {
 	// }
 	// cout << endl;
 	// cout << width << ' ' << height << ' ' << num_layers << endl;
-	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0,GL_RGB, width, height, num_layers, 0, GL_BGR, GL_UNSIGNED_BYTE, all_data);
-	
+	if (!transparency) {
+		glTexImage3D(GL_TEXTURE_2D_ARRAY, 0,GL_RGB, width, height, num_layers, 0, GL_BGR, GL_UNSIGNED_BYTE, all_data);
+	} else {
+		glTexImage3D(GL_TEXTURE_2D_ARRAY, 0,GL_RGBA, width, height, num_layers, 0, GL_BGRA, GL_UNSIGNED_BYTE, all_data);
+	}
 	// OpenGL has now copied the data. Free our own version
 	//delete [] data;
 	// Poor filtering, or ...

@@ -1,4 +1,5 @@
 block water {
 	:material: water
 	:textures: [water]
+	:transparent:
 }

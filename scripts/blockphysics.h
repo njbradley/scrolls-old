@@ -278,7 +278,7 @@ void BlockGroup::copy_to_world(ivec3 newpos) {
 	}
 }
 
-void BlockGroup::custom_textures(int mats[6], int dirs[6]) {
+void BlockGroup::custom_textures(int mats[6], int dirs[6], ivec3 pos) {
 	
 }
 
@@ -318,6 +318,7 @@ BlockGroup* BlockGroup::make_group(char val, World* world, ivec3 pos) {
 	if (name == "backpack-group") return new BackpackGroup(world, pos);
 	if (name == "ghost-group") return new DissolveGroup(world, pos);
 	if (name == "anvil-group") return new AnvilGroup(world, pos);
+	if (name == "glass-group") return new MatchSidesGroup(world, pos);
 	return new BlockGroup(world, pos);
 }
 
@@ -334,6 +335,7 @@ BlockGroup* BlockGroup::from_file(World* world, istream& ifile) {
 	if (name == "backpack-group") return new BackpackGroup(world, ifile);
 	if (name == "ghost-group") return new DissolveGroup(world, ifile);
 	if (name == "anvil-group") return new AnvilGroup(world, ifile);
+	if (name == "glass-group") return new MatchSidesGroup(world, ifile);
 	return new BlockGroup(world, ifile);
 }
 
@@ -350,6 +352,7 @@ bool BlockGroup::is_persistant(char val) {
 	if (name == "backpack-group") return true;
 	if (name == "ghost-group") return true;
 	if (name == "anvil-group") return true;
+	if (name == "glass-group") return true;
 	return false;
 }
 
@@ -621,7 +624,7 @@ void GrindstoneGroup::rotate(AxleInterface* sender, double amount, double newfor
 	// }
 }
 
-void GrindstoneGroup::custom_textures(int mats[6], int dirs[6]) {
+void GrindstoneGroup::custom_textures(int mats[6], int dirs[6], ivec3 pos) {
 	
 }
 
@@ -636,6 +639,101 @@ void GrindstoneGroup::to_file(ostream& ofile) {
 
 
 
+MatchSidesGroup::MatchSidesGroup(World* nworld, ivec3 starting_pos): BlockGroup(nworld, starting_pos) {
+	//find_group();
+}
+
+MatchSidesGroup::MatchSidesGroup(World* nworld, istream& ifile): BlockGroup(nworld, ifile) {
+	
+}
+
+void MatchSidesGroup::custom_textures(int mats[6], int dirs[6], ivec3 position) {
+	// order: all_sides, u shape, top + bottom sides, L shape, only bottom, no sides
+	
+	
+	int first_open = -1, first_closed = -1;
+	
+	for (int axis = 0; axis < 3; axis ++) {
+		ivec3 pos(0,0,0), neg(0,0,0);
+		pos[axis] = 1;
+		neg[axis] = -1;
+		const ivec2 all_dirs[] {{-1,0}, {0,1}, {1,0}, {0,-1}};
+		vector<int> open_dirs;
+		int i = 0;
+		for (ivec2 dir : all_dirs) {
+			ivec3 dir3(0,0,0);
+			if (axis == 0) {
+				dir3 = ivec3(0, dir.y, dir.x);
+			} else if (axis == 1) {
+				dir3 = ivec3(dir.x, 0, dir.y);
+			} else if (axis == 2) {
+				dir3 = ivec3(dir.x, dir.y, 0);
+			}
+			if (block_poses.count(position+dir3) == 0) {
+				open_dirs.push_back(i);
+				if (first_open == -1) {
+					first_open = i;
+				}
+			} else if (first_closed == -1) {
+				first_closed = i;
+			}
+			i++;
+		}
+		
+		
+		if (open_dirs.size() == 0) {
+			mats[axis] += 5;
+			mats[axis+3] += 5;
+		} else if (open_dirs.size() == 1) {
+			mats[axis] += 4;
+			mats[axis+3] += 4;
+			dirs[axis] = first_open;
+		} else if (open_dirs.size() == 2) {
+			if (open_dirs[1] - open_dirs[0] == 2) {
+				mats[axis] += 2;
+				mats[axis+3] += 2;
+				dirs[axis] = first_closed;
+			} else {
+				mats[axis] += 3;
+				mats[axis+3] += 3;
+				if (open_dirs[1] - open_dirs[0] == 1) {
+					dirs[axis] = first_open;
+				} else {
+					dirs[axis] = 3;
+				}
+			}
+		} else if (open_dirs.size() == 3) {
+			mats[axis] += 1;
+			mats[axis+3] += 1;
+			dirs[axis] = first_closed;
+		}
+		
+		if (true) {
+			dirs[axis + 3] = dirs[axis];
+		}
+	}
+	
+	for (int i = 0; i < 6; i ++) {
+		if (dirs[i] < 0) {
+			dirs[i] += 3;
+		} else if (dirs[i] >= 4) {
+			dirs[i] -= 3;
+		}
+	}
+}
+
+bool MatchSidesGroup::persistant() {
+	return true;
+}
+
+void MatchSidesGroup::on_update() {
+	for (ivec3 pos : block_poses) {
+		Block* b = world->get_global(pos.x, pos.y, pos.z, 1);
+		if (b != nullptr) {
+			b->get_pix()->set_render_flag();
+		}
+	}
+}
 
 
 

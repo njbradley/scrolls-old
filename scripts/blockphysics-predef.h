@@ -30,7 +30,7 @@ class BlockGroup { public:
 	void set_pix_pointers();
 	void erase_from_world();
 	void copy_to_world(ivec3 newpos);
-	virtual void custom_textures(int mats[6], int dirs[6]);
+	virtual void custom_textures(int mats[6], int dirs[6], ivec3 pos);
 	virtual AxleInterface* cast_axle();
 	virtual void add_item(ItemStack stack);
 	//virtual PipeInterface* cast_pipe();
@@ -84,8 +84,16 @@ class GrindstoneGroup: public AxleInterface { public:
 	GrindstoneGroup(World* world, istream& ifile);
 	bool rcaction(Player* player, Item* item);
 	void rotate(AxleInterface* sender, double amount, double force);
-	void custom_textures(int mats[6], int dirs[6]);
+	void custom_textures(int mats[6], int dirs[6], ivec3 pos);
 	void to_file(ostream& ofile);
+};
+
+class MatchSidesGroup: public BlockGroup { public:
+	MatchSidesGroup(World* world, ivec3 starting_pos);
+	MatchSidesGroup(World* world, istream& ifile);
+	void custom_textures(int mats[6], int dirs[6], ivec3 pos);
+	bool persistant();
+	void on_update();
 };
 
 // class WheelGroup: public AxleInterface { public:

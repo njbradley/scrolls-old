@@ -51,9 +51,9 @@ class Block: public Collider { public:
     Block(int x, int y, int z, int newscale, Chunk* newparent);
     void world_to_local(int x, int y, int z, int* lx, int* ly, int* lz) const;
     void global_position(int*, int*, int*) const;
-    virtual void render(RenderVecs* vecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null) = 0;
+    virtual void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null) = 0;
     virtual void rotate(int axis, int direction) = 0;
-    virtual bool is_air(int, int, int) const = 0;
+    virtual bool is_air(int, int, int, char otherval = -1) const = 0;
     virtual Block * get_global(int,int,int,int) = 0;
     virtual void render_update() = 0;
     virtual void set_all_render_flags() = 0;
@@ -80,6 +80,7 @@ public:
     char value;
     char direction;
     pair<int,int> render_index;
+    bool render_transparent = false;
     int blocklight;
     int sunlight;
     int entitylight;
@@ -115,9 +116,9 @@ public:
     void reset_lightlevel();
     void rotate(int axis, int dir);
     void lighting_update();
-    bool is_air(int dx, int dy, int dz) const;
+    bool is_air(int dx, int dy, int dz, char otherval = -1) const;
     Block* get_global(int x, int y, int z, int scale);
-    void render(RenderVecs* vecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null);
+    void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null);
     Chunk* subdivide();
     // splits the pixel into a chunk with 8 pixels of the
     // same value in it
@@ -153,12 +154,12 @@ class Chunk: public Block { public:
     void all_side(function<void(Pixel*)>,int,int,int);
     int get_sunlight(int dx, int dy, int dz);
     int get_blocklight(int dx, int dy, int dz);
-    void render(RenderVecs* vecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null);
+    void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null);
     void del(bool remove_faces);
     void render_update();
     void rotate(int axis, int dir);
     Block* get_global(int x, int y, int z, int nscale);
-    bool is_air(int dx, int dy, int dz) const;
+    bool is_air(int dx, int dy, int dz, char otherval = -1) const;
     void save_to_file(ostream& of);
 };
 

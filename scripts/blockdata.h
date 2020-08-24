@@ -109,7 +109,7 @@ void DropTable::drop(ItemContainer* result, Player* player, Item* break_item) {
 
 BlockData::BlockData(ifstream & ifile):
 default_direction(0), rotation_enabled(false), minscale(1), rcaction("null"), lightlevel(0),
-clumpyness(0.9), clumpy_group("") {
+clumpyness(0.9), clumpy_group(""), transparent(false) {
   string buff;
   ifile >> buff;
   if (buff != "block") {
@@ -146,6 +146,8 @@ clumpyness(0.9), clumpy_group("") {
         ifile >> clumpyness;
       } else if (varname == "clumpy_group") {
         ifile >> clumpy_group;
+      } else if (varname == "transparent") {
+        transparent = true;
       }
       getline(ifile, buff, ':');
       getline(ifile, varname, ':');
@@ -156,14 +158,18 @@ clumpyness(0.9), clumpy_group("") {
     if (tex_str != "") {
       stringstream ss(tex_str);
       vector<string> files;
-      get_files_folder("resources/textures/blocks/" + std::to_string(minscale), &files);
+      if (transparent) {
+        get_files_folder("resources/textures/blocks/transparent/" + std::to_string(minscale), &files);
+      } else {
+        get_files_folder("resources/textures/blocks/" + std::to_string(minscale), &files);
+      }
       for (int i = 0; i < 6; i ++) {
         string filename;
         ss >> filename;
         if ((ss.eof() and filename == "") and i > 0) {
           texture[i] = texture[i-1];
         } else {
-          filename += ".bmp";
+          filename += transparent ? ".png" : ".bmp";
           texture[i] = 0;
           for (int j = 0; j < files.size(); j ++) {
             if (files[j] == filename) {

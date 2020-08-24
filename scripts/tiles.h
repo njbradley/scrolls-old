@@ -35,7 +35,7 @@ void Tile::update_lighting() {
   }
 }
 
-void Tile::render(GLVecs* glvecs) {
+void Tile::render(GLVecs* glvecs, GLVecs* transvecs) {
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {
   if (lightflag) {
       update_lighting();
@@ -94,7 +94,7 @@ void Tile::render(GLVecs* glvecs) {
     }
     //cout << world << endl;
     chunk->lighting_update();
-    chunk->render(glvecs, world, 0, 0, 0, render_depth, render_faces, false);
+    chunk->render(glvecs, transvecs, world, 0, 0, 0, render_depth, render_faces, false);
   }
 }
 
