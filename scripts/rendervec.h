@@ -164,6 +164,7 @@ void GLVecs::del(pair<int,int> index) {
       // crash(19782984921423);
       return;
     }
+    
     //cout << "del: " << index.first << ' ' << index.second << endl;
     // if (index.second > 0) {
     //   int start = index.first*6;
@@ -197,6 +198,7 @@ void GLVecs::del(pair<int,int> index) {
           empty.erase(empty.begin()+i);
           //crash(1178656827093404);
         }
+        clean_flag = true;
         writelock.unlock();
         return;
       }
@@ -212,12 +214,14 @@ void GLVecs::del(pair<int,int> index) {
           empty.erase(empty.begin()+i);
           //crash(829578937180496782);
         }
+        clean_flag = true;
         writelock.unlock();
         return;
       }
     }
     if ( index.second != 0) {
         empty.push_back(index);
+        clean_flag = true;
     }
     writelock.unlock();
   }
@@ -227,6 +231,8 @@ void GLVecs::clean() {
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {
     //cout << 207 << endl;
     //int start = clock();
+  if (clean_flag) {
+    clean_flag = false;
 		int max = 0;
     for (pair<int,int> index : empty) {
 			if (index.second*6 > max) {
@@ -236,20 +242,21 @@ void GLVecs::clean() {
 		vector<GLfloat> zerosf(max*3, 1.91f);
 		vector<GLint> zerosi(max*2, 0);
     for (pair<int,int> index : empty) {
-        int start = index.first*6 + offset;
-        int size = index.second*6;
-        if (writelock.try_lock_for(std::chrono::seconds(1))) {
-          glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-          glBufferSubData(GL_ARRAY_BUFFER, start*3*sizeof(GLfloat), size*3*sizeof(GLfloat), &zerosf.front());
-          glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-          glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLfloat), size*2*sizeof(GLfloat), &zerosf.front());
-          glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-          glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLfloat), size*sizeof(GLfloat), &zerosf.front());
-          glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
-          glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLint), size*2*sizeof(GLint), &zerosi.front());
-          writelock.unlock();
-        }
+      int start = index.first*6 + offset;
+      int size = index.second*6;
+      if (writelock.try_lock_for(std::chrono::seconds(1))) {
+        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+        glBufferSubData(GL_ARRAY_BUFFER, start*3*sizeof(GLfloat), size*3*sizeof(GLfloat), &zerosf.front());
+        glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+        glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLfloat), size*2*sizeof(GLfloat), &zerosf.front());
+        glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
+        glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLfloat), size*sizeof(GLfloat), &zerosf.front());
+        glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
+        glBufferSubData(GL_ARRAY_BUFFER, start*2*sizeof(GLint), size*2*sizeof(GLint), &zerosi.front());
+        writelock.unlock();
+      }
     }
+  }
   //  writelock.unlock();
     // int all = clock() - start;
     // if (all > 2) {

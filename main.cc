@@ -1037,7 +1037,10 @@ int main( void )
 			} else if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) {
 				cout << "njbradley is king" << endl;
 			} else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+				world->glvecs.clean_flag = true;
+				world->transparent_glvecs.clean_flag = true;
 				world->glvecs.clean();
+				world->transparent_glvecs.clean();
 			} else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
 				world->player->spectator = true;
 			} else if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {

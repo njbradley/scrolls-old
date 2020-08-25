@@ -67,9 +67,12 @@ class Player: public Entity {
 	vec3 pointing;
 	int selitem;
 	double break_progress = 0;
-  Pixel* block_breaking;
+  ivec3 block_breaking;
   double attack_recharge = 0;
   double total_attack_recharge = 0.2;
+  pair<int,int> block_breaking_render_index;
+  MemVecs block_breaking_vecs;
+  int block_breaking_tex;
   
 	public:
 		ItemContainer inven;
@@ -77,6 +80,8 @@ class Player: public Entity {
 		
 		Player(World* newworld, vec3 pos);
     Player(World* newworld, istream& ifile);
+    void init_block_breaking_vecs();
+    void set_block_breaking_vecs(Pixel* pix, ivec3 hitpos, int level);
     void save_to_file(ostream& ofile);
     virtual void die();
     //virtual void calc_constraints();

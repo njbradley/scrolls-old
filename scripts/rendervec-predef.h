@@ -48,6 +48,7 @@ class GLVecs: public RenderVecs {
         int offset = 0;
         int num_verts = 0;
         std::timed_mutex writelock;
+        bool clean_flag = false;
         
         void set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size);
         void set_buffers_prealloc(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size, int newoffset);

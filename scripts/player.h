@@ -62,6 +62,8 @@ Player::Player(World* newworld, vec3 pos):
 	}
 	//char arr[] = {1,0,1,0,1,0,1,0}
 	selitem = 0;
+	
+	init_block_breaking_vecs();
 	//inven.add( ItemStack(Item(itemstorage->items["chips"]), 10) );
 	//inven.add( ItemStack(Item(itemstorage->items["crafting"]), 1));
 }
@@ -75,6 +77,74 @@ Player::Player(World* newworld, istream& ifile):
 		ifile >> flying >> autojump;
 		glfwSetMouseButtonCallback(window, mouse_button_call);
 		glfwSetScrollCallback(window, scroll_callback);
+		
+		init_block_breaking_vecs();
+}
+
+void Player::init_block_breaking_vecs() {
+	vector<string> files;
+	get_files_folder("resources/textures/blocks/transparent/1", &files);
+	block_breaking_tex = 0;
+	for (int i = 0; i < files.size(); i ++) {
+		if (files[i] == "breaking0.png") {
+			block_breaking_tex = i;
+		}
+	}
+	block_breaking_render_index = pair<int,int> (-1,0);
+}
+
+void Player::set_block_breaking_vecs(Pixel* pixref, ivec3 hitpos, int level) {
+	if (level == 0) {
+		if (block_breaking_render_index.first != -1) {
+			world->transparent_glvecs.del(block_breaking_render_index);
+			block_breaking_render_index = pair<int,int>(-1,0);
+		}
+		return;
+	}
+	level --;
+	int gx, gy, gz;
+	Pixel pix = *pixref;
+	pix.render_index = pair<int,int>(-1,0);
+	pix.render_flag = true;
+	pix.global_position(&gx, &gy, &gz);
+	int pgx, pgy, pgz;
+	pix.parent->global_position(&pgx, &pgy, &pgz);
+	bool faces[] = {true,true,true,true,true,true};
+	MemVecs vecs;
+	pix.render(&vecs, &vecs, world, pgx, pgy, pgz, 1, faces, false);
+	for (int i = 0; i < vecs.num_verts; i ++) {
+		if (vecs.verts[i*3+0] > gx) {
+			vecs.verts[i*3+0] = hitpos.x + 1.01;
+		} else {
+			vecs.verts[i*3+0] = hitpos.x - 0.01;
+		}
+		
+		if (vecs.verts[i*3+1] > gy) {
+			vecs.verts[i*3+1] = hitpos.y + 1.01;
+		} else {
+			vecs.verts[i*3+1] = hitpos.y - 0.01;
+		}
+		
+		if (vecs.verts[i*3+2] > gz) {
+			vecs.verts[i*3+2] = hitpos.z + 1.01;
+		} else {
+			vecs.verts[i*3+2] = hitpos.z - 0.01;
+		}
+		
+		if (vecs.uvs[i*2+0] > 0) {
+			vecs.uvs[i*2+0] = 1;
+		}
+		if (vecs.uvs[i*2+1] > 0) {
+			vecs.uvs[i*2+1] = 1;
+		}
+		
+		vecs.mats[i*2+1] = block_breaking_tex + level;
+	}
+	
+	if (block_breaking_render_index.first != -1) {
+		world->transparent_glvecs.del(block_breaking_render_index);
+	}
+	block_breaking_render_index = world->transparent_glvecs.add(&vecs);
 }
 
 void Player::save_to_file(ostream& ofile) {
@@ -481,10 +551,11 @@ void Player::left_mouse(double deltatime) {
 	//cout << ':' << x << ' ' << y << ' ' << z << endl;
 	
 	if (attack_recharge <= 0) {
+		ivec3 blockpos = ivec3((int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
 		
-		if (pix != block_breaking) {
+		if (blockpos != block_breaking) {
 			break_progress = 0;
-			block_breaking = pix;
+			block_breaking = blockpos;
 		}
 		
 		Item* item = inven.get(selitem);
@@ -494,7 +565,10 @@ void Player::left_mouse(double deltatime) {
 		break_progress += item->collision(pix);
 		cout << break_progress << endl;
 		
+		
 		if (true and break_progress >= 1) {
+			
+			set_block_breaking_vecs(pix, blockpos, 0);
 			// double time_needed = item->dig_time(pix->get());
 			// double damage_per_sec = 1/time_needed;
 			//
@@ -509,6 +583,8 @@ void Player::left_mouse(double deltatime) {
 				blocks->blocks[newitem]->droptable.drop(&inven, this, item);
 			}
 			break_progress = 0;
+		} else {
+			set_block_breaking_vecs(pix, blockpos, int(break_progress*7));
 		}
 		attack_recharge = item->get_recharge_time();
 		total_attack_recharge = item->get_recharge_time();
