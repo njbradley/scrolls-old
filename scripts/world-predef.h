@@ -11,6 +11,7 @@
 
 #include <GL/glew.h>
 #include <map>
+#include <unordered_map>
 #include "rendervec-predef.h"
 #include "entity-predef.h"
 #include "terrain-predef.h"
@@ -24,17 +25,18 @@
 #include <unordered_set>
 
 using std::unordered_set;
+using std::unordered_map;
 
 #define csize 2
 
 class TileLoop { public:
   World* world;
-  map<ivec3,Tile*,ivec3_comparator> tiles_copy;
+  unordered_map<ivec3,Tile*,ivec3_hash> tiles_copy;
   class iterator { public:
     TileLoop* tileloop;
-    map<ivec3,Tile*,ivec3_comparator>::iterator iter;
-    iterator(TileLoop* newtileloop, map<ivec3,Tile*,ivec3_comparator>::iterator newiter);
-    map<ivec3,Tile*,ivec3_comparator>::iterator operator->();
+    unordered_map<ivec3,Tile*,ivec3_hash>::iterator iter;
+    iterator(TileLoop* newtileloop, unordered_map<ivec3,Tile*,ivec3_hash>::iterator newiter);
+    unordered_map<ivec3,Tile*,ivec3_hash>::iterator operator->();
     pair<ivec3,Tile*> operator*();
     iterator operator++();
     friend bool operator==(const iterator& iter1, const iterator& iter2);
@@ -56,13 +58,14 @@ class World: public Collider {
     //mutable std::shared_timed_mutex tiles_lock;
     char* tmparr;
     public:
-        map<ivec3, Tile*, ivec3_comparator> tiles;
+        unordered_map<ivec3, Tile*, ivec3_hash> tiles;
         std::mutex tilelock;
         unordered_set<BlockGroup*> physicsgroups;
     		vector<pair<int,int> > dead_render_indexes;
         int seed;
         int difficulty = 1;
         bool generation = true;
+        bool saving = true;
         string name;
         GLVecs glvecs;
         GLVecs transparent_glvecs;

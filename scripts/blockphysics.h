@@ -93,7 +93,6 @@ void BlockGroup::find_group() {
 							} else {
 								consts[i] = true;
 								if (persistant() and newpix->physicsgroup != nullptr and newpix->physicsgroup->persistant()) {
-									//cout << newpix->physicsgroup << endl;
 									neighbors.emplace(newpix->physicsgroup);
 								}
 							}
@@ -109,40 +108,7 @@ void BlockGroup::find_group() {
 		}
 		lastblocks.clear();
 		lastblocks.swap(newblocks);
-		
-		// cout << "newsize " << lastblocks.size() << endl;
-		// for (int i = 0; i < 6; i ++) {
-		// 	cout << consts[i] << ' ';
-		// } cout << endl;
 	}
-	// if (persistant() and group_group() != "null") {
-	// 	for (BlockGroup* group : neighbors) {
-	// 		cout << "neighbor -------" << group << endl;
-	// 		if (group->group_group() == group_group()) {
-	// 			for (ivec3 pos : group->block_poses) {
-	// 				cout << "--";
-	// 				print(pos);
-	// 			}
-	// 			for (ivec3 pos : group->block_poses) {
-	// 				cout << "--";
-	// 				print(pos);
-	// 				for (int i = 0; i < 6; i ++ ) {
-	// 					if (!consts[i]) {
-	// 						ivec3 off = pos + dir_array[i];
-	// 						print (off);
-	// 						if (block_poses.find(off) == block_poses.end() and group->block_poses.find(off) == group->block_poses.end()) {
-	// 							Block* b = world->get_global(off.x, off.y, off.z, 1);
-	// 							if (b != nullptr and b->get() != 0) {
-	// 								consts[i] = true;
-	// 								cout << "setting consts" << endl;
-	// 							}
-	// 						}
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
 	for (ivec3 pos : block_poses) {
 		for (int axis = 0; axis < 3; axis ++) {
 			if (pos[axis] < position[axis]) {
@@ -286,6 +252,10 @@ AxleInterface* BlockGroup::cast_axle() {
 	return nullptr;
 }
 
+PipeInterface* BlockGroup::cast_pipe() {
+	return nullptr;
+}
+
 void BlockGroup::tick() {
 	if (update_flag) {
 		update();
@@ -319,6 +289,7 @@ BlockGroup* BlockGroup::make_group(char val, World* world, ivec3 pos) {
 	if (name == "ghost-group") return new DissolveGroup(world, pos);
 	if (name == "anvil-group") return new AnvilGroup(world, pos);
 	if (name == "glass-group") return new MatchSidesGroup(world, pos);
+	if (name == "water-group") return new FluidGroup(world, pos);
 	return new BlockGroup(world, pos);
 }
 
@@ -336,6 +307,7 @@ BlockGroup* BlockGroup::from_file(World* world, istream& ifile) {
 	if (name == "ghost-group") return new DissolveGroup(world, ifile);
 	if (name == "anvil-group") return new AnvilGroup(world, ifile);
 	if (name == "glass-group") return new MatchSidesGroup(world, ifile);
+	if (name == "water-group") return new FluidGroup(world, ifile);
 	return new BlockGroup(world, ifile);
 }
 
@@ -399,13 +371,13 @@ void BlockGroup::to_file(ostream& ofile) {
 
 
 
-AxleInterface::AxleInterface(World* nworld, ivec3 starting_pos): BlockGroup(nworld, starting_pos) {
-	
-}
-
-AxleInterface::AxleInterface(World* nworld, istream& ifile): BlockGroup(nworld, ifile) {
-	
-}
+// AxleInterface::AxleInterface(World* nworld, ivec3 starting_pos): BlockGroup(nworld, starting_pos) {
+//
+// }
+//
+// AxleInterface::AxleInterface(World* nworld, istream& ifile): BlockGroup(nworld, ifile) {
+//
+// }
 
 AxleInterface* AxleInterface::cast_axle() {
 	return this;
@@ -421,9 +393,13 @@ string AxleInterface::group_group() {
 
 
 
+PipeInterface* PipeInterface::cast_pipe() {
+	return this;
+}
 
 
-AxleGroup::AxleGroup(World* nworld, ivec3 starting_pos): AxleInterface(nworld, starting_pos) {
+
+AxleGroup::AxleGroup(World* nworld, ivec3 starting_pos): BlockGroup(nworld, starting_pos) {
 	//find_group();
 	is_valid = calc_is_valid();
 	port1 = nullptr;
@@ -537,7 +513,7 @@ void AxleGroup::link() {
 	cout << "port1 " << port1 << " port2 " << port2 << endl;
 }
 
-AxleGroup::AxleGroup(World* nworld, istream& ifile): AxleInterface(nworld, ifile), is_valid(true) {
+AxleGroup::AxleGroup(World* nworld, istream& ifile): BlockGroup(nworld, ifile), is_valid(true) {
 	string buff;
 	ifile >> buff;
 	cout << buff << endl;
@@ -569,14 +545,14 @@ void AxleGroup::to_file(ostream& ofile) {
 		ofile << "null" << endl;
 	} else {
 		ofile << "pointer" << endl;
-		ivec3 pos = port1->position;
+		ivec3 pos(6,9,6);
 		ofile << pos.x << ' ' << pos.y << ' ' << pos.z << endl;
 	}
 	if (port2 == nullptr) {
 		ofile << "null" << endl;
 	} else {
 		ofile << "pointer" << endl;
-		ivec3 pos = port2->position;
+		ivec3 pos(9,6,9);
 		ofile << pos.x << ' ' << pos.y << ' ' << pos.z << endl;
 	}
 }
@@ -591,7 +567,7 @@ void AxleGroup::to_file(ostream& ofile) {
 
 
 
-GrindstoneGroup::GrindstoneGroup(World* nworld, ivec3 starting_pos): AxleInterface(nworld, starting_pos) {
+GrindstoneGroup::GrindstoneGroup(World* nworld, ivec3 starting_pos): BlockGroup(nworld, starting_pos) {
 	//find_group();
 }
 
@@ -628,7 +604,7 @@ void GrindstoneGroup::custom_textures(int mats[6], int dirs[6], ivec3 pos) {
 	
 }
 
-GrindstoneGroup::GrindstoneGroup(World* nworld, istream& ifile): AxleInterface(nworld, ifile) {
+GrindstoneGroup::GrindstoneGroup(World* nworld, istream& ifile): BlockGroup(nworld, ifile) {
 	
 }
 
@@ -908,6 +884,228 @@ void DissolveGroup::tick() {
 	}
 	world->set(pos.x, pos.y, pos.z, 0);
 	block_poses.erase(pos);
+}
+
+
+
+// FluidLevel::FluidLevel(FluidGroup* newparent, int newylevel): parent(newparent), ylevel(newylevel) {
+//
+// }
+//
+// void FluidLevel::on_update() {
+// 	const ivec3 dirs2d[] = {{-1,0,0}, {0,0,-1}, {1,0,0}, {0,0,1}};
+// 	vector<ivec3> to_delete;
+// 	for (ivec3 pos : block_poses) {
+// 		if (parent->block_poses.count(pos) == 0) {
+// 			to_delete.push_back(pos);
+// 		} else {
+// 			bool found = false;
+// 			for (FluidLevel& other : parent->levels) {
+// 				if (other->block_poses.count(pos) > 0) {
+// 					to_delete.push_back(pos);
+// 					found = true;
+// 				}
+// 			}
+// 			if (!found) {
+// 				for (ivec3 dir : dirs2d) {
+// 					if (block_poses.count(
+
+
+
+FluidGroup::FluidGroup(World* world, ivec3 starting_pos): BlockGroup(world, starting_pos) {
+	fill_level = block_poses.size();
+}
+
+FluidGroup::FluidGroup(World* world, istream& ifile): BlockGroup(world, ifile) {
+	fill_level = block_poses.size();
+}
+
+void FluidGroup::find_group() {
+	
+	Block* starting_block = world->get_global(position.x, position.y, position.z, 1);
+	if (starting_block == nullptr or starting_block->get() == 0) {
+		return;
+	}
+	groupname = blocks->blocks[starting_block->get()]->clumpy_group;
+	starting_block->get_pix()->physicsgroup = this;
+	unordered_set<ivec3,ivec3_hash> lastblocks;
+	unordered_set<ivec3,ivec3_hash> newblocks;
+	lastblocks.emplace(position);
+	const ivec3 dir_array[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
+	bool under_size = true;
+	while (lastblocks.size() > 0 and under_size) {
+		//loops until no new blocks or it is over size
+		under_size = block_poses.size() < max_size;
+		
+		for (ivec3 pos : lastblocks) {
+			Pixel* pix = world->get_global(pos.x, pos.y, pos.z, 1)->get_pix();
+			BlockData* data = blocks->blocks[pix->value];
+			for (int i = 0; i < 6; i ++) {
+				if (i == 1 or i == 4) {
+					continue;
+				}
+				ivec3 off = dir_array[i];
+				if (block_poses.find(pos+off) == block_poses.end()) {
+					Block* block = world->get_global(pos.x+off.x, pos.y+off.y, pos.z+off.z, 1);
+					if (block != nullptr) {
+						if (block->get() != 0) {
+							Pixel* newpix = block->get_pix();
+							BlockData* newdata = blocks->blocks[newpix->value];
+							bool same = newdata->clumpy_group == data->clumpy_group or newdata->clumpy_group == "all" or data->clumpy_group == "all";
+							if (same and under_size) {
+								newblocks.emplace(pos+off);
+								newpix->physicsgroup = this;
+							} else {
+								consts[i] = true;
+								if (persistant() and newpix->physicsgroup != nullptr and newpix->physicsgroup->persistant()) {
+									neighbors.emplace(newpix->physicsgroup);
+								}
+							}
+						}
+					} else {
+						consts[i] = true;
+					}
+				}
+			}
+		}
+		for (ivec3 pos : lastblocks) {
+			block_poses.emplace(pos);
+		}
+		lastblocks.clear();
+		lastblocks.swap(newblocks);
+	}
+	for (ivec3 pos : block_poses) {
+		for (int axis = 0; axis < 3; axis ++) {
+			if (pos[axis] < position[axis]) {
+				size[axis] += position[axis] - pos[axis];
+				position[axis] = pos[axis];
+			}
+			if (pos[axis] >= position[axis]+size[axis]) {
+				size[axis] = pos[axis] - position[axis] + 1;
+			}
+		}
+	}
+	//exit(1);
+}
+
+void FluidGroup::add_block(ivec3 pos) {
+	world->set(pos.x, pos.y, pos.z, 7);
+	world->get_global(pos.x, pos.y, pos.z, 1)->get_pix()->physicsgroup = this;
+	block_poses.emplace(pos);
+}
+
+void FluidGroup::del_block(ivec3 pos) {
+	world->set(pos.x, pos.y, pos.z, 0);
+	block_poses.erase(pos);
+}
+
+bool FluidGroup::persistant() {
+	return true;
+}
+
+bool FluidGroup::flow(PipeInterface* sender, PipePacket packet) {
+	if (block_poses.size() > max_size) {
+		return true;
+	}
+	if (fill_level < block_poses.size()) {
+		fill_level += packet.amount;
+		return true;
+	}
+	return false;
+}
+
+bool FluidGroup::flow_block(ivec3 pos) {
+	bool flowed = false;
+	if (block_poses.count(pos) == 0) {
+		Block* block = world->get_global(pos.x, pos.y, pos.z, 1);
+		if (block != nullptr) {
+			Pixel* pix = block->get_pix();
+			BlockGroup* other = pix->physicsgroup;
+			if (other != nullptr and other->cast_pipe() != nullptr) {
+				if (other->cast_pipe()->flow(this, PipePacket { Item(nullptr), Fluid_water, fill_level / block_poses.size() })) {
+					if (block_poses.size() < max_size) {
+						fill_level -= fill_level / block_poses.size();
+					}
+					flowed = true;
+				}
+			} else if (pix->value == 0) {
+				if (pos.y == position.y) {
+					add_block(pos);
+				} else {
+					world->set(pos.x, pos.y, pos.z, 7);
+					fill_level -= 1;
+				}
+				flowed = true;
+			}
+		}
+	}
+	return flowed;
+}
+
+void FluidGroup::tick() {
+	if (tickclock > viscosity) {
+		const ivec3 dirs2d[] = {{-1,0,0}, {0,0,-1}, {1,0,0}, {0,0,1}};
+		vector<ivec3> deleted_poses;
+		//flow down
+		bool flowed = false;
+		for (ivec3 pos : block_poses) {
+			if (block_poses.count(pos-ivec3(0,1,0)) == 0) {
+				Block* block = world->get_global(pos.x, pos.y-1, pos.z, 1);
+				if (block != nullptr) {
+					Pixel* pix = block->get_pix();
+					BlockGroup* other = pix->physicsgroup;
+					if (other != nullptr and other->cast_pipe() != nullptr) {
+						if (other->cast_pipe()->flow(this, PipePacket { Item(nullptr), Fluid_water, fill_level / block_poses.size() })) {
+							if (block_poses.size() < max_size) {
+								fill_level -= fill_level / block_poses.size();
+							}
+							flowed = true;
+						}
+					} else if (pix->value == 0) {
+						world->set(pos.x, pos.y-1, pos.z, 7);
+						fill_level -= 1;
+						flowed = true;
+					}
+				}
+			}
+		}
+		cout << fill_level << ' ' << flowed << endl;
+		if (!flowed) {
+			vector<ivec3> newposes;
+			for (ivec3 pos : block_poses) {
+				for (ivec3 dir : dirs2d) {
+					if (block_poses.count(pos+dir) == 0) {
+						Block* block = world->get_global(pos.x+dir.x, pos.y+dir.y, pos.z+dir.z, 1);
+						if (block != nullptr) {
+							Pixel* pix = block->get_pix();
+							BlockGroup* other = pix->physicsgroup;
+							if (other != nullptr and other->cast_pipe() != nullptr) {
+								if (other->cast_pipe()->flow(this, PipePacket { Item(nullptr), Fluid_water, fill_level / block_poses.size() })) {
+									if (block_poses.size() < max_size) {
+										fill_level -= fill_level / block_poses.size();
+									}
+									flowed = true;
+								}
+							} else if (pix->value == 0) {
+								newposes.push_back(pos+dir);
+							}
+						}
+					}
+				}
+			}
+			
+			for (ivec3 pos : newposes) {
+				add_block(pos);
+			}
+		}
+		if (fill_level*20 < block_poses.size()) {
+			erase_from_world();
+			block_poses.clear();
+		}
+		tickclock = 0;
+	} else {
+		tickclock ++;
+	}
 }
 
 #endif

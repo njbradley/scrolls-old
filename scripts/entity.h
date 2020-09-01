@@ -125,6 +125,9 @@ void Entity::tick() {
   
 }
 
+bool Entity::is_solid_block(Block* block) {
+  return block != nullptr and (block->get() != 0 and block->get() != 7);
+}
 
 void Entity::calc_constraints() {
     //int begin = clock();
@@ -176,7 +179,7 @@ void Entity::calc_constraints() {
             for (int y = (int)pos2.y; y < pos.y+1; y ++) {
                 for (int z = (int)pos2.z; z < pos.z+1; z ++) {
                     Block* pix = collider->get_global(x,y,z,1);
-                    bool new_const = (pix != NULL and pix->get() != 0);
+                    bool new_const = is_solid_block(pix);
                     if (new_const) {
                       //world->block_update(x,y,z);
                     }
@@ -199,13 +202,13 @@ void Entity::calc_constraints() {
               for (int y = (int)neg.y; y < neg2.y+1; y ++) {
                   for (int z = (int)neg.z; z < neg2.z+1; z ++) {
                       Block* pix = collider->get_global(x,y,z,1);
-                      if (pix == nullptr or pix->get() == 0) {
+                      if (!is_solid_block(pix)) {
                         continue;
                       }
                       constraint = true;
                       for (int yoff = 1; yoff < 3; yoff ++) {
                         pix = collider->get_global(x,y+yoff,z,1);
-                        if (pix == nullptr or pix->get() == 0) {
+                        if (!is_solid_block(pix)) {
                           if (y+yoff-1 > max_y) {
                             max_y = y+yoff-1;
                             max_y_set = true;
@@ -227,9 +230,9 @@ void Entity::calc_constraints() {
               for (int y = (int)neg.y; y < neg2.y+1; y ++) {
                 for (int z = (int)neg.z; z < neg2.z+1; z ++) {
                   Block* floor = collider->get_global(x,y,z,1);
-                  if (floor != nullptr and floor->get() != 0) {
+                  if (is_solid_block(floor)) {
                     Block* above = collider->get_global(x,y+1,z,1);
-                    if (above == nullptr or above->get() == 0) {
+                    if (is_solid_block(floor)) {
                       constraint = true;
                     }
                   }
@@ -271,7 +274,7 @@ void Entity::calc_constraints() {
               for (int y = (int)neg.y; y < neg2.y+1; y ++) {
                   for (int z = (int)neg.z; z < neg2.z+1; z ++) {
                       Block* pix = collider->get_global(x,y,z,1);
-                      bool new_const = (pix != NULL and pix->get() != 0);
+                      bool new_const = is_solid_block(pix);
                       if (new_const) {
                         //world->block_update(x,y,z);
                       }
@@ -287,18 +290,19 @@ void Entity::calc_constraints() {
       }
       /// torso check: to tell if the constraints are only on the feet
       
-      vec3 neg = floor( rel_pos + newbox1 - axis_gap + vec3(0,1.2,0)) ;
+      vec3 neg = floor( rel_pos + newbox1 - axis_gap) ;
       vec3 pos = ceil( rel_pos + newbox2 + axis_gap );
-      bool constraint = false;
-      for (int x = (int)neg.x; x < pos.x+1; x ++) {
-        for (int y = (int)neg.y; y < pos.y+1; y ++) {
-          for (int z = (int)neg.z; z < pos.z+1; z ++) {
+      in_water = false;
+      for (int x = (int)neg.x; x < pos.x+1 and !in_water; x ++) {
+        for (int y = (int)neg.y; y < pos.y+1 and !in_water; y ++) {
+          for (int z = (int)neg.z; z < pos.z+1 and !in_water; z ++) {
             Block* pix = collider->get_global(x,y,z,1);
-            constraint = constraint or (pix != NULL and pix->get() != 0);
+            if (pix != nullptr and pix->get() == 7) {
+              in_water = true;
+            }
           }
         }
       }
-      new_consts[6] =  new_consts[6] or constraint;
       
       newpos = new_rel_pos + collider->get_position();
     }
@@ -553,6 +557,10 @@ void Entity::fall_damage(float velocity) {
 }
 
 void Entity::drag(bool do_drag, float deltaTime) {
+    if (in_water) {
+      float water_drag = 1 - 20*deltaTime;
+      vel *= water_drag;
+    }
     if (do_drag) {
         float ground_drag = 1-20*deltaTime;
         float side_drag = 1-3*deltaTime;

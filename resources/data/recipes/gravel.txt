@@ -1,3 +1,0 @@
-1 dirt 5
-1 gravel 1
-1

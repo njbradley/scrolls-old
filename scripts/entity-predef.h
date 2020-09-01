@@ -40,10 +40,12 @@ class Entity { public:
     double healing_health = 0;
     double damage_health = 0;
     double healing_speed = 0;
+    bool in_water = false;
     
     Entity(World* nworld, vec3 pos, vec3 hitbox1, vec3 hitbox2);
     void timestep();
     void drop_ticks();
+    bool is_solid_block(Block* block);
     virtual void calc_constraints();
     void find_colliders(vector<Collider*>* colliders);
     void get_nearby_entities(vector<DisplayEntity*>* colliders);

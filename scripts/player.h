@@ -654,7 +654,17 @@ void Player::computeMatricesFromInputs(){
 
 	// glfwGetTime is called only once, the first time this function is called
 	static double lastTime = glfwGetTime();
-
+	
+	Block* camerablock = world->get_global(int(position.x), int(position.y), int(position.z), 1);
+	if (camerablock != 0) {
+		if (camerablock->get() == 7) {
+			set_display_env(vec3(0.2,0.2,0.6), 10);
+		} else {
+			set_display_env(vec3(0.4,0.7,1.0), 200);
+		}
+	}
+	
+	
 	// Compute time difference between current and last frame
 	double currentTime = glfwGetTime();
 	float deltaTime = float(currentTime - lastTime);
@@ -752,7 +762,9 @@ void Player::computeMatricesFromInputs(){
 				stamina_cost += glm::dot(vel, -right);
 		}
 		if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS){
-			if (consts[4] and vel.y > -10) {
+			if (in_water) {
+				vel.y += 3 * deltaTime * nspeed;
+			} else if (consts[4] and vel.y > -10) {
 				vel.y = 15;// = vec3(0,10,0);//up * deltaTime * speed;
 				stamina_cost += vel.y;
 			}

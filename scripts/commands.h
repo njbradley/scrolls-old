@@ -424,6 +424,8 @@ template <> CommandFunc<void> Command::get_method<void>(istream& ifile, string i
 		return parse_func<void>(ifile, program->prints.templ, program->prints);
 	} else if (id == "printv3") {
 		return parse_func<void>(ifile, program->printv3.templ, program->printv3);
+	} else if (id == "killall") {
+		return parse_func<void>(ifile, program->killall.templ, program->killall);
 	} else {
 		*program->errout << "ERR: no method by the name of '" << id << "'" << endl;
 		program->error = true;
@@ -534,6 +536,12 @@ dtoi([] (Program* program, double val) {
 }),
 vec3toivec3([] (Program* program, vec3 val) {
 	return ivec3(val);
+}),
+killall([] (Program* program) {
+	TileLoop loop(program->world);
+	for (pair<ivec3,Tile*> kv : loop) {
+		kv.second->entities.clear();
+	}
 }),
 doublevars({
 	{"world.time", CommandVar<double>(&world->daytime)},

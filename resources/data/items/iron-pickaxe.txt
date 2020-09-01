@@ -1,7 +1,0 @@
-item iron-pickaxe {
-	:non_stackable:
-	:tool: pickaxe
-	:sharpness: 2
-	:weight: 3
-	:damage: 5
-}

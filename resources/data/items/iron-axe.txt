@@ -1,7 +1,0 @@
-item iron-axe {
-	:non_stackable:
-	:tool: axe
-	:sharpness: 2
-	:weight: 6
-	:damage: 3
-}

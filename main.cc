@@ -64,6 +64,9 @@ GLuint vertex_ui_buffer;
 GLuint uv_ui_buffer;
 GLuint mat_ui_buffer;
 
+vec3 clearcolor;
+int view_distance;
+
 
 int allocated_memory;
 
@@ -72,6 +75,11 @@ bool fullscreen = false;
 
 bool playing = true;
 bool errors = false;
+
+void set_display_env(vec3 new_clear_color, int new_view_dist) {
+	clearcolor = new_clear_color;
+	view_distance = new_view_dist;
+}
 
 void wait() {
 	//return;
@@ -389,7 +397,7 @@ int main( void )
   glfwSetCursorPos(window, screen_x/2, screen_y/2);
 
 	// Dark blue background
-	vec3 clearcolor(0.4f, 0.7f, 1.0f);
+	clearcolor = vec3(0.4f, 0.7f, 1.0f);
 	glClearColor(clearcolor.x, clearcolor.y, clearcolor.z, 0.0f);
 	
 	// Enable depth test
@@ -540,7 +548,7 @@ int main( void )
 	bool reaching_max_fps = true;
 	double slow_frame = 0;
 	int slow_tick = 0;
-	int view_distance = view_dist * World::chunksize * 10;
+	view_distance = view_dist * World::chunksize * 10;
 	bool dologtime = false;
 	
 	

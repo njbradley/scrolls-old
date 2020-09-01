@@ -249,7 +249,11 @@ char Plains::gen_func(ivec3 pos) {
 	} if (pos.y < height-1) {
 			return blocks->names["dirt"];
 	} if (pos.y < height) {
+		if (pos.y < 96) {
+			return blocks->names["gravel"];
+		} else {
 			return blocks->names["grass"];
+		}
 	}
 	return 0;
 }
@@ -280,7 +284,11 @@ char Forest::gen_func(ivec3 pos) {
 	} if (pos.y < height-1) {
 			return blocks->names["dirt"];
 	} if (pos.y < height) {
+		if (pos.y < 96) {
+			return blocks->names["gravel"];
+		} else {
 			return blocks->names["grass"];
+		}
 	}
 	return 0;
 }
@@ -314,7 +322,11 @@ char Mountains::gen_func(ivec3 pos) {
 	} if (pos.y < height-1) {
 			return blocks->names["dirt"];
 	} if (pos.y < height) {
+		if (pos.y < 96) {
+			return blocks->names["gravel"];
+		} else {
 			return blocks->names["snow"];
+		}
 	}
 	return 0;
 }

@@ -28,11 +28,11 @@ using std::thread;
 
 
 
-TileLoop::iterator::iterator(TileLoop* newtileloop, map<ivec3,Tile*,ivec3_comparator>::iterator newiter): tileloop(newtileloop), iter(newiter) {
+TileLoop::iterator::iterator(TileLoop* newtileloop, unordered_map<ivec3,Tile*,ivec3_hash>::iterator newiter): tileloop(newtileloop), iter(newiter) {
   
 }
 
-map<ivec3,Tile*,ivec3_comparator>::iterator TileLoop::iterator::operator->() {
+unordered_map<ivec3,Tile*,ivec3_hash>::iterator TileLoop::iterator::operator->() {
   return iter;
 }
 
@@ -128,6 +128,11 @@ void World::load_data_file() {
           ifile >> gen;
           generation = gen == "on";
         }
+        if (buff == "saving") {
+          string sav;
+          ifile >> sav;
+          saving = sav == "on";
+        }
         getline(ifile, buff);
     }
 }
@@ -140,6 +145,7 @@ void World::save_data_file() {
     ofile << "difficulty:" << difficulty << endl;
     ofile << "daytime:" << daytime << endl;
     ofile << "generation:" << (generation ? "on" : "off") << endl;
+    ofile << "saving:" << (saving ? "on" : "off") << endl;
     ofile.close();
 }
 
@@ -410,7 +416,7 @@ void World::tick() {
     //physicsgroups.clear();
     
     for (int i = 0; i < 5; i ++) {
-      std::map<ivec3,Tile*>::iterator item = tiles.begin();
+      std::unordered_map<ivec3,Tile*,ivec3_hash>::iterator item = tiles.begin();
       if (tiles.size() > 0) {
         //cout << 827349 << endl;
         std::advance( item, rand()%tiles.size() );
@@ -465,10 +471,13 @@ void World::render() {
     }
     bool changed = false;
     TileLoop loop(this);
-    
+    double start = glfwGetTime();
     for (pair<ivec3, Tile*> kvpair : loop) {
         changed = changed or kvpair.second->chunk->render_flag;
         kvpair.second->render(&glvecs, &transparent_glvecs);
+        if (glfwGetTime() - start > 0.05) {
+          break;
+        }
     }
     for (pair<int,int> render_index : dead_render_indexes) {
       glvecs.del(render_index);
@@ -476,9 +485,9 @@ void World::render() {
     }
     dead_render_indexes.clear();
     
-    if (glvecs.clean_flag or transparent_glvecs.clean_flag) {
+    if (glvecs.clean_flag or transparent_glvecs.clean_flag or changed) {
       glvecs.clean();
-      cout << "changed" << endl;
+      //cout << "changed" << endl;
       transparent_glvecs.clean();
       //if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
         //int before = clock();
@@ -510,7 +519,8 @@ Block* World::get_global(int x, int y, int z, int scale) {
     }
     ivec3 pos(px, py, pz);
     //cout << "pair<" << pos.first << ' ' << pos.second << endl;
-    if (tiles.find(pos) == tiles.end() or std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) != deleting_chunks.end()) {
+    unordered_map<ivec3,Tile*,ivec3_hash>::iterator foundkv = tiles.find(pos);
+    if (foundkv == tiles.end() or std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) != deleting_chunks.end()) {
         //cout << "   returning null\n";
         return nullptr;
     }
@@ -518,13 +528,23 @@ Block* World::get_global(int x, int y, int z, int scale) {
     int ox = ((x < 0) ? chunksize : 0) + x%chunksize;
     int oy = ((y < 0) ? chunksize : 0) + y%chunksize;
     int oz = ((z < 0) ? chunksize : 0) + z%chunksize;
-    //cout << ox << ' ' << y << ' ' << oz << endl;
-    try {
-      return tiles.at(pos)->chunk->get_global(ox, oy, oz, scale);
-    } catch (std::out_of_range& ex) {
-      cout << "world get_global caught " << ex.what() <<  " with pos " << pos.x << ' ' << pos.y << ' ' << pos.z << endl;
-      return nullptr;
+    
+    if (foundkv->second != nullptr and !foundkv->second->deleting) {
+      return foundkv->second->chunk->get_global(ox, oy, oz, scale);
     }
+    return nullptr;
+    //cout << ox << ' ' << y << ' ' << oz << endl;
+    // try {
+    //   Tile* tile = tiles.at(pos);
+    //   if (tile != nullptr and !tile->deleting) {
+    //     return tile->chunk->get_global(ox, oy, oz, scale);
+    //   } else {
+    //     return nullptr;
+    //   }
+    // } catch (std::out_of_range& ex) {
+    //   cout << "world get_global caught " << ex.what() <<  " with pos " << pos.x << ' ' << pos.y << ' ' << pos.z << endl;
+    //   return nullptr;
+    // }
 }
 
 void World::summon(DisplayEntity* entity) {
@@ -609,7 +629,9 @@ Block* World::raycast(double* x, double* y, double* z, double dx, double dy, dou
 
 void World::save_chunk(ivec3 pos) {
   //cout << "saving chunk ..." << endl;
-  tiles[pos]->save();
+  if (saving) {
+    tiles[pos]->save();
+  }
   //cout << "done" << endl;
 }
 
@@ -622,9 +644,11 @@ void World::del_chunk(ivec3 pos, bool remove_faces) {
     Tile* tile = tiles[pos];
     tile->deleting = true;
     tilelock.lock();
-      tiles.erase(pos);
+    tiles.erase(pos);
     tilelock.unlock();
-    tile->save();
+    if (saving) {
+      tile->save();
+    }
     tile->del(remove_faces);
     delete tile;
     // save_chunk(pos);
@@ -637,7 +661,7 @@ void World::load_chunk(ivec3 pos) {
     //cout << "loading chunk ..." << endl;
     //cout << "creating tile " << this << endl;
     tilelock.lock();
-      tiles[pos] = new Tile(pos, this);
+    tiles[pos] = new Tile(pos, this);
     tilelock.unlock();
     //cout << "done" << endl;
 }

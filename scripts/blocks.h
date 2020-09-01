@@ -88,7 +88,7 @@ vec3 Block::get_position() const {
 
 Block* Block::raycast(Collider* this_world, double* x, double* y, double* z, double dx, double dy, double dz, double time) {
     //cout << "block raycast(" << *x << ' ' << *y << ' ' << *z << ' ' << dx << ' ' << dy << ' ' << dz << endl;
-    if (!continues() and get() != 0) {
+    if (!continues() and get() != 0 and get() != 7) {
         //cout << "returning" << continues() << get() << endl;
         return this;
     }
@@ -345,7 +345,7 @@ void Pixel::tick() {
     BlockGroup* group = BlockGroup::make_group(value, tile->world, ivec3(gx, gy, gz));
     //cout << group->block_poses.size() << " size!" << endl;
     if (group->block_poses.size() > 0) {
-      if (!group->consts[4]) {
+      if (!group->consts[4] and group->groupname != "water-group") {
         // for (int i = 0; i < 6; i ++) {
         //   cout << group->consts[i] << ' ';
         // } cout << endl;
@@ -1045,8 +1045,12 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collide
 }
 
 Chunk* Pixel::subdivide() {
-  if (render_index.first != -1) {
-      world->glvecs.del(render_index);
+  if (render_index.first != -1 and tile != nullptr) {
+    if (render_transparent) {
+      tile->world->transparent_glvecs.del(render_index);
+    } else {
+      tile->world->glvecs.del(render_index);
+    }
   }
   if (scale == 1) {
       cout << "error: block alreasy at scale 1" << endl;
