@@ -1,4 +1,4 @@
-This is version 0.3 (in dev) of scrolls alpha: the adventure game!
+This is version 0.4 (in dev) of scrolls alpha: the adventure game!
 
 Getting started:
 
@@ -45,6 +45,11 @@ Debug:
 O/P - show/hide debug menu
 R - force cleaning of memory vectors
 F/G - enter/exit spectator mode
+
+Version 0.4:
+ Additions:
+ -implemented transparent blocks, including water!
+ -water has physics and flows (almost working)
 
 Version 0.3:
  Additions:
