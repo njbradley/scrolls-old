@@ -318,19 +318,19 @@ void Pixel::random_tick() {
   //   cout << "spawned skeleton at " << gx << ' ' << gy << ' ' << gz << endl;
   // }
   
-  Block* above = world->get_global(gx, gy+scale, gz, 1);
-  if (value == blocks->names["grass"] and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1
-  and tile->world->mobcount < 20) {
-    world->summon(new Pig(tile->world, vec3(gx, gy+5, gz)));
-  }
-  
-  if (tile->world->difficulty > 0) {
-    if ((value == blocks->names["snow"]) and tile->entities.size() < 1 and above != nullptr and above->get() == 0
-    and tile->world->mobcount < 20 and above->get_pix()->sunlight == lightmax and tile->world->sunlight < 0.1) {
-      cout << "skeleton spawned" << endl;
-      world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
-    }
-  }
+  // Block* above = world->get_global(gx, gy+scale, gz, 1);
+  // if (value == blocks->names["grass"] and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1
+  // and tile->world->mobcount < 20) {
+  //   world->summon(new Pig(tile->world, vec3(gx, gy+5, gz)));
+  // }
+  //
+  // if (tile->world->difficulty > 0) {
+  //   if ((value == blocks->names["snow"]) and tile->entities.size() < 1 and above != nullptr and above->get() == 0
+  //   and tile->world->mobcount < 20 and above->get_pix()->sunlight == lightmax and tile->world->sunlight < 0.1) {
+  //     cout << "skeleton spawned" << endl;
+  //     world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
+  //   }
+  // }
 }
 
 void Pixel::tick() {

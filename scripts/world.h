@@ -519,7 +519,9 @@ Block* World::get_global(int x, int y, int z, int scale) {
     }
     ivec3 pos(px, py, pz);
     //cout << "pair<" << pos.first << ' ' << pos.second << endl;
+    //tilelock.lock();
     unordered_map<ivec3,Tile*,ivec3_hash>::iterator foundkv = tiles.find(pos);
+    //tilelock.unlock();
     if (foundkv == tiles.end() or std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) != deleting_chunks.end()) {
         //cout << "   returning null\n";
         return nullptr;

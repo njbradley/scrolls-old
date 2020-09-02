@@ -67,6 +67,7 @@ GLuint mat_ui_buffer;
 vec3 clearcolor;
 int view_distance;
 
+bool framerate_sync = true;
 
 int allocated_memory;
 
@@ -174,9 +175,13 @@ void load_settings() {
 				ifile >> initialFoV;
 			} else if (name == "fullscreen") {
 				ifile >> name;
-				fullscreen = name == "true";
+				fullscreen = name == "on";
 			} else if (name == "max_fps") {
 				ifile >> max_fps;
+			} else if (name == "framerate_sync") {
+				string sync;
+				ifile >> sync;
+				framerate_sync = sync == "on";
 			} else if (name == "view_dist") {
 				ifile >> view_dist;
 			} else if (name == "alloc_memory") {
@@ -202,6 +207,7 @@ void load_settings() {
 		ofile << "fullscreen: true" << endl;
 		ofile << "dims: 1600 900" << endl;
 		ofile << "max_fps: 90" << endl;
+		ofile << "framerate_sync: on" << endl;
 		ofile << "alloc_memory: 700000" << endl;
 		ofile << "view_dist: 3" << endl;
 		load_settings();
@@ -557,6 +563,11 @@ int main( void )
 	
 	//boost::asio::high_resolution_timer timer(io_service);
 	
+	if (framerate_sync) {
+		glfwSwapInterval(1);
+	} else {
+		glfwSwapInterval(0);
+	}
 	
 	while (playing) {
 		
@@ -704,7 +715,7 @@ int main( void )
 		
 		////////////// sleep to max fps
 		double sleep_needed = min_ms_per_frame-ms;
-		if (sleep_needed > 0) {
+		if (!framerate_sync and sleep_needed > 0) {
 			
 			double time = lastFrameTime + min_ms_per_frame/1000.0;
 			double newtime = glfwGetTime();
