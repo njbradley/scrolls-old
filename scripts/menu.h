@@ -282,10 +282,12 @@ void CraftingMenu::get_recipes() {
   recipes.clear();
   ItemContainer inven(&world->player->inven, &world->player->backpack);
   for (Recipe* recipe : recipestorage->recipes) {
-    if (recipe->level <= level and recipe->display(&inven, nullptr)) {
-      possible.push_back(recipe);
-    } else {
-      others.push_back(recipe);
+    if (recipe->level <= level) {
+      if (recipe->display(&inven, nullptr)) {
+        possible.push_back(recipe);
+      } else {
+        others.push_back(recipe);
+      }
     }
   }
   num_possible = possible.size();

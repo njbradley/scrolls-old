@@ -64,6 +64,10 @@ GLuint vertex_ui_buffer;
 GLuint uv_ui_buffer;
 GLuint mat_ui_buffer;
 
+vec3 clearcolor;
+int view_distance;
+
+bool framerate_sync = true;
 
 int allocated_memory;
 
@@ -72,6 +76,11 @@ bool fullscreen = false;
 
 bool playing = true;
 bool errors = false;
+
+void set_display_env(vec3 new_clear_color, int new_view_dist) {
+	clearcolor = new_clear_color;
+	view_distance = new_view_dist;
+}
 
 void wait() {
 	//return;
@@ -166,9 +175,13 @@ void load_settings() {
 				ifile >> initialFoV;
 			} else if (name == "fullscreen") {
 				ifile >> name;
-				fullscreen = name == "true";
+				fullscreen = name == "on";
 			} else if (name == "max_fps") {
 				ifile >> max_fps;
+			} else if (name == "framerate_sync") {
+				string sync;
+				ifile >> sync;
+				framerate_sync = sync == "on";
 			} else if (name == "view_dist") {
 				ifile >> view_dist;
 			} else if (name == "alloc_memory") {
@@ -194,6 +207,7 @@ void load_settings() {
 		ofile << "fullscreen: true" << endl;
 		ofile << "dims: 1600 900" << endl;
 		ofile << "max_fps: 90" << endl;
+		ofile << "framerate_sync: on" << endl;
 		ofile << "alloc_memory: 700000" << endl;
 		ofile << "view_dist: 3" << endl;
 		load_settings();
@@ -389,7 +403,7 @@ int main( void )
   glfwSetCursorPos(window, screen_x/2, screen_y/2);
 
 	// Dark blue background
-	vec3 clearcolor(0.4f, 0.7f, 1.0f);
+	clearcolor = vec3(0.4f, 0.7f, 1.0f);
 	glClearColor(clearcolor.x, clearcolor.y, clearcolor.z, 0.0f);
 	
 	// Enable depth test
@@ -540,7 +554,7 @@ int main( void )
 	bool reaching_max_fps = true;
 	double slow_frame = 0;
 	int slow_tick = 0;
-	int view_distance = view_dist * World::chunksize * 10;
+	view_distance = view_dist * World::chunksize * 10;
 	bool dologtime = false;
 	
 	
@@ -549,6 +563,11 @@ int main( void )
 	
 	//boost::asio::high_resolution_timer timer(io_service);
 	
+	if (framerate_sync) {
+		glfwSwapInterval(1);
+	} else {
+		glfwSwapInterval(0);
+	}
 	
 	while (playing) {
 		
@@ -696,7 +715,7 @@ int main( void )
 		
 		////////////// sleep to max fps
 		double sleep_needed = min_ms_per_frame-ms;
-		if (sleep_needed > 0) {
+		if (!framerate_sync and sleep_needed > 0) {
 			
 			double time = lastFrameTime + min_ms_per_frame/1000.0;
 			double newtime = glfwGetTime();

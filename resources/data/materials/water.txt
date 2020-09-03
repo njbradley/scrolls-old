@@ -1,4 +1,4 @@
 material water {
-	:toughness: 100
-	:elastic: 100
+	:toughness: 0
+	:elastic: 1
 }

@@ -1,7 +1,0 @@
-item iron-shovel {
-	:non_stackable:
-	:tool: shovel
-	:sharpness: 2
-	:weight: 2
-	:damage: 5
-}

@@ -23,7 +23,7 @@ class BlockGroup { public:
 	BlockGroup(World* world, istream& ifile);
 	BlockGroup(World* world, unordered_set<ivec3,ivec3_hash>& poses, Block* newblock);
 	~BlockGroup();
-	void find_group();
+	virtual void find_group();
 	void update();
 	void copy_to_block();
 	void remove_pix_pointers();
@@ -33,7 +33,7 @@ class BlockGroup { public:
 	virtual void custom_textures(int mats[6], int dirs[6], ivec3 pos);
 	virtual AxleInterface* cast_axle();
 	virtual void add_item(ItemStack stack);
-	//virtual PipeInterface* cast_pipe();
+	virtual PipeInterface* cast_pipe();
 	virtual void tick();
 	virtual bool rcaction(Player* player, Item* item);
 	virtual bool persistant();
@@ -47,16 +47,34 @@ class BlockGroup { public:
 	const static int max_size = 500;
 };
 
-class AxleInterface: public BlockGroup { public:
-	AxleInterface(World* world, ivec3 starting_pos);
-	AxleInterface(World* world, istream& ifile);
+
+enum FluidType {
+	Fluid_none = 0,
+	Fluid_water,
+	Fluid_num_fluids,
+};
+
+class AxleInterface { public:
+	// AxleInterface(World* world, ivec3 starting_pos);
+	// AxleInterface(World* world, istream& ifile);
 	virtual void rotate(AxleInterface* sender, double amount, double force) = 0;
 	virtual AxleInterface* cast_axle();
 	string group_group();
 	bool persistant();
 };
 
-class AxleGroup: public AxleInterface { public:
+class PipePacket { public:
+	Item item;
+	FluidType fluid;
+	double amount;
+};
+
+class PipeInterface { public:
+	virtual bool flow(PipeInterface* sender, PipePacket packet) = 0;
+	virtual PipeInterface* cast_pipe();
+};
+
+class AxleGroup: public BlockGroup, public AxleInterface { public:
 	AxleInterface* port1;
 	AxleInterface* port2;
 	ivec3 port1pos;
@@ -77,7 +95,7 @@ private:
 	bool calc_is_valid();
 };
 
-class GrindstoneGroup: public AxleInterface { public:
+class GrindstoneGroup: public BlockGroup, public AxleInterface { public:
 	double speed = 0;
 	double force = 0;
 	GrindstoneGroup(World* world, ivec3 spos);
@@ -132,12 +150,6 @@ class AnvilGroup: public BlockGroup { public:
 	bool persistant();
 };
 
-class PipePacket { public:
-	Item item;
-	bool water;
-	PipePacket(Item item, bool water);
-};
-
 class DissolveGroup: public BlockGroup { public:
 	DissolveGroup(World* world, ivec3 starting_pos);
 	DissolveGroup(World* world, istream& ifile);
@@ -145,5 +157,30 @@ class DissolveGroup: public BlockGroup { public:
 	virtual void tick();
 };
 
+
+// class FluidLevel { public:
+// 	unordered_set<ivec3> block_poses;
+// 	int ylevel;
+// 	int fill;
+// 	FluidGroup* parent;
+// 	FluidLevel(FluidGroup* newparent);
+// 	void on_update();
+// 	void flow();
+// };
+
+class FluidGroup: public BlockGroup, public PipeInterface { public:
+	int viscosity = 5;
+	int tickclock = 0;
+	double fill_level;
+	FluidGroup(World* nworld, ivec3 starting_pos);
+	FluidGroup(World* nworld, istream& ifile);
+	virtual void find_group();
+	void add_block(ivec3 pos);
+	void del_block(ivec3 pos);
+	bool flow(PipeInterface* sender, PipePacket packet);
+	bool flow_block(ivec3 pos);
+	virtual bool persistant();
+	virtual void tick();
+};
 
 #endif

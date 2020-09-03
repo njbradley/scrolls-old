@@ -88,7 +88,7 @@ vec3 Block::get_position() const {
 
 Block* Block::raycast(Collider* this_world, double* x, double* y, double* z, double dx, double dy, double dz, double time) {
     //cout << "block raycast(" << *x << ' ' << *y << ' ' << *z << ' ' << dx << ' ' << dy << ' ' << dz << endl;
-    if (!continues() and get() != 0) {
+    if (!continues() and get() != 0 and get() != 7) {
         //cout << "returning" << continues() << get() << endl;
         return this;
     }
@@ -318,19 +318,19 @@ void Pixel::random_tick() {
   //   cout << "spawned skeleton at " << gx << ' ' << gy << ' ' << gz << endl;
   // }
   
-  Block* above = world->get_global(gx, gy+scale, gz, 1);
-  if (value == blocks->names["grass"] and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1
-  and tile->world->mobcount < 20) {
-    world->summon(new Pig(tile->world, vec3(gx, gy+5, gz)));
-  }
-  
-  if (tile->world->difficulty > 0) {
-    if ((value == blocks->names["snow"]) and tile->entities.size() < 1 and above != nullptr and above->get() == 0
-    and tile->world->mobcount < 20 and above->get_pix()->sunlight == lightmax and tile->world->sunlight < 0.1) {
-      cout << "skeleton spawned" << endl;
-      world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
-    }
-  }
+  // Block* above = world->get_global(gx, gy+scale, gz, 1);
+  // if (value == blocks->names["grass"] and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1
+  // and tile->world->mobcount < 20) {
+  //   world->summon(new Pig(tile->world, vec3(gx, gy+5, gz)));
+  // }
+  //
+  // if (tile->world->difficulty > 0) {
+  //   if ((value == blocks->names["snow"]) and tile->entities.size() < 1 and above != nullptr and above->get() == 0
+  //   and tile->world->mobcount < 20 and above->get_pix()->sunlight == lightmax and tile->world->sunlight < 0.1) {
+  //     cout << "skeleton spawned" << endl;
+  //     world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
+  //   }
+  // }
 }
 
 void Pixel::tick() {
@@ -345,7 +345,7 @@ void Pixel::tick() {
     BlockGroup* group = BlockGroup::make_group(value, tile->world, ivec3(gx, gy, gz));
     //cout << group->block_poses.size() << " size!" << endl;
     if (group->block_poses.size() > 0) {
-      if (!group->consts[4]) {
+      if (!group->consts[4] and group->groupname != "water-group") {
         // for (int i = 0; i < 6; i ++) {
         //   cout << group->consts[i] << ' ';
         // } cout << endl;
@@ -1045,8 +1045,12 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collide
 }
 
 Chunk* Pixel::subdivide() {
-  if (render_index.first != -1) {
-      world->glvecs.del(render_index);
+  if (render_index.first != -1 and tile != nullptr) {
+    if (render_transparent) {
+      tile->world->transparent_glvecs.del(render_index);
+    } else {
+      tile->world->glvecs.del(render_index);
+    }
   }
   if (scale == 1) {
       cout << "error: block alreasy at scale 1" << endl;

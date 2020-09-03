@@ -1,7 +1,0 @@
-item flint-pickaxe {
-	:non_stackable:
-	:tool: pickaxe
-	:sharpness: 3
-	:weight: 1
-	:damage: 2
-}

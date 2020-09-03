@@ -1,0 +1,6 @@
+item pebble {
+	:material: stone
+	:weight: 2
+	:sharpness: 0
+	:reach: 1
+}

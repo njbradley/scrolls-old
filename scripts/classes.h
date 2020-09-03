@@ -22,6 +22,7 @@ using std::unordered_set;
 
 void crash(long long);
 void hard_crash(long long);
+void set_display_env(vec3,int);
 
 void print(vec3 v);
 
