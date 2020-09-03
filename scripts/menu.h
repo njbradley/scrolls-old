@@ -269,7 +269,8 @@ void ToolMenu::close(World* world) {
 
 /////////////////////////////////////////craftingh ///////////////////////////////////////
 
-CraftingMenu::CraftingMenu(int newlevel, function<void()> after_func): level(newlevel), after(after_func), page(0), button(1) {
+CraftingMenu::CraftingMenu(int newlevel, function<void()> after_func): level(newlevel), after(after_func), page(0), button(1),
+inputs {0,0,0,0,0,0}, outputs {0,0,0,0,0,0} {
   start();
   get_recipes();
   render_page();

@@ -123,15 +123,15 @@ bool collide_last_text(float x, float y) {
     return x > bounds[0] && x < bounds[1] && y > bounds[2] && y < bounds[3];
 }
 
-draw_text(MemVecs* vecs, string str, float x, float y, int size) {
+void draw_text(MemVecs* vecs, string str, float x, float y, int size) {
     draw_text(vecs, str, x, y, size, "left");
 }
 
-draw_text(MemVecs* vecs, string str, float x, float y, string alignment) {
+void draw_text(MemVecs* vecs, string str, float x, float y, string alignment) {
     draw_text(vecs, str, x, y, 1, alignment);
 }
 
-draw_text(MemVecs* vecs, string str, float x, float y) {
+void draw_text(MemVecs* vecs, string str, float x, float y) {
     draw_text(vecs, str, x, y, 1, "left");
 }
 

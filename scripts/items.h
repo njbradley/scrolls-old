@@ -489,7 +489,7 @@ ItemStorage::~ItemStorage() {
 ////////////////////////////////////// ITEMKCINTAINER ///////////////////////////////////
 
 
-ItemContainer::ItemContainer(int newsize = 10): size(newsize) {
+ItemContainer::ItemContainer(int newsize): size(newsize) {
     for (int i = 0; i < newsize; i ++) {
         items.push_back(ItemStack(Item(nullptr),0));
     }
