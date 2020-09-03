@@ -31,13 +31,12 @@ using std::unordered_map;
 
 class TileLoop { public:
   World* world;
-  unordered_map<ivec3,Tile*,ivec3_hash> tiles_copy;
   class iterator { public:
     TileLoop* tileloop;
-    unordered_map<ivec3,Tile*,ivec3_hash>::iterator iter;
-    iterator(TileLoop* newtileloop, unordered_map<ivec3,Tile*,ivec3_hash>::iterator newiter);
-    unordered_map<ivec3,Tile*,ivec3_hash>::iterator operator->();
-    pair<ivec3,Tile*> operator*();
+    int index;
+    iterator(TileLoop* newtileloop, int newindex);
+    vector<Tile*>::iterator operator->();
+    Tile* operator*();
     iterator operator++();
     friend bool operator==(const iterator& iter1, const iterator& iter2);
     friend bool operator!=(const iterator& iter1, const iterator& iter2);
@@ -58,7 +57,8 @@ class World: public Collider {
     //mutable std::shared_timed_mutex tiles_lock;
     char* tmparr;
     public:
-        unordered_map<ivec3, Tile*, ivec3_hash> tiles;
+        //unordered_map<ivec3, Tile*, ivec3_hash> tiles;
+        vector<Tile*> tiles;
         std::mutex tilelock;
         unordered_set<BlockGroup*> physicsgroups;
     		vector<pair<int,int> > dead_render_indexes;
@@ -104,6 +104,7 @@ class World: public Collider {
         void update_lighting();
         void load_nearby_chunks();
         void get_async_loaded_chunks();
+        Tile* tileat(ivec3 pos);
         Block* get_global(int x, int y, int z, int scale);
         void summon(DisplayEntity* entity);
         void set(int x, int y, int z, char val, int direction = 0, BlockExtra* extras = nullptr);

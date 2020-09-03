@@ -539,8 +539,8 @@ vec3toivec3([] (Program* program, vec3 val) {
 }),
 killall([] (Program* program) {
 	TileLoop loop(program->world);
-	for (pair<ivec3,Tile*> kv : loop) {
-		kv.second->entities.clear();
+	for (Tile* tile : loop) {
+		tile->entities.clear();
 	}
 }),
 doublevars({

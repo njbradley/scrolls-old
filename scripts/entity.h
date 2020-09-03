@@ -91,10 +91,11 @@ void Entity::drop_ticks() {
 void Entity::get_nearby_entities(vector<DisplayEntity*>* colliders) {
   ivec3 chunk = ivec3(position)/world->chunksize - ivec3(position.x<0, position.y<0, position.z<0);
   //std::map<ivec3,Tile*>::iterator it = world->tiles.find(chunk);
-  for (pair<ivec3, Tile*> kvpair : world->tiles) {
-    if (glm::length(vec3(kvpair.first-chunk)) <= 1.5) {
+  TileLoop loop(world);
+  for (Tile* tile : loop) {
+    if (glm::length(vec3(tile->pos-chunk)) <= 1.5) {
       //print (kvpair.first);
-      for (DisplayEntity* e : kvpair.second->entities) {
+      for (DisplayEntity* e : tile->entities) {
         colliders->push_back(e);
       }
     }
@@ -107,10 +108,11 @@ void Entity::find_colliders(vector<Collider*>* colliders) {
   ivec3 chunk = ivec3(position)/world->chunksize - ivec3(position.x<0, position.y<0, position.z<0);
   //std::map<ivec3,Tile*>::iterator it = world->tiles.find(chunk);
   vector<FallingBlockEntity*> entities;
-  for (pair<ivec3, Tile*> kvpair : world->tiles) {
-    if (glm::length(vec3(kvpair.first-chunk)) <= 1.5) {
+  TileLoop loop(world);
+  for (Tile* tile : loop) {
+    if (glm::length(vec3(tile->pos-chunk)) <= 1.5) {
       //print (kvpair.first);
-      for (FallingBlockEntity* e : kvpair.second->block_entities) {
+      for (FallingBlockEntity* e : tile->block_entities) {
         if (e != this and colliding(e)) {
           colliders->push_back(e);
         }
@@ -558,7 +560,7 @@ void Entity::fall_damage(float velocity) {
 
 void Entity::drag(bool do_drag, float deltaTime) {
     if (in_water) {
-      float water_drag = 1 - 20*deltaTime;
+      float water_drag = 1 - 8*deltaTime;
       vel *= water_drag;
     }
     if (do_drag) {

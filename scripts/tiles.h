@@ -41,8 +41,9 @@ void Tile::render(GLVecs* glvecs, GLVecs* transvecs) {
       update_lighting();
       const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
       for (ivec3 dir : dirs) {
-        if (world->tiles.find(pos+dir) != world->tiles.end()) {
-          world->tiles.at(pos+dir)->chunk->all_side([] (Pixel* pix) {
+        Tile* tile = world->tileat(pos+dir);
+        if (tile != nullptr) {
+          tile->chunk->all_side([] (Pixel* pix) {
             pix->set_render_flag();
           }, -dir.x, -dir.y, -dir.z);
         }
@@ -140,8 +141,9 @@ void Tile::timestep() {
         ivec3 chunk = ivec3(epos)/world->chunksize - ivec3(epos.x<0,epos.y<0,epos.z<0);
         if (chunk != pos) {
           //cout << "moving " << chunk.x << ' ' << chunk.y << ' ' << chunk.z << "   " << pos.x << ' ' << pos.y << ' ' << pos.z << endl;
-          if (world->tiles.find(chunk) != world->tiles.end()) {
-            world->tiles[chunk]->entities.push_back(entities[i]);
+          Tile* tile = world->tileat(chunk);
+          if (tile != nullptr) {
+            tile->entities.push_back(entities[i]);
           } else {
             // cout << "deleting entity " << entities[i] << endl;
             delete entities[i];
@@ -161,8 +163,9 @@ void Tile::timestep() {
       vec3 epos = block_entities[i]->position;
       ivec3 chunk = ivec3(epos)/world->chunksize - ivec3(epos.x<0,epos.y<0,epos.z<0);
       if (chunk != pos) {
-        if (world->tiles.find(pos) != world->tiles.end()) {
-          world->tiles[pos]->block_entities.push_back(block_entities[i]);
+        Tile* tile = world->tileat(chunk);
+        if (tile != nullptr) {
+          tile->block_entities.push_back(block_entities[i]);
         } else {
           delete block_entities[i];
         }
