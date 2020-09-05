@@ -48,6 +48,8 @@ struct ivec3_hash {
 	}
 };
 
+ofstream dfile("debug.txt");
+
 ////////////////// CLASSES ///////////////////////////
 class Block;
 class BlockContainer;

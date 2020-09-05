@@ -189,19 +189,7 @@ void Tile::drop_ticks() {
 
 Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize), deleting(false) {
 	//if (writelock.try_lock_for(std::chrono::seconds(1))) {
-    if (pos == ivec3(0,0,0)) {
-      //cout << "summoned entity 0923472893472893748293749823749273492734892739482739482739482739487293847283" << endl;
-      // vector<DisplayEntity*> limbs {
-      //   new NamedEntity(world, vec3(-0.5,-0.5,0.5), vec3(0,0,0), vec3(1,1,1), "pigfoot", vec3(0,0,0)),
-      //   new NamedEntity(world, vec3(3.5,-0.5,0.5), vec3(0,0,0), vec3(1,1,1), "pigfoot", vec3(0,0,0)),
-      //   new NamedEntity(world, vec3(-0.5,-0.5,2.5), vec3(0,0,0), vec3(1,1,1), "pigfoot", vec3(0,0,0)),
-      //   new NamedEntity(world, vec3(3.5,-0.5,2.5), vec3(0,0,0), vec3(1,1,1), "pigfoot", vec3(0,0,0)),
-      //
-      // };
-      //entities.push_back(new Skeleton(world, pos*chunksize + 32 + ivec3(0,5,0)));
-      //entities.push_back(new NamedEntity(world, pos*chunksize+32 + ivec3(0,5,0), vec3(0,0,0), vec3(2,2,2), "pighead", vec3(0,0,0)));
-      // entities.push_back(new NamedEntity(world, pos*chunksize+32 + ivec3(0,5,0), vec3(-1,0,-1), vec3(1,4,1), "skeleton", vec3(-2.5,0,-2.5), limbs));
-  	}
+    dfile << "ntile ";
     if (world == nullptr) {
       cout << "error world is null" << endl;
       exit(1);
@@ -224,7 +212,9 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
         }
   	} else {
   			//cout << "generating '" << path.str() << "'\n";
+        dfile << "NTILE" << endl << "gen ";
   			chunk = generate(pos);
+        dfile << "GEN " << endl;
   			//return load_chunk(pos);
   			//chunk = generate(pos);
   	}
@@ -245,6 +235,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
 
 void Tile::del(bool remove_faces) {
   //cout << "start of deleting tile ";
+  dfile << "del " << endl;
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
     deleting = true;
     for (DisplayEntity* entity : entities) {
@@ -258,6 +249,7 @@ void Tile::del(bool remove_faces) {
     cout << "ERR: tile not properly deleted" << endl;
     crash(43928739482);
   }
+  dfile << "DEL" << endl;
 }
 
 /*

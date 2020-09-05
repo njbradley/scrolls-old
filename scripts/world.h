@@ -81,7 +81,7 @@ TileLoop::iterator TileLoop::end() {
 
 
 World::World(string newname, int newseed): loader(seed), seed(newseed), name(newname), closing_world(false), sunlight(1),
-commandprogram(this,&cout,&cout), tiles(((view_dist-1)*2+1)^3 * 2, nullptr) {
+commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * 2, nullptr) {
     setup_files();
     startup();
 }
@@ -236,6 +236,7 @@ void World::set_player_vars() {
 }
 
 void World::load_nearby_chunks() {
+  dfile << "load ";
   if (!player->spectator) {
     int px = player->position.x/chunksize - (player->position.x<0);
     int py = player->position.y/chunksize - (player->position.y<0);
@@ -290,6 +291,7 @@ void World::load_nearby_chunks() {
     //}
   }
   get_async_loaded_chunks();
+  dfile << "LOAD " << endl;
 }
 
 void World::get_async_loaded_chunks() {
@@ -300,6 +302,7 @@ void World::get_async_loaded_chunks() {
       
       for (int i = 0; i < tiles.size(); i ++) {
         if (tiles[i] == nullptr) {
+          cout << "loaded tile " << i << endl;
           tiles[i] = tile;
           break;
         }
@@ -529,6 +532,7 @@ Tile* World::tileat(ivec3 pos) {
 
 Block* World::get_global(int x, int y, int z, int scale) {
     //cout << "world::get global(" << x << ' ' << y << ' ' << z << ' ' << scale << endl;
+    dfile << "gg ";
     int px = x/chunksize;
     int py = y/chunksize;
     int pz = z/chunksize;
@@ -555,9 +559,11 @@ Block* World::get_global(int x, int y, int z, int scale) {
     
     Tile* tile = tileat(pos);
     if (tile != nullptr) {
-      return tile->chunk->get_global(ox, oy, oz, scale);
+      Block* result = tile->chunk->get_global(ox, oy, oz, scale);
+      dfile << "GG " << endl;
+      return result;
     }
-    
+    dfile << "GG2 " << endl;
     // if (foundkv->second != nullptr and !foundkv->second->deleting) {
     //   return foundkv->second->chunk->get_global(ox, oy, oz, scale);
     // }

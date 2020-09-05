@@ -225,9 +225,9 @@ char TerrainLoader::gen_func(ivec3 pos) {
 		val = get_base(pos).gen_func(pos);
 		//cout << "end gen func" << endl;
 	}
-	if (val == 0 and pos.y < 96) {
-		return blocks->names["water"];
-	}
+	// if (val == 0 and pos.y < 96) {
+	// 	return blocks->names["water"];
+	// }
 	return val;
 }
 
