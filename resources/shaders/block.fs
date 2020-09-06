@@ -25,17 +25,15 @@ void main(){
 	}
 	dist = dist*dist;
 	//return;
-	for( int i = 0; i < num_blocks; i ++) {
-		if (material.x-1 == i) {
-			vec4 tex = texture( myTextureSampler[i], vec3(UV.x, UV.y, material.y) );
-			if (tex.a < 0.05) {
-				discard;
-			}
-			vec3 color3 = tex.bgr * max(lightLevel.y, sunlight*lightLevel.x);
-			color3 = (color3*(1-dist) + clear_color*dist);
-			color = vec4(color3.x, color3.y, color3.z, tex.a);
-			break;
+	
+	if (material.x == 1) {
+		vec4 tex = texture( myTextureSampler[0], vec3(UV.x, UV.y, material.y) );
+		if (tex.a < 0.05) {
+			discard;
 		}
+		vec3 color3 = tex.bgr * max(lightLevel.y, sunlight*lightLevel.x);
+		color3 = (color3*(1-dist) + clear_color*dist);
+		color = vec4(color3.x, color3.y, color3.z, tex.a);
 	}
 	
 	//if (lightLevel == 0) {
