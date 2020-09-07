@@ -14,10 +14,16 @@ uniform sampler2D myTextureSampler[num_uis];
 void main(){
 
 	// Output color = color of the texture at the specified UV
-	for( int i = 0; i < num_uis; i ++) {
-		if (material == i) {
-			color = texture( myTextureSampler[i], UV ).bgra;
-			break;
-		}
+	
+	if (material == 0) {
+		color = texture( myTextureSampler[0], UV ).bgra;
+	} else if (material == 1) {
+		color = texture( myTextureSampler[1], UV ).bgra;
+	} else if (material == 2) {
+		color = texture( myTextureSampler[2], UV ).bgra;
+	} else if (material == 3) {
+		color = texture( myTextureSampler[3], UV ).bgra;
+	} else if (material == 4) {
+		color = texture( myTextureSampler[4], UV ).bgra;
 	}
 }
