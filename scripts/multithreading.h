@@ -28,38 +28,38 @@ ThreadManager::ThreadManager(GLFWwindow* window) {
 	
 	rendering_thread = thread(RenderingThread(renderwindow, this));
 	
-	glfwWindowHint(GLFW_SAMPLES, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-	GLFWwindow* tickwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
-	
-	tick_thread = thread(TickThread(tickwindow, this));
+	// glfwWindowHint(GLFW_SAMPLES, 4);
+	// glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	// glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	// glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
+	// glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	// glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+	// GLFWwindow* tickwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
+	//
+	tick_thread = thread(TickThread(nullptr, this));
 	
 	for (int i = 0; i < num_threads; i ++) {
 		loading[i] = nullptr;
 		deleting[i] = nullptr;
 		load_running[i] = true;
 		del_running[i] = true;
-		glfwWindowHint(GLFW_SAMPLES, 4);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-		GLFWwindow* loadingwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
+		// glfwWindowHint(GLFW_SAMPLES, 4);
+		// glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		// glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		// glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
+		// glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		// glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+		// GLFWwindow* loadingwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
 		
-		glfwWindowHint(GLFW_SAMPLES, 4);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-		GLFWwindow* deletingwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
-		loading_threads[i] = thread(LoadingThread(loadingwindow, i, this));
-		deleting_threads[i] = thread(DeletingThread(deletingwindow, i, this));
+		// glfwWindowHint(GLFW_SAMPLES, 4);
+		// glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		// glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		// glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
+		// glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		// glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+		// GLFWwindow* deletingwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
+		loading_threads[i] = thread(LoadingThread(nullptr, i, this));
+		deleting_threads[i] = thread(DeletingThread(nullptr, i, this));
 	}
 }
 
@@ -120,7 +120,7 @@ LoadingThread::LoadingThread(GLFWwindow* nwindow, int newindex, ThreadManager* n
 }
 
 void LoadingThread::operator()() {
-	glfwMakeContextCurrent(window);
+	//glfwMakeContextCurrent(window);
 	while (parent->load_running[index]) {
 		//cout << parent->loading[index] << endl;
 		
@@ -144,7 +144,7 @@ DeletingThread::DeletingThread(GLFWwindow* nwindow, int newindex, ThreadManager*
 }
 
 void DeletingThread::operator()() {
-	glfwMakeContextCurrent(window);
+	//glfwMakeContextCurrent(window);
 	while (parent->del_running[index]) {
 		if (parent->deleting[index] != nullptr) {
 			world->del_chunk(*parent->deleting[index], true);
@@ -180,7 +180,7 @@ TickThread::TickThread(GLFWwindow* nwindow, ThreadManager* newparent): window(nw
 }
 
 void TickThread::operator()() {
-	glfwMakeContextCurrent(window);
+	//glfwMakeContextCurrent(window);
 	while (parent->render_running) {
 		double start_time = glfwGetTime();
 		if (world != nullptr) {

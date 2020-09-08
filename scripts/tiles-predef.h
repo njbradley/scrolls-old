@@ -5,7 +5,7 @@
 #include <vector>
 #include "terrain-predef.h"
 #include <mutex>
-
+#include <shared_mutex>
 
 class Tile {
 	public:
@@ -17,7 +17,7 @@ class Tile {
 		int render_depth = 1;
 		bool render_faces[6] = {true,true,true,true,true,true};
 		bool optimized_render = false;
-		std::timed_mutex writelock;
+		std::shared_timed_mutex deletelock;
 		bool deleting;
 		bool lightflag = true;
 		vector<DisplayEntity*> entities;

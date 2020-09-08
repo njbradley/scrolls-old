@@ -233,6 +233,7 @@ void GLVecs::clean() {
     //int start = clock();
   if (clean_flag) {
     clean_flag = false;
+    dfile << "cle ";
 		int max = 0;
     for (pair<int,int> index : empty) {
 			if (index.second*6 > max) {
@@ -256,6 +257,7 @@ void GLVecs::clean() {
         writelock.unlock();
       }
     }
+    dfile << "CLE " << endl;
   }
   //  writelock.unlock();
     // int all = clock() - start;

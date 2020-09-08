@@ -37,65 +37,68 @@ void Tile::update_lighting() {
 
 void Tile::render(GLVecs* glvecs, GLVecs* transvecs) {
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {
-  if (lightflag) {
-      update_lighting();
-      const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
-      for (ivec3 dir : dirs) {
-        Tile* tile = world->tileat(pos+dir);
-        if (tile != nullptr) {
-          tile->chunk->all_side([] (Pixel* pix) {
-            pix->set_render_flag();
-          }, -dir.x, -dir.y, -dir.z);
+  if (deletelock.try_lock_shared()) {
+    if (lightflag) {
+        update_lighting();
+        const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
+        for (ivec3 dir : dirs) {
+          Tile* tile = world->tileat(pos+dir);
+          if (tile != nullptr) {
+            tile->chunk->all_side([] (Pixel* pix) {
+              pix->set_render_flag();
+            }, -dir.x, -dir.y, -dir.z);
+          }
         }
-      }
-      // for (int i = 0; i < 10; i ++) {
-      //   chunk->calculate_lightlevel();
-      // }
-    lightflag = false;
-  }
-  //chunk->calculate_lightlevel();
-  if (!deleting) {
-    if (!world->player->spectator and optimized_render) {
-      vec3 playpos = world->player->position;// + float(ivec3_hash()(pos) % (chunksize/3) - chunksize/6);
-      ivec3 player_chunk((playpos.x/world->chunksize) - (playpos.x<0),
-                         (playpos.y/world->chunksize) - (playpos.y<0),
-                         (playpos.z/world->chunksize) - (playpos.z<0));
-      double player_dist = glm::length(vec3(player_chunk) - vec3(pos)) / 2;
-      int depth = 1;
-      while (depth < player_dist) {
-        depth *= 2;
-      }
-      
-      bool changed = false;
-      
-      // if (depth != render_depth) {
-      //   render_depth = depth;
-      //   changed = true;
-      // }
-      
-      bool faces[] = {
-        player_chunk.x >= pos.x-1,
-        player_chunk.y >= pos.y-1,
-        player_chunk.z >= pos.z-1,
-        player_chunk.x <= pos.x+1,
-        player_chunk.y <= pos.y+1,
-        player_chunk.z <= pos.z+1,
-      };
-      
-      for (int i = 0; i < 6; i ++) {
-        if (faces[i] != render_faces[i]) {
-          render_faces[i] = faces[i];
-          changed = true;
-        }
-      }
-      
-      if (changed) {
-        chunk->set_all_render_flags();
-      }
+        // for (int i = 0; i < 10; i ++) {
+        //   chunk->calculate_lightlevel();
+        // }
+      lightflag = false;
     }
-    //cout << world << endl;
-    chunk->lighting_update();
-    chunk->render(glvecs, transvecs, world, 0, 0, 0, render_depth, render_faces, false);
+    //chunk->calculate_lightlevel();
+    if (!deleting) { // ERR: starts deleting during render
+      if (!world->player->spectator and optimized_render) {
+        vec3 playpos = world->player->position;// + float(ivec3_hash()(pos) % (chunksize/3) - chunksize/6);
+        ivec3 player_chunk((playpos.x/world->chunksize) - (playpos.x<0),
+                           (playpos.y/world->chunksize) - (playpos.y<0),
+                           (playpos.z/world->chunksize) - (playpos.z<0));
+        double player_dist = glm::length(vec3(player_chunk) - vec3(pos)) / 2;
+        int depth = 1;
+        while (depth < player_dist) {
+          depth *= 2;
+        }
+        
+        bool changed = false;
+        
+        // if (depth != render_depth) {
+        //   render_depth = depth;
+        //   changed = true;
+        // }
+        
+        bool faces[] = {
+          player_chunk.x >= pos.x-1,
+          player_chunk.y >= pos.y-1,
+          player_chunk.z >= pos.z-1,
+          player_chunk.x <= pos.x+1,
+          player_chunk.y <= pos.y+1,
+          player_chunk.z <= pos.z+1,
+        };
+        
+        for (int i = 0; i < 6; i ++) {
+          if (faces[i] != render_faces[i]) {
+            render_faces[i] = faces[i];
+            changed = true;
+          }
+        }
+        
+        if (changed) {
+          chunk->set_all_render_flags();
+        }
+      }
+      //cout << world << endl;
+      chunk->lighting_update();
+      chunk->render(glvecs, transvecs, world, 0, 0, 0, render_depth, render_faces, false);
+    }
+    deletelock.unlock_shared();
   }
 }
 
@@ -235,21 +238,17 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
 
 void Tile::del(bool remove_faces) {
   //cout << "start of deleting tile ";
+  deletelock.lock();
   dfile << "del " << endl;
-  if (writelock.try_lock_for(std::chrono::seconds(1))) {
-    deleting = true;
-    for (DisplayEntity* entity : entities) {
-      // cout << "deleting tile del entitiy " << entity << endl;
-      delete entity;
-    }
-	  chunk->del(remove_faces);
-    delete chunk;
-    writelock.unlock();
-  } else {
-    cout << "ERR: tile not properly deleted" << endl;
-    crash(43928739482);
+  deleting = true;
+  for (DisplayEntity* entity : entities) {
+    // cout << "deleting tile del entitiy " << entity << endl;
+    delete entity;
   }
+  chunk->del(remove_faces);
+  delete chunk;
   dfile << "DEL" << endl;
+  deletelock.unlock();
 }
 
 /*

@@ -506,7 +506,7 @@ void World::render() {
     if (glvecs.clean_flag or transparent_glvecs.clean_flag or changed) {
       glvecs.clean();
       //cout << "changed" << endl;
-      transparent_glvecs.clean();
+      //transparent_glvecs.clean();
       //if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
         //int before = clock();
         glFinish();

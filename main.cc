@@ -503,7 +503,6 @@ int main( void )
 	lightbuffer = blockbuffs[2];
 	matbuffer = blockbuffs[3];
 	
-	
 	//glGenBuffers(1, &vertexbuffer);
 	//glGenBuffers(1, &uvbuffer);
 	//glGenBuffers(1, &lightbuffer);
@@ -786,10 +785,12 @@ int main( void )
 			glBindTexture(GL_TEXTURE_2D_ARRAY, block_textures[i]);
 		}
 		
-		if (!world->glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
-			cout << "glvecs lock has timed out" << endl;
-			exit(1);
-		}
+		// if (!world->glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
+		// 	cout << "glvecs lock has timed out" << endl;
+		// 	exit(1);
+		// }
+		world->glvecs.writelock.lock();
+		world->transparent_glvecs.writelock.lock();
 		time = glfwGetTime() - start;
 		if (dologtime and time > 0.001) {
 			cout << "unlocking took " << time << endl;
@@ -856,25 +857,25 @@ int main( void )
 		
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		//glDisable(GL_CULL_FACE);
-		
-		for (int i = 0; i < num_blocks; i ++) {
-	 		ids[i] = i;
-		 	glActiveTexture(GL_TEXTURE0+i);
-		 	glBindTexture(GL_TEXTURE_2D_ARRAY, transparent_block_textures[i]);
-		}
-		
-		glUniform1iv(TextureID, num_blocks, ids);
-		
-		
-		glDrawArrays(GL_TRIANGLES, world->transparent_glvecs.offset, world->transparent_glvecs.num_verts);
-		
-		
-		glDisableVertexAttribArray(0);
-		glDisableVertexAttribArray(1);
-		glDisableVertexAttribArray(2);
-		glDisableVertexAttribArray(3);
-		
+		// //glDisable(GL_CULL_FACE);
+		//
+		// for (int i = 0; i < num_blocks; i ++) {
+	 	// 	ids[i] = i;
+		//  	glActiveTexture(GL_TEXTURE0+i);
+		//  	glBindTexture(GL_TEXTURE_2D_ARRAY, transparent_block_textures[i]);
+		// }
+		//
+		// glUniform1iv(TextureID, num_blocks, ids);
+		//
+		//
+		// glDrawArrays(GL_TRIANGLES, world->transparent_glvecs.offset, world->transparent_glvecs.num_verts);
+		//
+		//
+		// glDisableVertexAttribArray(0);
+		// glDisableVertexAttribArray(1);
+		// glDisableVertexAttribArray(2);
+		// glDisableVertexAttribArray(3);
+		//
 		
 		glDisable(GL_DEPTH_TEST);
 		glDepthMask(GL_FALSE);
@@ -943,6 +944,7 @@ int main( void )
 		// glDisableVertexAttribArray(3);
 		
 		world->glvecs.writelock.unlock();
+		world->transparent_glvecs.writelock.unlock();
 		
 		double all = glfwGetTime() - start;
 		if (dologtime and all > 0.001) {
@@ -1030,7 +1032,9 @@ int main( void )
 		}
 		
 		begin = glfwGetTime();
+		dfile << "sw ";
 		glfwSwapBuffers(window);
+		dfile << "SW " << endl;
 		glfwPollEvents();
 		time = glfwGetTime() - begin;
 		if (dologtime and time > 0.001) {
