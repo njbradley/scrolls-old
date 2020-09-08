@@ -1,0 +1,6223 @@
+Process:               main [4806]
+Path:                  /Users/USER/*/main
+Identifier:            main
+Version:               0
+Code Type:             X86-64 (Native)
+Parent Process:        bash [1631]
+Responsible:           Terminal [576]
+User ID:               501
+
+Date/Time:             2020-09-07 23:40:28.094 -0700
+OS Version:            Mac OS X 10.15.6 (19G2021)
+Report Version:        12
+Anonymous UUID:        D5B1CBB0-F178-CAE4-C46C-60FDF70480D1
+
+Sleep/Wake UUID:       52C8238B-707D-4A19-98C3-119A6F1DE419
+
+Time Awake Since Boot: 36000 seconds
+Time Since Wake:       5000 seconds
+
+System Integrity Protection: enabled
+
+Crashed Thread:        3
+
+Exception Type:        EXC_BAD_ACCESS (SIGSEGV)
+Exception Codes:       KERN_INVALID_ADDRESS at 0x00007fb217a7b000
+Exception Note:        EXC_CORPSE_NOTIFY
+
+Termination Signal:    Segmentation fault: 11
+Termination Reason:    Namespace SIGNAL, Code 0xb
+Terminating Process:   exc handler [4806]
+
+VM Regions Near 0x7fb217a7b000:
+    MALLOC_LARGE           00007fb217a3a000-00007fb217a7b000 [  260K] rw-/rwx SM=PRV  
+--> 
+    MALLOC_TINY            00007fb222400000-00007fb222500000 [ 1024K] rw-/rwx SM=PRV  
+
+Thread 0:: Dispatch queue: com.apple.main-thread
+0   libsystem_kernel.dylib        	0x00007fff6b36fdfa mach_msg_trap + 10
+1   libsystem_kernel.dylib        	0x00007fff6b370170 mach_msg + 60
+2   com.apple.AppKit              	0x00007fff2eb48fe6 NSWaitUntilHostTime + 102
+3   com.apple.AppKit              	0x00007fff2eff1ef0 -[NSCGLSurface synchronize] + 105
+4   com.apple.AppKit              	0x00007fff2eff13c7 NSCGLSurfaceFlush + 89
+5   GLEngine                      	0x00007fff3be8692a glSwap_Exec + 186
+6   com.apple.opengl              	0x00007fff3be68473 CGLFlushDrawable + 59
+7   com.apple.AppKit              	0x00007fff2e97775a -[NSOpenGLContext flushBuffer] + 20
+8   libglfw.3.dylib               	0x000000010331a659 swapBuffersNSGL + 236
+9   main                          	0x0000000103243f31 main + 14113
+10  libdyld.dylib                 	0x00007fff6b22ecc9 start + 1
+
+Thread 1:
+0   libsystem_pthread.dylib       	0x00007fff6b42eb68 start_wqthread + 0
+
+Thread 2:: com.apple.NSEventThread
+0   libsystem_kernel.dylib        	0x00007fff6b36fdfa mach_msg_trap + 10
+1   libsystem_kernel.dylib        	0x00007fff6b370170 mach_msg + 60
+2   com.apple.CoreFoundation      	0x00007fff3135cef5 __CFRunLoopServiceMachPort + 247
+3   com.apple.CoreFoundation      	0x00007fff3135b9c2 __CFRunLoopRun + 1319
+4   com.apple.CoreFoundation      	0x00007fff3135ae3e CFRunLoopRunSpecific + 462
+5   com.apple.AppKit              	0x00007fff2e76e954 _NSEventThread + 132
+6   libsystem_pthread.dylib       	0x00007fff6b433109 _pthread_start + 148
+7   libsystem_pthread.dylib       	0x00007fff6b42eb8b thread_start + 15
+
+Thread 3 Crashed:
+0   libsystem_platform.dylib      	0x00007fff6b424a71 _platform_memmove$VARIANT$Haswell + 369
+1   com.apple.driver.AppleIntelKBLGraphicsGLDriver	0x00007fff28cef7a0 glrWriteBufferData + 802
+2   GLEngine                      	0x00007fff3beadd6c glBufferSubData_Exec + 608
+3   main                          	0x00000001031ef51e GLVecs::clean() + 750
+4   main                          	0x0000000103216d22 World::render() + 338
+5   main                          	0x000000010322cf8b RenderingThread::operator()() + 91
+6   main                          	0x000000010327610d void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, RenderingThread> >(void*) + 45
+7   libsystem_pthread.dylib       	0x00007fff6b433109 _pthread_start + 148
+8   libsystem_pthread.dylib       	0x00007fff6b42eb8b thread_start + 15
+
+Thread 4:
+0   libsystem_kernel.dylib        	0x00007fff6b372756 __semwait_signal + 10
+1   libsystem_c.dylib             	0x00007fff6b2f5eea nanosleep + 196
+2   libc++.1.dylib                	0x00007fff685386da std::__1::this_thread::sleep_for(std::__1::chrono::duration<long long, std::__1::ratio<1l, 1000000000l> > const&) + 73
+3   main                          	0x000000010322d0c2 TickThread::operator()() + 130
+4   main                          	0x000000010327627d void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, TickThread> >(void*) + 45
+5   libsystem_pthread.dylib       	0x00007fff6b433109 _pthread_start + 148
+6   libsystem_pthread.dylib       	0x00007fff6b42eb8b thread_start + 15
+
+Thread 5:
+0   libsystem_platform.dylib      	0x00007fff6b42a80a DYLD-STUB$$_platform_memmove + 0
+1   main                          	0x000000010322174f TerrainBaseMerger::name() + 159
+2   main                          	0x0000000103225304 FileTerrain::is_valid(glm::vec<3, int, (glm::qualifier)0>) + 52
+3   main                          	0x000000010322244c TerrainObjectMerger::gen_func(glm::vec<3, int, (glm::qualifier)0>) + 156
+4   main                          	0x0000000103219e40 Pixel::resolve() + 96
+5   main                          	0x000000010321a2ca Pixel::resolve() + 1258
+6   main                          	0x000000010321a04f Pixel::resolve() + 623
+7   main                          	0x000000010321a2ca Pixel::resolve() + 1258
+8   main                          	0x000000010321a2ca Pixel::resolve() + 1258
+9   main                          	0x000000010321a2ca Pixel::resolve() + 1258
+10  main                          	0x000000010321a747 Tile::Tile(glm::vec<3, int, (glm::qualifier)0>, World*) + 983
+11  main                          	0x000000010322ccd6 LoadingThread::operator()() + 166
+12  main                          	0x00000001032763ed void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, LoadingThread> >(void*) + 45
+13  libsystem_pthread.dylib       	0x00007fff6b433109 _pthread_start + 148
+14  libsystem_pthread.dylib       	0x00007fff6b42eb8b thread_start + 15
+
+Thread 6:
+0   libsystem_kernel.dylib        	0x00007fff6b372756 __semwait_signal + 10
+1   libsystem_c.dylib             	0x00007fff6b2f5eea nanosleep + 196
+2   libc++.1.dylib                	0x00007fff685386da std::__1::this_thread::sleep_for(std::__1::chrono::duration<long long, std::__1::ratio<1l, 1000000000l> > const&) + 73
+3   main                          	0x000000010322ce19 DeletingThread::operator()() + 73
+4   main                          	0x000000010327655d void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, DeletingThread> >(void*) + 45
+5   libsystem_pthread.dylib       	0x00007fff6b433109 _pthread_start + 148
+6   libsystem_pthread.dylib       	0x00007fff6b42eb8b thread_start + 15
+
+Thread 7:
+0   main                          	0x00000001032216b4 TerrainBaseMerger::name() + 4
+1   main                          	0x0000000103225304 FileTerrain::is_valid(glm::vec<3, int, (glm::qualifier)0>) + 52
+2   main                          	0x000000010322244c TerrainObjectMerger::gen_func(glm::vec<3, int, (glm::qualifier)0>) + 156
+3   main                          	0x0000000103219fc1 Pixel::resolve() + 481
+4   main                          	0x000000010321a04f Pixel::resolve() + 623
+5   main                          	0x000000010321a2ca Pixel::resolve() + 1258
+6   main                          	0x000000010321a2ca Pixel::resolve() + 1258
+7   main                          	0x000000010321a04f Pixel::resolve() + 623
+8   main                          	0x000000010321a2ca Pixel::resolve() + 1258
+9   main                          	0x000000010321a747 Tile::Tile(glm::vec<3, int, (glm::qualifier)0>, World*) + 983
+10  main                          	0x000000010322ccd6 LoadingThread::operator()() + 166
+11  main                          	0x00000001032763ed void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, LoadingThread> >(void*) + 45
+12  libsystem_pthread.dylib       	0x00007fff6b433109 _pthread_start + 148
+13  libsystem_pthread.dylib       	0x00007fff6b42eb8b thread_start + 15
+
+Thread 8:
+0   libsystem_kernel.dylib        	0x00007fff6b372882 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	0x00007fff6b433425 _pthread_cond_wait + 698
+2   libc++.1.dylib                	0x00007fff68501623 std::__1::condition_variable::__do_timed_wait(std::__1::unique_lock<std::__1::mutex>&, std::__1::chrono::time_point<std::__1::chrono::system_clock, std::__1::chrono::duration<long long, std::__1::ratio<1l, 1000000000l> > >) + 93
+3   main                          	0x0000000103270c6b std::__1::cv_status std::__1::condition_variable::wait_until<std::__1::chrono::steady_clock, std::__1::chrono::duration<long long, std::__1::ratio<1l, 1000000000l> > >(std::__1::unique_lock<std::__1::mutex>&, std::__1::chrono::time_point<std::__1::chrono::steady_clock, std::__1::chrono::duration<long long, std::__1::ratio<1l, 1000000000l> > > const&) + 171
+4   main                          	0x00000001031eeb75 bool std::__1::timed_mutex::try_lock_for<long long, std::__1::ratio<1l, 1l> >(std::__1::chrono::duration<long long, std::__1::ratio<1l, 1l> > const&) + 101
+5   main                          	0x00000001031eebff GLVecs::del(std::__1::pair<int, int>) + 47
+6   main                          	0x000000010321cea8 Pixel::del(bool) + 88
+7   main                          	0x0000000103220447 Chunk::del(bool) + 23
+8   main                          	0x0000000103220447 Chunk::del(bool) + 23
+9   main                          	0x00000001032204d2 Chunk::del(bool) + 162
+10  main                          	0x0000000103220447 Chunk::del(bool) + 23
+11  main                          	0x0000000103220466 Chunk::del(bool) + 54
+12  main                          	0x0000000103219223 Tile::del(bool) + 195
+13  main                          	0x00000001032190d4 World::del_chunk(glm::vec<3, int, (glm::qualifier)0>, bool) + 372
+14  main                          	0x000000010322ce48 DeletingThread::operator()() + 120
+15  main                          	0x000000010327655d void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, DeletingThread> >(void*) + 45
+16  libsystem_pthread.dylib       	0x00007fff6b433109 _pthread_start + 148
+17  libsystem_pthread.dylib       	0x00007fff6b42eb8b thread_start + 15
+
+Thread 9:
+0   main                          	0x000000010321b524 perlin(double, double, int, int) + 180
+1   main                          	0x0000000103223234 Mountains::get_height(glm::vec<2, int, (glm::qualifier)0>) + 308
+2   main                          	0x000000010322440b BigTree::get_nearest(glm::vec<3, int, (glm::qualifier)0>) + 299
+3   main                          	0x000000010322240d TerrainObjectMerger::gen_func(glm::vec<3, int, (glm::qualifier)0>) + 93
+4   main                          	0x0000000103219e40 Pixel::resolve() + 96
+5   main                          	0x000000010321a2ca Pixel::resolve() + 1258
+6   main                          	0x000000010321a2ca Pixel::resolve() + 1258
+7   main                          	0x000000010321a2ca Pixel::resolve() + 1258
+8   main                          	0x000000010321a2ca Pixel::resolve() + 1258
+9   main                          	0x000000010321a2ca Pixel::resolve() + 1258
+10  main                          	0x000000010321a747 Tile::Tile(glm::vec<3, int, (glm::qualifier)0>, World*) + 983
+11  main                          	0x000000010322ccd6 LoadingThread::operator()() + 166
+12  main                          	0x00000001032763ed void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, LoadingThread> >(void*) + 45
+13  libsystem_pthread.dylib       	0x00007fff6b433109 _pthread_start + 148
+14  libsystem_pthread.dylib       	0x00007fff6b42eb8b thread_start + 15
+
+Thread 10:
+0   libsystem_kernel.dylib        	0x00007fff6b372882 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	0x00007fff6b433425 _pthread_cond_wait + 698
+2   libc++.1.dylib                	0x00007fff68501623 std::__1::condition_variable::__do_timed_wait(std::__1::unique_lock<std::__1::mutex>&, std::__1::chrono::time_point<std::__1::chrono::system_clock, std::__1::chrono::duration<long long, std::__1::ratio<1l, 1000000000l> > >) + 93
+3   main                          	0x0000000103270c6b std::__1::cv_status std::__1::condition_variable::wait_until<std::__1::chrono::steady_clock, std::__1::chrono::duration<long long, std::__1::ratio<1l, 1000000000l> > >(std::__1::unique_lock<std::__1::mutex>&, std::__1::chrono::time_point<std::__1::chrono::steady_clock, std::__1::chrono::duration<long long, std::__1::ratio<1l, 1000000000l> > > const&) + 171
+4   main                          	0x00000001031eeb75 bool std::__1::timed_mutex::try_lock_for<long long, std::__1::ratio<1l, 1l> >(std::__1::chrono::duration<long long, std::__1::ratio<1l, 1l> > const&) + 101
+5   main                          	0x00000001031eebff GLVecs::del(std::__1::pair<int, int>) + 47
+6   main                          	0x000000010321cea8 Pixel::del(bool) + 88
+7   main                          	0x000000010322049c Chunk::del(bool) + 108
+8   main                          	0x0000000103220466 Chunk::del(bool) + 54
+9   main                          	0x00000001032204ed Chunk::del(bool) + 189
+10  main                          	0x0000000103220481 Chunk::del(bool) + 81
+11  main                          	0x00000001032204d2 Chunk::del(bool) + 162
+12  main                          	0x000000010322049c Chunk::del(bool) + 108
+13  main                          	0x0000000103219223 Tile::del(bool) + 195
+14  main                          	0x00000001032190d4 World::del_chunk(glm::vec<3, int, (glm::qualifier)0>, bool) + 372
+15  main                          	0x000000010322ce48 DeletingThread::operator()() + 120
+16  main                          	0x000000010327655d void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, DeletingThread> >(void*) + 45
+17  libsystem_pthread.dylib       	0x00007fff6b433109 _pthread_start + 148
+18  libsystem_pthread.dylib       	0x00007fff6b42eb8b thread_start + 15
+
+Thread 3 crashed with X86 Thread State (64-bit):
+  rax: 0x000000011c205100  rbx: 0x00000000000bfe40  rcx: 0x0000000000000020  rdx: 0x0000000000000f20
+  rdi: 0x000000011c2060e0  rsi: 0x00007fb217a7afe0  rbp: 0x00007000039d7ca0  rsp: 0x00007000039d7ca0
+   r8: 0x0000000000000000   r9: 0x0000000000000000  r10: 0x00007000039d7b90  r11: 0xffff804f0478b100
+  r12: 0x00007fb217a7a000  r13: 0x00007fb224d2b2b0  r14: 0x0000000000001f40  r15: 0x0000000000001f40
+  rip: 0x00007fff6b424a71  rfl: 0x0000000000010202  cr2: 0xffffff81f5db6020
+  
+Logical CPU:     0
+Error Code:      0x00000000
+Trap Number:     222
+
+
+Binary Images:
+       0x1031e1000 -        0x103298ff7 +main (0) <1D50D312-94F4-3D44-831E-B2F03C7C8277> /Users/USER/*/main
+       0x10330a000 -        0x10333bff3 +libglfw.3.dylib (0) <F618CDD1-8B02-3877-8C2A-5197C0EE311A> /usr/local/opt/glfw/lib/libglfw.3.dylib
+       0x103353000 -        0x103387ff3 +libGLEW.2.1.dylib (0) <A53C7180-EADE-3AA2-8009-E2CA66A6F82F> /usr/local/opt/glew/lib/libGLEW.2.1.dylib
+       0x10358b000 -        0x10358e047  libobjc-trampolines.dylib (787.1) <88F9B648-C455-36F8-BBB9-7D1A9F57D073> /usr/lib/libobjc-trampolines.dylib
+       0x10e323000 -        0x10e3b4f47  dyld (750.6) <F9D4DEDC-8296-3E3F-B517-9C8B89A4C094> /usr/lib/dyld
+    0x7fff28cd1000 -     0x7fff29cd8fff  com.apple.driver.AppleIntelKBLGraphicsGLDriver (14.7.8 - 14.0.7) <4CC9B127-5ED5-3D85-A251-57583C40ABB5> /System/Library/Extensions/AppleIntelKBLGraphicsGLDriver.bundle/Contents/MacOS/AppleIntelKBLGraphicsGLDriver
+    0x7fff29cd9000 -     0x7fff2a0d8ff1  com.apple.driver.AppleIntelKBLGraphicsMTLDriver (14.7.8 - 14.0.7) <E955F452-0057-367F-BE94-EF7DD0A67D56> /System/Library/Extensions/AppleIntelKBLGraphicsMTLDriver.bundle/Contents/MacOS/AppleIntelKBLGraphicsMTLDriver
+    0x7fff2cf60000 -     0x7fff2cf60fff  com.apple.Accelerate (1.11 - Accelerate 1.11) <4F9977AE-DBDB-3A16-A536-AC1F9938DCDD> /System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate
+    0x7fff2cf61000 -     0x7fff2cf77fef  libCGInterfaces.dylib (524.2.1) <8FD09D09-BB19-36C5-ADE9-4F22DA235AEE> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vImage.framework/Versions/A/Libraries/libCGInterfaces.dylib
+    0x7fff2cf78000 -     0x7fff2d5cefff  com.apple.vImage (8.1 - 524.2.1) <EA6F5FF2-7A1B-35D5-A5A3-D2B3386ECB75> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vImage.framework/Versions/A/vImage
+    0x7fff2d5cf000 -     0x7fff2d836ff7  libBLAS.dylib (1303.60.1) <C6C2D42F-7456-3DBF-8BE2-9AA06EFC78FD> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib
+    0x7fff2d837000 -     0x7fff2dd0afef  libBNNS.dylib (144.100.2) <99C61C48-B14C-3DA6-8C31-6BF72DA0A3A9> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBNNS.dylib
+    0x7fff2dd0b000 -     0x7fff2e0a6fff  libLAPACK.dylib (1303.60.1) <5E3E3867-50C3-3E6A-9A2E-007CE77A4641> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libLAPACK.dylib
+    0x7fff2e0a7000 -     0x7fff2e0bcfec  libLinearAlgebra.dylib (1303.60.1) <3D433800-0099-33E0-8C81-15F83247B2C9> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libLinearAlgebra.dylib
+    0x7fff2e0bd000 -     0x7fff2e0c2ff3  libQuadrature.dylib (7) <371F36A7-B12F-363E-8955-F24F7C2048F6> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libQuadrature.dylib
+    0x7fff2e0c3000 -     0x7fff2e133fff  libSparse.dylib (103) <B8A10D0C-4577-343D-B310-A3E81265D107> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libSparse.dylib
+    0x7fff2e134000 -     0x7fff2e146fef  libSparseBLAS.dylib (1303.60.1) <B147FEF6-A0DB-3830-BF06-45BEC58DB576> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libSparseBLAS.dylib
+    0x7fff2e147000 -     0x7fff2e31efd7  libvDSP.dylib (735.140.1) <D63DC0A5-B8B4-3562-A574-E73BC3B57407> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libvDSP.dylib
+    0x7fff2e31f000 -     0x7fff2e3e1fef  libvMisc.dylib (735.140.1) <3601FDE3-B142-398D-987D-8151A51F0A96> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libvMisc.dylib
+    0x7fff2e3e2000 -     0x7fff2e3e2fff  com.apple.Accelerate.vecLib (3.11 - vecLib 3.11) <F6C5613D-2284-342B-9160-9731F78B4DE5> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/vecLib
+    0x7fff2e3e3000 -     0x7fff2e442ff0  com.apple.Accounts (113 - 113) <E2438070-30AB-3B89-AE63-1E485B92D108> /System/Library/Frameworks/Accounts.framework/Versions/A/Accounts
+    0x7fff2e58c000 -     0x7fff2f34cff2  com.apple.AppKit (6.9 - 1894.60.100) <C5D84BE3-FD1B-3141-BB78-487A83256DC5> /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
+    0x7fff2f39c000 -     0x7fff2f39cfff  com.apple.ApplicationServices (48 - 50) <D4320505-6458-38FD-81F0-406F2F0A4039> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/ApplicationServices
+    0x7fff2f39d000 -     0x7fff2f408fff  com.apple.ApplicationServices.ATS (377 - 493.0.4.1) <87EA5DE1-506A-39FD-88BE-D8A3416C9012> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/ATS
+    0x7fff2f4a1000 -     0x7fff2f4dfff0  libFontRegistry.dylib (274.0.5.1) <F3461C05-0370-359B-9F03-5C1C1F7763EC> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Resources/libFontRegistry.dylib
+    0x7fff2f53a000 -     0x7fff2f569fff  com.apple.ATSUI (1.0 - 1) <5F513967-DDD7-3F22-AD14-8A38ABD9F2D0> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATSUI.framework/Versions/A/ATSUI
+    0x7fff2f56a000 -     0x7fff2f56effb  com.apple.ColorSyncLegacy (4.13.0 - 1) <72EE68DB-F069-37F5-AA2A-40D5FCF139F4> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ColorSyncLegacy.framework/Versions/A/ColorSyncLegacy
+    0x7fff2f608000 -     0x7fff2f65fffa  com.apple.HIServices (1.22 - 676) <14DF4D42-E24D-3EBD-9A9D-93124D8D6AA1> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/HIServices.framework/Versions/A/HIServices
+    0x7fff2f660000 -     0x7fff2f66efff  com.apple.LangAnalysis (1.7.0 - 1.7.0) <01B8B6B3-E2C3-3607-B34A-8283A7E0E924> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/LangAnalysis.framework/Versions/A/LangAnalysis
+    0x7fff2f66f000 -     0x7fff2f6b4ffa  com.apple.print.framework.PrintCore (15.4 - 516.2) <437BCF12-48D2-3770-8BC9-567718FB1BCA> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/PrintCore.framework/Versions/A/PrintCore
+    0x7fff2f6b5000 -     0x7fff2f6bfff7  com.apple.QD (4.0 - 413) <27A36D07-B5E9-32E6-87B6-3127F260F48D> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/QD.framework/Versions/A/QD
+    0x7fff2f6c0000 -     0x7fff2f6cdffc  com.apple.speech.synthesis.framework (9.0.24 - 9.0.24) <75344F8F-32CA-3558-B4E6-F56D498250E4> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/SpeechSynthesis.framework/Versions/A/SpeechSynthesis
+    0x7fff2f6ce000 -     0x7fff2f7afffa  com.apple.audio.toolbox.AudioToolbox (1.14 - 1.14) <8CFA0620-5E43-3C4D-A75B-981C0961C2DE> /System/Library/Frameworks/AudioToolbox.framework/Versions/A/AudioToolbox
+    0x7fff2f7b1000 -     0x7fff2f7b1fff  com.apple.audio.units.AudioUnit (1.14 - 1.14) <C8F9CC56-F7CF-3E77-B6FC-BD8E1D19FA92> /System/Library/Frameworks/AudioUnit.framework/Versions/A/AudioUnit
+    0x7fff2fb48000 -     0x7fff2fed7ffa  com.apple.CFNetwork (1128.0.1 - 1128.0.1) <07F9CA9C-B954-3EA0-A710-3122BFF9F057> /System/Library/Frameworks/CFNetwork.framework/Versions/A/CFNetwork
+    0x7fff2ff58000 -     0x7fff3024cff3  com.apple.HIToolbox (2.1.1 - 994.6) <EAF2DAC3-66B1-30BF-AF10-72DDA90D1044> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox
+    0x7fff30297000 -     0x7fff3029dfff  com.apple.speech.recognition.framework (6.0.3 - 6.0.3) <9614A01E-8303-3422-A3BA-6CE27540E09A> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/SpeechRecognition.framework/Versions/A/SpeechRecognition
+    0x7fff30437000 -     0x7fff30437fff  com.apple.Cocoa (6.11 - 23) <2F5C8ABA-711F-316C-BB97-921122AEE4DF> /System/Library/Frameworks/Cocoa.framework/Versions/A/Cocoa
+    0x7fff30445000 -     0x7fff3053bfff  com.apple.ColorSync (4.13.0 - 3394.9) <A126406C-DA38-3FFE-8B25-BB9859EFD159> /System/Library/Frameworks/ColorSync.framework/Versions/A/ColorSync
+    0x7fff30826000 -     0x7fff30d2fffb  com.apple.audio.CoreAudio (5.0 - 5.0) <9DA02E7A-56A0-3FFF-94C2-1795BA761F07> /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
+    0x7fff30d82000 -     0x7fff30dbafff  com.apple.CoreBluetooth (1.0 - 1) <23DBB313-A082-3C08-8E1F-2D31EE4247EF> /System/Library/Frameworks/CoreBluetooth.framework/Versions/A/CoreBluetooth
+    0x7fff30dbb000 -     0x7fff311a5fe8  com.apple.CoreData (120 - 977.3) <49AE61CA-C91E-31FE-9BD0-1AACFFB5181E> /System/Library/Frameworks/CoreData.framework/Versions/A/CoreData
+    0x7fff311a6000 -     0x7fff312d8ff6  com.apple.CoreDisplay (1.0 - 186.6.15) <213D7011-8180-3CF4-9BE7-FB8F75DCDB95> /System/Library/Frameworks/CoreDisplay.framework/Versions/A/CoreDisplay
+    0x7fff312d9000 -     0x7fff31758feb  com.apple.CoreFoundation (6.9 - 1677.104) <C0D70026-EDBE-3CBD-B317-367CF4F1C92F> /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
+    0x7fff3175a000 -     0x7fff31dcfff8  com.apple.CoreGraphics (2.0 - 1355.22) <4A3CDE7B-4578-3058-966A-3D1DC095A935> /System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics
+    0x7fff31ddd000 -     0x7fff32138ff0  com.apple.CoreImage (15.0.0 - 940.9) <69361069-01AB-342E-862B-73A74271A765> /System/Library/Frameworks/CoreImage.framework/Versions/A/CoreImage
+    0x7fff324f9000 -     0x7fff325d4ffc  com.apple.CoreMedia (1.0 - 2625.9) <A3FF3AFC-8C1C-36E5-9179-66D8F075EE35> /System/Library/Frameworks/CoreMedia.framework/Versions/A/CoreMedia
+    0x7fff326c1000 -     0x7fff326c1fff  com.apple.CoreServices (1069.24 - 1069.24) <AA140158-E909-34C2-B2F5-20EBC93E0056> /System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices
+    0x7fff326c2000 -     0x7fff32747fff  com.apple.AE (838.1 - 838.1) <2E5FD5AE-8A7F-353F-9BD1-0241F3586181> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/AE.framework/Versions/A/AE
+    0x7fff32748000 -     0x7fff32a29ff7  com.apple.CoreServices.CarbonCore (1217 - 1217) <BE379206-99FA-30CD-8391-2708473A633F> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/CarbonCore.framework/Versions/A/CarbonCore
+    0x7fff32a2a000 -     0x7fff32a77ffd  com.apple.DictionaryServices (1.2 - 323.6) <26B70C82-25BC-353A-858F-945B14C803A2> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/DictionaryServices.framework/Versions/A/DictionaryServices
+    0x7fff32a78000 -     0x7fff32a80ff7  com.apple.CoreServices.FSEvents (1268.100.1 - 1268.100.1) <FC84DB48-A3CE-30F7-A918-B3587731ACC7> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/FSEvents.framework/Versions/A/FSEvents
+    0x7fff32a81000 -     0x7fff32cbbff6  com.apple.LaunchServices (1069.24 - 1069.24) <9A5359D9-9148-3B18-B868-56A9DA5FB60C> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/LaunchServices
+    0x7fff32cbc000 -     0x7fff32d54ff1  com.apple.Metadata (10.7.0 - 2076.7) <0973F7E5-D58C-3574-A3CE-4F12CAC2D4C7> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Metadata
+    0x7fff32d55000 -     0x7fff32d82fff  com.apple.CoreServices.OSServices (1069.24 - 1069.24) <0E4F48AD-402C-3E9D-9CA9-6DD9479B28F9> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/OSServices.framework/Versions/A/OSServices
+    0x7fff32d83000 -     0x7fff32deafff  com.apple.SearchKit (1.4.1 - 1.4.1) <2C5E1D85-E8B1-3DC5-91B9-E3EDB48E9369> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/SearchKit.framework/Versions/A/SearchKit
+    0x7fff32deb000 -     0x7fff32e0fff5  com.apple.coreservices.SharedFileList (131.4 - 131.4) <02DE0D56-E371-3EF5-9BC1-FA435451B412> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/SharedFileList.framework/Versions/A/SharedFileList
+    0x7fff33134000 -     0x7fff332ebffc  com.apple.CoreText (643.1.5.1 - 643.1.5.1) <A88F052A-C840-3E6C-9BF8-FFFED34C0667> /System/Library/Frameworks/CoreText.framework/Versions/A/CoreText
+    0x7fff332ec000 -     0x7fff33330ffb  com.apple.CoreVideo (1.8 - 344.3) <5314E70D-325F-3E98-99FC-00FDF520747E> /System/Library/Frameworks/CoreVideo.framework/Versions/A/CoreVideo
+    0x7fff33331000 -     0x7fff333beffc  com.apple.framework.CoreWLAN (13.0 - 1601.2) <6C76A9E0-430F-3B3C-AE8A-3005F8E6FCFF> /System/Library/Frameworks/CoreWLAN.framework/Versions/A/CoreWLAN
+    0x7fff3357a000 -     0x7fff33585ff7  com.apple.DirectoryService.Framework (10.15 - 220.40.1) <6EACB7D0-A013-3D2B-93D2-5113F7C2559D> /System/Library/Frameworks/DirectoryService.framework/Versions/A/DirectoryService
+    0x7fff33586000 -     0x7fff33630ff0  com.apple.DiscRecording (9.0.3 - 9030.4.5) <BCF3AFB0-6E1A-3F28-A575-1FD2D74E7C19> /System/Library/Frameworks/DiscRecording.framework/Versions/A/DiscRecording
+    0x7fff33655000 -     0x7fff3365bfff  com.apple.DiskArbitration (2.7 - 2.7) <63923E3F-1489-3762-B5EB-5CE28A35FF50> /System/Library/Frameworks/DiskArbitration.framework/Versions/A/DiskArbitration
+    0x7fff33850000 -     0x7fff3397eff6  com.apple.FileProvider (304.1 - 304.1) <E8BB1D4B-05D6-386C-865C-F8C750CEC308> /System/Library/Frameworks/FileProvider.framework/Versions/A/FileProvider
+    0x7fff33996000 -     0x7fff33d5bfff  com.apple.Foundation (6.9 - 1677.104) <7C69F845-F651-3193-8262-5938010EC67D> /System/Library/Frameworks/Foundation.framework/Versions/C/Foundation
+    0x7fff33dc8000 -     0x7fff33e18ff7  com.apple.GSS (4.0 - 2.0) <2F3A67E6-D42A-3CF0-9041-A42C22D46F95> /System/Library/Frameworks/GSS.framework/Versions/A/GSS
+    0x7fff33f55000 -     0x7fff34069ff3  com.apple.Bluetooth (7.0.6 - 7.0.6f7) <CF9CEFBA-97AC-3474-93AF-863C2C74C645> /System/Library/Frameworks/IOBluetooth.framework/Versions/A/IOBluetooth
+    0x7fff340cf000 -     0x7fff34173ff3  com.apple.framework.IOKit (2.0.2 - 1726.140.1) <14223387-6F81-3976-8605-4BC2F253A93E> /System/Library/Frameworks/IOKit.framework/Versions/A/IOKit
+    0x7fff34175000 -     0x7fff34186ffb  com.apple.IOSurface (269.11 - 269.11) <BCD744D4-E17E-3C2E-B69C-F69C789892E9> /System/Library/Frameworks/IOSurface.framework/Versions/A/IOSurface
+    0x7fff34205000 -     0x7fff34361fee  com.apple.ImageIO.framework (3.3.0 - 1976.11) <C17C7280-54F6-3750-85CE-C43428256D62> /System/Library/Frameworks/ImageIO.framework/Versions/A/ImageIO
+    0x7fff34362000 -     0x7fff34365fff  libGIF.dylib (1976.11) <7F53F2C2-0F2B-3308-9E90-F043F43DAB32> /System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libGIF.dylib
+    0x7fff34366000 -     0x7fff3441fff7  libJP2.dylib (1976.11) <EAAE8D93-7C00-347A-BF6F-C262557C0A1C> /System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libJP2.dylib
+    0x7fff34420000 -     0x7fff34443fe3  libJPEG.dylib (1976.11) <47540108-F321-35F9-A98A-784E4D4F3C15> /System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libJPEG.dylib
+    0x7fff346c1000 -     0x7fff346dbfef  libPng.dylib (1976.11) <DDBB2E46-7BCB-339B-883E-67B97A7614A3> /System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libPng.dylib
+    0x7fff346dc000 -     0x7fff346ddfff  libRadiance.dylib (1976.11) <C8998674-DCB4-3C2C-9D6E-C0809D7727A2> /System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libRadiance.dylib
+    0x7fff346de000 -     0x7fff34724fff  libTIFF.dylib (1976.11) <79E99768-71D7-3EA9-9675-95EFACF32FC8> /System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/libTIFF.dylib
+    0x7fff35c86000 -     0x7fff35c98ff3  com.apple.Kerberos (3.0 - 1) <03BB492B-016E-37BF-B020-39C2CF7487FE> /System/Library/Frameworks/Kerberos.framework/Versions/A/Kerberos
+    0x7fff35c99000 -     0x7fff35c99fff  libHeimdalProxy.dylib (77) <0A2905EE-9533-3345-AF9B-AAC71513BDFD> /System/Library/Frameworks/Kerberos.framework/Versions/A/Libraries/libHeimdalProxy.dylib
+    0x7fff35c9a000 -     0x7fff35cd0ff7  com.apple.LDAPFramework (2.4.28 - 194.5) <47D63DCF-2BDB-3983-B2A2-E9C47AA2401D> /System/Library/Frameworks/LDAP.framework/Versions/A/LDAP
+    0x7fff3602b000 -     0x7fff36035ffb  com.apple.MediaAccessibility (1.0 - 125.1) <98065EA1-3484-3A5A-B05C-D2FABED8CEA4> /System/Library/Frameworks/MediaAccessibility.framework/Versions/A/MediaAccessibility
+    0x7fff36101000 -     0x7fff3684eff2  com.apple.MediaToolbox (1.0 - 2625.9) <3A848992-9182-382A-BF7D-5CB9707BE27B> /System/Library/Frameworks/MediaToolbox.framework/Versions/A/MediaToolbox
+    0x7fff36850000 -     0x7fff3691afff  com.apple.Metal (212.8 - 212.8) <98C944D6-62C8-355E-90F8-C1CA2429EF24> /System/Library/Frameworks/Metal.framework/Versions/A/Metal
+    0x7fff36937000 -     0x7fff36974ff7  com.apple.MetalPerformanceShaders.MPSCore (1.0 - 1) <7EBAC15D-7837-395D-B405-1E29F7DA68FA> /System/Library/Frameworks/MetalPerformanceShaders.framework/Frameworks/MPSCore.framework/Versions/A/MPSCore
+    0x7fff36975000 -     0x7fff369fffe2  com.apple.MetalPerformanceShaders.MPSImage (1.0 - 1) <B424FE0C-6E90-3BFA-A6E7-DD86C735AE90> /System/Library/Frameworks/MetalPerformanceShaders.framework/Frameworks/MPSImage.framework/Versions/A/MPSImage
+    0x7fff36a00000 -     0x7fff36a25ff4  com.apple.MetalPerformanceShaders.MPSMatrix (1.0 - 1) <02006D92-E2AB-3892-A96B-37F6520C19BA> /System/Library/Frameworks/MetalPerformanceShaders.framework/Frameworks/MPSMatrix.framework/Versions/A/MPSMatrix
+    0x7fff36a26000 -     0x7fff36a3bffb  com.apple.MetalPerformanceShaders.MPSNDArray (1.0 - 1) <CAA5A368-DB71-34F6-AEF9-27A8BC298F53> /System/Library/Frameworks/MetalPerformanceShaders.framework/Frameworks/MPSNDArray.framework/Versions/A/MPSNDArray
+    0x7fff36a3c000 -     0x7fff36b9affc  com.apple.MetalPerformanceShaders.MPSNeuralNetwork (1.0 - 1) <05612E06-50CB-318F-9F8E-EF4D49FAB3B0> /System/Library/Frameworks/MetalPerformanceShaders.framework/Frameworks/MPSNeuralNetwork.framework/Versions/A/MPSNeuralNetwork
+    0x7fff36b9b000 -     0x7fff36beaff4  com.apple.MetalPerformanceShaders.MPSRayIntersector (1.0 - 1) <B0B591F8-6875-351E-867F-8EB3CD38CD52> /System/Library/Frameworks/MetalPerformanceShaders.framework/Frameworks/MPSRayIntersector.framework/Versions/A/MPSRayIntersector
+    0x7fff36beb000 -     0x7fff36becff5  com.apple.MetalPerformanceShaders.MetalPerformanceShaders (1.0 - 1) <F2921F9A-3041-3495-878D-64134267B847> /System/Library/Frameworks/MetalPerformanceShaders.framework/Versions/A/MetalPerformanceShaders
+    0x7fff37c7a000 -     0x7fff37c86ffe  com.apple.NetFS (6.0 - 4.0) <4415F027-D36D-3B9C-96BA-AD22B44A4722> /System/Library/Frameworks/NetFS.framework/Versions/A/NetFS
+    0x7fff37c87000 -     0x7fff37ddeff3  com.apple.Network (1.0 - 1) <4A0F3B93-4D23-3E74-9A3D-AD19E9C0E59E> /System/Library/Frameworks/Network.framework/Versions/A/Network
+    0x7fff3a807000 -     0x7fff3a80fff7  libcldcpuengine.dylib (2.14) <D20EF7DF-8508-3707-A9B3-B7D8190971F5> /System/Library/Frameworks/OpenCL.framework/Versions/A/Libraries/libcldcpuengine.dylib
+    0x7fff3a810000 -     0x7fff3a868fff  com.apple.opencl (3.5 - 3.5) <293FE223-9186-320B-81A4-EC8104C38357> /System/Library/Frameworks/OpenCL.framework/Versions/A/OpenCL
+    0x7fff3a869000 -     0x7fff3a885fff  com.apple.CFOpenDirectory (10.15 - 220.40.1) <7E6C88EB-3DD9-32B0-81FC-179552834FA9> /System/Library/Frameworks/OpenDirectory.framework/Versions/A/Frameworks/CFOpenDirectory.framework/Versions/A/CFOpenDirectory
+    0x7fff3a886000 -     0x7fff3a891ffd  com.apple.OpenDirectory (10.15 - 220.40.1) <4A92D8D8-A9E5-3A9C-942F-28576F6BCDF5> /System/Library/Frameworks/OpenDirectory.framework/Versions/A/OpenDirectory
+    0x7fff3b1f7000 -     0x7fff3b1f9fff  libCVMSPluginSupport.dylib (17.10.22) <2B6C3C16-3F5F-36A8-8070-2A862B90328B> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libCVMSPluginSupport.dylib
+    0x7fff3b1fa000 -     0x7fff3b1fffff  libCoreFSCache.dylib (176.15) <E9A20E72-B17F-33D6-8894-41934A10B822> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libCoreFSCache.dylib
+    0x7fff3b200000 -     0x7fff3b204fff  libCoreVMClient.dylib (176.15) <018A48BA-1326-3847-8FB5-A7C99322EB87> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libCoreVMClient.dylib
+    0x7fff3b205000 -     0x7fff3b20dff7  libGFXShared.dylib (17.10.22) <AB47B927-65E3-3924-88BE-0A5BE7906785> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGFXShared.dylib
+    0x7fff3b20e000 -     0x7fff3b218fff  libGL.dylib (17.10.22) <FB5E6A75-398E-38EF-8CB2-59F5BFE3034C> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib
+    0x7fff3b219000 -     0x7fff3b24dff7  libGLImage.dylib (17.10.22) <9A3FE633-61B8-3CC7-8183-62960109401A> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLImage.dylib
+    0x7fff3b24e000 -     0x7fff3b3e2ff7  libGLProgrammability.dylib (17.10.22) <85815C4E-3376-33DF-9FBB-6512142AB61B> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLProgrammability.dylib
+    0x7fff3b3e3000 -     0x7fff3b41ffff  libGLU.dylib (17.10.22) <D8B4D804-7323-30BC-871C-B7236FFC2FE3> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLU.dylib
+    0x7fff3be5b000 -     0x7fff3be6aff7  com.apple.opengl (17.10.22 - 17.10.22) <D3C57A32-6BD0-3228-B1C4-0F42A6128A6C> /System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL
+    0x7fff3be6b000 -     0x7fff3bfe4fff  GLEngine (17.10.22) <B902FF53-A960-3137-99BD-1F9774F9586C> /System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine
+    0x7fff3bfe5000 -     0x7fff3c00dfff  GLRendererFloat (17.10.22) <F3D43FBE-7871-3260-B7C9-9BE260F081CD> /System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLRendererFloat.bundle/GLRendererFloat
+    0x7fff3ce28000 -     0x7fff3d0abffb  com.apple.QuartzCore (1.11 - 841.4) <FE927B0E-BD49-32CC-8A55-90F553C86C15> /System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore
+    0x7fff3dc2c000 -     0x7fff3df75ff1  com.apple.security (7.0 - 59306.140.5) <B6F8368F-2395-379B-B768-71C53BB1B903> /System/Library/Frameworks/Security.framework/Versions/A/Security
+    0x7fff3df76000 -     0x7fff3dffeffb  com.apple.securityfoundation (6.0 - 55236.60.1) <7C69DF47-4017-3DF2-B55B-712B481654CB> /System/Library/Frameworks/SecurityFoundation.framework/Versions/A/SecurityFoundation
+    0x7fff3e02d000 -     0x7fff3e031ff8  com.apple.xpc.ServiceManagement (1.0 - 1) <2C62956C-F2D4-3EB0-86C7-EAA06331621A> /System/Library/Frameworks/ServiceManagement.framework/Versions/A/ServiceManagement
+    0x7fff3ecdd000 -     0x7fff3ed57ff7  com.apple.SystemConfiguration (1.19 - 1.19) <84F9B3BB-F7AF-3B7C-8CD0-D3C22D19619F> /System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration
+    0x7fff3efd7000 -     0x7fff3f35aff4  com.apple.VideoToolbox (1.0 - 2625.9) <6CF18E28-A7A8-3952-8171-7E4FF4FB37FA> /System/Library/Frameworks/VideoToolbox.framework/Versions/A/VideoToolbox
+    0x7fff42cc7000 -     0x7fff42d8cfe7  com.apple.APFS (1412.141.1 - 1412.141.1) <C86A3423-E61C-335A-9D17-0B3CE5BB6467> /System/Library/PrivateFrameworks/APFS.framework/Versions/A/APFS
+    0x7fff43ea1000 -     0x7fff43ea2ff1  com.apple.AggregateDictionary (1.0 - 1) <95A291F5-B69F-3C37-9483-C3B2EBF52AC1> /System/Library/PrivateFrameworks/AggregateDictionary.framework/Versions/A/AggregateDictionary
+    0x7fff442b9000 -     0x7fff442d6ff4  com.apple.AppContainer (4.0 - 448.100.6) <87CEE13C-8585-3EFB-92CD-0852DFF0921B> /System/Library/PrivateFrameworks/AppContainer.framework/Versions/A/AppContainer
+    0x7fff4432b000 -     0x7fff44339ff7  com.apple.AppSandbox (4.0 - 448.100.6) <0F49AA04-3400-349A-9096-6D4D7ED61027> /System/Library/PrivateFrameworks/AppSandbox.framework/Versions/A/AppSandbox
+    0x7fff447b5000 -     0x7fff447d9ffb  com.apple.framework.Apple80211 (13.0 - 1610.1) <C53B760A-3305-3053-9BBE-BB70AE3C349B> /System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Apple80211
+    0x7fff44a97000 -     0x7fff44aa6fd7  com.apple.AppleFSCompression (119.100.1 - 1.0) <466ABD77-2E52-36D1-8E39-77AE2CC61611> /System/Library/PrivateFrameworks/AppleFSCompression.framework/Versions/A/AppleFSCompression
+    0x7fff44ba5000 -     0x7fff44bb0ff7  com.apple.AppleIDAuthSupport (1.0 - 1) <74F6CD9C-27A7-39C7-A7EB-47E60D2517EB> /System/Library/PrivateFrameworks/AppleIDAuthSupport.framework/Versions/A/AppleIDAuthSupport
+    0x7fff44bf2000 -     0x7fff44c3aff7  com.apple.AppleJPEG (1.0 - 1) <6DE30A07-C627-319B-A0DE-EB7A832BEB88> /System/Library/PrivateFrameworks/AppleJPEG.framework/Versions/A/AppleJPEG
+    0x7fff45024000 -     0x7fff45028ff7  com.apple.AppleSRP (5.0 - 1) <70C25EA9-F7A7-366C-97C6-EEE7845FFCC3> /System/Library/PrivateFrameworks/AppleSRP.framework/Versions/A/AppleSRP
+    0x7fff45029000 -     0x7fff4504bfff  com.apple.applesauce (1.0 - 16.25) <68E0364C-AEA7-3654-A030-136BF3CD92F3> /System/Library/PrivateFrameworks/AppleSauce.framework/Versions/A/AppleSauce
+    0x7fff4510a000 -     0x7fff4510dfff  com.apple.AppleSystemInfo (3.1.5 - 3.1.5) <67255151-F989-39F0-BC87-0C0BDAE70730> /System/Library/PrivateFrameworks/AppleSystemInfo.framework/Versions/A/AppleSystemInfo
+    0x7fff4510e000 -     0x7fff4515eff7  com.apple.AppleVAFramework (6.1.2 - 6.1.2) <8E18983B-AF92-3853-8251-A6577A55AC15> /System/Library/PrivateFrameworks/AppleVA.framework/Versions/A/AppleVA
+    0x7fff451a7000 -     0x7fff451b6ff9  com.apple.AssertionServices (1.0 - 223.140.2) <48AD21CA-B81D-380E-A04F-90C48FDA5203> /System/Library/PrivateFrameworks/AssertionServices.framework/Versions/A/AssertionServices
+    0x7fff456f9000 -     0x7fff45af4ff8  com.apple.audio.AudioResourceArbitration (1.0 - 1) <2BD68521-C19C-3D67-B5EB-DE3E9A4DAF0A> /System/Library/PrivateFrameworks/AudioResourceArbitration.framework/Versions/A/AudioResourceArbitration
+    0x7fff45d4a000 -     0x7fff45f8afe0  com.apple.audio.AudioToolboxCore (1.0 - 1104.93) <5B539F50-93E8-3F73-9E4C-678C85D0488F> /System/Library/PrivateFrameworks/AudioToolboxCore.framework/Versions/A/AudioToolboxCore
+    0x7fff45f8e000 -     0x7fff460aafff  com.apple.AuthKit (1.0 - 1) <DC1A27C5-0172-3C72-9B24-06996D0B6207> /System/Library/PrivateFrameworks/AuthKit.framework/Versions/A/AuthKit
+    0x7fff46267000 -     0x7fff46270ff7  com.apple.coreservices.BackgroundTaskManagement (1.0 - 104) <A6877DAD-8F47-363C-983A-DC8DDE83B7B5> /System/Library/PrivateFrameworks/BackgroundTaskManagement.framework/Versions/A/BackgroundTaskManagement
+    0x7fff46271000 -     0x7fff46312ff5  com.apple.backup.framework (1.11.6 - 1298.6.2) <C4BC12A3-4D01-377F-A1DB-7E1490831CF2> /System/Library/PrivateFrameworks/Backup.framework/Versions/A/Backup
+    0x7fff46313000 -     0x7fff4639fff6  com.apple.BaseBoard (466.3 - 466.3) <10D0F3BB-E8F3-365E-8528-6AC996A9B0E7> /System/Library/PrivateFrameworks/BaseBoard.framework/Versions/A/BaseBoard
+    0x7fff464a1000 -     0x7fff464ddff7  com.apple.bom (14.0 - 219.2) <79CBE5E7-054F-377B-9566-A86A9F120CF1> /System/Library/PrivateFrameworks/Bom.framework/Versions/A/Bom
+    0x7fff4705d000 -     0x7fff470acfff  com.apple.ChunkingLibrary (307 - 307) <5B09C30D-FD2B-3E98-8B64-C5EF470FC13C> /System/Library/PrivateFrameworks/ChunkingLibrary.framework/Versions/A/ChunkingLibrary
+    0x7fff47f58000 -     0x7fff47f68ffb  com.apple.CommonAuth (4.0 - 2.0) <CF67FF34-4238-3ECA-B4A4-EA04F18A0D36> /System/Library/PrivateFrameworks/CommonAuth.framework/Versions/A/CommonAuth
+    0x7fff47f7c000 -     0x7fff47f93fff  com.apple.commonutilities (8.0 - 900) <F4C97244-E5D8-3F7D-8D94-4B6841C5A4EC> /System/Library/PrivateFrameworks/CommonUtilities.framework/Versions/A/CommonUtilities
+    0x7fff4869a000 -     0x7fff48a6ffc8  com.apple.CoreAUC (283.0.0 - 283.0.0) <4341271C-D270-3F9F-8464-31A20D15158D> /System/Library/PrivateFrameworks/CoreAUC.framework/Versions/A/CoreAUC
+    0x7fff48a70000 -     0x7fff48a9dff7  com.apple.CoreAVCHD (6.1.0 - 6100.4.1) <C3CFDC68-C7D9-3C44-9E7C-801D45575C10> /System/Library/PrivateFrameworks/CoreAVCHD.framework/Versions/A/CoreAVCHD
+    0x7fff48ac0000 -     0x7fff48ae1ff4  com.apple.analyticsd (1.0 - 1) <E6E3B6EA-A2BE-3752-B06D-BECCBA4E85B2> /System/Library/PrivateFrameworks/CoreAnalytics.framework/Versions/A/CoreAnalytics
+    0x7fff48dec000 -     0x7fff48df7ff7  com.apple.frameworks.CoreDaemon (1.3 - 1.3) <BB7D67B1-2102-3D71-9BB6-AEB8C6A6EBB2> /System/Library/PrivateFrameworks/CoreDaemon.framework/Versions/B/CoreDaemon
+    0x7fff49078000 -     0x7fff49088ff3  com.apple.CoreEmoji (1.0 - 107.1) <7C2B3259-083B-31B8-BCDB-1BA360529936> /System/Library/PrivateFrameworks/CoreEmoji.framework/Versions/A/CoreEmoji
+    0x7fff496c8000 -     0x7fff49732ff0  com.apple.CoreNLP (1.0 - 213) <E70E2505-8078-324E-BAE1-01A2DA980E2C> /System/Library/PrivateFrameworks/CoreNLP.framework/Versions/A/CoreNLP
+    0x7fff49b60000 -     0x7fff49b68ff8  com.apple.CorePhoneNumbers (1.0 - 1) <E4DAD514-0B3B-3E0B-8AEA-39B320FAAF03> /System/Library/PrivateFrameworks/CorePhoneNumbers.framework/Versions/A/CorePhoneNumbers
+    0x7fff4a555000 -     0x7fff4a578fff  com.apple.CoreSVG (1.0 - 129.3) <F38189F9-C8F9-3D62-9D5F-3F520FB81724> /System/Library/PrivateFrameworks/CoreSVG.framework/Versions/A/CoreSVG
+    0x7fff4a579000 -     0x7fff4a5acfff  com.apple.CoreServicesInternal (446.7 - 446.7) <65F53A22-6B61-382C-AAC2-B2C53F8FFB44> /System/Library/PrivateFrameworks/CoreServicesInternal.framework/Versions/A/CoreServicesInternal
+    0x7fff4a5ad000 -     0x7fff4a5dbffd  com.apple.CSStore (1069.24 - 1069.24) <C2D67667-FA0B-3DB6-AA34-6999EE4346A0> /System/Library/PrivateFrameworks/CoreServicesStore.framework/Versions/A/CoreServicesStore
+    0x7fff4ab00000 -     0x7fff4ab96ff7  com.apple.CoreSymbolication (11.4 - 64535.33.2) <0B3BF87A-7F95-3D79-B4F8-421D6FAC4A6C> /System/Library/PrivateFrameworks/CoreSymbolication.framework/Versions/A/CoreSymbolication
+    0x7fff4ac2e000 -     0x7fff4ad5aff6  com.apple.coreui (2.1 - 609.4) <788818B7-7EBC-316D-9464-D12E365E3791> /System/Library/PrivateFrameworks/CoreUI.framework/Versions/A/CoreUI
+    0x7fff4ad5b000 -     0x7fff4af14ffa  com.apple.CoreUtils (6.2.4 - 624.7) <456CC907-E838-3945-B70A-66E862C19CD6> /System/Library/PrivateFrameworks/CoreUtils.framework/Versions/A/CoreUtils
+    0x7fff4b04e000 -     0x7fff4b061ff1  com.apple.CrashReporterSupport (10.13 - 15016) <ADF138F0-0274-3BA2-A1D2-48B91577FE53> /System/Library/PrivateFrameworks/CrashReporterSupport.framework/Versions/A/CrashReporterSupport
+    0x7fff4b11a000 -     0x7fff4b12cff8  com.apple.framework.DFRFoundation (1.0 - 252.50.1) <8162057E-E856-3451-9160-04AEDDECFFA4> /System/Library/PrivateFrameworks/DFRFoundation.framework/Versions/A/DFRFoundation
+    0x7fff4b12d000 -     0x7fff4b132fff  com.apple.DSExternalDisplay (3.1 - 380) <31ECB5FD-7660-33DB-BC5B-2B2A2AA7C686> /System/Library/PrivateFrameworks/DSExternalDisplay.framework/Versions/A/DSExternalDisplay
+    0x7fff4b1bc000 -     0x7fff4b236ff0  com.apple.datadetectorscore (8.0 - 659) <B1534796-1000-3520-A641-A97A4AC5D39B> /System/Library/PrivateFrameworks/DataDetectorsCore.framework/Versions/A/DataDetectorsCore
+    0x7fff4b282000 -     0x7fff4b2bfff8  com.apple.DebugSymbols (194 - 194) <040AE30B-CF2C-3798-A289-0929B8CAB10D> /System/Library/PrivateFrameworks/DebugSymbols.framework/Versions/A/DebugSymbols
+    0x7fff4b2c0000 -     0x7fff4b448ff6  com.apple.desktopservices (1.14.5 - 1281.5.3) <BFA7D5B5-20EE-38E3-B8A7-96CE1F9BB48A> /System/Library/PrivateFrameworks/DesktopServicesPriv.framework/Versions/A/DesktopServicesPriv
+    0x7fff4b6e1000 -     0x7fff4b7a9ffe  com.apple.DiskImagesFramework (559.100.2 - 559.100.2) <47CD30B9-887B-3660-B0EA-E8D8258263BC> /System/Library/PrivateFrameworks/DiskImages.framework/Versions/A/DiskImages
+    0x7fff4b7aa000 -     0x7fff4b87dff1  com.apple.DiskManagement (13.0 - 1648.140.2) <640DBACE-B6EC-3C72-9F73-F484E891534E> /System/Library/PrivateFrameworks/DiskManagement.framework/Versions/A/DiskManagement
+    0x7fff4b960000 -     0x7fff4b964ff9  com.apple.EFILogin (2.0 - 2) <3BFE697B-469F-38F4-B380-4A4F4A37C836> /System/Library/PrivateFrameworks/EFILogin.framework/Versions/A/EFILogin
+    0x7fff4cdf3000 -     0x7fff4d20eff1  com.apple.vision.FaceCore (4.3.0 - 4.3.0) <5D32F65D-2CD7-3204-975C-F4C9256E505F> /System/Library/PrivateFrameworks/FaceCore.framework/Versions/A/FaceCore
+    0x7fff4d8ad000 -     0x7fff4d9e4ff4  libFontParser.dylib (277.2.6.1) <9E9E2EAA-3273-360E-A01B-EB986ECB7BCF> /System/Library/PrivateFrameworks/FontServices.framework/libFontParser.dylib
+    0x7fff4d9e5000 -     0x7fff4da19fff  libTrueTypeScaler.dylib (277.2.6.1) <F8A27F0F-44B3-3A1E-8B75-2DFD4A90E1D4> /System/Library/PrivateFrameworks/FontServices.framework/libTrueTypeScaler.dylib
+    0x7fff4da7e000 -     0x7fff4da8eff6  libhvf.dylib (1.0 - $[CURRENT_PROJECT_VERSION]) <1605B441-08E0-332D-B7D8-0E13F37B54E7> /System/Library/PrivateFrameworks/FontServices.framework/libhvf.dylib
+    0x7fff50f6f000 -     0x7fff50f70fff  libmetal_timestamp.dylib (902.14.11) <C29C7125-A894-3718-8E1D-249C53BCC0B8> /System/Library/PrivateFrameworks/GPUCompiler.framework/Versions/3902/Libraries/libmetal_timestamp.dylib
+    0x7fff5261e000 -     0x7fff52629ff7  libGPUSupportMercury.dylib (17.10.22) <398D9635-B9CB-3BBB-A1E4-D1D1270D3F99> /System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib
+    0x7fff5262a000 -     0x7fff52630fff  com.apple.GPUWrangler (5.2.6 - 5.2.6) <487F2E7A-A5FF-3C36-A8E9-B85D98618116> /System/Library/PrivateFrameworks/GPUWrangler.framework/Versions/A/GPUWrangler
+    0x7fff5294f000 -     0x7fff52975ff1  com.apple.GenerationalStorage (2.0 - 314) <54483E50-20BB-3AF8-900F-992320C109B0> /System/Library/PrivateFrameworks/GenerationalStorage.framework/Versions/A/GenerationalStorage
+    0x7fff53aa3000 -     0x7fff53ab1ffb  com.apple.GraphVisualizer (1.0 - 100.1) <507D5812-9CB4-3C94-938C-59ED2B370818> /System/Library/PrivateFrameworks/GraphVisualizer.framework/Versions/A/GraphVisualizer
+    0x7fff53c50000 -     0x7fff53d0eff4  com.apple.Heimdal (4.0 - 2.0) <B86FE9DB-71BB-3B6E-A4AE-2B0B44570A7F> /System/Library/PrivateFrameworks/Heimdal.framework/Versions/A/Heimdal
+    0x7fff55e94000 -     0x7fff55e9cff5  com.apple.IOAccelerator (438.7.3 - 438.7.3) <06E3E70B-C0D0-39A2-96B7-12ED6A0EBEE7> /System/Library/PrivateFrameworks/IOAccelerator.framework/Versions/A/IOAccelerator
+    0x7fff55ea9000 -     0x7fff55ec0fff  com.apple.IOPresentment (47.10 - 37) <32F1B3BC-4644-3982-AAB2-8EB5D5FF0161> /System/Library/PrivateFrameworks/IOPresentment.framework/Versions/A/IOPresentment
+    0x7fff56248000 -     0x7fff56293ff1  com.apple.IconServices (438.3 - 438.3) <0DADB4C3-46FF-3FDB-8A86-51E2067FC7F4> /System/Library/PrivateFrameworks/IconServices.framework/Versions/A/IconServices
+    0x7fff56451000 -     0x7fff56458ff9  com.apple.InternationalSupport (1.0 - 45.4) <8D8D4A7D-FD35-36B8-A456-7C93030EDAB3> /System/Library/PrivateFrameworks/InternationalSupport.framework/Versions/A/InternationalSupport
+    0x7fff566e5000 -     0x7fff56704ffd  com.apple.security.KeychainCircle.KeychainCircle (1.0 - 1) <6F655A32-F963-3A7E-B475-E460F4AC7D99> /System/Library/PrivateFrameworks/KeychainCircle.framework/Versions/A/KeychainCircle
+    0x7fff56839000 -     0x7fff56907ffd  com.apple.LanguageModeling (1.0 - 215.1) <C456087D-5B3A-390E-A665-862FA284C59C> /System/Library/PrivateFrameworks/LanguageModeling.framework/Versions/A/LanguageModeling
+    0x7fff56908000 -     0x7fff56950fff  com.apple.Lexicon-framework (1.0 - 72) <41F208B9-8255-3EC7-9673-FE0925D071D3> /System/Library/PrivateFrameworks/Lexicon.framework/Versions/A/Lexicon
+    0x7fff56957000 -     0x7fff5695cff3  com.apple.LinguisticData (1.0 - 353.18) <3B92F249-4602-325F-984B-D2DE61EEE4E1> /System/Library/PrivateFrameworks/LinguisticData.framework/Versions/A/LinguisticData
+    0x7fff56a00000 -     0x7fff56a05ff7  com.apple.LoginUICore (4.0 - 4.0) <6FE011DE-A794-3D82-9E35-7FE1D62DEE7E> /System/Library/PrivateFrameworks/LoginUIKit.framework/Versions/A/Frameworks/LoginUICore.framework/Versions/A/LoginUICore
+    0x7fff571f5000 -     0x7fff571f8fff  com.apple.Mangrove (1.0 - 25) <482F300F-9B70-351F-A4DF-B440EEF7368D> /System/Library/PrivateFrameworks/Mangrove.framework/Versions/A/Mangrove
+    0x7fff57461000 -     0x7fff574ebff8  com.apple.MediaExperience (1.0 - 1) <0203AF27-AB5E-32FA-B529-AB7F29EEB887> /System/Library/PrivateFrameworks/MediaExperience.framework/Versions/A/MediaExperience
+    0x7fff574ec000 -     0x7fff5751ffff  com.apple.MediaKit (16 - 923) <09FEE738-41E4-3A9C-AF1E-1DD00C56339D> /System/Library/PrivateFrameworks/MediaKit.framework/Versions/A/MediaKit
+    0x7fff57cc5000 -     0x7fff57d11fff  com.apple.spotlight.metadata.utilities (1.0 - 2076.7) <0237323B-EC78-3FBF-9FC7-5A1FE2B5CE25> /System/Library/PrivateFrameworks/MetadataUtilities.framework/Versions/A/MetadataUtilities
+    0x7fff57d12000 -     0x7fff57de3ffa  com.apple.gpusw.MetalTools (1.0 - 1) <99876E08-37D7-3828-8796-56D90C9AFBDB> /System/Library/PrivateFrameworks/MetalTools.framework/Versions/A/MetalTools
+    0x7fff58017000 -     0x7fff58035fff  com.apple.MobileKeyBag (2.0 - 1.0) <D5FA7041-297F-3ADC-8C7A-6EAAAB82EB68> /System/Library/PrivateFrameworks/MobileKeyBag.framework/Versions/A/MobileKeyBag
+    0x7fff58298000 -     0x7fff582c8ff7  com.apple.MultitouchSupport.framework (3440.1 - 3440.1) <6794E1C8-9627-33DF-84F4-FDD02C97F383> /System/Library/PrivateFrameworks/MultitouchSupport.framework/Versions/A/MultitouchSupport
+    0x7fff587c8000 -     0x7fff587d2fff  com.apple.NetAuth (6.2 - 6.2) <B0C03C41-87A3-352B-B130-96E1A6F94B47> /System/Library/PrivateFrameworks/NetAuth.framework/Versions/A/NetAuth
+    0x7fff591e8000 -     0x7fff59233ffb  com.apple.OTSVG (1.0 - 643.1.5.1) <001E5E8C-1DC0-3A6E-BDE4-1B7887E47F76> /System/Library/PrivateFrameworks/OTSVG.framework/Versions/A/OTSVG
+    0x7fff5a450000 -     0x7fff5a45bff2  com.apple.PerformanceAnalysis (1.243.2 - 243.2) <B47C00E5-ECC2-313D-93D4-DBDF562C48EF> /System/Library/PrivateFrameworks/PerformanceAnalysis.framework/Versions/A/PerformanceAnalysis
+    0x7fff5a45c000 -     0x7fff5a484ffb  com.apple.persistentconnection (1.0 - 1.0) <5B2D87A8-2641-3F6D-ACEA-96B00F85AAB5> /System/Library/PrivateFrameworks/PersistentConnection.framework/Versions/A/PersistentConnection
+    0x7fff5cde9000 -     0x7fff5ce43ff6  com.apple.ProtectedCloudStorage (1.0 - 1) <6F271388-3817-336D-9B96-08C7AAC4BA39> /System/Library/PrivateFrameworks/ProtectedCloudStorage.framework/Versions/A/ProtectedCloudStorage
+    0x7fff5ce44000 -     0x7fff5ce5dffb  com.apple.ProtocolBuffer (1 - 274.24.9.16.3) <5A020941-C43C-303E-8DE8-230FC6A84DBC> /System/Library/PrivateFrameworks/ProtocolBuffer.framework/Versions/A/ProtocolBuffer
+    0x7fff5d2bd000 -     0x7fff5d2e6ff1  com.apple.RemoteViewServices (2.0 - 148) <D3AAC2BE-3423-3F18-9654-E35F1DD8DDB3> /System/Library/PrivateFrameworks/RemoteViewServices.framework/Versions/A/RemoteViewServices
+    0x7fff5d44b000 -     0x7fff5d486ff0  com.apple.RunningBoardServices (1.0 - 223.140.2) <96BB04BD-D6E0-3D70-8F36-89B46DA1DA30> /System/Library/PrivateFrameworks/RunningBoardServices.framework/Versions/A/RunningBoardServices
+    0x7fff5ed67000 -     0x7fff5ed6aff5  com.apple.SecCodeWrapper (4.0 - 448.100.6) <C4BF691D-A09E-37E8-A6CC-1145B79B8722> /System/Library/PrivateFrameworks/SecCodeWrapper.framework/Versions/A/SecCodeWrapper
+    0x7fff5eedd000 -     0x7fff5f004fff  com.apple.Sharing (1526.37 - 1526.37) <CBDA0ADD-F1E7-3B06-9118-C5E183F0D3D6> /System/Library/PrivateFrameworks/Sharing.framework/Versions/A/Sharing
+    0x7fff60419000 -     0x7fff6070fff7  com.apple.SkyLight (1.600.0 - 451.4) <A24929C3-95E6-35A7-9654-46FF3F4D1E80> /System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/SkyLight
+    0x7fff60f5c000 -     0x7fff60f6affb  com.apple.SpeechRecognitionCore (6.0.91.2 - 6.0.91.2) <4D6CAC2A-151B-3BBE-BDB7-E2BE72128691> /System/Library/PrivateFrameworks/SpeechRecognitionCore.framework/Versions/A/SpeechRecognitionCore
+    0x7fff6179e000 -     0x7fff617a7ff7  com.apple.SymptomDiagnosticReporter (1.0 - 1238.120.1) <14929A5D-C369-3B46-844B-CD29A3D1A015> /System/Library/PrivateFrameworks/SymptomDiagnosticReporter.framework/Versions/A/SymptomDiagnosticReporter
+    0x7fff61818000 -     0x7fff61842ffe  com.apple.framework.SystemAdministration (1.0 - 1.0) <087553CB-5BF3-3D3D-B620-CA36AD334D92> /System/Library/PrivateFrameworks/SystemAdministration.framework/Versions/A/SystemAdministration
+    0x7fff61a5e000 -     0x7fff61a6eff3  com.apple.TCC (1.0 - 1) <017AB27D-6821-303A-8FD2-6DAC795CC7AA> /System/Library/PrivateFrameworks/TCC.framework/Versions/A/TCC
+    0x7fff61f93000 -     0x7fff62059ff0  com.apple.TextureIO (3.10.9 - 3.10.9) <EEDAB753-329A-396A-8119-5BEDF7DB5A56> /System/Library/PrivateFrameworks/TextureIO.framework/Versions/A/TextureIO
+    0x7fff621f0000 -     0x7fff621f1fff  com.apple.TrustEvaluationAgent (2.0 - 33) <10E56F70-E234-31E0-9286-96D93A8ED17E> /System/Library/PrivateFrameworks/TrustEvaluationAgent.framework/Versions/A/TrustEvaluationAgent
+    0x7fff62229000 -     0x7fff62481ff0  com.apple.UIFoundation (1.0 - 662) <EC55B9E5-7E62-380A-9AB1-FC7BEF663653> /System/Library/PrivateFrameworks/UIFoundation.framework/Versions/A/UIFoundation
+    0x7fff630f6000 -     0x7fff63116ffc  com.apple.UserManagement (1.0 - 1) <9F00880E-6EA6-3684-B208-455E14EC07C8> /System/Library/PrivateFrameworks/UserManagement.framework/Versions/A/UserManagement
+    0x7fff63ec2000 -     0x7fff63facff8  com.apple.ViewBridge (464.1 - 464.1) <25CE39DF-2052-3873-9113-DB52B385C4BB> /System/Library/PrivateFrameworks/ViewBridge.framework/Versions/A/ViewBridge
+    0x7fff64152000 -     0x7fff64153fff  com.apple.WatchdogClient.framework (1.0 - 67.120.2) <FFA17DA1-F6DD-34D3-A708-1F73C8BA7EA7> /System/Library/PrivateFrameworks/WatchdogClient.framework/Versions/A/WatchdogClient
+    0x7fff64d83000 -     0x7fff64d86ffa  com.apple.dt.XCTTargetBootstrap (1.0 - 16091) <D459D628-58C5-39A6-B7E8-B691CBEECEC1> /System/Library/PrivateFrameworks/XCTTargetBootstrap.framework/Versions/A/XCTTargetBootstrap
+    0x7fff64e00000 -     0x7fff64e0eff5  com.apple.audio.caulk (1.0 - 32.3) <06D695EA-E2BC-31E4-9816-9C12542BA744> /System/Library/PrivateFrameworks/caulk.framework/Versions/A/caulk
+    0x7fff65150000 -     0x7fff65152ff3  com.apple.loginsupport (1.0 - 1) <12F77885-27DC-3837-9CE9-A25EBA75F833> /System/Library/PrivateFrameworks/login.framework/Versions/A/Frameworks/loginsupport.framework/Versions/A/loginsupport
+    0x7fff65153000 -     0x7fff65166ffd  com.apple.login (3.0 - 3.0) <C68367BA-2225-31DD-B2D8-16AC0A44421F> /System/Library/PrivateFrameworks/login.framework/Versions/A/login
+    0x7fff67c36000 -     0x7fff67c69ffa  libAudioToolboxUtility.dylib (1104.93) <A7249C4C-6C0A-3C14-BA27-DC966F6CC6A0> /usr/lib/libAudioToolboxUtility.dylib
+    0x7fff67c70000 -     0x7fff67ca4fff  libCRFSuite.dylib (48) <5E5DE3CB-30DD-34DC-AEF8-FE8536A85E96> /usr/lib/libCRFSuite.dylib
+    0x7fff67ca7000 -     0x7fff67cb1fff  libChineseTokenizer.dylib (34) <7F0DA183-1796-315A-B44A-2C234C7C50BE> /usr/lib/libChineseTokenizer.dylib
+    0x7fff67cb2000 -     0x7fff67d3afff  libCoreStorage.dylib (551) <A457B0FE-D77F-30AA-99A4-70F6A98DFE59> /usr/lib/libCoreStorage.dylib
+    0x7fff67d3d000 -     0x7fff67d3fff7  libDiagnosticMessagesClient.dylib (112) <C94F3B7B-1854-38EB-9778-834501C53B3F> /usr/lib/libDiagnosticMessagesClient.dylib
+    0x7fff67d85000 -     0x7fff67f3cffb  libFosl_dynamic.dylib (100.4) <737573B2-190A-3BA1-8220-807AD0A2CE5E> /usr/lib/libFosl_dynamic.dylib
+    0x7fff67f63000 -     0x7fff67f69ff3  libIOReport.dylib (54) <75D177C4-BAD7-3285-B8E1-3019F49B3178> /usr/lib/libIOReport.dylib
+    0x7fff6804b000 -     0x7fff68052fff  libMatch.1.dylib (36) <5C6F3971-9D9E-3630-BDB6-60BFC5A665E0> /usr/lib/libMatch.1.dylib
+    0x7fff68081000 -     0x7fff680a1ff7  libMobileGestalt.dylib (826.140.5) <2BE94E6A-FA61-312F-84A1-F764D71B7E39> /usr/lib/libMobileGestalt.dylib
+    0x7fff68213000 -     0x7fff68214fff  libSystem.B.dylib (1281.100.1) <C0C9872A-E730-37EA-954A-3CE087C15535> /usr/lib/libSystem.B.dylib
+    0x7fff682a1000 -     0x7fff682a2fff  libThaiTokenizer.dylib (3) <4F4ADE99-0D09-3223-B7C0-C407AB6DE8DC> /usr/lib/libThaiTokenizer.dylib
+    0x7fff682ba000 -     0x7fff682d0fff  libapple_nghttp2.dylib (1.39.2) <07FEC48A-87CF-32A3-8194-FA70B361713A> /usr/lib/libapple_nghttp2.dylib
+    0x7fff68305000 -     0x7fff68377ff7  libarchive.2.dylib (72.140.1) <AC311FBA-F2DD-3595-AA76-769F912942B8> /usr/lib/libarchive.2.dylib
+    0x7fff68378000 -     0x7fff68411fe5  libate.dylib (3.0.1) <76EA60FB-748C-313F-8951-B076540BEA97> /usr/lib/libate.dylib
+    0x7fff68415000 -     0x7fff68415ff3  libauto.dylib (187) <B6124448-7690-34AE-8939-ED84AAC630CE> /usr/lib/libauto.dylib
+    0x7fff684db000 -     0x7fff684ebffb  libbsm.0.dylib (60.100.1) <00BFFB9A-2FFE-3C24-896A-251BC61917FD> /usr/lib/libbsm.0.dylib
+    0x7fff684ec000 -     0x7fff684f8fff  libbz2.1.0.dylib (44) <14CC4988-B6D4-3879-AFC2-9A0DDC6388DE> /usr/lib/libbz2.1.0.dylib
+    0x7fff684f9000 -     0x7fff6854bfff  libc++.1.dylib (902.1) <59A8239F-C28A-3B59-B8FA-11340DC85EDC> /usr/lib/libc++.1.dylib
+    0x7fff6854c000 -     0x7fff68561ffb  libc++abi.dylib (902) <E692F14F-C65E-303B-9921-BB7E97D77855> /usr/lib/libc++abi.dylib
+    0x7fff68562000 -     0x7fff68562fff  libcharset.1.dylib (59) <72447768-9244-39AB-8E79-2FA14EC0AD33> /usr/lib/libcharset.1.dylib
+    0x7fff68563000 -     0x7fff68574fff  libcmph.dylib (8) <E72A20DB-2E86-378D-A237-EB9A1370F989> /usr/lib/libcmph.dylib
+    0x7fff68575000 -     0x7fff6858cfd7  libcompression.dylib (87) <64C91066-586D-38C0-A2F3-3E60A940F859> /usr/lib/libcompression.dylib
+    0x7fff68866000 -     0x7fff6887cff7  libcoretls.dylib (167) <770A5B96-936E-34E3-B006-B1CEC299B5A5> /usr/lib/libcoretls.dylib
+    0x7fff6887d000 -     0x7fff6887efff  libcoretls_cfhelpers.dylib (167) <940BF370-FD0C-30A8-AA05-FF48DA44FA4C> /usr/lib/libcoretls_cfhelpers.dylib
+    0x7fff68d21000 -     0x7fff68e25fef  libcrypto.44.dylib (47.140.1) <CB6B188A-1ADC-3C5D-AFFC-2ACD86E235EE> /usr/lib/libcrypto.44.dylib
+    0x7fff68e28000 -     0x7fff68e33fff  libcsfde.dylib (551) <CEE22AEF-4E77-36B1-B007-00303819965F> /usr/lib/libcsfde.dylib
+    0x7fff68e3b000 -     0x7fff68e9aff7  libcups.2.dylib (483.6) <C88D78FE-D238-376C-B16A-39270E39A79D> /usr/lib/libcups.2.dylib
+    0x7fff68e9c000 -     0x7fff68f01ff7  libcurl.4.dylib (118.120.2) <28809E22-6EF2-3AC7-9501-D77FB6FC5FBD> /usr/lib/libcurl.4.dylib
+    0x7fff68fa4000 -     0x7fff68fa4fff  libenergytrace.dylib (21) <162DFCC0-8F48-3DD0-914F-FA8653E27B26> /usr/lib/libenergytrace.dylib
+    0x7fff68fa5000 -     0x7fff68fbdfff  libexpat.1.dylib (19.60.2) <FED7C38B-92D8-342D-AED7-871B12D1F7E7> /usr/lib/libexpat.1.dylib
+    0x7fff68fcb000 -     0x7fff68fcdfff  libfakelink.dylib (149.1) <36146CB2-E6A5-37BB-9EE8-1B4034D8F3AD> /usr/lib/libfakelink.dylib
+    0x7fff68fdc000 -     0x7fff68fe1fff  libgermantok.dylib (24) <D2AE5AC0-EDCE-3216-B8C9-CF59292A545F> /usr/lib/libgermantok.dylib
+    0x7fff68fe2000 -     0x7fff68febff7  libheimdal-asn1.dylib (564.140.1) <0AC6FB62-2B0F-3E93-A931-E4DC4B1D757A> /usr/lib/libheimdal-asn1.dylib
+    0x7fff68fec000 -     0x7fff690dcfff  libiconv.2.dylib (59) <18311A67-E4EF-3CC7-95B3-C0EDEE3A282F> /usr/lib/libiconv.2.dylib
+    0x7fff690dd000 -     0x7fff69334fff  libicucore.A.dylib (64260.0.1) <8AC2CB07-E7E0-340D-A849-186FA1F27251> /usr/lib/libicucore.A.dylib
+    0x7fff6934e000 -     0x7fff6934ffff  liblangid.dylib (133) <30CFC08C-EF36-3CF5-8AEA-C1CB070306B7> /usr/lib/liblangid.dylib
+    0x7fff69350000 -     0x7fff69368ff3  liblzma.5.dylib (16) <C131EF18-2CDD-3271-8A30-A8760D4FE166> /usr/lib/liblzma.5.dylib
+    0x7fff69380000 -     0x7fff69427ff7  libmecab.dylib (883.11) <0D5BFD01-D4A7-3C8D-AA69-C329C1A69792> /usr/lib/libmecab.dylib
+    0x7fff69428000 -     0x7fff6968aff1  libmecabra.dylib (883.11) <E31DE74D-1B88-377F-ACD3-D789D29C3AE7> /usr/lib/libmecabra.dylib
+    0x7fff699f7000 -     0x7fff69a26fff  libncurses.5.4.dylib (57) <995DFEEA-40F3-377F-B73D-D02AC59D591F> /usr/lib/libncurses.5.4.dylib
+    0x7fff69b56000 -     0x7fff69fd2ff5  libnetwork.dylib (1880.120.4) <BA294A54-F309-398D-B308-F97032AFF555> /usr/lib/libnetwork.dylib
+    0x7fff6a073000 -     0x7fff6a0a6fde  libobjc.A.dylib (787.1) <6DF81160-5E7F-3E31-AA1E-C875E3B98AF6> /usr/lib/libobjc.A.dylib
+    0x7fff6a0a7000 -     0x7fff6a0a8ff7  libodfde.dylib (26) <33F49412-5106-35B8-AA60-5A497C3967E6> /usr/lib/libodfde.dylib
+    0x7fff6a0b9000 -     0x7fff6a0bdfff  libpam.2.dylib (25.100.1) <0502F395-8EE6-3D2A-9239-06FD5622E19E> /usr/lib/libpam.2.dylib
+    0x7fff6a0c0000 -     0x7fff6a0f6ff7  libpcap.A.dylib (89.120.1) <A76EC076-A8EA-354C-B95F-7AB1EAFBCC65> /usr/lib/libpcap.A.dylib
+    0x7fff6a17a000 -     0x7fff6a192fff  libresolv.9.dylib (67.40.1) <C57EDFEF-D36A-310B-8D14-8C68A625B1E8> /usr/lib/libresolv.9.dylib
+    0x7fff6a194000 -     0x7fff6a1d8ff7  libsandbox.1.dylib (1217.141.1) <363BBD96-E1F0-38CF-90EF-EF41C0C7044E> /usr/lib/libsandbox.1.dylib
+    0x7fff6a1d9000 -     0x7fff6a1ebff7  libsasl2.2.dylib (213.120.1) <E7573AC1-83FD-305A-8FB8-03145BDA286B> /usr/lib/libsasl2.2.dylib
+    0x7fff6a1ec000 -     0x7fff6a1edff7  libspindump.dylib (281.3) <AE8C1AE9-5CBC-332F-BBE8-370A2A19FED6> /usr/lib/libspindump.dylib
+    0x7fff6a1ee000 -     0x7fff6a3d8ff7  libsqlite3.dylib (308.5) <35A2BD9F-4E33-30DE-A994-4AB585AC3AFE> /usr/lib/libsqlite3.dylib
+    0x7fff6a4cc000 -     0x7fff6a4f9ffb  libssl.46.dylib (47.140.1) <06932872-13DA-33E3-8C28-7B49FC582039> /usr/lib/libssl.46.dylib
+    0x7fff6a629000 -     0x7fff6a62cffb  libutil.dylib (57) <F01467F6-23A7-37EE-A170-33CE1577B41D> /usr/lib/libutil.dylib
+    0x7fff6a62d000 -     0x7fff6a63aff7  libxar.1.dylib (425.2) <EE964412-9E25-30B3-BCC0-CCEFBCC8094B> /usr/lib/libxar.1.dylib
+    0x7fff6a640000 -     0x7fff6a722ff7  libxml2.2.dylib (33.4) <EFA77CC6-9139-37B3-98D4-B0E526110EE3> /usr/lib/libxml2.2.dylib
+    0x7fff6a726000 -     0x7fff6a74efff  libxslt.1.dylib (16.9) <34A45627-DA5B-37D2-9609-65B425E0010A> /usr/lib/libxslt.1.dylib
+    0x7fff6a74f000 -     0x7fff6a761ff3  libz.1.dylib (76) <793D9643-CD83-3AAC-8B96-88D548FAB620> /usr/lib/libz.1.dylib
+    0x7fff6b010000 -     0x7fff6b015ff3  libcache.dylib (83) <AF488D13-9E89-35E0-B078-BE37CC5B8586> /usr/lib/system/libcache.dylib
+    0x7fff6b016000 -     0x7fff6b021fff  libcommonCrypto.dylib (60165.120.1) <C7912BE5-993E-3581-B2A0-6AABDC8C5562> /usr/lib/system/libcommonCrypto.dylib
+    0x7fff6b022000 -     0x7fff6b029fff  libcompiler_rt.dylib (101.2) <49B8F644-5705-3F16-BBE0-6FFF9B17C36E> /usr/lib/system/libcompiler_rt.dylib
+    0x7fff6b02a000 -     0x7fff6b033ff7  libcopyfile.dylib (166.40.1) <3C481225-21E7-370A-A30E-0CCFDD64A92C> /usr/lib/system/libcopyfile.dylib
+    0x7fff6b034000 -     0x7fff6b0c6fdb  libcorecrypto.dylib (866.140.1) <60567BF8-80FA-359A-B2F3-A3BAEFB288FD> /usr/lib/system/libcorecrypto.dylib
+    0x7fff6b1d3000 -     0x7fff6b213ff0  libdispatch.dylib (1173.100.2) <CD9C059C-91D9-30E8-8926-5B9CD0D5D4F5> /usr/lib/system/libdispatch.dylib
+    0x7fff6b214000 -     0x7fff6b24afff  libdyld.dylib (750.6) <789A18C2-8AC7-3C88-813D-CD674376585D> /usr/lib/system/libdyld.dylib
+    0x7fff6b24b000 -     0x7fff6b24bffb  libkeymgr.dylib (30) <DB3337BE-01CA-3425-BD0C-87774FC0CDC0> /usr/lib/system/libkeymgr.dylib
+    0x7fff6b24c000 -     0x7fff6b258ff3  libkxld.dylib (6153.141.1) <756B1F0D-2E37-31A7-A6F0-2E5C22E62C3D> /usr/lib/system/libkxld.dylib
+    0x7fff6b259000 -     0x7fff6b259ff7  liblaunch.dylib (1738.140.1) <AFBCBDD3-0B55-3ECD-8E04-A73A3A57356B> /usr/lib/system/liblaunch.dylib
+    0x7fff6b25a000 -     0x7fff6b25fff7  libmacho.dylib (959.0.1) <AA613A9C-961A-3B67-B696-4622FA59FC4E> /usr/lib/system/libmacho.dylib
+    0x7fff6b260000 -     0x7fff6b262ff3  libquarantine.dylib (110.40.3) <F234E51D-FD0B-3EE4-B679-AE3EE9C536C3> /usr/lib/system/libquarantine.dylib
+    0x7fff6b263000 -     0x7fff6b264ff7  libremovefile.dylib (48) <7C7EFC79-BD24-33EF-B073-06AED234593E> /usr/lib/system/libremovefile.dylib
+    0x7fff6b265000 -     0x7fff6b27cff3  libsystem_asl.dylib (377.60.2) <1563EE02-0657-3B78-99BE-A947C24122EF> /usr/lib/system/libsystem_asl.dylib
+    0x7fff6b27d000 -     0x7fff6b27dff7  libsystem_blocks.dylib (74) <0D53847E-AF5F-3ACF-B51F-A15DEA4DEC58> /usr/lib/system/libsystem_blocks.dylib
+    0x7fff6b27e000 -     0x7fff6b305fff  libsystem_c.dylib (1353.100.2) <BBDED5E6-A646-3EED-B33A-91E4331EA063> /usr/lib/system/libsystem_c.dylib
+    0x7fff6b306000 -     0x7fff6b309ffb  libsystem_configuration.dylib (1061.141.1) <0EE84C33-64FD-372B-974A-AF7A136F2068> /usr/lib/system/libsystem_configuration.dylib
+    0x7fff6b30a000 -     0x7fff6b30dfff  libsystem_coreservices.dylib (114) <A199156E-058D-3ABB-BCE9-4B9F20DCED0F> /usr/lib/system/libsystem_coreservices.dylib
+    0x7fff6b30e000 -     0x7fff6b316fff  libsystem_darwin.dylib (1353.100.2) <5B12B5DB-3F30-37C1-8ECC-49A66B1F2864> /usr/lib/system/libsystem_darwin.dylib
+    0x7fff6b317000 -     0x7fff6b31efff  libsystem_dnssd.dylib (1096.100.3) <EBB4C2C2-E031-3094-B40A-E67BF261D295> /usr/lib/system/libsystem_dnssd.dylib
+    0x7fff6b31f000 -     0x7fff6b320ffb  libsystem_featureflags.dylib (17) <29FD922A-EC2C-3F25-BCCC-B58D716E60EC> /usr/lib/system/libsystem_featureflags.dylib
+    0x7fff6b321000 -     0x7fff6b36eff7  libsystem_info.dylib (538) <8A321605-5480-330B-AF9E-64E65DE61747> /usr/lib/system/libsystem_info.dylib
+    0x7fff6b36f000 -     0x7fff6b39bff7  libsystem_kernel.dylib (6153.141.1) <2B6311E6-6240-3EF7-8C87-475B66F7452C> /usr/lib/system/libsystem_kernel.dylib
+    0x7fff6b39c000 -     0x7fff6b3e3fff  libsystem_m.dylib (3178) <00F331F1-0D09-39B3-8736-1FE90E64E903> /usr/lib/system/libsystem_m.dylib
+    0x7fff6b3e4000 -     0x7fff6b40bfff  libsystem_malloc.dylib (283.100.6) <8549294E-4C53-36EB-99F3-584A7393D8D5> /usr/lib/system/libsystem_malloc.dylib
+    0x7fff6b40c000 -     0x7fff6b419ffb  libsystem_networkextension.dylib (1095.140.2) <F06C65C5-2CBE-313C-96E1-A09240F9FE57> /usr/lib/system/libsystem_networkextension.dylib
+    0x7fff6b41a000 -     0x7fff6b423ff7  libsystem_notify.dylib (241.100.2) <FA22F928-D91B-3AA5-96BB-3186AC0FB264> /usr/lib/system/libsystem_notify.dylib
+    0x7fff6b424000 -     0x7fff6b42cfef  libsystem_platform.dylib (220.100.1) <009A7C1F-313A-318E-B9F2-30F4C06FEA5C> /usr/lib/system/libsystem_platform.dylib
+    0x7fff6b42d000 -     0x7fff6b437fff  libsystem_pthread.dylib (416.100.3) <62CB1A98-0B8F-31E7-A02B-A1139927F61D> /usr/lib/system/libsystem_pthread.dylib
+    0x7fff6b438000 -     0x7fff6b43cff3  libsystem_sandbox.dylib (1217.141.1) <6DE13684-5A67-3009-A53A-C9086CF241C3> /usr/lib/system/libsystem_sandbox.dylib
+    0x7fff6b43d000 -     0x7fff6b43ffff  libsystem_secinit.dylib (62.100.2) <F80872AA-E1FD-3D7E-8729-467656EC6561> /usr/lib/system/libsystem_secinit.dylib
+    0x7fff6b440000 -     0x7fff6b447ffb  libsystem_symptoms.dylib (1238.120.1) <5820A2AF-CE72-3AB3-ABCC-273A3419FB55> /usr/lib/system/libsystem_symptoms.dylib
+    0x7fff6b448000 -     0x7fff6b45eff2  libsystem_trace.dylib (1147.120) <04B47629-847B-3D74-8ABE-C05EF9DEEFE4> /usr/lib/system/libsystem_trace.dylib
+    0x7fff6b460000 -     0x7fff6b465ff7  libunwind.dylib (35.4) <42B7B509-BAFE-365B-893A-72414C92F5BF> /usr/lib/system/libunwind.dylib
+    0x7fff6b466000 -     0x7fff6b49bffe  libxpc.dylib (1738.140.1) <3E243A41-030F-38E3-9FD2-7B38C66C35B1> /usr/lib/system/libxpc.dylib
+
+External Modification Summary:
+  Calls made by other processes targeting this process:
+    task_for_pid: 0
+    thread_create: 0
+    thread_set_state: 0
+  Calls made by this process:
+    task_for_pid: 0
+    thread_create: 0
+    thread_set_state: 0
+  Calls made by all processes on this machine:
+    task_for_pid: 24827
+    thread_create: 0
+    thread_set_state: 0
+
+VM Region Summary:
+ReadOnly portion of Libraries: Total=599.6M resident=0K(0%) swapped_out_or_unallocated=599.6M(100%)
+Writable regions: Total=509.9M written=0K(0%) resident=0K(0%) swapped_out=0K(0%) unallocated=509.9M(100%)
+ 
+                                VIRTUAL   REGION 
+REGION TYPE                        SIZE    COUNT (non-coalesced) 
+===========                     =======  ======= 
+Accelerate framework               384K        3 
+Activity Tracing                   256K        1 
+CG backing stores                  992K        2 
+CG image                            72K        4 
+CoreAnimation                      136K       11 
+CoreGraphics                         8K        1 
+CoreImage                           24K        2 
+CoreUI image data                  680K        6 
+Dispatch continuations            8192K        1 
+Foundation                           4K        1 
+Kernel Alloc Once                    8K        1 
+MALLOC                           341.8M      343 
+MALLOC guard page                   32K        6 
+OpenGL GLSL                        256K        3 
+STACK GUARD                       56.0M       11 
+Stack                             13.1M       11 
+VM_ALLOCATE                      145.0M       35 
+__DATA                            27.0M      304 
+__DATA_CONST                        72K        4 
+__FONT_DATA                          4K        1 
+__GLSLBUILTINS                    5176K        1 
+__LINKEDIT                       389.4M        8 
+__OBJC_RO                         32.3M        1 
+__OBJC_RW                         1908K        2 
+__TEXT                           210.2M      299 
+__UNICODE                          564K        1 
+mapped file                       50.9M       17 
+shared memory                      656K       19 
+===========                     =======  ======= 
+TOTAL                              1.3G     1099 
+
+Model: MacBookPro14,1, BootROM 428.0.0.0.0, 2 processors, Dual-Core Intel Core i5, 2.3 GHz, 16 GB, SMC 2.43f10
+Graphics: kHW_IntelIrisGraphics640Item, Intel Iris Plus Graphics 640, spdisplays_builtin
+Memory Module: BANK 0/DIMM0, 8 GB, LPDDR3, 2133 MHz, 0x802C, 0x4D5435324C31473332443450472D30393320
+Memory Module: BANK 1/DIMM0, 8 GB, LPDDR3, 2133 MHz, 0x802C, 0x4D5435324C31473332443450472D30393320
+AirPort: spairport_wireless_card_type_airport_extreme (0x14E4, 0x170), Broadcom BCM43xx 1.0 (7.77.111.1 AirPortDriverBrcmNIC-1615.1)
+Bluetooth: Version 7.0.6f7, 3 services, 27 devices, 1 incoming serial ports
+Network Service: Wi-Fi, AirPort, en0
+USB Device: USB 3.0 Bus
+Thunderbolt Bus: MacBook Pro, Apple Inc., 41.4
+
+
+load LOAD 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw ntile ntile ntile load SW 
+load0 LOAD0
+sw load1 LOAD1
+LOAD 
+SW 
+sw SW 
+sw SW 
+sw load load2 LOAD2
+LOAD 
+SW 
+sw SW 
+ntile sw ntile load load3 LOAD3
+LOAD 
+ntile SW 
+sw load load4 LOAD4
+load5 LOAD5
+LOAD 
+SW 
+sw ntile SW 
+sw load LOAD 
+ntile ntile NTILE
+gen SW 
+sw load load6 LOAD6
+load7 LOAD7
+LOAD 
+SW 
+sw load LOAD 
+SW 
+sw ntile ntile SW 
+sw load load8 LOAD8
+load9 LOAD9
+LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+ntile sw SW 
+sw ntile SW 
+sw load load10 LOAD10
+LOAD 
+SW 
+sw SW 
+sw load load11 LOAD11
+LOAD 
+SW 
+sw SW 
+sw ntile SW 
+sw load LOAD 
+ntile SW 
+sw SW 
+sw SW 
+sw load load12 LOAD12
+SW 
+sw LOAD 
+SW 
+sw SW 
+sw load load13 LOAD13
+SW 
+sw LOAD 
+SW 
+sw ntile SW 
+sw load ntile load14 LOAD14
+SW 
+sw LOAD 
+SW 
+sw SW 
+sw load load15 LOAD15
+SW 
+sw LOAD 
+SW 
+sw SW 
+sw SW 
+sw ntile load LOAD 
+SW 
+sw SW 
+sw ntile SW 
+sw load load16 LOAD16
+load17 LOAD17
+LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+ntile NTILE
+gen SW 
+sw SW 
+sw ntile SW 
+sw load load18 LOAD18
+LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw ntile NTILE
+gen SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load sw LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+load LOAD 
+GEN 
+sw SW 
+sw load load19 LOAD19
+LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw ntile NTILE
+gen SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw cle CLE 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load sw LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+GEN 
+SW 
+sw SW 
+load load20 LOAD20
+LOAD 
+sw GEN 
+SW 
+sw load load21 LOAD21
+LOAD 
+SW 
+ntile sw SW 
+sw load load22 LOAD22
+ntile NTILE
+gen LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw ntile NTILE
+gen SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw cle CLE 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+GEN 
+SW 
+sw load load23 LOAD23
+LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw cle CLE 
+ntile NTILE
+gen load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw cle CLE 
+load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+cle CLE 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw GEN 
+SW 
+sw SW 
+sw load load24 LOAD24
+LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw ntile NTILE
+gen SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+load LOAD 
+GEN 
+sw SW 
+sw load load25 LOAD25
+LOAD 
+SW 
+sw SW 
+sw load LOAD 
+ntile NTILE
+gen SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw cle CLE 
+load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load sw LOAD 
+SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw GEN 
+load load26 LOAD26
+LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw ntile load load27 LOAD27
+LOAD 
+SW 
+sw load LOAD 
+SW 
+sw cle CLE 
+SW 
+sw SW 
+sw load LOAD 
+ntile SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load load28 LOAD28
+SW 
+sw SW 
+sw LOAD 
+SW 
+sw load LOAD 
+SW 
+sw ntile SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load load29 LOAD29
+SW 
+sw LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw ntile NTILE
+gen load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw cle CLE 
+load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load sw LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+GEN 
+SW 
+sw load load30 LOAD30
+LOAD 
+SW 
+sw GEN 
+SW 
+sw load load31 LOAD31
+LOAD 
+ntile NTILE
+gen SW 
+sw load LOAD 
+SW 
+ntile NTILE
+gen sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+cle CLE 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw cle CLE 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+cle CLE 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load sw LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw cle CLE 
+load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw GEN 
+load load32 LOAD32
+SW 
+sw SW 
+sw LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw ntile load LOAD 
+SW 
+sw load load33 LOAD33
+LOAD 
+SW 
+sw load LOAD 
+ntile SW 
+sw SW 
+sw SW 
+sw load load34 LOAD34
+LOAD 
+cle CLE 
+SW 
+sw load LOAD 
+ntile SW 
+sw SW 
+sw SW 
+sw load load35 LOAD35
+LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw ntile SW 
+sw SW 
+sw load load36 LOAD36
+SW 
+sw LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw ntile load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load load37 LOAD37
+LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw ntile NTILE
+gen load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load SW 
+LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw GEN 
+SW 
+sw load load38 LOAD38
+LOAD 
+SW 
+sw SW 
+sw load LOAD 
+ntile NTILE
+gen load LOAD 
+SW 
+sw SW 
+sw cle CLE 
+load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+GEN 
+SW 
+sw SW 
+cle CLE 
+SW 
+sw load load39 LOAD39
+SW 
+sw LOAD 
+SW 
+sw load LOAD 
+ntile NTILE
+gen SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw del_chunk DEL_CHUNK 
+SW 
+sw del 
+load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw DEL
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+cle CLE 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw cle CLE 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw cle CLE 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw cle CLE 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw cle CLE 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load SW 
+LOAD 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw cle CLE 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW load DLOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+GEN 
+SW 
+sw load load39 LOAD39
+LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw ntile NTILE
+gen load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw cle CLE 
+load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw cle CLE 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+cle CLE 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+GEN 
+SW 
+sw SW 
+sw SW 
+sw load load40 LOAD40
+LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+ntile NTILE
+gen SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+GEN 
+SW 
+sw SW 
+sw load load41 LOAD41
+LOAD 
+SW 
+sw load LOAD 
+ntile NTILE
+gen SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+load LOAD 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw cle CLE 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw cle CLE 
+load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw GEN 
+SW 
+sw load load42 LOAD42
+LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw ntile NTILE
+gen SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw GEN 
+SW 
+sw SW 
+sw load load43 LOAD43
+LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw ntile NTILE
+gen SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw GEN 
+SW 
+sw load load44 LOAD44
+LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw ntile NTILE
+gen SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+load  
+ LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw del_chunk DEL_CHUNK 
+load LOAD 
+del 
+SW 
+sw DEL
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load SW 
+LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw GEN 
+SW 
+sw SW 
+sw load load38 LOAD38
+SW 
+LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw ntile SW 
+sw SW 
+sw SW 
+sw load load45 LOAD45
+LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw ntile SW 
+sw SW 
+sw load load46 LOAD46
+LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw ntile SW 
+sw SW 
+sw load load47 LOAD47
+LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw ntile SW 
+sw SW 
+sw load load48 LOAD48
+SW 
+sw LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw ntile load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load load49 LOAD49
+SW 
+sw LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw ntile NTILE
+gen SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+load LOAD 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+GEN 
+SW 
+sw load load50 LOAD50
+SW 
+LOAD 
+sw SW 
+sw load LOAD 
+ntile NTILE
+gen SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw cle CLE 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+GEN 
+load load51 LOAD51
+SW 
+sw LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw ntile NTILE
+gen SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw GEN 
+load load52 LOAD52
+SW 
+sw LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw ntile NTILE
+gen load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+del_chunk DEL_CHUNK 
+del_chunk DEL_CHUNK 
+del 
+del 
+sw SW 
+sw DEL
+load LOAD 
+SW 
+sw SW 
+sw del_chunk DEL_CHUNK 
+load LOAD 
+del 
+SW 
+sw del_chunk DEL_CHUNK 
+del 
+load LOAD 
+SW 
+sw SW 
+sw DEL
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw GEN 
+SW 
+sw load load9 LOAD9
+LOAD 
+SW 
+sw load LOAD 
+SW 
+sw ntile NTILE
+gen load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw DEL
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw DEL
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load 
+LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+cle CLE 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw cle CLE 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load SW 
+LOAD 
+sw GEN 
+SW 
+sw SW 
+sw SW 
+load load12 LOAD12
+sw SW 
+sw LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw ntile NTILE
+gen SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw load LOAD 
+SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+cle CLE 
+sw load LOAD 
+SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw load LOAD 
+SW 
+sw SW 
+sw SW 
+sw SW 
+load LOAD 
+sw SW 
+sw SW 
+sw del_chunk DEL_CHUNK 
+D27
+AD3
+ 
+sw del_chunk DEL_CHUNK 
+D27
+AD3
+ 
+del 
+DEL
+SW 
+sw load LOAD 
+del 
+SW 
+sw cle CLE 
+SW 
+sw cle CLE 
+del_chunk DEL_CHUNK 
+cle CLE 
+SW 
+sw cle CLE 
+load LOAD 
+del 
+cle CLE 
+SW 
+sw cle CLE 
+SW 
