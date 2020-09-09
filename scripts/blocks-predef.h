@@ -51,13 +51,13 @@ class Block: public Collider { public:
     Block(int x, int y, int z, int newscale, Chunk* newparent);
     void world_to_local(int x, int y, int z, int* lx, int* ly, int* lz) const;
     void global_position(int*, int*, int*) const;
-    virtual void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null) = 0;
+    virtual void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield) = 0;
     virtual void rotate(int axis, int direction) = 0;
     virtual bool is_air(int, int, int, char otherval = -1) const = 0;
     virtual Block * get_global(int,int,int,int) = 0;
     virtual void render_update() = 0;
     virtual void set_all_render_flags() = 0;
-    virtual void save_to_file(ostream&) = 0;
+    virtual void save_to_file(ostream&, bool yield = false) = 0;
     virtual void lighting_update() = 0;
     Block* raycast(Collider* world, double* x, double* y, double* z, double dx, double dy, double dz, double time);
     Block* get_world();
@@ -118,7 +118,7 @@ public:
     void lighting_update();
     bool is_air(int dx, int dy, int dz, char otherval = -1) const;
     Block* get_global(int x, int y, int z, int scale);
-    void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null);
+    void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
     Chunk* subdivide();
     // splits the pixel into a chunk with 8 pixels of the
     // same value in it
@@ -129,13 +129,13 @@ public:
     // into the parent. if this pixel has no parent it is up
     // to the function caller to properly replace the pixel
     // with the chunk
-    Chunk* resolve();
+    Chunk* resolve(bool yield = false);
     // defines the chunk based on the function, like subdivide
     // but doesn't force one division
     // if the pixel is divided a chunk will be returned and
     // the parent will be altered. if the pixel is not divided,
     // a nullptr is returned
-    void save_to_file(ostream& of);
+    void save_to_file(ostream& of, bool yield = false);
 };
 
 class Chunk: public Block { public:
@@ -154,13 +154,13 @@ class Chunk: public Block { public:
     void all_side(function<void(Pixel*)>,int,int,int);
     int get_sunlight(int dx, int dy, int dz);
     int get_blocklight(int dx, int dy, int dz);
-    void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null);
+    void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
     void del(bool remove_faces);
     void render_update();
     void rotate(int axis, int dir);
     Block* get_global(int x, int y, int z, int nscale);
     bool is_air(int dx, int dy, int dz, char otherval = -1) const;
-    void save_to_file(ostream& of);
+    void save_to_file(ostream& of, bool yield = false);
 };
 
 

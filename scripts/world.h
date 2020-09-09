@@ -219,7 +219,11 @@ void World::save_groups() {
 }
 
 void World::spawn_player() {
-  player = new Player(this, vec3(10,loader.get_height(ivec2(10,10))+7,10));
+  ivec3 spawnpos(10,loader.get_height(ivec2(10,10))+4,10);
+  while (loader.gen_func(spawnpos) != 0) {
+    spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
+  }
+  player = new Player(this, vec3(spawnpos));
   player->spectator = false;
   player->autojump = true;
   player->health = 10;
@@ -236,7 +240,7 @@ void World::set_player_vars() {
 }
 
 void World::load_nearby_chunks() {
-  dfile << "load ";
+  // dfile << "load ";
   if (!player->spectator) {
     int px = player->position.x/chunksize - (player->position.x<0);
     int py = player->position.y/chunksize - (player->position.y<0);
@@ -291,7 +295,7 @@ void World::load_nearby_chunks() {
     //}
   }
   get_async_loaded_chunks();
-  dfile << "LOAD " << endl;
+  // dfile << "LOAD " << endl;
 }
 
 void World::get_async_loaded_chunks() {
@@ -302,10 +306,9 @@ void World::get_async_loaded_chunks() {
       
       for (int i = 0; i < tiles.size(); i ++) {
         if (tiles[i] == nullptr) {
-          cout << "loaded tile " << i << endl;
-          dfile << "load" << i << ' ';
+          // dfile << "load" << i << ' ';
           tiles[i] = tile;
-          dfile << "LOAD" << i << endl;
+          // dfile << "LOAD" << i << endl;
           break;
         }
       }
@@ -506,7 +509,7 @@ void World::render() {
     if (glvecs.clean_flag or transparent_glvecs.clean_flag or changed) {
       glvecs.clean();
       //cout << "changed" << endl;
-      //transparent_glvecs.clean();
+      transparent_glvecs.clean();
       //if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
         //int before = clock();
         glFinish();
@@ -534,7 +537,7 @@ Tile* World::tileat(ivec3 pos) {
 
 Block* World::get_global(int x, int y, int z, int scale) {
     //cout << "world::get global(" << x << ' ' << y << ' ' << z << ' ' << scale << endl;
-    //dfile << "gg ";
+    //// dfile << "gg ";
     int px = x/chunksize;
     int py = y/chunksize;
     int pz = z/chunksize;
@@ -562,10 +565,10 @@ Block* World::get_global(int x, int y, int z, int scale) {
     Tile* tile = tileat(pos);
     if (tile != nullptr) {
       Block* result = tile->chunk->get_global(ox, oy, oz, scale);
-      //dfile << "GG " << endl;
+      //// dfile << "GG " << endl;
       return result;
     }
-    //dfile << "GG2 " << endl;
+    //// dfile << "GG2 " << endl;
     // if (foundkv->second != nullptr and !foundkv->second->deleting) {
     //   return foundkv->second->chunk->get_global(ox, oy, oz, scale);
     // }
@@ -686,9 +689,9 @@ void World::del_chunk(ivec3 pos, bool remove_faces) {
     tile->deleting = true;
     for (int i = 0; i < tiles.size(); i ++) {
       if (tiles[i] != nullptr and tiles[i]->pos == pos) {
-        dfile << "del_chunk ";
+        // dfile << "del_chunk ";
         tiles[i] = nullptr;
-        dfile << "DEL_CHUNK " << endl;
+        // dfile << "DEL_CHUNK " << endl;
         break;
       }
     }
@@ -708,9 +711,9 @@ void World::load_chunk(ivec3 pos) {
     //cout << "creating tile " << this << endl;
     for (int i = 0; i < tiles.size(); i++) {
       if (tiles[i] == nullptr) {
-        dfile << "loadc ";
+        // dfile << "loadc ";
         tiles[i] = new Tile(pos, this);
-        dfile << "LOADC " << endl;
+        // dfile << "LOADC " << endl;
         break;
       }
     }

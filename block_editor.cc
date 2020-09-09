@@ -17,26 +17,26 @@ using std::stringstream;
 #include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
 
-#include "../scripts/shader.h"
-#include "../scripts/texture.h"
-#include "../scripts/player.h"
-#include "../scripts/entity.h"
-#include "../scripts/menu.h"
-#include "../scripts/world.h"
-#include "../scripts/blockdata.h"
-#include "../scripts/tiles.h"
-#include "../scripts/blocks.h"
-#include "../scripts/items.h"
-#include "../scripts/crafting.h"
-#include "../scripts/terrain.h"
-#include "../scripts/blockphysics.h"
-#include "../scripts/multithreading.h"
+#include "scripts/shader.h"
+#include "scripts/texture.h"
+#include "scripts/player.h"
+#include "scripts/entity.h"
+#include "scripts/menu.h"
+#include "scripts/world.h"
+#include "scripts/blockdata.h"
+#include "scripts/tiles.h"
+#include "scripts/blocks.h"
+#include "scripts/items.h"
+#include "scripts/crafting.h"
+#include "scripts/terrain.h"
+#include "scripts/blockphysics.h"
+#include "scripts/multithreading.h"
 
-#include "../scripts/cross-platform.h"
-#include "../scripts/mobs.h"
-#include "../scripts/commands.h"
+#include "scripts/cross-platform.h"
+#include "scripts/mobs.h"
+#include "scripts/commands.h"
 
-#include "../scripts/classes.h"
+#include "scripts/classes.h"
 
 int num_blocks;
 int num_uis;
@@ -1064,7 +1064,7 @@ int main( int numargs, const char** args)
 
 
 /*
-All other ../scripts included into this script are considered part of the
+All other scripts included into this script are considered part of the
 game and are under this same license
 
 Copyright 2020 Nicholas Bradley. All rights reserved.

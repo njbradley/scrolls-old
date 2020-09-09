@@ -242,7 +242,7 @@ double Item::collision(Pixel* pix) {
   //cout << "leftover sharp " << leftover_sharp << endl;
 	double score = blockdata->material->material_score(mat);// + leftover_sharp;
 	double multiplier = 1/(1+exp(0.4*score));
-  cout << "multiplier " << multiplier << endl;
+  //cout << "multiplier " << multiplier << endl;
   
   double block_damage = (mat_collision * multiplier) / blockdata->material->toughness;
   double item_damage = 1-multiplier;

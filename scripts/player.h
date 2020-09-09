@@ -111,7 +111,7 @@ void Player::set_block_breaking_vecs(Pixel* pixref, ivec3 hitpos, int level) {
 	pix.parent->global_position(&pgx, &pgy, &pgz);
 	bool faces[] = {true,true,true,true,true,true};
 	MemVecs vecs;
-	pix.render(&vecs, &vecs, world, pgx, pgy, pgz, 1, faces, false);
+	pix.render(&vecs, &vecs, world, pgx, pgy, pgz, 1, faces, false, false);
 	for (int i = 0; i < vecs.num_verts; i ++) {
 		if (vecs.verts[i*3+0] > gx) {
 			vecs.verts[i*3+0] = hitpos.x + 1.01;
@@ -563,7 +563,7 @@ void Player::left_mouse(double deltatime) {
 			inven.make_single(selitem);
 		}
 		break_progress += item->collision(pix);
-		cout << break_progress << endl;
+		//cout << break_progress << endl;
 		
 		
 		if (true and break_progress >= 1) {

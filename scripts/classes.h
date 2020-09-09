@@ -48,7 +48,8 @@ struct ivec3_hash {
 	}
 };
 
-ofstream dfile("debug.txt");
+//ofstream dfile("debug.txt");
+int dloc = -69;
 
 ////////////////// CLASSES ///////////////////////////
 class Block;

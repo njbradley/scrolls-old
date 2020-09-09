@@ -857,25 +857,25 @@ int main( void )
 		
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		// //glDisable(GL_CULL_FACE);
-		//
-		// for (int i = 0; i < num_blocks; i ++) {
-	 	// 	ids[i] = i;
-		//  	glActiveTexture(GL_TEXTURE0+i);
-		//  	glBindTexture(GL_TEXTURE_2D_ARRAY, transparent_block_textures[i]);
-		// }
-		//
-		// glUniform1iv(TextureID, num_blocks, ids);
-		//
-		//
-		// glDrawArrays(GL_TRIANGLES, world->transparent_glvecs.offset, world->transparent_glvecs.num_verts);
-		//
-		//
-		// glDisableVertexAttribArray(0);
-		// glDisableVertexAttribArray(1);
-		// glDisableVertexAttribArray(2);
-		// glDisableVertexAttribArray(3);
-		//
+		//glDisable(GL_CULL_FACE);
+		
+		for (int i = 0; i < num_blocks; i ++) {
+	 		ids[i] = i;
+		 	glActiveTexture(GL_TEXTURE0+i);
+		 	glBindTexture(GL_TEXTURE_2D_ARRAY, transparent_block_textures[i]);
+		}
+		
+		glUniform1iv(TextureID, num_blocks, ids);
+		
+		
+		glDrawArrays(GL_TRIANGLES, world->transparent_glvecs.offset, world->transparent_glvecs.num_verts);
+		
+		
+		glDisableVertexAttribArray(0);
+		glDisableVertexAttribArray(1);
+		glDisableVertexAttribArray(2);
+		glDisableVertexAttribArray(3);
+		
 		
 		glDisable(GL_DEPTH_TEST);
 		glDepthMask(GL_FALSE);
@@ -1032,9 +1032,9 @@ int main( void )
 		}
 		
 		begin = glfwGetTime();
-		dfile << "sw ";
+		// dfile << "sw ";
 		glfwSwapBuffers(window);
-		dfile << "SW " << endl;
+		// dfile << "SW " << endl;
 		glfwPollEvents();
 		time = glfwGetTime() - begin;
 		if (dologtime and time > 0.001) {

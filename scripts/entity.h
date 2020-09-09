@@ -224,8 +224,8 @@ void Entity::calc_constraints() {
           }
           
           if (!constraint) {
-            neg = floor( rel_pos + newbox1 - axis_gap );
-            pos = ceil( rel_pos + newbox2 + axis_gap );
+            neg = floor( rel_pos + newbox1 - axis_gap*1.4f );
+            pos = ceil( rel_pos + newbox2 + axis_gap*1.4f );
             neg2 = neg*dir + pos*coords;
             
             for (int x = (int)neg.x; x < neg2.x+1; x ++) {
@@ -234,7 +234,7 @@ void Entity::calc_constraints() {
                   Block* floor = collider->get_global(x,y,z,1);
                   if (is_solid_block(floor)) {
                     Block* above = collider->get_global(x,y+1,z,1);
-                    if (is_solid_block(floor)) {
+                    if (!is_solid_block(above)) {
                       constraint = true;
                     }
                   }
@@ -564,7 +564,7 @@ void Entity::drag(bool do_drag, float deltaTime) {
       vel *= water_drag;
     }
     if (do_drag) {
-        float ground_drag = 1-20*deltaTime;
+        float ground_drag = 1-10*deltaTime;
         float side_drag = 1-3*deltaTime;
         if (ground_drag < 0) {
           ground_drag = 0;
@@ -661,7 +661,7 @@ void DisplayEntity::render(RenderVecs* allvecs) {
       pix->sunlight = lightmax;
     });
     bool faces[] = {true,true,true,true,true,true};
-    block.block->render(&vecs, &vecs, &block, 0, 0, 0, 1, faces, true);
+    block.block->render(&vecs, &vecs, &block, 0, 0, 0, 1, faces, true, false);
     for (int i = 0; i < vecs.num_verts; i++) {
       vecs.verts[i*3+0] += blockpos.x;
       vecs.verts[i*3+1] += blockpos.y;

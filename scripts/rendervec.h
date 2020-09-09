@@ -78,13 +78,13 @@ void GLVecs::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, in
     matbuffer = mats;
     size_alloc = start_size;
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-    glBufferData(GL_ARRAY_BUFFER, start_size*3*sizeof(GLfloat), NULL, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, start_size*3*sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-    glBufferData(GL_ARRAY_BUFFER, start_size*2*sizeof(GLfloat), NULL, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, start_size*2*sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-    glBufferData(GL_ARRAY_BUFFER, start_size*2*sizeof(GLfloat), NULL, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, start_size*2*sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
-    glBufferData(GL_ARRAY_BUFFER, start_size*2*sizeof(GLint), NULL, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, start_size*2*sizeof(GLint), NULL, GL_DYNAMIC_DRAW);
     
     //cout << "err: " << std::hex << glGetError() << std::dec << endl;
 }
@@ -154,7 +154,11 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
   }
 }
 
+
 void GLVecs::del(pair<int,int> index) {
+  if (index.first == -1) {
+    cout << "found " << endl;
+  }
   if (writelock.try_lock_for(std::chrono::seconds(1))) {
     //cout << 142 << endl;
     if (index.first < -1) {
@@ -227,13 +231,16 @@ void GLVecs::del(pair<int,int> index) {
   }
 }
 
+
 void GLVecs::clean() {
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {
     //cout << 207 << endl;
     //int start = clock();
   if (clean_flag) {
     clean_flag = false;
-    dfile << "cle ";
+    // cout << "cle" << offset << endl;
+    // cout << empty.size() << endl;
+    
 		int max = 0;
     for (pair<int,int> index : empty) {
 			if (index.second*6 > max) {
@@ -246,6 +253,11 @@ void GLVecs::clean() {
       int start = index.first*6 + offset;
       int size = index.second*6;
       if (writelock.try_lock_for(std::chrono::seconds(1))) {
+        if (size > max) {
+          zerosf.resize(size*3, 1.92f);
+          zerosi.resize(size*2, 0);
+          max = size;
+        }
         glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
         glBufferSubData(GL_ARRAY_BUFFER, start*3*sizeof(GLfloat), size*3*sizeof(GLfloat), &zerosf.front());
         glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
@@ -257,7 +269,7 @@ void GLVecs::clean() {
         writelock.unlock();
       }
     }
-    dfile << "CLE " << endl;
+    // cout << "CLE" << offset << endl;
   }
   //  writelock.unlock();
     // int all = clock() - start;

@@ -11,7 +11,7 @@
 Block* Tile::generate(ivec3 pos) {
   Pixel* pix = new Pixel(pos.x,pos.y,pos.z,0,chunksize,nullptr,this);
   if (world->generation) {
-    Chunk* chunk = pix->resolve();
+    Chunk* chunk = pix->resolve(true);
   	if (chunk == nullptr) {
   		return pix;
   	} else {
@@ -96,7 +96,7 @@ void Tile::render(GLVecs* glvecs, GLVecs* transvecs) {
       }
       //cout << world << endl;
       chunk->lighting_update();
-      chunk->render(glvecs, transvecs, world, 0, 0, 0, render_depth, render_faces, false);
+      chunk->render(glvecs, transvecs, world, 0, 0, 0, render_depth, render_faces, false, true);
     }
     deletelock.unlock_shared();
   }
@@ -113,7 +113,7 @@ void Tile::save() {
     }
   }
   ofstream ofile(path.str(), ios::binary);
-  chunk->save_to_file(ofile);
+  chunk->save_to_file(ofile, true);
   ofile << endl << entities.size() << endl;
   for (DisplayEntity* e : entities) {
     //cout << "entity " << e << " saving pos:";
@@ -192,7 +192,7 @@ void Tile::drop_ticks() {
 
 Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize), deleting(false) {
 	//if (writelock.try_lock_for(std::chrono::seconds(1))) {
-    dfile << "ntile ";
+    // dfile << "ntile ";
     if (world == nullptr) {
       cout << "error world is null" << endl;
       exit(1);
@@ -215,9 +215,9 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
         }
   	} else {
   			//cout << "generating '" << path.str() << "'\n";
-        dfile << "NTILE" << endl << "gen ";
+        // dfile << "NTILE" << endl << "gen ";
   			chunk = generate(pos);
-        dfile << "GEN " << endl;
+        // dfile << "GEN " << endl;
   			//return load_chunk(pos);
   			//chunk = generate(pos);
   	}
@@ -239,7 +239,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
 void Tile::del(bool remove_faces) {
   //cout << "start of deleting tile ";
   deletelock.lock();
-  dfile << "del " << endl;
+  // dfile << "del " << endl;
   deleting = true;
   for (DisplayEntity* entity : entities) {
     // cout << "deleting tile del entitiy " << entity << endl;
@@ -247,7 +247,7 @@ void Tile::del(bool remove_faces) {
   }
   chunk->del(remove_faces);
   delete chunk;
-  dfile << "DEL" << endl;
+  // dfile << "DEL" << endl;
   deletelock.unlock();
 }
 

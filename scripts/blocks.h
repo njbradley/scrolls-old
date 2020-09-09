@@ -142,6 +142,7 @@ Block* Block::raycast(Collider* this_world, double* x, double* y, double* z, dou
 Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent, Tile* tile) {
     char c;
     ifile.read(&c,1);
+    std::this_thread::yield();
     if (c == '{') {
         Chunk* chunk = new Chunk(px, py, pz, scale, parent);
         for (int x = 0; x < csize; x ++) {
@@ -418,7 +419,7 @@ void Pixel::set_all_render_flags() {
 void Pixel::del(bool remove_faces) {
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);
-    if (remove_faces and tile != nullptr) {
+    if (remove_faces and tile != nullptr and render_index.first != -1) {
       if (render_transparent) {
         tile->world->transparent_glvecs.del(render_index);
       } else {
@@ -775,7 +776,7 @@ void Pixel::rotate_to_origin(int* mats, int* dirs, int rotation) {
   }
 }
 
-void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collider, int gx, int gy, int gz, int depth, bool faces[6], bool render_null) {
+void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collider, int gx, int gy, int gz, int depth, bool faces[6], bool render_null, bool yield) {
     if (!render_flag) {
         return;
     }
@@ -808,6 +809,9 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collide
       return;
     } else {
       
+      if (yield) {
+        std::this_thread::yield();
+      }
       
       BlockData* blockdata = blocks->blocks[value];
       
@@ -1113,7 +1117,7 @@ Chunk* Pixel::subdivide(function<char(ivec3)> gen_func) {
     return newchunk;
 }
 
-Chunk* Pixel::resolve() {
+Chunk* Pixel::resolve(bool yield) {
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
   ivec3 gpos(gx, gy, gz);
@@ -1121,6 +1125,9 @@ Chunk* Pixel::resolve() {
   char val = world->loader.gen_func(gpos);
   Chunk* chunk = new Chunk(px, py, pz, scale, parent);
   int newscale = scale/csize;
+  if (yield) {
+    std::this_thread::yield();
+  }
   for (int x = 0; x < csize; x ++) {
     for (int y = 0; y < csize; y ++) {
       for (int z = 0; z < csize; z ++) {
@@ -1129,7 +1136,7 @@ Chunk* Pixel::resolve() {
         Pixel* pix = new Pixel(x, y, z, newval, newscale, chunk, tile);
         solid = solid and val == newval;
         if (newscale > 1) {
-          Chunk* result = pix->resolve();
+          Chunk* result = pix->resolve(yield);
           if (result == nullptr) {
             chunk->blocks[x][y][z] = pix;
           } else {
@@ -1183,7 +1190,10 @@ Chunk* Pixel::resolve() {
 //   return nullptr;
 // }
 
-void Pixel::save_to_file(ostream& of) {
+void Pixel::save_to_file(ostream& of, bool yield) {
+    if (yield) {
+      std::this_thread::yield();
+    }
     if (extras == nullptr) {
       if (value != 0 and direction != blocks->blocks[value]->default_direction) {
         of << char(100 + direction);
@@ -1430,14 +1440,14 @@ int Chunk::get_sunlight(int dx, int dy, int dz) {
     }
 }
 
-void Chunk::render(RenderVecs* vecs, RenderVecs* transvecs, Collider* collider, int gx, int gy, int gz, int depth, bool faces[6], bool render_null) {
+void Chunk::render(RenderVecs* vecs, RenderVecs* transvecs, Collider* collider, int gx, int gy, int gz, int depth, bool faces[6], bool render_null, bool yield) {
   if (render_flag) {
     render_flag = false;
     if (depth < scale) {
       for (int x = 0; x < csize; x ++) {
         for (int y = 0; y < csize; y ++) {
           for (int z = 0; z < csize; z ++) {
-            blocks[x][y][z]->render(vecs, transvecs, collider, gx + px*scale, gy + py*scale, gz + pz*scale, depth, faces, render_null);
+            blocks[x][y][z]->render(vecs, transvecs, collider, gx + px*scale, gy + py*scale, gz + pz*scale, depth, faces, render_null, yield);
           }
         }
       }
@@ -1448,13 +1458,13 @@ void Chunk::render(RenderVecs* vecs, RenderVecs* transvecs, Collider* collider, 
           for (int z = 0; z < csize; z ++) {
             if (!chosen and !blocks[x][y][z]->is_air(0,0,0)) {
               if (depth == scale) {
-                blocks[x][y][z]->render(vecs, transvecs, collider, gx + px*scale, gy + py*scale, gz + pz*scale, depth, faces, render_null);
+                blocks[x][y][z]->render(vecs, transvecs, collider, gx + px*scale, gy + py*scale, gz + pz*scale, depth, faces, render_null, yield);
               } else {
-                blocks[x][y][z]->render(vecs, transvecs, collider, gx, gy, gz, depth, faces, render_null);
+                blocks[x][y][z]->render(vecs, transvecs, collider, gx, gy, gz, depth, faces, render_null, yield);
               }
               chosen = true;
             } else {
-              blocks[x][y][z]->render(vecs, transvecs, collider, gx + px*scale, gy + py*scale, gz + pz*scale, -69, faces ,render_null);
+              blocks[x][y][z]->render(vecs, transvecs, collider, gx + px*scale, gy + py*scale, gz + pz*scale, -69, faces ,render_null, yield);
             }
           }
         }
@@ -1561,12 +1571,12 @@ bool Chunk::is_air(int dx, int dy, int dz, char otherval) const {
     return air;
 }
 
-void Chunk::save_to_file(ostream& of) {
+void Chunk::save_to_file(ostream& of, bool yield) {
     of << "{";
     for (int x = 0; x < csize; x ++) {
         for (int y = 0; y < csize; y ++) {
             for (int z = 0; z < csize; z ++) {
-                blocks[x][y][z]->save_to_file(of);
+                blocks[x][y][z]->save_to_file(of, yield);
             }
         }
     }
