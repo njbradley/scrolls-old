@@ -171,14 +171,15 @@ class DissolveGroup: public BlockGroup { public:
 class FluidGroup: public BlockGroup, public PipeInterface { public:
 	int viscosity = 5;
 	int tickclock = 0;
-	double fill_level;
+	unordered_map<ivec3,double,ivec3_hash> fill_levels;
 	FluidGroup(World* nworld, ivec3 starting_pos);
 	FluidGroup(World* nworld, istream& ifile);
-	virtual void find_group();
+	//virtual void find_group();
 	void add_block(ivec3 pos);
 	void del_block(ivec3 pos);
+	void flow_into(ivec3 pos, unordered_map<ivec3,vector<ivec3>,ivec3_hash>& flow_dirs);
 	bool flow(PipeInterface* sender, PipePacket packet);
-	bool flow_block(ivec3 pos);
+	void flow_block(ivec3 pos);
 	virtual bool persistant();
 	virtual void tick();
 };

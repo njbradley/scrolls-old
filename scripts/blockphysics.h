@@ -913,79 +913,15 @@ void DissolveGroup::tick() {
 
 
 FluidGroup::FluidGroup(World* world, ivec3 starting_pos): BlockGroup(world, starting_pos) {
-	fill_level = block_poses.size();
+	for (ivec3 pos : block_poses) {
+		fill_levels[pos] = 1.0;
+	}
 }
 
 FluidGroup::FluidGroup(World* world, istream& ifile): BlockGroup(world, ifile) {
-	fill_level = block_poses.size();
-}
-
-void FluidGroup::find_group() {
-	
-	Block* starting_block = world->get_global(position.x, position.y, position.z, 1);
-	if (starting_block == nullptr or starting_block->get() == 0) {
-		return;
-	}
-	groupname = blocks->blocks[starting_block->get()]->clumpy_group;
-	starting_block->get_pix()->physicsgroup = this;
-	unordered_set<ivec3,ivec3_hash> lastblocks;
-	unordered_set<ivec3,ivec3_hash> newblocks;
-	lastblocks.emplace(position);
-	const ivec3 dir_array[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
-	bool under_size = true;
-	while (lastblocks.size() > 0 and under_size) {
-		//loops until no new blocks or it is over size
-		under_size = block_poses.size() < max_size;
-		
-		for (ivec3 pos : lastblocks) {
-			Pixel* pix = world->get_global(pos.x, pos.y, pos.z, 1)->get_pix();
-			BlockData* data = blocks->blocks[pix->value];
-			for (int i = 0; i < 6; i ++) {
-				if (i == 1 or i == 4) {
-					continue;
-				}
-				ivec3 off = dir_array[i];
-				if (block_poses.find(pos+off) == block_poses.end()) {
-					Block* block = world->get_global(pos.x+off.x, pos.y+off.y, pos.z+off.z, 1);
-					if (block != nullptr) {
-						if (block->get() != 0) {
-							Pixel* newpix = block->get_pix();
-							BlockData* newdata = blocks->blocks[newpix->value];
-							bool same = newdata->clumpy_group == data->clumpy_group or newdata->clumpy_group == "all" or data->clumpy_group == "all";
-							if (same and under_size) {
-								newblocks.emplace(pos+off);
-								newpix->physicsgroup = this;
-							} else {
-								consts[i] = true;
-								if (persistant() and newpix->physicsgroup != nullptr and newpix->physicsgroup->persistant()) {
-									neighbors.emplace(newpix->physicsgroup);
-								}
-							}
-						}
-					} else {
-						consts[i] = true;
-					}
-				}
-			}
-		}
-		for (ivec3 pos : lastblocks) {
-			block_poses.emplace(pos);
-		}
-		lastblocks.clear();
-		lastblocks.swap(newblocks);
-	}
 	for (ivec3 pos : block_poses) {
-		for (int axis = 0; axis < 3; axis ++) {
-			if (pos[axis] < position[axis]) {
-				size[axis] += position[axis] - pos[axis];
-				position[axis] = pos[axis];
-			}
-			if (pos[axis] >= position[axis]+size[axis]) {
-				size[axis] = pos[axis] - position[axis] + 1;
-			}
-		}
+		fill_levels[pos] = 1.0;
 	}
-	//exit(1);
 }
 
 void FluidGroup::add_block(ivec3 pos) {
@@ -1004,104 +940,96 @@ bool FluidGroup::persistant() {
 }
 
 bool FluidGroup::flow(PipeInterface* sender, PipePacket packet) {
-	if (block_poses.size() > max_size) {
-		return true;
-	}
-	if (fill_level < block_poses.size()) {
-		fill_level += packet.amount;
-		return true;
-	}
+	
 	return false;
 }
 
-bool FluidGroup::flow_block(ivec3 pos) {
-	bool flowed = false;
-	if (block_poses.count(pos) == 0) {
-		Block* block = world->get_global(pos.x, pos.y, pos.z, 1);
-		if (block != nullptr) {
-			Pixel* pix = block->get_pix();
-			BlockGroup* other = pix->physicsgroup;
-			if (other != nullptr and other->cast_pipe() != nullptr) {
-				if (other->cast_pipe()->flow(this, PipePacket { Item(nullptr), Fluid_water, fill_level / block_poses.size() })) {
-					if (block_poses.size() < max_size) {
-						fill_level -= fill_level / block_poses.size();
-					}
-					flowed = true;
-				}
-			} else if (pix->value == 0) {
-				if (pos.y == position.y) {
-					add_block(pos);
+void FluidGroup::flow_block(ivec3 pos) {
+	
+}
+
+void FluidGroup::flow_into(ivec3 pos, unordered_map<ivec3,vector<ivec3>,ivec3_hash>& flow_dirs) {
+	const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,0,1}};
+	if (flow_dirs[pos].size() > 0) {
+		for (ivec3 dir : dirs) {
+			dir.y *= -1;
+			if (block_poses.count(pos+dir) > 0) {
+				if (flow_dirs[pos+dir].size() == 0) {
+					flow_dirs[pos+dir].push_back(dir*-1);
+					flow_into(pos+dir, flow_dirs);
 				} else {
-					world->set(pos.x, pos.y, pos.z, 7);
-					fill_level -= 1;
+					flow_dirs[pos+dir].push_back(dir*-1);
 				}
-				flowed = true;
 			}
 		}
 	}
-	return flowed;
 }
 
 void FluidGroup::tick() {
 	if (tickclock > viscosity) {
-		const ivec3 dirs2d[] = {{-1,0,0}, {0,0,-1}, {1,0,0}, {0,0,1}};
-		vector<ivec3> deleted_poses;
-		//flow down
-		bool flowed = false;
+		const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,0,1}};
+		unordered_map<ivec3,vector<ivec3>,ivec3_hash> flow_dirs;
+		
 		for (ivec3 pos : block_poses) {
-			if (block_poses.count(pos-ivec3(0,1,0)) == 0) {
-				Block* block = world->get_global(pos.x, pos.y-1, pos.z, 1);
-				if (block != nullptr) {
-					Pixel* pix = block->get_pix();
-					BlockGroup* other = pix->physicsgroup;
-					if (other != nullptr and other->cast_pipe() != nullptr) {
-						if (other->cast_pipe()->flow(this, PipePacket { Item(nullptr), Fluid_water, fill_level / block_poses.size() })) {
-							if (block_poses.size() < max_size) {
-								fill_level -= fill_level / block_poses.size();
-							}
-							flowed = true;
-						}
-					} else if (pix->value == 0) {
-						world->set(pos.x, pos.y-1, pos.z, 7);
-						fill_level -= 1;
-						flowed = true;
+			for (ivec3 dir : dirs) {
+				if (block_poses.count(pos+dir) == 0) {
+					Block* block = world->get_global(pos.x+dir.x, pos.y+dir.y, pos.z+dir.z, 1);
+					if (block != nullptr and block->get_pix()->value == 0) {
+						flow_dirs[pos].push_back(dir);
 					}
 				}
 			}
 		}
-		cout << fill_level << ' ' << flowed << endl;
-		if (!flowed) {
-			vector<ivec3> newposes;
-			for (ivec3 pos : block_poses) {
-				for (ivec3 dir : dirs2d) {
-					if (block_poses.count(pos+dir) == 0) {
-						Block* block = world->get_global(pos.x+dir.x, pos.y+dir.y, pos.z+dir.z, 1);
-						if (block != nullptr) {
-							Pixel* pix = block->get_pix();
-							BlockGroup* other = pix->physicsgroup;
-							if (other != nullptr and other->cast_pipe() != nullptr) {
-								if (other->cast_pipe()->flow(this, PipePacket { Item(nullptr), Fluid_water, fill_level / block_poses.size() })) {
-									if (block_poses.size() < max_size) {
-										fill_level -= fill_level / block_poses.size();
-									}
-									flowed = true;
-								}
-							} else if (pix->value == 0) {
-								newposes.push_back(pos+dir);
-							}
-						}
+		
+		for (ivec3 pos : block_poses) {
+			flow_into(pos, flow_dirs);
+		}
+		
+		unordered_map<ivec3,double,ivec3_hash> new_levels;
+		
+		for (ivec3 pos : block_poses) {
+			new_levels[pos] = 0;
+			bool flow_down = false;
+			if (flow_dirs[pos].size() == 0) {
+				new_levels[pos] = fill_levels[pos];
+			}
+			for (ivec3 dir : flow_dirs[pos]) {
+				if (dir.y == -1) {
+					double total = fill_levels[pos+dir] + fill_levels[pos];
+					if (total > 1) {
+						//new_levels[pos] = total-1;
+						new_levels[pos+dir] = 1;
+					} else {
+						new_levels[pos+dir] = total;
 					}
+					flow_down = true;
+					break;
 				}
 			}
-			
-			for (ivec3 pos : newposes) {
-				add_block(pos);
+			if (!flow_down) {
+				double amount = fill_levels[pos] / flow_dirs[pos].size();
+				for (ivec3 dir : flow_dirs[pos]) {
+					new_levels[pos+dir] = amount;
+				}
 			}
 		}
-		if (fill_level*20 < block_poses.size()) {
-			erase_from_world();
-			block_poses.clear();
+		
+		unordered_map<ivec3,double,ivec3_hash> final_levels;
+		
+		for (pair<ivec3,double> kv : new_levels) {
+			if (kv.second < 0.1) {
+				del_block(kv.first);
+			} else {
+				pair<unordered_set<ivec3,ivec3_hash>::iterator,bool> sucess = block_poses.emplace(kv.first);
+				if (sucess.second) {
+					add_block(kv.first);
+				}
+				final_levels[kv.first] = kv.second;
+			}
 		}
+		
+		fill_levels.swap(final_levels);
+		
 		tickclock = 0;
 	} else {
 		tickclock ++;
