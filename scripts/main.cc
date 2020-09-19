@@ -22,26 +22,27 @@ using std::stringstream;
 #include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
 
-#include "scripts/shader.h"
-#include "scripts/texture.h"
-#include "scripts/player.h"
-#include "scripts/entity.h"
-#include "scripts/menu.h"
-#include "scripts/world.h"
-#include "scripts/blockdata.h"
-#include "scripts/tiles.h"
-#include "scripts/blocks.h"
-#include "scripts/items.h"
-#include "scripts/crafting.h"
-#include "scripts/terrain.h"
-#include "scripts/blockphysics.h"
-#include "scripts/multithreading.h"
-#include "scripts/mobs.h"
-#include "scripts/commands.h"
-#include "scripts/materials.h"
+#include "shader.h"
+#include "texture.h"
+#include "entity.h"
+#include "menu.h"
+#include "world.h"
+#include "blockdata.h"
+#include "tiles.h"
+#include "blocks.h"
+#include "items.h"
+#include "crafting.h"
+#include "terrain.h"
+#include "blockphysics.h"
+#include "multithreading.h"
+#include "mobs.h"
+#include "commands.h"
+#include "materials.h"
+#include "ui.h"
+#include "text.h"
 
 
-#include "scripts/cross-platform.h"
+#include "cross-platform.h"
 
 
 
@@ -76,6 +77,8 @@ bool fullscreen = false;
 
 bool playing = true;
 bool errors = false;
+
+float initialFoV = 110.0f;
 
 void set_display_env(vec3 new_clear_color, int new_view_dist) {
 	clearcolor = new_clear_color;
@@ -257,7 +260,7 @@ void inven_menu() {
 }
 
 void level_select_menu() {
-	worlds.clear();
+	vector<string> worlds;
 	ifstream ifile("saves/saves.txt");
 	string name;
 	while (ifile >> name) {
@@ -572,9 +575,9 @@ int main( void )
 		
 		double begin = glfwGetTime();
 		if (menu == nullptr) {
+			world->player->computeMatricesFromInputs();
 			world->timestep();
 			//test->timestep(world);
-			world->player->computeMatricesFromInputs();
 		}
 		double time = glfwGetTime() - begin;
 		if (dologtime and time > 0.001) {
@@ -594,13 +597,25 @@ int main( void )
 				<< int((world->player->position.x/world->chunksize) - (world->player->position.x<0)) << ' '
 				<< int((world->player->position.y/world->chunksize) - (world->player->position.y<0)) << ' '
 				<< int((world->player->position.z/world->chunksize) - (world->player->position.z<0)) << endl;
-			debugstream << "loaded chunks: " << world->tiles.size() << endl;
+			int loaded_tiles = 0;
+			for (Tile* tile : world->tiles) {
+				loaded_tiles += (tile != nullptr);
+			}
+			debugstream << "loaded tiles: " << loaded_tiles << endl;
 			debugstream << "mobcount: " << world->mobcount << endl;
 			debugstream << "consts: ";
 			for (bool b : world->player->consts) {
-	            debugstream << b << ' ';
-	        }
-	        debugstream << endl;
+	    	debugstream << b << ' ';
+	    }
+	    debugstream << endl << "mats: ";
+			for (Material* mat : world->player->mat_consts) {
+				if (mat == nullptr) {
+					debugstream << "air ";
+				} else {
+					debugstream << mat->name << ' ';
+				}
+			}
+			debugstream << endl;
 			world->glvecs.status(debugstream);
 			world->transparent_glvecs.status(debugstream);
 			debugstream << "------threads-------" << endl;

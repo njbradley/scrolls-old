@@ -1,17 +1,17 @@
 #ifndef CONTROLS
 #define CONTROLS
 
-// Include GLFW
-#include <GLFW/glfw3.h>
+#include "entity.h"
 
-#include "entity-predef.h"
-#include "blocks-predef.h"
-#include "items-predef.h"
-#include "blockdata-predef.h"
-#include "world-predef.h"
-#include "menu-predef.h"
-#include "blockphysics-predef.h"
+#include "blocks.h"
+#include "items.h"
+#include "blockdata.h"
+#include "world.h"
+#include "menu.h"
+#include "blockphysics.h"
 #include "ui.h"
+#include "cross-platform.h"
+#include "text.h"
 
 
 
@@ -24,7 +24,7 @@ float horizontalAngle = 3.14f;
 float verticalAngle = 0.0f;
 // Initial Field of View
 */
-float initialFoV = 110.0f;
+extern float initialFoV;
 
 
 float speed = 80.0f; // 3 units / second
@@ -660,7 +660,7 @@ void Player::computeMatricesFromInputs(){
 		if (camerablock->get() == 7) {
 			set_display_env(vec3(0.2,0.2,0.6), 10);
 		} else {
-			set_display_env(vec3(0.4,0.7,1.0), 200);
+			set_display_env(vec3(0.4,0.7,1.0), 2000000);
 		}
 	}
 	

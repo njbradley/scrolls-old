@@ -1,10 +1,11 @@
-#ifndef CROSS_PLATFORM
-#define CROSS_PLATFORM
+#ifndef CROSS_PLATFORM_PREDEF
+#define CROSS_PLATFORM_PREDEF
 
-#ifdef _WIN32
-#include "win.h"
-#else
-#include "unix.h"
-#endif
+#include "classes.h"
+
+void get_files_folder(string folder, vector<string> * names, string expr);
+void get_files_folder(string folder, vector<string> * names);
+void create_dir(string path);
+void delete_dir(string path);
 
 #endif

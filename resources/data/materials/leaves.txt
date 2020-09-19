@@ -1,4 +1,4 @@
 material leaves {
-	:toughness: 1
-	:elastic: 2
+	:toughness: 0.5
+	:elastic: 3
 }

@@ -1,6 +1,8 @@
 #ifndef COLLIDER_PREDEF
 #define COLLIDER_PREDEF
 
+#include "classes.h"
+
 struct Collider {
   virtual Block * get_global(int x,int y,int z,int scale) = 0;
   // this is a function shared by all classes that hold
