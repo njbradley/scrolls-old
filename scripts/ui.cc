@@ -60,7 +60,7 @@ void draw_image(MemVecs * vecs, string texture, float x, float y, float x_scale,
 }
 
 void draw_icon(MemVecs* vecs, int index, float x, float y, float x_scale, float y_scale) {
-	draw_image_uv(vecs, "icons.bmp", x, y, x_scale, y_scale, index/32.0f, (index+1)/32.0f);
+	draw_image_uv(vecs, "icons.png", x, y, x_scale, y_scale, index/32.0f, (index+1)/32.0f);
 }
 
 #endif

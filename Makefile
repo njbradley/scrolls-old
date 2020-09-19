@@ -5,6 +5,18 @@ LIBS := -lglew32s -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32
 LDFLAGS :=
 OPT := -O3
 
+
+ifeq ($(PLAT),MAC)
+LIBS := -lglfw -framework CoreVideo -framework OpenGL -framework IOKit -lGLEW
+else
+ifeq ($(PLAT),LINUX)
+LIBS := -linux stuff
+else
+LIBS := -lglew32s -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32
+EXESUFFIX :=.exe
+endif
+endif
+
 TARGETS := main
 MAINS := $(addprefix build/, $(addsuffix .o, $(TARGETS)))
 SCRIPTNAMES := blockdata blockphysics blocks classes commands crafting cross-platform entity generative items materials menu mobs multithreading player rendervec shader terrain text texture tiles ui world $(TARGETS)
@@ -28,4 +40,4 @@ $(OBJ): build/%.o : scripts/%.cc $(DEPS)
 # 	$(CXX) -c -o build/$@ scripts/$< $(OPT) $(CXXFLAGS)
 
 $(TARGETS): $(OBJ)
-	$(CXX) -o $@.exe $^ $(OPT) $(CXXFLAGS) $(LIBS) $(LDFLAGS)
+	$(CXX) -o $@$(EXESUFFIX) $^ $(OPT) $(CXXFLAGS) $(LIBS) $(LDFLAGS)
