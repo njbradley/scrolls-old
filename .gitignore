@@ -3,3 +3,4 @@ saves
 command.bat
 dump*.txt
 build/
+.DS_Store

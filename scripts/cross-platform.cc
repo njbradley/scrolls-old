@@ -19,7 +19,7 @@ void get_files_folder(string folder, vector<string> * names, string expr)
         do {
             // read all (real) files in current folder
             // , delete '!' read other 2 default folder . and ..
-            if(! (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ) {
+            if(! (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
                 names->push_back(fd.cFileName);
             }
         }while(::FindNextFile(hFind, &fd));
@@ -67,7 +67,7 @@ void get_files_folder(string folder, vector<string> * names)
     struct dirent * dp;
     while ((dp = readdir(dirp)) != NULL) {
         string dir_name(dp->d_name);
-        if (dir_name != "." and dir_name != "..") {
+        if (dir_name != "." and dir_name != ".." and dir_name != ".DS_Store") {
             filenames.insert(dp->d_name);
         }
     }
