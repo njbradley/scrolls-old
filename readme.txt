@@ -11,11 +11,9 @@ To compile scrolls, you will need a c++14 compatable compiler, and the libraries
 On windows, most of these libraries can be downloaded in precomplied states, and only glfw, glew and boost need libraries,
 the rest are header only. I use Mingw for compiling, which works well.
 On mac and linux, the libraries can be installed with atp-get or brew.
-Before you compile the scripts, open the file scripts/cross-platform.h. If you are on windows, comment out the unix include statement
-and leave the win.h include. If you are on mac or linux, do the opposite.
-The compile command is rather simple, you just compile main.cc into main.exe.
-My windows command is:
-g++ main.cc -o main.exe -O3 -std=c++14 -lglew32s -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32 -lWs2_32 -lboost_system-mt-x64 -DGLEW_STATIC
+The compile command is rather simple with make, run the command "make main" in the
+root directory. on windows with mingw the command is "mingw32-make main" but otherwise
+it is the same.
 Thats it! now you should have an executable! However, it has to be kept with the resources folder wherever you run it.
 
 Playing the game:
@@ -76,5 +74,5 @@ Version 0.2:
  -trees!
  -lots of bugs from the multithreading
 
-Version 0.1: 
+Version 0.1:
  Right now the game is barely in a playable state, only the base features are in place.
