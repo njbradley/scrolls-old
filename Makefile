@@ -10,7 +10,7 @@ ifeq ($(PLAT),MAC)
 LIBS := -lglfw -framework CoreVideo -framework OpenGL -framework IOKit -lGLEW
 else
 ifeq ($(PLAT),LINUX)
-LIBS := -linux stuff
+LIBS := -lGLEW -lGL -pthread -lglfw
 else
 LIBS := -lglew32s -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32
 EXESUFFIX :=.exe
