@@ -19,7 +19,7 @@ void get_files_folder(string folder, vector<string> * names, string expr)
         do {
             // read all (real) files in current folder
             // , delete '!' read other 2 default folder . and ..
-            if(! (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            if(! (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
                 names->push_back(fd.cFileName);
             }
         }while(::FindNextFile(hFind, &fd));

@@ -436,6 +436,8 @@ template <> CommandFunc<void> Command::get_method<void>(istream& ifile, string i
 		return parse_func<void>(ifile, program->printv3.templ, program->printv3);
 	} else if (id == "killall") {
 		return parse_func<void>(ifile, program->killall.templ, program->killall);
+	} else if (id == "me.give") {
+		return parse_func<void>(ifile, program->give.templ, program->give);
 	} else {
 		*program->errout << "ERR: no method by the name of '" << id << "'" << endl;
 		program->error = true;
@@ -552,6 +554,9 @@ killall([] (Program* program) {
 	for (Tile* tile : loop) {
 		tile->entities.clear();
 	}
+}),
+give([] (Program* program, string item, int amount) {
+	program->world->player->inven.add(ItemStack(Item(itemstorage->items[item]), amount));
 }),
 doublevars({
 	{"world.time", CommandVar<double>(&world->daytime)},

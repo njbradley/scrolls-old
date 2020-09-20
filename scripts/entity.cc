@@ -576,7 +576,7 @@ void Entity::move(vec3 change, float deltaTime) {
                   if (component.x + component.y + component.z > 30) {
                     bounce = reflection * component * -0.5f;
                   }
-                  cout << reflection << ' ' << bounce.x << ' ' << bounce.y << ' ' << bounce.z << ' ' << component.x + component.y + component.z << endl;
+                  //cout << reflection << ' ' << bounce.x << ' ' << bounce.y << ' ' << bounce.z << ' ' << component.x + component.y + component.z << endl;
                 }
                 vel = vel-component * dir + bounce * dir;
                 fall_damage((component.x + component.y + component.z), (1 - reflection));
