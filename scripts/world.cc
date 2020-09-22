@@ -177,6 +177,7 @@ void World::startup() {
     }
     lighting_flag = true;
     cout << "loading chunks from file" << endl;
+    gen_start_time = glfwGetTime();
     load_nearby_chunks();
     load_groups();
 }
@@ -248,6 +249,9 @@ void World::set_player_vars() {
 void World::load_nearby_chunks() {
   // dfile << "load ";
   if (!player->spectator) {
+    
+    bool loaded_chunks = false;
+    
     int px = player->position.x/chunksize - (player->position.x<0);
     int py = player->position.y/chunksize - (player->position.y<0);
     int pz = player->position.z/chunksize - (player->position.z<0);
@@ -272,6 +276,7 @@ void World::load_nearby_chunks() {
                 ivec3 pos(x,y,z);
                 if (tileat(pos) == nullptr and std::find(loading_chunks.begin(), loading_chunks.end(), pos) == loading_chunks.end()) {
                   //load_chunk(ivec3(x,y,z));
+                  loaded_chunks = true;
                   if (threadmanager->add_loading_job(pos)) {
                     loading_chunks.push_back(pos);
                   }
@@ -299,6 +304,10 @@ void World::load_nearby_chunks() {
       }
     //  tiles_lock.unlock();
     //}
+    if (!loaded_chunks and initial_generation) {
+      cout << "Initial generation finished: " << glfwGetTime() - gen_start_time << 's' << endl;
+      initial_generation = false;
+    }
   }
   get_async_loaded_chunks();
   // dfile << "LOAD " << endl;
@@ -396,7 +405,7 @@ void World::tick() {
   //cout << "world tick" << endl;
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {
   
-    world->load_nearby_chunks();
+    //world->load_nearby_chunks();
     for (ivec3 pos : block_updates) {
       Pixel* pix = get_global(pos.x, pos.y, pos.z, 1)->get_pix();
       BlockGroup* group = pix->physicsgroup;
@@ -488,7 +497,7 @@ void World::light_update(int x, int y, int z) {
   light_updates.emplace(ivec3(x,y,z));
 }
 
-void World::render() {
+bool World::render() {
     if (lighting_flag) {
       //update_lighting();
       lighting_flag = false;
@@ -522,7 +531,9 @@ void World::render() {
         //cout << "glfinish time " << clock() - before << endl;
         //glvecs.writelock.unlock();
       //}
+      return true;
     }
+    return false;
 }
 
 void World::update_lighting() {

@@ -30,8 +30,9 @@ class TerrainObject {
 public:
 	ivec3 size;
 	int radius;
+	int unique_seed;
 	TerrainLoader* parent;
-	TerrainObject(TerrainLoader* loader, ivec3 nsize, int nradius);
+	TerrainObject(TerrainLoader* loader, ivec3 nsize, int nradius, int new_unique_seed);
 	virtual char gen_func(ivec3,ivec3) = 0;
 	virtual ivec3 get_nearest(ivec3);
 	virtual int priority() = 0;
@@ -64,7 +65,17 @@ public:
 	int get_height(ivec2 pos);
 	char gen_func(ivec3);
 };
-	
+
+class Flatworld: public TerrainBase { public:
+	char block;
+	int height;
+	Flatworld(TerrainLoader* newparent, char newblock, int newheight);
+	virtual int get_height(ivec2 pos);
+	virtual char gen_func(ivec3 pos);
+	virtual double valid_score(double wetness, double temp, double elev);
+	virtual string name();
+};
+
 class Plains: public TerrainBase { public:
 	Plains(TerrainLoader* newparent);
 	virtual int get_height(ivec2 pos);
@@ -91,7 +102,7 @@ class Mountains: public TerrainBase { public:
 
 class Tree: public TerrainObject {
 public:
-	Tree(TerrainObjectMerger*);
+	Tree(TerrainObjectMerger*, int uid = 0);
 	char gen_func(ivec3,ivec3);
 	ivec3 get_nearest(ivec3);
 	int priority();
@@ -100,7 +111,7 @@ public:
 
 class TallTree: public TerrainObject {
 public:
-	TallTree(TerrainObjectMerger*);
+	TallTree(TerrainObjectMerger*, int uid = 0);
 	char gen_func(ivec3,ivec3);
 	ivec3 get_nearest(ivec3);
 	int priority();
@@ -109,7 +120,7 @@ public:
 
 class BigTree: public TerrainObject {
 public:
-	BigTree(TerrainObjectMerger*);
+	BigTree(TerrainObjectMerger*, int uid = 0);
 	char gen_func(ivec3,ivec3);
 	ivec3 get_nearest(ivec3);
 	int priority();
@@ -118,7 +129,7 @@ public:
 
 class Cave: public TerrainObject {
 public:
-	Cave(TerrainObjectMerger*);
+	Cave(TerrainObjectMerger*, int uid = 0);
 	char gen_func(ivec3,ivec3);
 	ivec3 get_nearest(ivec3);
 	int priority();
@@ -130,7 +141,7 @@ public:
 	char* data;
 	int priority_level;
 	unordered_set<string> biomes;
-	FileTerrain(TerrainObjectMerger*, string path);
+	FileTerrain(TerrainObjectMerger*, string path, int uid = 0);
 	~FileTerrain();
 	char gen_func(ivec3,ivec3);
 	ivec3 get_nearest(ivec3);

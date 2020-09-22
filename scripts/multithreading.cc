@@ -126,15 +126,16 @@ void LoadingThread::operator()() {
 	while (parent->load_running[index]) {
 		//cout << parent->loading[index] << endl;
 		
-		if (world != nullptr) {
-			if (parent->loading[index] != nullptr and parent->loading[index]->lock.try_lock_for(std::chrono::seconds(1))) {
+		if (world != nullptr and parent->loading[index] != nullptr and parent->loading[index]->complete == false) {
+				parent->loading[index]->lock.lock();
 				//cout << parent->loading[index] << endl;
 				parent->loading[index]->result = new Tile(parent->loading[index]->pos, world);
 				parent->loading[index]->complete = true;
 				parent->loading[index]->lock.unlock();
-			}
+				std::this_thread::sleep_for(std::chrono::milliseconds(20));
+		} else {
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		//cout << "hello from thread " << index << endl;
 	}
 	cout << "loading thread " << index << " exited" << endl;
@@ -152,8 +153,9 @@ void DeletingThread::operator()() {
 			world->del_chunk(*parent->deleting[index], true);
 			delete parent->deleting[index];
 			parent->deleting[index] = nullptr;
+		} else {
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 	cout << "deleting thread " << index << " exited" << endl;
 }
@@ -168,11 +170,14 @@ RenderingThread::RenderingThread(GLFWwindow* nwindow, ThreadManager* newparent):
 void RenderingThread::operator()() {
 	glfwMakeContextCurrent(window);
 	while (parent->render_running) {
+		bool wait = true;
 		if (parent->rendering) {
-			world->render();
+			wait = world->render();
 			parent->render_num_verts = world->glvecs.num_verts;
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(2));
+		if (wait) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(2));
+		}
 	}
 	cout << "rendering thread exited" << endl;
 }

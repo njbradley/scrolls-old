@@ -77,6 +77,8 @@ class World: public Collider {
         float sunlight;
         double daytime = 500;
         double last_time;
+        bool initial_generation = true;
+        double gen_start_time;
 				
         static const int chunksize = 64;
         
@@ -93,7 +95,7 @@ class World: public Collider {
         void startup();
         void spawn_player();
         void set_player_vars();
-        void render();
+        bool render();
         void timestep();
         void tick();
         void drop_ticks();

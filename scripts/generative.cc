@@ -53,14 +53,15 @@ double dotGridGradient(int ix, int iy, double x, double y, int seed, int layer) 
 // Compute Perlin noise at coordinates x, y
 double perlin(double x, double y, int seed, int layer) {
     
-    x += INT_MAX/2;
-    y += INT_MAX/2;
+    
+    int x0 = x;
+    int y0 = y;
+    
+    if (x < 0 and x != x0) x0 --;
+    if (y < 0 and y != y0) y0 --;
     
     // Determine grid cell coordinates
-    int x0 = (int)x;
     int x1 = x0 + 1;
-    
-    int y0 = (int)y;
     int y1 = y0 + 1;
     
     
@@ -98,8 +99,80 @@ double get_heightmap(int x, int y, int seed) {
      + scaled_perlin(x,y,4*2,5*2,seed,3) + scaled_perlin(x,y,500,500,seed,4);
 }
 
-void set_seed(int nseed) {
-  //seed = nseed;
+int voronoi2d(double x, double y, int seed, int layer, double threshold) {
+  
+  int ix = x;
+  int iy = y;
+  
+  if (x < 0 and x != ix) ix --;
+  if (y < 0 and y != iy) iy --;
+  
+  double closest;
+  bool first = true;
+  int num_close = 0;
+  int last_hash = 0;
+  
+  for (int offx = -1; offx < 2; offx ++) {
+    for (int offy = -1; offy < 2; offy ++) {
+      double randx = ix + offx + randfloat(seed, ix+offx, iy+offy, layer, 0)*0.8;
+      double randy = iy + offy + randfloat(seed, ix+offx, iy+offy, layer, 1)*0.8;
+      double dist = std::sqrt((randx-x) * (randx-x) + (randy-y) * (randy-y));
+      //dist += perlin(atan2(randy-y, randx-x) * 10, 0, seed, 0) * threshold*2;
+      int new_hash = hash4(seed, int(randx*1000), int(randy*1000), last_hash, 0);
+      if (true) {
+        if (dist <= threshold) {
+          return -1;
+        }
+        if (first or dist < closest - threshold) {
+          closest = dist;
+          num_close = 1;
+          first = false;
+          last_hash = new_hash;
+        } else if (std::abs(dist-closest) <= threshold) {
+          num_close ++;
+        }
+      }
+    }
+  }
+  if (last_hash % 5 == 0) {
+    return 1;
+  }
+  return num_close;
 }
+
+int voronoi3d(double x, double y, double z, int seed, int layer, double threshold) {
+  
+  int ix = x;
+  int iy = y;
+  int iz = z;
+  
+  if (x < 0 and x != ix) ix --;
+  if (y < 0 and y != iy) iy --;
+  if (z < 0 and z != iz) iz --;
+  
+  double closest;
+  bool first = true;
+  int num_close = 0;
+  
+  for (int offx = -1; offx < 2; offx ++) {
+    for (int offy = -1; offy < 2; offy ++) {
+      for (int offz = -1; offz < 2; offz ++) {
+        double randx = ix + offx + randfloat(seed, ix+offx, iy+offy, iz+offz, layer+0);
+        double randy = iy + offy + randfloat(seed, ix+offx, iy+offy, iz+offz, layer+1);
+        double randz = iz + offz + randfloat(seed, ix+offx, iy+offy, iz+offz, layer+2);
+        double dist = std::sqrt((randx-x) * (randx-x) + (randy-y) * (randy-y) + (randz-z) * (randz-z));
+        if (first or dist < closest - threshold) {
+          closest = dist;
+          num_close = 1;
+          first = false;
+        } else if (std::abs(dist-closest) <= threshold) {
+          num_close ++;
+        }
+      }
+    }
+  }
+  return num_close;
+}
+
 
 #endif

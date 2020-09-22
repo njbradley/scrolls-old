@@ -132,7 +132,6 @@ GLuint loadBMP_array_folder(string dirpath, bool transparency = false) {
 		exit(1);
 	}
 	int width, height, nrChannels;
-	cout << img_paths[0] << endl;
 	unsigned char* img_data = stbi_load((dirpath + "/" + img_paths[0]).c_str(), &width, &height, &nrChannels, transparency ? 4 : 3);
 	nrChannels = transparency ? 4 : 3;
 	unsigned char* all_data = new unsigned char[width*height*nrChannels*img_paths.size()];
@@ -143,7 +142,6 @@ GLuint loadBMP_array_folder(string dirpath, bool transparency = false) {
 	
 	for (int i = 1; i < img_paths.size(); i ++) {
 		int newwidth, newheight, newnrChannels;
-		cout << img_paths[i] << endl;
 		img_data = stbi_load((dirpath + "/" + img_paths[i]).c_str(), &newwidth, &newheight, &newnrChannels, transparency ? 4 : 3);
 		if (newwidth != width or newheight != newheight) {
 			cout << "error in load_array_folder, image sizes are not the same" << endl;
@@ -207,7 +205,6 @@ GLuint loadBMP_array_custom(const char * imagepath){
   //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
   
 	int num_layers = height / width;
-	cout << "num layers: " << num_layers << endl;
 	
 	// Create one OpenGL texture
 	GLuint textureID;

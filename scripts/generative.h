@@ -10,6 +10,8 @@ double randfloat(int seed, int x, int y, int a, int b);
 double dotGridGradient(int ix, int iy, double x, double y, int seed, int layer);
 // Compute Perlin noise at coordinates x, y
 double perlin(double x, double y, int seed, int layer);
+int voronoi2d(double x, double y, int seed, int layer, double threshold = 0.1);
+int voronoi3d(double x, double y, double z, int seed, int layer, double threshold = 0.1);
 double scaled_perlin(double x, double y, double height, double width, int seed, int layer);
 double get_heightmap(int x, int y, int seed);
 void set_seed(int nseed);

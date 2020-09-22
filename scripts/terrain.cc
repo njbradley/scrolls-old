@@ -86,7 +86,8 @@ string TerrainBaseMerger::name() {
 
 
 
-TerrainObject::TerrainObject(TerrainLoader* loader, ivec3 nsize, int nradius): parent(loader), size(nsize), radius(nradius) {
+TerrainObject::TerrainObject(TerrainLoader* loader, ivec3 nsize, int nradius, int new_unique_seed):
+parent(loader), size(nsize), radius(nradius), unique_seed(loader->seed ^ nsize.x ^ nsize.y ^ nsize.z ^ nradius ^ (new_unique_seed+1)) {
 	
 }
 
@@ -97,7 +98,7 @@ ivec3 TerrainObject::get_nearest(ivec3 pos) {
 ivec3 TerrainObject::get_nearest_3d(ivec3 pos) {
 	ivec3 gap = radius - size;
 	ivec3 rounded = pos/radius - ivec3(pos.x<0, pos.y<0, pos.z<0);
-	int layer = priority();
+	int layer = unique_seed ^ priority();
 	ivec3 offset = ivec3(hash4(parent->seed, rounded.x,rounded.y,rounded.z,layer+1),
 		hash4(parent->seed, rounded.x,rounded.y,rounded.z,layer+2),
 		hash4(parent->seed, rounded.x,rounded.y,rounded.z,layer+3)) % gap;
@@ -109,7 +110,7 @@ ivec2 TerrainObject::get_nearest_2d(ivec2 pos) {
 	ivec2 size2d(size.x, size.z);
 	ivec2 gap = radius - size2d;
 	ivec2 rounded = pos/radius - ivec2(pos.x<0, pos.y<0);
-	int layer = priority();
+	int layer = unique_seed ^ priority();
 	ivec2 offset = ivec2(hash4(parent->seed, rounded.x,rounded.y,layer,1), hash4(parent->seed, rounded.x,rounded.y,layer,2)) % gap;
 	ivec2 nearest = offset - (pos%radius + ivec2(pos.x<0, pos.y<0)*radius);
 	return nearest;
@@ -160,7 +161,7 @@ char TerrainObjectMerger::gen_func(ivec3 pos) {
 
 
 TerrainLoader::TerrainLoader(int nseed): objmerger(this), seed(nseed),
- 	bases({new Mountains(this), new Plains(this)}) {
+ 	bases({new Flatworld(this,char(2),96)}) {//new Mountains(this), new Plains(this)}) {
 	
 }
 
@@ -231,6 +232,7 @@ char TerrainLoader::gen_func(ivec3 pos) {
 	if (val == 0 and pos.y < 96) {
 		return blocks->names["water"];
 	}
+	
 	return val;
 }
 
@@ -267,6 +269,32 @@ double Plains::valid_score(double wetness, double temp, double elev) {
 
 string Plains::name() {
 	return "plains";
+}
+
+
+
+
+
+
+
+Flatworld::Flatworld(TerrainLoader* loader, char newblock, int newheight): TerrainBase(loader), block(newblock), height(newheight) {
+	
+}
+
+int Flatworld::get_height(ivec2 pos) {
+	return height;
+}
+
+char Flatworld::gen_func(ivec3 pos) {
+	return (pos.y <= height) * block;
+}
+
+double Flatworld::valid_score(double wetness, double temp, double elev) {
+	return 1;
+}
+
+string Flatworld::name() {
+	return "flatworld";
 }
 
 
@@ -344,7 +372,7 @@ string Mountains::name() {
 
 
 
-Tree::Tree(TerrainObjectMerger* merger): TerrainObject(merger->parent, ivec3(10,15,10), 20) {
+Tree::Tree(TerrainObjectMerger* merger, int uid): TerrainObject(merger->parent, ivec3(10,15,10), 15, uid) {
 	
 }
 
@@ -358,9 +386,12 @@ char Tree::gen_func(ivec3 offset, ivec3 pos) {
 		}
 		return -1;
 	}
-	if (pos.x == 5 and pos.z == 5 and pos.y < 7) {
+	
+	vec2 trunk_off(perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 3453458)*2, perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 2749245)*2);
+	if (glm::length(vec2(pos.x-5, pos.z-5) - trunk_off) < 2 - (pos.y/10.0) and pos.y < 10) {
 		return blocks->names["bark"];
-	} else if (pos.y > 4 and glm::length(vec3(5,5,5)-vec3(pos)) < 4) {
+	} else if (pos.y > 4 + hash4(parent->seed, offset.x, offset.y, 0, 48935) % 4 and glm::length(vec3(5,8,5)-vec3(pos)) <
+	4 + randfloat(parent->seed, offset.x+pos.x, offset.y+pos.y, offset.z+pos.z, 37482)) {
 		return blocks->names["leaves"];
 	}
 	return -1;
@@ -382,7 +413,7 @@ bool Tree::is_valid(ivec3 pos) {
 
 
 
-TallTree::TallTree(TerrainObjectMerger* merger): TerrainObject(merger->parent, ivec3(20,40,20), 30) {
+TallTree::TallTree(TerrainObjectMerger* merger, int uid): TerrainObject(merger->parent, ivec3(20,40,20), 90, uid) {
 	
 }
 
@@ -417,7 +448,7 @@ bool TallTree::is_valid(ivec3 pos) {
 
 
 
-BigTree::BigTree(TerrainObjectMerger* merger): TerrainObject(merger->parent, ivec3(50,100,50), 1000) {
+BigTree::BigTree(TerrainObjectMerger* merger, int uid): TerrainObject(merger->parent, ivec3(50,100,50), 1000, uid) {
 	
 }
 
@@ -466,7 +497,7 @@ bool BigTree::is_valid(ivec3 pos) {
 
 
 
-Cave::Cave(TerrainObjectMerger* merger): TerrainObject(merger->parent, ivec3(10,10,10), 20) {
+Cave::Cave(TerrainObjectMerger* merger, int uid): TerrainObject(merger->parent, ivec3(10,10,10), 40, uid) {
 	
 }
 
@@ -491,7 +522,7 @@ bool Cave::is_valid(ivec3 pos) {
 
 
 
-FileTerrain::FileTerrain(TerrainObjectMerger* merger, string path): TerrainObject(merger->parent, ivec3(0,0,0), 0) {
+FileTerrain::FileTerrain(TerrainObjectMerger* merger, string path, int uid): TerrainObject(merger->parent, ivec3(0,0,0), 0, uid) {
 	ifstream ifile(path);
 	//cout << "loading terrain object " << path << endl;
 	int scale;
