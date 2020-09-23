@@ -109,5 +109,6 @@ extern World* world;
 extern Menu* menu;
 extern DisplayEntity* debugentity;
 extern Pixel* debugblock;
+extern int num_pixels;
 
 #endif

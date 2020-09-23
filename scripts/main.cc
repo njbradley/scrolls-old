@@ -1184,6 +1184,7 @@ int main( void )
 	if (errors) {
 		wait();
 	} else {
+		cout << "num_pix " << num_pixels << endl;
 		cout << "completed without errors" << endl;
 	}
 	//wait();

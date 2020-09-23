@@ -266,6 +266,12 @@ void World::load_nearby_chunks() {
     //   }
     // }
     //
+    int max_chunks = ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1);
+    int num_chunks = loading_chunks.size();
+    for (Tile* tile : tiles) {
+      num_chunks += (tile != nullptr);
+    }
+    
     if (!closing_world) {
       for (int range = 0; range < maxrange; range ++) {
         for (int x = px-range; x < px+range+1; x ++) {
@@ -274,9 +280,10 @@ void World::load_nearby_chunks() {
               if (x == px-range or x == px+range or y == py-range or y == py+range or z == pz-range or z == pz+range) {
                 //cout << range << ' ' << x << ' ' << y << ' ' << z << endl;
                 ivec3 pos(x,y,z);
-                if (tileat(pos) == nullptr and std::find(loading_chunks.begin(), loading_chunks.end(), pos) == loading_chunks.end()) {
+                if (tileat(pos) == nullptr and num_chunks < max_chunks and std::find(loading_chunks.begin(), loading_chunks.end(), pos) == loading_chunks.end()) {
                   //load_chunk(ivec3(x,y,z));
                   loaded_chunks = true;
+                  num_chunks ++;
                   if (threadmanager->add_loading_job(pos)) {
                     loading_chunks.push_back(pos);
                   }
@@ -290,18 +297,21 @@ void World::load_nearby_chunks() {
     //crash(17658654574687);
     const double max_distance = std::sqrt((maxrange)*(maxrange)*2);
     //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
-      TileLoop loop(this);
-      for (Tile* tile : loop) {
-        ivec3 pos = tile->pos;
-        double distance = std::sqrt((px-pos.x)*(px-pos.x) + (py-pos.y)*(py-pos.y) + (pz-pos.z)*(pz-pos.z));
-        if ((distance > max_distance or closing_world) and std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) == deleting_chunks.end()) {
-          //del_chunk(kv.first, true);
-          if (threadmanager->add_deleting_job(pos)) {
-            deleting_chunks.push_back(pos);
-          }
-          render_flag = true;
+    TileLoop loop(this);
+    for (Tile* tile : loop) {
+      ivec3 pos = tile->pos;
+      int range = maxrange-1;
+      if ((pos.x < px-range or pos.x > px+range or pos.y < py-range or pos.y > py+range or pos.z < pz-range or pos.z > pz+range)
+      and std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) == deleting_chunks.end()) {
+      // double distance = std::sqrt((px-pos.x)*(px-pos.x) + (py-pos.y)*(py-pos.y) + (pz-pos.z)*(pz-pos.z));
+      // if ((distance > max_distance or closing_world) and std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) == deleting_chunks.end()) {
+        //del_chunk(kv.first, true);
+        if (threadmanager->add_deleting_job(pos)) {
+          deleting_chunks.push_back(pos);
         }
+        render_flag = true;
       }
+    }
     //  tiles_lock.unlock();
     //}
     if (!loaded_chunks and initial_generation) {
@@ -505,15 +515,14 @@ bool World::render() {
     bool changed = false;
     TileLoop loop(this);
     double start = glfwGetTime();
+    int i = 0;
     for (Tile* tile : loop) {
-      if (tile == nullptr) {
-        cout << "bad" << endl;
-      }
         changed = changed or tile->chunk->render_flag;
         tile->render(&glvecs, &transparent_glvecs);
-        if (glfwGetTime() - start > 0.05) {
+        if (changed) {
           break;
         }
+        i++;
     }
     for (pair<int,int> render_index : dead_render_indexes) {
       glvecs.del(render_index);

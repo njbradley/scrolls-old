@@ -377,21 +377,28 @@ Tree::Tree(TerrainObjectMerger* merger, int uid): TerrainObject(merger->parent, 
 }
 
 char Tree::gen_func(ivec3 offset, ivec3 pos) {
-	if (parent->get_biome_name(offset) == "mountains") {
-		if (pos.x == 5 and pos.z == 5 and pos.y < 7) {
+	if (parent->get_biome_name(offset) == "mountain" or hash4(parent->seed, offset.x, offset.y, offset.z, 24242) % 20 == 0) {
+		vec2 trunk_off(perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 3453458)*2, perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 27554245)*2);
+		if (glm::length(vec2(pos.x-5, pos.z-5) - trunk_off) < 1.75 - (pos.y/10.0) and pos.y < 10) {
 			return blocks->names["bark"];
-		} else if (pos.y > 3 and glm::length(vec2(pos.x-5,pos.z-5)) + (pos.y-3)/2 <
+		} else if (pos.y > 4 + hash4(parent->seed, offset.x, offset.y, 0, 48935) % 4 and glm::length(vec2(pos.x-5,pos.z-5)) + (pos.y-6)/2 <
 		3+randfloat(parent->seed, offset.x+pos.x, offset.y+pos.y, offset.z+pos.z, 2634928)) {
+			if (hash4(parent->seed, offset.x, offset.y, offset.z, 244562) % 20 == 0) {
+				return -1;
+			}
 			return blocks->names["leaves"];
 		}
 		return -1;
 	}
 	
 	vec2 trunk_off(perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 3453458)*2, perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 2749245)*2);
-	if (glm::length(vec2(pos.x-5, pos.z-5) - trunk_off) < 2 - (pos.y/10.0) and pos.y < 10) {
+	if (glm::length(vec2(pos.x-5, pos.z-5) - trunk_off) < 1.75 - (pos.y/10.0) and pos.y < 10) {
 		return blocks->names["bark"];
 	} else if (pos.y > 4 + hash4(parent->seed, offset.x, offset.y, 0, 48935) % 4 and glm::length(vec3(5,8,5)-vec3(pos)) <
 	4 + randfloat(parent->seed, offset.x+pos.x, offset.y+pos.y, offset.z+pos.z, 37482)) {
+		if (hash4(parent->seed, offset.x, offset.y, offset.z, 242362) % 20 == 0) {
+			return -1;
+		}
 		return blocks->names["leaves"];
 	}
 	return -1;

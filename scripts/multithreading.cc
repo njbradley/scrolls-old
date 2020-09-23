@@ -163,7 +163,7 @@ void DeletingThread::operator()() {
 
 
 RenderingThread::RenderingThread(GLFWwindow* nwindow, ThreadManager* newparent): window(nwindow), parent(newparent) {
-	
+	start_time = glfwGetTime();
 	
 }
 
@@ -172,11 +172,20 @@ void RenderingThread::operator()() {
 	while (parent->render_running) {
 		bool wait = true;
 		if (parent->rendering) {
-			wait = world->render();
+			wait = !world->render();
 			parent->render_num_verts = world->glvecs.num_verts;
 		}
 		if (wait) {
+			if (busy and parent->rendering and world != nullptr and !world->initial_generation) {
+				times ++;
+				if (times > 5) {
+					cout << "rendered done " << glfwGetTime() - start_time << endl;
+					busy = false;
+				}
+			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(2));
+		} else if (busy) {
+			times = 0;
 		}
 	}
 	cout << "rendering thread exited" << endl;

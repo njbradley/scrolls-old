@@ -102,6 +102,7 @@ void Tile::render(GLVecs* glvecs, GLVecs* transvecs) {
     }
     deletelock.unlock_shared();
   }
+  fully_loaded = true;
 }
 
 void Tile::save() {

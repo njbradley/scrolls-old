@@ -68,6 +68,9 @@ public:
 class RenderingThread {
 	ThreadManager* parent;
 	GLFWwindow* window;
+	bool busy = true;
+	int times = 0;
+	double start_time;
 public:
 	RenderingThread(GLFWwindow* window, ThreadManager* newparent);
 	void operator()();

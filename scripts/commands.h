@@ -87,6 +87,7 @@ class Program { public:
 	CommandMethod<ivec3,vec3> vec3toivec3;
 	CommandMethod<void> killall;
 	CommandMethod<void,string,int> give;
+	CommandMethod<void,double,double> tp;
 	Program(World* world, ostream* newout, ostream* newerrout);
 	void parse_lines(istream& ifile);
 	void run();

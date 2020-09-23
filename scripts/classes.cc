@@ -66,4 +66,5 @@ World* world;
 Menu* menu;
 DisplayEntity* debugentity;
 Pixel* debugblock;
+int num_pixels = 0;
 #endif

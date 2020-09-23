@@ -179,6 +179,7 @@ Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile):
   Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(nullptr), physicsgroup(nullptr), tile(ntile), direction(0) {
+    num_pixels++;
     reset_lightlevel();
     generate_extras();
     if (value != 0) {
@@ -188,6 +189,7 @@ Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile, BlockExtra* new_extra):
   Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(new_extra), physicsgroup(nullptr), tile(ntile), direction(0) {
+    num_pixels++;
     reset_lightlevel();
     if (value != 0) {
       direction = blocks->blocks[value]->default_direction;
@@ -447,6 +449,8 @@ void Pixel::lighting_update() {
       next_poses.clear();
     }
     
+    int total = 0;
+    int max_size = 0;
     poses.clear();
     next_poses.clear();
     calculate_sunlight(poses);
@@ -457,6 +461,14 @@ void Pixel::lighting_update() {
       }
       poses.swap(next_poses);
       next_poses.clear();
+      if (max_size < poses.size()) {
+        max_size = poses.size();
+      }
+      next_poses.reserve(poses.size());
+      total += poses.size();
+    }
+    if (total > 100) {
+      //cout << total << ' ' << max_size << endl;
     }
   }
 }
@@ -580,6 +592,9 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
     int newdec = dir.y == 1 ? 0 : decrement;
     int oppdec = dir.y == -1 ? 0 : decrement;
     Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
+    if (block != nullptr and !block->get_pix()->tile->fully_loaded) {
+      block == nullptr;
+    }
     if (block != nullptr) {
       block->all_side([&] (Pixel* pix) {
         if (pix->tile != tile and dir.y == 1 and pix->tile->lightflag) {
@@ -597,6 +612,9 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
   for (ivec3 dir : dirs) {
     int newdec = dir.y == -1 ? 0 : decrement;
     Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
+    if (block != nullptr and !block->get_pix()->tile->fully_loaded) {
+      block == nullptr;
+    }
     if (block != nullptr) {
       block->all_side([&] (Pixel* pix) {
         if (pix->sunlight < sunlight - newdec*scale or (pix->sunlight + newdec*scale == oldsunlight and sunlight < oldsunlight)) {

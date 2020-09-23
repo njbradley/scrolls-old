@@ -20,6 +20,7 @@ class Tile {
 		std::shared_timed_mutex deletelock;
 		bool deleting;
 		bool lightflag = true;
+		bool fully_loaded = false;
 		vector<DisplayEntity*> entities;
 		vector<FallingBlockEntity*> block_entities;
 		Tile(ivec3 position, World* world);
