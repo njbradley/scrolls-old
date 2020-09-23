@@ -1440,7 +1440,7 @@ int Chunk::get_sunlight(int dx, int dy, int dz) {
                     crash(485934759257949384);
                     return -1;
                 }
-                if (blocks[x][y][z]->is_air(dx,dy,dz) or level != 0) {
+                if (blocks[x][y][z]->is_air(dx,dy,dz)) {
                     if (level != 1) {
                       //cout << level << ' ' << x << ' ' << y << ' ' << z << endl;
                     }

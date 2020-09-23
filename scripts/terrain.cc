@@ -116,7 +116,13 @@ ivec2 TerrainObject::get_nearest_2d(ivec2 pos) {
 	return nearest;
 }
 
+int TerrainObject::poshash(ivec3 pos, int myseed) {
+	return hash4(parent->seed, pos.x, pos.y, pos.z, myseed);
+}
 
+double TerrainObject::poshashfloat(ivec3 pos, int myseed) {
+	return randfloat(parent->seed, pos.x, pos.y, pos.z, myseed);
+}
 
 
 
@@ -372,18 +378,18 @@ string Mountains::name() {
 
 
 
-Tree::Tree(TerrainObjectMerger* merger, int uid): TerrainObject(merger->parent, ivec3(10,15,10), 15, uid) {
+Tree::Tree(TerrainObjectMerger* merger, int uid): TerrainObject(merger->parent, ivec3(10,15,10), 15000, uid) {
 	
 }
 
 char Tree::gen_func(ivec3 offset, ivec3 pos) {
-	if (parent->get_biome_name(offset) == "mountain" or hash4(parent->seed, offset.x, offset.y, offset.z, 24242) % 20 == 0) {
+	if (parent->get_biome_name(offset) == "mountain" or poshash(offset, 24242) % 20 == 0) {
 		vec2 trunk_off(perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 3453458)*2, perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 27554245)*2);
 		if (glm::length(vec2(pos.x-5, pos.z-5) - trunk_off) < 1.75 - (pos.y/10.0) and pos.y < 10) {
 			return blocks->names["bark"];
-		} else if (pos.y > 4 + hash4(parent->seed, offset.x, offset.y, 0, 48935) % 4 and glm::length(vec2(pos.x-5,pos.z-5)) + (pos.y-6)/2 <
-		3+randfloat(parent->seed, offset.x+pos.x, offset.y+pos.y, offset.z+pos.z, 2634928)) {
-			if (hash4(parent->seed, offset.x, offset.y, offset.z, 244562) % 20 == 0) {
+		} else if (pos.y > 4 + poshash(offset, 48935) % 4 and glm::length(vec2(pos.x-5,pos.z-5)) + (pos.y-6)/2 <
+		3+poshashfloat(offset+pos, 2634928)) {
+			if (poshash(offset, 244562) % 20 == 0) {
 				return -1;
 			}
 			return blocks->names["leaves"];
@@ -394,9 +400,9 @@ char Tree::gen_func(ivec3 offset, ivec3 pos) {
 	vec2 trunk_off(perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 3453458)*2, perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 2749245)*2);
 	if (glm::length(vec2(pos.x-5, pos.z-5) - trunk_off) < 1.75 - (pos.y/10.0) and pos.y < 10) {
 		return blocks->names["bark"];
-	} else if (pos.y > 4 + hash4(parent->seed, offset.x, offset.y, 0, 48935) % 4 and glm::length(vec3(5,8,5)-vec3(pos)) <
-	4 + randfloat(parent->seed, offset.x+pos.x, offset.y+pos.y, offset.z+pos.z, 37482)) {
-		if (hash4(parent->seed, offset.x, offset.y, offset.z, 242362) % 20 == 0) {
+	} else if (pos.y > 4 + poshash(offset, 48935) % 4 and glm::length(vec3(5,8,5)-vec3(pos)) <
+	4 + poshashfloat(offset+pos, 37482)) {
+		if (poshash(offset, 242362) % 20 == 0) {
 			return -1;
 		}
 		return blocks->names["leaves"];
@@ -425,15 +431,39 @@ TallTree::TallTree(TerrainObjectMerger* merger, int uid): TerrainObject(merger->
 }
 
 char TallTree::gen_func(ivec3 offset, ivec3 pos) {
-	double center_dist = glm::length(vec2(pos.x-10,pos.z-10));
-	int start_leaves = 10 + hash4(parent->seed, offset.x, offset.y, offset.z, 45356) % 10;
-	double leaves_frill = 2*randfloat(parent->seed, offset.x+pos.x, offset.y+pos.y, offset.z+pos.z, 2634928);
-	
-	if (center_dist < 4 - pos.y/40.0 * 4) {
-		return blocks->names["bark"];
-	} else if (pos.y > start_leaves and center_dist + (pos.y-start_leaves)/3 < 8 + leaves_frill) {
-		return blocks->names["leaves"];
+	if (parent->get_biome_name(offset) == "mountains") {
+		double center_dist = glm::length(vec2(pos.x-10,pos.z-10));
+		int start_leaves = 10 + poshash(offset, 45356) % 10;
+		double leaves_frill = 2*poshashfloat(offset+pos, 2634928);
+		vec2 trunk_off(perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 3453458)*2, perlin(pos.y/10.0, offset.x ^ offset.z, parent->seed, 2749245)*2);
+		
+		if (glm::length(vec2(pos.x-10, pos.z-10) - trunk_off) < 4 - pos.y/40.0 * 4) {
+			return blocks->names["bark"];
+		} else if (pos.y > start_leaves and center_dist + (pos.y-15)/3 < 8 + leaves_frill) {
+			return blocks->names["leaves"];
+		}
+		return -1;
 	}
+	
+	vec2 trunk_off(perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 3453458)*2, perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 2749245)*2);
+	if (glm::length(vec2(pos.x-10, pos.z-10) - trunk_off) < 4 - (pos.y/15.0)*2 and pos.y < 25) {
+		return blocks->names["bark"];
+	}
+	double leaves_start = perlin(pos.x/3.0, pos.z/3.0, parent->seed, 49375) * 10;
+	double len = glm::length(vec2(pos.x-10, pos.z-10))/2;
+	len *= len;
+	leaves_start += 10 + len;
+	
+	if (pos.y >= leaves_start) {
+		double leaves_end = perlin(pos.x/3.0, pos.z/3.0, parent->seed, 49375) * 5;
+		double len = glm::length(vec2(pos.x-10, pos.z-10))/4;
+		len *= len;
+		leaves_end = 35 - leaves_end - len;
+		if (pos.y <= leaves_end) {
+			return blocks->names["leaves"];
+		}
+	}
+	
 	return -1;
 }
 

@@ -39,6 +39,8 @@ public:
 	virtual bool is_valid(ivec3) = 0;
 	ivec3 get_nearest_3d(ivec3);
 	ivec2 get_nearest_2d(ivec2);
+	int poshash(ivec3 pos, int myseed);
+	double poshashfloat(ivec3 pos, int myseed);
 };
 
 class TerrainObjectMerger {
