@@ -87,7 +87,8 @@ string TerrainBaseMerger::name() {
 
 
 TerrainObject::TerrainObject(TerrainLoader* loader, ivec3 nsize, int nradius, int new_unique_seed):
-parent(loader), size(nsize), radius(nradius), unique_seed(loader->seed ^ nsize.x ^ nsize.y ^ nsize.z ^ nradius ^ (new_unique_seed+1)) {
+parent(loader), size(nsize), radius(nradius),
+unique_seed(loader->seed ^ nsize.x ^ nsize.y ^ nsize.z ^ nradius ^ (new_unique_seed+1)), position_offset(new_unique_seed%radius) {
 	
 }
 
@@ -109,6 +110,7 @@ ivec3 TerrainObject::get_nearest_3d(ivec3 pos) {
 ivec2 TerrainObject::get_nearest_2d(ivec2 pos) {
 	ivec2 size2d(size.x, size.z);
 	ivec2 gap = radius - size2d;
+	pos += position_offset;
 	ivec2 rounded = pos/radius - ivec2(pos.x<0, pos.y<0);
 	int layer = unique_seed ^ priority();
 	ivec2 offset = ivec2(hash4(parent->seed, rounded.x,rounded.y,layer,1), hash4(parent->seed, rounded.x,rounded.y,layer,2)) % gap;
@@ -131,7 +133,7 @@ double TerrainObject::poshashfloat(ivec3 pos, int myseed) {
 
 
 TerrainObjectMerger::TerrainObjectMerger(TerrainLoader* newparent): parent(newparent) {
-	objs = vector<TerrainObject*> {new Tree(this), new Cave(this), new BigTree(this), new TallTree(this)};
+	objs = vector<TerrainObject*> {new Tree(this,0), new Tree(this,10), new Cave(this), new BigTree(this), new TallTree(this)};
 	vector<string> files;
 	get_files_folder("resources/data/terrain", &files);
 	for (string file : files) {
@@ -167,7 +169,7 @@ char TerrainObjectMerger::gen_func(ivec3 pos) {
 
 
 TerrainLoader::TerrainLoader(int nseed): objmerger(this), seed(nseed),
- 	bases({new Flatworld(this,char(2),96)}) {//new Mountains(this), new Plains(this)}) {
+ 	bases({new Mountains(this), new Plains(this)}) {
 	
 }
 
@@ -378,7 +380,50 @@ string Mountains::name() {
 
 
 
-Tree::Tree(TerrainObjectMerger* merger, int uid): TerrainObject(merger->parent, ivec3(10,15,10), 15000, uid) {
+
+
+
+BlanketForest::BlanketForest(TerrainLoader* loader): TerrainBase(loader) {
+	
+}
+
+int BlanketForest::get_height(ivec2 pos) {
+	return int(get_heightmap(pos.x, pos.y, parent->seed))/2;
+}
+
+char BlanketForest::gen_func(ivec3 pos) {
+	int height = get_height(ivec2(pos.x, pos.z));
+	if (pos.y < height-5) {
+			return blocks->names["rock"];
+	} if (pos.y < height-1) {
+			return blocks->names["dirt"];
+	} if (pos.y < height) {
+		if (pos.y < 96) {
+			return blocks->names["gravel"];
+		} else {
+			return blocks->names["grass"];
+		}
+	} else {
+		
+	}
+	return 0;
+}
+
+double BlanketForest::valid_score(double wetness, double temp, double elev) {
+	return 1-elev;
+}
+
+string BlanketForest::name() {
+	return "blanketforest";
+}
+
+
+
+
+
+
+
+Tree::Tree(TerrainObjectMerger* merger, int uid): TerrainObject(merger->parent, ivec3(10,15,10), 20, uid) {
 	
 }
 
@@ -426,16 +471,16 @@ bool Tree::is_valid(ivec3 pos) {
 
 
 
-TallTree::TallTree(TerrainObjectMerger* merger, int uid): TerrainObject(merger->parent, ivec3(20,40,20), 90, uid) {
+TallTree::TallTree(TerrainObjectMerger* merger, int uid): TerrainObject(merger->parent, ivec3(20,40,20), 40, uid) {
 	
 }
 
 char TallTree::gen_func(ivec3 offset, ivec3 pos) {
-	if (parent->get_biome_name(offset) == "mountains") {
+	if (parent->get_biome_name(offset) == "mountains" or poshash(offset,3487394) % 5 == 0) {
 		double center_dist = glm::length(vec2(pos.x-10,pos.z-10));
 		int start_leaves = 10 + poshash(offset, 45356) % 10;
 		double leaves_frill = 2*poshashfloat(offset+pos, 2634928);
-		vec2 trunk_off(perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 3453458)*2, perlin(pos.y/10.0, offset.x ^ offset.z, parent->seed, 2749245)*2);
+		vec2 trunk_off(perlin(pos.y/3.0+3543, offset.x ^ offset.z, parent->seed, 3453458)*2, perlin(pos.y/10.0, offset.x ^ offset.z, parent->seed, 2749245)*2);
 		
 		if (glm::length(vec2(pos.x-10, pos.z-10) - trunk_off) < 4 - pos.y/40.0 * 4) {
 			return blocks->names["bark"];
@@ -445,18 +490,18 @@ char TallTree::gen_func(ivec3 offset, ivec3 pos) {
 		return -1;
 	}
 	
-	vec2 trunk_off(perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 3453458)*2, perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 2749245)*2);
+	vec2 trunk_off(perlin(pos.y/3.0+4543, offset.x ^ offset.z, parent->seed, 3453458)*2, perlin(pos.y/3.0, offset.x ^ offset.z, parent->seed, 2749245)*2);
 	if (glm::length(vec2(pos.x-10, pos.z-10) - trunk_off) < 4 - (pos.y/15.0)*2 and pos.y < 25) {
 		return blocks->names["bark"];
 	}
-	double leaves_start = perlin(pos.x/3.0, pos.z/3.0, parent->seed, 49375) * 10;
+	double leaves_start = perlin(pos.x/3.0, pos.z/3.0, parent->seed, 49375^offset.x) * (10 + 15 * (poshash(offset,237842)%2));
 	double len = glm::length(vec2(pos.x-10, pos.z-10))/2;
 	len *= len;
 	leaves_start += 10 + len;
 	
 	if (pos.y >= leaves_start) {
-		double leaves_end = perlin(pos.x/3.0, pos.z/3.0, parent->seed, 49375) * 5;
-		double len = glm::length(vec2(pos.x-10, pos.z-10))/4;
+		double leaves_end = perlin(pos.x/3.0, pos.z/3.0, parent->seed, 445345^offset.z) * 3;
+		double len = glm::length(vec2(pos.x-10, pos.z-10))/(2 + 2 * (poshash(offset,273345)%2));
 		len *= len;
 		leaves_end = 35 - leaves_end - len;
 		if (pos.y <= leaves_end) {
@@ -469,7 +514,7 @@ char TallTree::gen_func(ivec3 offset, ivec3 pos) {
 
 ivec3 TallTree::get_nearest(ivec3 pos) {
 	ivec2 pos2d = get_nearest_2d(ivec2(pos.x, pos.z));
-	return ivec3(pos2d.x, parent->get_height(pos2d+5+ivec2(pos.x, pos.z)) - pos.y, pos2d.y);
+	return ivec3(pos2d.x, parent->get_height(pos2d+10+ivec2(pos.x, pos.z))- 5 - pos.y, pos2d.y);
 }
 
 int TallTree::priority() {

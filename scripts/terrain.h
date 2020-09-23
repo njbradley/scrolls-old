@@ -31,6 +31,7 @@ public:
 	ivec3 size;
 	int radius;
 	int unique_seed;
+	int position_offset;
 	TerrainLoader* parent;
 	TerrainObject(TerrainLoader* loader, ivec3 nsize, int nradius, int new_unique_seed);
 	virtual char gen_func(ivec3,ivec3) = 0;
@@ -96,6 +97,14 @@ class Forest: public TerrainBase { public:
 
 class Mountains: public TerrainBase { public:
 	Mountains(TerrainLoader* newparent);
+	virtual int get_height(ivec2 pos);
+	virtual char gen_func(ivec3 pos);
+	virtual double valid_score(double wetness, double temp, double elev);
+	virtual string name();
+};
+
+class BlanketForest: public TerrainBase { public:
+	BlanketForest(TerrainLoader* newparent);
 	virtual int get_height(ivec2 pos);
 	virtual char gen_func(ivec3 pos);
 	virtual double valid_score(double wetness, double temp, double elev);

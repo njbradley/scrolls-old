@@ -350,7 +350,15 @@ void Player::left_mouse(double deltatime) {
 			double y = hitpos.y;
 			double z = hitpos.z;
 			
-			ivec3 blockpos = ivec3((int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+			//ivec3 blockpos = ivec3((int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+			
+			//cout << blockpos.x << ' ' << blockpos.y << ' ' << blockpos.z << endl;
+			//cout << hitpos.x << ' ' << hitpos.y << ' ' << hitpos.z << endl;
+			int gx,gy,gz;
+			pix->global_position(&gx, &gy, &gz);
+			//cout << gx << ' ' << gy << ' ' << gz << endl;
+			
+			ivec3 blockpos(gx, gy, gz);
 			
 			if (blockpos != block_breaking) {
 				break_progress = 0;
@@ -373,9 +381,9 @@ void Player::left_mouse(double deltatime) {
 				// item->damage(this, blocks->blocks[pix->get()], deltatime);
 				char newitem;
 				if (item->isnull) {
-					newitem = Item::ondig_null(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+					newitem = Item::ondig_null(world, blockpos.x, blockpos.y, blockpos.z);
 				} else {
-					newitem = item->ondig(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+					newitem = item->ondig(world, blockpos.x, blockpos.y, blockpos.z);
 				}
 				if (newitem != 0) {
 					blocks->blocks[newitem]->droptable.drop(&inven, this, item);

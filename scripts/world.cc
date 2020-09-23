@@ -266,7 +266,7 @@ void World::load_nearby_chunks() {
     //   }
     // }
     //
-    int max_chunks = ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1);
+    int max_chunks = ((view_dist)*2+1) * ((view_dist)*2+1) * ((view_dist)*2+1);
     int num_chunks = loading_chunks.size();
     for (Tile* tile : tiles) {
       num_chunks += (tile != nullptr);
@@ -300,7 +300,7 @@ void World::load_nearby_chunks() {
     TileLoop loop(this);
     for (Tile* tile : loop) {
       ivec3 pos = tile->pos;
-      int range = maxrange-1;
+      int range = maxrange;
       if ((pos.x < px-range or pos.x > px+range or pos.y < py-range or pos.y > py+range or pos.z < pz-range or pos.z > pz+range)
       and std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) == deleting_chunks.end()) {
       // double distance = std::sqrt((px-pos.x)*(px-pos.x) + (py-pos.y)*(py-pos.y) + (pz-pos.z)*(pz-pos.z));
