@@ -319,7 +319,31 @@ void main_menu() {
 	});
 }
 
-
+void tests() {
+	
+	clock_t start = clock();
+	
+	for (int i = 0; i < 64; i ++) {
+		for (int j = 0; j < 64; j ++) {
+			for (int k = 0; k < 64; k ++) {
+				world->loader.gen_func(ivec3(i,j,k));
+			}
+		}
+	}
+	
+	clock_t total = clock() - start;
+	cout << "pure gen func: " << double(total)/CLOCKS_PER_SEC << endl;
+	
+	start = clock();
+	
+	Tile tile(ivec3(0,0,0), world);
+	
+	total = clock() - start;
+	cout << "tile gen func: " << double(total)/CLOCKS_PER_SEC << endl;
+	
+	cout << "tests done" << endl;
+	exit(0);
+}
 
 
 
@@ -342,6 +366,9 @@ int main( void )
 	recipestorage = new RecipeStorage();
 	entitystorage = new EntityStorage();
 	mobstorage = new MobStorage();
+	
+	
+	
 	
 	// Initialise GLFW
 	if( !glfwInit() )
@@ -570,6 +597,10 @@ int main( void )
 	} else {
 		glfwSwapInterval(0);
 	}
+	
+	
+	tests();
+	
 	//playing = false;
 	while (playing) {
 		

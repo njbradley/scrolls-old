@@ -147,6 +147,14 @@ public:
 	bool is_valid(ivec3);
 };
 
+class Lamp: public TerrainObject { public:
+	Lamp(TerrainObjectMerger*, int uid = 0);
+	char gen_func(ivec3,ivec3);
+	ivec3 get_nearest(ivec3);
+	int priority();
+	bool is_valid(ivec3);
+};
+
 class FileTerrain: public TerrainObject {
 public:
 	char* data;

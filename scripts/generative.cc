@@ -53,7 +53,6 @@ double dotGridGradient(int ix, int iy, double x, double y, int seed, int layer) 
 // Compute Perlin noise at coordinates x, y
 double perlin(double x, double y, int seed, int layer) {
     
-    
     int x0 = x;
     int y0 = y;
     

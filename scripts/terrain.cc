@@ -133,7 +133,7 @@ double TerrainObject::poshashfloat(ivec3 pos, int myseed) {
 
 
 TerrainObjectMerger::TerrainObjectMerger(TerrainLoader* newparent): parent(newparent) {
-	objs = vector<TerrainObject*> {new Tree(this,0), new Tree(this,10), new Cave(this), new BigTree(this), new TallTree(this)};
+	objs = vector<TerrainObject*> {new Tree(this,0), new Tree(this,10), new Lamp(this), new Cave(this), new BigTree(this), new TallTree(this)};
 	vector<string> files;
 	get_files_folder("resources/data/terrain", &files);
 	for (string file : files) {
@@ -169,7 +169,7 @@ char TerrainObjectMerger::gen_func(ivec3 pos) {
 
 
 TerrainLoader::TerrainLoader(int nseed): objmerger(this), seed(nseed),
- 	bases({new Mountains(this), new Plains(this)}) {
+ 	bases({new Flatworld(this, 2, 96)}) {//{new Mountains(this), new Plains(this)}) {
 	
 }
 
@@ -228,19 +228,23 @@ int TerrainLoader::get_height(ivec2 pos) {
 }
 
 char TerrainLoader::gen_func(ivec3 pos) {
+	// double start = glfwGetTime();
 	char objval = objmerger.gen_func(pos);
+	// cout << glfwGetTime() - start << " objs " << endl;
 	char val;
 	if (objval != -1) {
 		val = objval;
 	} else {
 		//cout << "start gen func" << endl;
+		// start = glfwGetTime();
 		val = get_base(pos).gen_func(pos);
+		// cout << glfwGetTime() - start << " base " << endl;
 		//cout << "end gen func" << endl;
 	}
 	if (val == 0 and pos.y < 96) {
 		return blocks->names["water"];
 	}
-	
+	// exit(1);
 	return val;
 }
 
@@ -604,7 +608,57 @@ bool Cave::is_valid(ivec3 pos) {
 
 
 
-FileTerrain::FileTerrain(TerrainObjectMerger* merger, string path, int uid): TerrainObject(merger->parent, ivec3(0,0,0), 0, uid) {
+
+
+
+Lamp::Lamp(TerrainObjectMerger* merger, int uid): TerrainObject(merger->parent, ivec3(1,15,1), 40, uid) {
+	
+}
+
+char Lamp::gen_func(ivec3 offset, ivec3 pos) {
+	if (pos.y < 7) {
+		return blocks->names["bark"];
+	} else {
+		int voronoi = voronoi2d(offset.x/600.0, offset.z/600.0, parent->seed, 1, 1/600.0);
+		if (voronoi == 2) {
+			if (pos.y == 7) {
+				return blocks->names["torch"];
+			} else {
+				return -1;
+			}
+		} else {
+			if (pos.y < 14) {
+				return blocks->names["bark"];
+			} else {
+				return blocks->names["torch"];
+			}
+		}
+	}
+}
+
+ivec3 Lamp::get_nearest(ivec3 pos) {
+	int voronoi = voronoi2d(pos.x/600.0, pos.z/600.0, parent->seed, 1, 1/600.0);
+	if ((voronoi > 1 and poshash(ivec3(pos.x, 0, pos.z), 49332) % 30 == 0) or voronoi > 2) {
+		return ivec3(0,parent->get_height(ivec2(pos.x, pos.z)) - pos.y,0);
+	}
+	return ivec3(100,100,100);
+}
+
+int Lamp::priority() {
+	return 3;
+}
+
+bool Lamp::is_valid(ivec3 pos) {
+	return true;
+}
+
+
+
+
+
+
+
+FileTerrain::FileTerrain(TerrainObjectMerger* merger, string path, int uid): TerrainObject(merger->parent, ivec3(1,1,1), 1, uid) {
 	ifstream ifile(path);
 	//cout << "loading terrain object " << path << endl;
 	int scale;
@@ -649,6 +703,7 @@ int FileTerrain::priority() {
 }
 
 bool FileTerrain::is_valid(ivec3 pos) {
+	return true;
 	return biomes.count(parent->get_biome_name(pos)) > 0;
 }
 
