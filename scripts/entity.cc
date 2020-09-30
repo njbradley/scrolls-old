@@ -572,9 +572,11 @@ void Entity::move(vec3 change, float deltaTime) {
                 float reflection = 0;
                 vec3 bounce(0,0,0);
                 if (mat_consts[i] != nullptr and component.x + component.y + component.z > 5) {
-                  reflection = mat_consts[i]->elastic / (mat_consts[i]->toughness + mat_consts[i]->elastic);
-                  if (component.x + component.y + component.z > 30) {
-                    bounce = reflection * component * -0.5f;
+                  if ((mat_consts[i]->toughness + mat_consts[i]->elastic) > 0.001) {
+                    reflection = mat_consts[i]->elastic / (mat_consts[i]->toughness + mat_consts[i]->elastic);
+                    if (component.x + component.y + component.z > 30) {
+                      bounce = reflection * component * -0.5f;
+                    }
                   }
                   //cout << reflection << ' ' << bounce.x << ' ' << bounce.y << ' ' << bounce.z << ' ' << component.x + component.y + component.z << endl;
                 }

@@ -599,7 +599,7 @@ int main( void )
 	}
 	
 	
-	tests();
+	//tests();
 	
 	//playing = false;
 	while (playing) {

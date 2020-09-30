@@ -386,13 +386,15 @@ void World::timestep() {
     daytime += 2000;
   }
   
-  sunlight = 0;
+  const double min_sun = 0.1;
+  
+  sunlight = min_sun;
   if (daytime > 450 and daytime < 500) {
-    sunlight = (daytime-450)/50.0f;
+    sunlight = (daytime-450)/50.0f * (1-min_sun) + 0.05;
   } else if (daytime > 500 and daytime < 1500) {
     sunlight = 1;
   } else if (daytime > 1500 and daytime < 1550) {
-    sunlight = -(daytime-1500)/50.0f + 1;
+    sunlight = -(daytime-1500)/50.0f * (1-min_sun) + 1;
   }
   //cout << daytime << ' ' << sunlight << endl;
   mobcount = 0;

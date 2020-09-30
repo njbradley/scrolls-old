@@ -169,7 +169,7 @@ char TerrainObjectMerger::gen_func(ivec3 pos) {
 
 
 TerrainLoader::TerrainLoader(int nseed): objmerger(this), seed(nseed),
- 	bases({new Flatworld(this, 2, 96)}) {//{new Mountains(this), new Plains(this)}) {
+ 	bases({new Mountains(this), new Plains(this)}) {
 	
 }
 
@@ -180,6 +180,7 @@ TerrainLoader::~TerrainLoader() {
 }
 
 TerrainBaseMerger TerrainLoader::get_base(ivec3 pos) {
+	return TerrainBaseMerger(bases[0], nullptr);
 	double wetness = get_wetness(pos);
 	double temp = get_temp(pos);
 	double elev = get_elev(pos);
@@ -228,6 +229,8 @@ int TerrainLoader::get_height(ivec2 pos) {
 }
 
 char TerrainLoader::gen_func(ivec3 pos) {
+	//get_height(ivec2(pos.x, pos.z));
+	//return pos.y < 96;
 	// double start = glfwGetTime();
 	char objval = objmerger.gen_func(pos);
 	// cout << glfwGetTime() - start << " objs " << endl;
@@ -616,12 +619,12 @@ Lamp::Lamp(TerrainObjectMerger* merger, int uid): TerrainObject(merger->parent, 
 }
 
 char Lamp::gen_func(ivec3 offset, ivec3 pos) {
-	if (pos.y < 7) {
+	if (pos.y < 4) {
 		return blocks->names["bark"];
 	} else {
 		int voronoi = voronoi2d(offset.x/600.0, offset.z/600.0, parent->seed, 1, 1/600.0);
 		if (voronoi == 2) {
-			if (pos.y == 7) {
+			if (pos.y == 4) {
 				return blocks->names["torch"];
 			} else {
 				return -1;
@@ -645,7 +648,7 @@ ivec3 Lamp::get_nearest(ivec3 pos) {
 }
 
 int Lamp::priority() {
-	return 3;
+	return 20;
 }
 
 bool Lamp::is_valid(ivec3 pos) {
