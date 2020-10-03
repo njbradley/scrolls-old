@@ -89,7 +89,7 @@ double perlin(double x, double y, int seed, int layer) {
 }
 
 double scaled_perlin(double x, double y, double height, double width, int seed, int layer) {
-    return perlin((float)x/(width), (float)y/(width), seed, layer) *height + height/2;
+    return perlin((double)x/(width), (double)y/(width), seed, layer) *height + height/2;
 }
 
 

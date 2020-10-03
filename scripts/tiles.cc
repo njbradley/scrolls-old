@@ -203,30 +203,26 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
     stringstream path;
   	path << "saves/" << world->name << "/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
   	ifstream ifile(path.str(), std::ios::binary);
-  	if (ifile.good()) {
-  			//cout << "loading '" << path.str() << "' from file\n";
-  			//chunks[pos] = parse_file(&ifile, pos.first, 0, pos.second, chunksize, nullptr);
-  			chunk = Block::from_file(ifile, pos.x, pos.y, pos.z, chunksize, nullptr, this);
-        int size;
-        ifile >> size;
-        for (int i = 0; i < size; i ++) {
-          entities.push_back(Mob::from_file(world, ifile));
-        }
-        ifile >> size;
-        for (int i = 0; i < size; i ++) {
-          block_entities.push_back(new FallingBlockEntity(world, ifile));
-        }
-  	} else {
+  	if (!ifile.good()) {
   			//cout << "generating '" << path.str() << "'\n";
         // dfile << "NTILE" << endl << "gen ";
-  			chunk = generate(pos);
+  			//chunk = generate(pos);
+        generate_chunk(pos);
+        ifile.open(path.str(), std::ios::binary);
         // dfile << "GEN " << endl;
   			//return load_chunk(pos);
   			//chunk = generate(pos);
   	}
     
-    if (!chunk->continues()) {
-      
+    chunk = Block::from_file(ifile, pos.x, pos.y, pos.z, chunksize, nullptr, this);
+    int size;
+    ifile >> size;
+    for (int i = 0; i < size; i ++) {
+      entities.push_back(Mob::from_file(world, ifile));
+    }
+    ifile >> size;
+    for (int i = 0; i < size; i ++) {
+      block_entities.push_back(new FallingBlockEntity(world, ifile));
     }
     
   	//render_chunk_vectors(pos);
@@ -254,6 +250,47 @@ void Tile::del(bool remove_faces) {
   deletelock.unlock();
 }
 
+
+void Tile::generate_chunk(ivec3 pos) {
+  //generative_setup_chunk(pos.first, pos.second);
+  stringstream path;
+  path << "saves/" << world->name << "/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
+  ofstream of(path.str(), std::ios::binary);
+  char val = gen_block(of, pos.x*World::chunksize, pos.y*World::chunksize, pos.z*World::chunksize, chunksize);
+  of << endl << 0 << endl << 0 << endl;
+  //cout << (int)val << int(char(0xff)) << endl;
+}
+
+char Tile::gen_block(ostream& ofile, int gx, int gy, int gz, int scale) {
+  if (scale == 1) {
+    char val = world->loader.gen_func(ivec3(gx, gy, gz));
+    ofile << val;
+    return val;
+  } else {
+    stringstream ss;
+    ss << '{';
+    char val = gen_block(ss, gx, gy, gz, scale/2);
+    bool all_same = val != -1;
+    for (int x = 0; x < csize; x ++) {
+      for (int y = 0; y < csize; y ++) {
+        for (int z = 0; z < csize; z ++) {
+          if (x > 0 or y > 0 or z > 0) {
+            char newval = gen_block(ss, gx+x*(scale/2), gy+y*(scale/2), gz+z*(scale/2), scale/2);
+            all_same = all_same and newval == val;
+          }
+        }
+      }
+    }
+    if (all_same) {
+      ofile << val;
+      return val;
+    } else {
+      ss << '}';
+      ofile << ss.rdbuf();
+      return -1;
+    }
+  }
+}
 /*
 
 char World::gen_block(ostream& ofile, ChunkLoader* loader, int gx, int gy, int gz, int scale) {

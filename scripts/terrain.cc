@@ -107,15 +107,19 @@ ivec3 TerrainObject::get_nearest_3d(ivec3 pos) {
 	return nearest;
 }
 
-ivec2 TerrainObject::get_nearest_2d(ivec2 pos) {
+ivec3 TerrainObject::get_nearest_2d(ivec3 pos3d) {
+	ivec3 orig_pos = pos3d;
+	pos3d += ivec3(position_offset, 0, position_offset);
+	ivec2 pos (pos3d.x, pos3d.z);
 	ivec2 size2d(size.x, size.z);
 	ivec2 gap = radius - size2d;
-	pos += position_offset;
 	ivec2 rounded = pos/radius - ivec2(pos.x<0, pos.y<0);
 	int layer = unique_seed ^ priority();
 	ivec2 offset = ivec2(hash4(parent->seed, rounded.x,rounded.y,layer,1), hash4(parent->seed, rounded.x,rounded.y,layer,2)) % gap;
 	ivec2 nearest = offset - (pos%radius + ivec2(pos.x<0, pos.y<0)*radius);
-	return nearest;
+	int height = parent->get_height(ivec2(orig_pos.x, orig_pos.z) + nearest + size2d/2);
+	ivec3 nearest3d = ivec3(nearest.x, height - pos3d.y, nearest.y);
+	return nearest3d;
 }
 
 int TerrainObject::poshash(ivec3 pos, int myseed) {
@@ -180,10 +184,10 @@ TerrainLoader::~TerrainLoader() {
 }
 
 TerrainBaseMerger TerrainLoader::get_base(ivec3 pos) {
-	return TerrainBaseMerger(bases[0], nullptr);
-	double wetness = get_wetness(pos);
-	double temp = get_temp(pos);
-	double elev = get_elev(pos);
+	//return TerrainBaseMerger(bases[0], nullptr);
+	double wetness = 0;//get_wetness(pos);
+	double temp = 0;//get_temp(pos);
+	double elev = 0;//get_elev(pos);
 	TerrainBase* bestbase = nullptr;
 	double bestscore = 0;
 	TerrainBase* nextbase = nullptr;
@@ -463,8 +467,7 @@ char Tree::gen_func(ivec3 offset, ivec3 pos) {
 }
 
 ivec3 Tree::get_nearest(ivec3 pos) {
-	ivec2 pos2d = get_nearest_2d(ivec2(pos.x, pos.z));
-	return ivec3(pos2d.x, parent->get_height(pos2d+5+ivec2(pos.x, pos.z)) - pos.y, pos2d.y);
+	return get_nearest_2d(pos);
 }
 
 int Tree::priority() {
@@ -520,8 +523,7 @@ char TallTree::gen_func(ivec3 offset, ivec3 pos) {
 }
 
 ivec3 TallTree::get_nearest(ivec3 pos) {
-	ivec2 pos2d = get_nearest_2d(ivec2(pos.x, pos.z));
-	return ivec3(pos2d.x, parent->get_height(pos2d+10+ivec2(pos.x, pos.z))- 5 - pos.y, pos2d.y);
+	return get_nearest_2d(pos) - ivec3(0,5,0);
 }
 
 int TallTree::priority() {
@@ -570,8 +572,7 @@ char BigTree::gen_func(ivec3 offset, ivec3 pos) {
 }
 
 ivec3 BigTree::get_nearest(ivec3 pos) {
-	ivec2 pos2d = get_nearest_2d(ivec2(pos.x, pos.z));
-	return ivec3(pos2d.x, parent->get_height(pos2d+25+ivec2(pos.x, pos.z)) - pos.y - 20, pos2d.y);
+	return get_nearest_2d(pos) - ivec3(0,20,0);
 }
 
 int BigTree::priority() {
@@ -595,8 +596,7 @@ char Cave::gen_func(ivec3 offset, ivec3 pos) {
 }
 
 ivec3 Cave::get_nearest(ivec3 pos) {
-	ivec2 pos2d = get_nearest_2d(ivec2(pos.x, pos.z));
-	return ivec3(pos2d.x, parent->get_height(pos2d+5+ivec2(pos.x, pos.z)) - pos.y - 5, pos2d.y);
+	return get_nearest_2d(pos) - ivec3(0,5,0);
 }
 
 int Cave::priority() {
@@ -697,8 +697,7 @@ char FileTerrain::gen_func(ivec3 offset, ivec3 pos) {
 }
 
 ivec3 FileTerrain::get_nearest(ivec3 pos) {
-	ivec2 pos2d = get_nearest_2d(ivec2(pos.x, pos.z));
-	return ivec3(pos2d.x, parent->get_height(pos2d+ivec2(size.x/2,size.z/2)+ivec2(pos.x, pos.z)) - pos.y - size.y/2, pos2d.y);
+	return get_nearest_2d(pos) - ivec3(0,size.y/3,0);
 }
 
 int FileTerrain::priority() {

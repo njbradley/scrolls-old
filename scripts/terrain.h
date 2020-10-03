@@ -39,7 +39,7 @@ public:
 	virtual int priority() = 0;
 	virtual bool is_valid(ivec3) = 0;
 	ivec3 get_nearest_3d(ivec3);
-	ivec2 get_nearest_2d(ivec2);
+	ivec3 get_nearest_2d(ivec3);
 	int poshash(ivec3 pos, int myseed);
 	double poshashfloat(ivec3 pos, int myseed);
 };
