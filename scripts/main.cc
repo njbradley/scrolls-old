@@ -543,7 +543,6 @@ int main( void )
 	//	return 0;
 	//}
 	
-	
 	//wait();
 	ifstream ifile("saves/latest.txt");
 	if (!ifile.good()) {
@@ -599,7 +598,7 @@ int main( void )
 	}
 	
 	
-	tests();
+	//tests();
 	
 	//playing = false;
 	while (playing) {

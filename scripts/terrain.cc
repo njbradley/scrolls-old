@@ -13,6 +13,294 @@
 constexpr double merge_threshold = 0.2;
 const int chunksize = World::chunksize;
 
+
+
+int poshash(int seed, ivec3 pos, int myseed) {
+	return hash4(seed, pos.x, pos.y, pos.z, myseed);
+}
+
+double poshashfloat(int seed, ivec3 pos, int myseed) {
+	return randfloat(seed, pos.x, pos.y, pos.z, myseed);
+}
+
+
+
+
+ivec3 TerrainObject::get_nearest_3d(TerrainLoader* loader, ivec3 pos, ivec3 size, int radius, int position_offset) {
+	ivec3 gap = radius - size;
+	ivec3 rounded = pos/radius - ivec3(pos.x<0, pos.y<0, pos.z<0);
+	int layer = size.x ^ size.y ^ size.z ^ radius;
+	ivec3 offset = ivec3(hash4(loader->seed, rounded.x,rounded.y,rounded.z,layer+1),
+		hash4(loader->seed, rounded.x,rounded.y,rounded.z,layer+2),
+		hash4(loader->seed, rounded.x,rounded.y,rounded.z,layer+3)) % gap;
+	ivec3 nearest = offset - pos%radius;
+	ivec3 in_bounds = ivec3(nearest.x < size.x, nearest.y < size.y, nearest.z < size.z);
+	nearest = nearest * in_bounds + (1 - in_bounds);
+	return nearest;
+}
+
+ivec3 TerrainObject::get_nearest_2d(TerrainLoader* loader, ivec3 pos3d, ivec3 size, int radius, int position_offset) {
+	ivec3 orig_pos = pos3d;
+	pos3d += ivec3(position_offset, 0, position_offset);
+	ivec2 pos (pos3d.x, pos3d.z);
+	ivec2 size2d(size.x, size.z);
+	ivec2 gap = radius - size2d;
+	
+	ivec2 rounded = pos/radius - ivec2(pos.x<0, pos.y<0);
+	int layer = size.x ^ size.y ^ size.z ^ radius;//unique_seed ^ priority();
+	ivec2 offset = ivec2(hash4(loader->seed, rounded.x,rounded.y,layer,1), hash4(loader->seed, rounded.x,rounded.y,layer,2)) % gap;
+	ivec2 nearest = offset - (pos%radius + ivec2(pos.x<0, pos.y<0)*radius);
+	int height = loader->get_height(ivec2(orig_pos.x, orig_pos.z) + nearest + size2d/2);
+	ivec3 nearest3d = ivec3(nearest.x, height - pos3d.y, nearest.y);
+	
+	if (nearest3d.x <= -size.x) nearest3d.x = 100000;
+	if (nearest3d.y <= -size.y) nearest3d.y = 100000;
+	if (nearest3d.z <= -size.z) nearest3d.z = 100000;
+	
+	return nearest3d;
+}
+
+
+
+
+
+
+
+
+template <typename ... Objs>
+template <typename Firstobj, typename Secondobj, typename ... Otherobjs>
+char TerrainObjectMerger<Objs...>::gen_func(TerrainLoader* loader, ivec3 pos) {
+	Firstobj obj;
+	ivec3 nearest = obj.get_nearest(loader, pos);
+	char val = -1;
+	if (nearest.x <= 0 and nearest.y <= 0 and nearest.z <= 0) {
+		val = obj.gen_func(loader, pos+nearest, -nearest);
+	}
+	if (val == -1) {
+		return gen_func<Secondobj,Otherobjs...>(loader, pos);
+	} else {
+		return val;
+	}
+}
+
+template <typename ... Objs>
+template <typename Lastobj>
+char TerrainObjectMerger<Objs...>::gen_func(TerrainLoader* loader, ivec3 pos) {
+	Lastobj obj;
+	ivec3 nearest = obj.get_nearest(loader, pos);
+	char val = -1;
+	if (nearest.x <= 0 and nearest.y <= 0 and nearest.z <= 0) {
+		val = obj.gen_func(loader, pos+nearest, -nearest);
+	}
+	return val;
+}
+
+template <typename ... Objs>
+char TerrainObjectMerger<Objs...>::gen_func(TerrainLoader* loader, ivec3 pos) {
+	return gen_func<Objs...>(loader, pos);
+}
+
+
+
+
+
+
+
+template <typename Elev, typename Land, typename ... Objs>
+int Biome<Elev,Land,Objs...>::get_height(TerrainLoader* loader, ivec2 pos) {
+	Elev elev;
+	return elev.get_height(loader, pos);
+}
+
+template <typename Elev, typename Land, typename ... Objs>
+char Biome<Elev,Land,Objs...>::gen_func(TerrainLoader* loader, ivec3 pos) {
+	char objval = merger.gen_func(loader, pos);
+	if (objval != -1) {
+		return objval;
+	}
+	Land land;
+	char val = land.gen_func(loader, pos);
+	
+	return val;
+}
+
+
+
+
+
+
+
+
+TerrainLoader::TerrainLoader(int newseed): seed(newseed) {
+	
+}
+
+int TerrainLoader::get_height(ivec2 pos) {
+	return Biome<Shallow,Plains,BigTree,TallTree,Tree<0> >().get_height(this, pos);
+}
+
+char TerrainLoader::gen_func(ivec3 pos) {
+	char val = Biome<Shallow,Plains,TallTree,Tree<0> >().gen_func(this, pos);
+	return val;
+}
+
+
+
+
+
+
+template <int off> ivec3 Tree<off>::get_nearest(TerrainLoader* loader, ivec3 pos) {
+	return get_nearest_2d(loader, pos, ivec3(10,15,10), 20, off);
+}
+
+template <int off> char Tree<off>::gen_func(TerrainLoader* loader, ivec3 offset, ivec3 pos) {
+	if (false or poshash(loader->seed, offset, 24242) % 20 == 0) {
+		vec2 trunk_off(perlin(pos.y/3.0, offset.x ^ offset.z, loader->seed, 3453458)*2, perlin(pos.y/3.0, offset.x ^ offset.z, loader->seed, 27554245)*2);
+		if (glm::length(vec2(pos.x-5, pos.z-5) - trunk_off) < 1.75 - (pos.y/10.0) and pos.y < 10) {
+			return blocks->names["bark"];
+		} else if (pos.y > 4 + poshash(loader->seed, offset, 48935) % 4 and glm::length(vec2(pos.x-5,pos.z-5)) + (pos.y-6)/2 <
+		3+poshashfloat(loader->seed, offset+pos, 2634928)) {
+			if (poshash(loader->seed, offset, 244562) % 20 == 0) {
+				return -1;
+			}
+			return blocks->names["leaves"];
+		}
+		return -1;
+	}
+	vec2 trunk_off(perlin(pos.y/3.0, offset.x ^ offset.z, loader->seed, 3453458)*2, perlin(pos.y/3.0, offset.x ^ offset.z, loader->seed, 2749245)*2);
+	if (glm::length(vec2(pos.x-5, pos.z-5) - trunk_off) < 1.75 - (pos.y/10.0) and pos.y < 10) {
+		return blocks->names["bark"];
+	} else if (pos.y > 4 + poshash(loader->seed, offset, 48935) % 4 and glm::length(vec3(5,8,5)-vec3(pos)) <
+	4 + poshashfloat(loader->seed, offset+pos, 37482)) {
+		if (poshash(loader->seed, offset, 242362) % 20 == 0) {
+			return -1;
+		}
+		return blocks->names["leaves"];
+	}
+	return -1;
+}
+
+
+char TallTree::gen_func(TerrainLoader* loader, ivec3 offset, ivec3 pos) {
+	if (false or poshash(loader->seed, offset,3487394) % 5 == 0) {
+		double center_dist = glm::length(vec2(pos.x-10,pos.z-10));
+		int start_leaves = 10 + poshash(loader->seed, offset, 45356) % 10;
+		double leaves_frill = 2*poshashfloat(loader->seed, offset+pos, 2634928);
+		vec2 trunk_off(perlin(pos.y/3.0+3543, offset.x ^ offset.z, loader->seed, 3453458)*2, perlin(pos.y/10.0, offset.x ^ offset.z, loader->seed, 2749245)*2);
+		
+		if (glm::length(vec2(pos.x-10, pos.z-10) - trunk_off) < 4 - pos.y/40.0 * 4) {
+			return blocks->names["bark"];
+		} else if (pos.y > start_leaves and center_dist + (pos.y-15)/3 < 8 + leaves_frill) {
+			return blocks->names["leaves"];
+		}
+		return -1;
+	}
+	
+	vec2 trunk_off(perlin(pos.y/3.0+4543, offset.x ^ offset.z, loader->seed, 3453458)*2, perlin(pos.y/3.0, offset.x ^ offset.z, loader->seed, 2749245)*2);
+	if (glm::length(vec2(pos.x-10, pos.z-10) - trunk_off) < 4 - (pos.y/15.0)*2 and pos.y < 25) {
+		return blocks->names["bark"];
+	}
+	double leaves_start = perlin(pos.x/3.0, pos.z/3.0, loader->seed, 49375^offset.x) * (10 + 15 * (poshash(loader->seed, offset,237842)%2));
+	double len = glm::length(vec2(pos.x-10, pos.z-10))/2;
+	len *= len;
+	leaves_start += 10 + len;
+	
+	if (pos.y >= leaves_start) {
+		double leaves_end = perlin(pos.x/3.0, pos.z/3.0, loader->seed, 445345^offset.z) * 3;
+		double len = glm::length(vec2(pos.x-10, pos.z-10))/(2 + 2 * (poshash(loader->seed, offset,273345)%2));
+		len *= len;
+		leaves_end = 35 - leaves_end - len;
+		if (pos.y <= leaves_end) {
+			return blocks->names["leaves"];
+		}
+	}
+	
+	return -1;
+}
+
+ivec3 TallTree::get_nearest(TerrainLoader* loader, ivec3 pos) {
+	return get_nearest_2d(loader, pos, ivec3(20,40,20), 50, 0) - ivec3(0,5,0);
+}
+
+
+
+
+
+
+char BigTree::gen_func(TerrainLoader* loader, ivec3 offset, ivec3 pos) {
+	
+	pos.y -= (loader->get_height(ivec2(offset.x+pos.x, offset.z+pos.z)) - offset.y)*(1 - pos.y/200.0);
+	
+	int seed = hash4(loader->seed, offset.x, offset.y, offset.z, 0);
+	double angle = atan2(pos.x-25, pos.z-25)*30;
+	double dist = sqrt((pos.x-25)*(pos.x-25) + (pos.z-25)*(pos.z-25));
+	//double dist = std::abs(pos.x-25) + std::abs(pos.z-25);
+	double perlin = scaled_perlin(angle+30, pos.y/10.0+30, 10, 5, seed, 1)-5;
+	if (pos.y > 22) {
+		perlin += (pos.y-25)/5;
+		double dist3d = sqrt((pos.x-25)*(pos.x-25) + (pos.y-40)*(pos.y-40) + (pos.z-25)*(pos.z-25));
+		if (dist3d > 25) {
+			return -1;
+		}
+	}
+	double multiplier = (pos.y/25.0 - 0.5);
+	multiplier = 50*multiplier*multiplier*multiplier*multiplier;
+	double height = perlin*multiplier;
+	height += 5 + 3*multiplier;
+	if (dist < height and dist > height-(perlin*3)-5) {
+		return 1;
+	} else if (dist <= height-(perlin*3)-5 and pos.y > 25) {
+		return blocks->names["leaves"];
+	}
+	return -1;
+}
+
+ivec3 BigTree::get_nearest(TerrainLoader* loader, ivec3 pos) {
+	return get_nearest_2d(loader, pos, ivec3(50,100,50), 1000) - ivec3(0,20,0);
+}
+
+
+
+
+
+int Flat::get_height(TerrainLoader* loader, ivec2 pos) {
+	return 50;
+}
+
+int Shallow::get_height(TerrainLoader* loader, ivec2 pos) {
+	return int(get_heightmap(pos.x, pos.y, 238479))/2;
+}
+
+int Steep::get_height(TerrainLoader* loader, ivec2 pos) {
+	return int(get_heightmap(pos.x, pos.y, 238479))*2;
+}
+
+
+
+
+char Plains::gen_func(TerrainLoader* loader, ivec3 pos) {
+	int height = loader->get_height(ivec2(pos.x, pos.z));
+	if (pos.y < height-5) {
+			return blocks->names["rock"];
+	} if (pos.y < height-1) {
+			return blocks->names["dirt"];
+	} if (pos.y < height) {
+		if (pos.y < 96) {
+			return blocks->names["gravel"];
+		} else {
+			return blocks->names["grass"];
+		}
+	}
+	return 0;
+}
+
+
+
+
+
+
+
+/*
 TerrainBase::TerrainBase(TerrainLoader* loader): parent(loader) {
 	
 }
@@ -120,14 +408,6 @@ ivec3 TerrainObject::get_nearest_2d(ivec3 pos3d) {
 	int height = parent->get_height(ivec2(orig_pos.x, orig_pos.z) + nearest + size2d/2);
 	ivec3 nearest3d = ivec3(nearest.x, height - pos3d.y, nearest.y);
 	return nearest3d;
-}
-
-int TerrainObject::poshash(ivec3 pos, int myseed) {
-	return hash4(parent->seed, pos.x, pos.y, pos.z, myseed);
-}
-
-double TerrainObject::poshashfloat(ivec3 pos, int myseed) {
-	return randfloat(parent->seed, pos.x, pos.y, pos.z, myseed);
 }
 
 
@@ -708,5 +988,5 @@ bool FileTerrain::is_valid(ivec3 pos) {
 	return true;
 	return biomes.count(parent->get_biome_name(pos)) > 0;
 }
-
+*/
 #endif

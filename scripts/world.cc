@@ -209,7 +209,7 @@ void World::save_groups() {
     string fullpath = "saves/" + name + "/groups/" + path;
     remove(fullpath.c_str());
   }
-  for (BlockGroup* group : physicsgroups) {\
+  for (BlockGroup* group : physicsgroups) {
     ivec3 pos = group->position;
     std::stringstream path;
     path << "saves/" + name + "/groups/" << pos.x << 'x' << pos.y << 'y' << pos.z << "z.txt";
@@ -225,7 +225,9 @@ void World::save_groups() {
 
 void World::spawn_player() {
   ivec3 spawnpos(10,loader.get_height(ivec2(10,10))+4,10);
-  while (loader.gen_func(spawnpos) != 0) {
+  int i = 0;
+  while (loader.gen_func(spawnpos) != 0 and i < 100) {
+    i ++;
     spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
   }
   player = new Player(this, vec3(spawnpos));

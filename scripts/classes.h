@@ -95,7 +95,6 @@ class ThreadManager;
 class Tile;
 class TerrainLoader;
 class TerrainObject;
-class TerrainObjectMerger;
 class Program;
 template <typename T> class CommandConst;
 template <typename T> class CommandVar;

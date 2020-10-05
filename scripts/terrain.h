@@ -4,6 +4,78 @@
 #include "classes.h"
 
 
+class HeightMap { public:
+	virtual int get_height(TerrainLoader* loader, ivec2 pos) = 0;
+};
+
+class LandGen { public:
+	virtual char gen_func(TerrainLoader* loader, ivec3 pos) = 0;
+};
+
+class TerrainObject { public:
+	virtual ivec3 get_nearest(TerrainLoader* loader, ivec3 pos) = 0;
+	virtual char gen_func(TerrainLoader* loader, ivec3 offset, ivec3 pos) = 0;
+	ivec3 get_nearest_3d(TerrainLoader* loader, ivec3 pos, ivec3 size, int radius, int position_offset = 0);
+	ivec3 get_nearest_2d(TerrainLoader* loader, ivec3 pos, ivec3 size, int radius, int position_offset = 0);
+};
+
+template <typename ... Objs> class TerrainObjectMerger { public:
+	template <typename Firstobj, typename Secondobj, typename ... Otherobjs> char gen_func(TerrainLoader* loader, ivec3 pos);
+	template <typename Lastobj> char gen_func(TerrainLoader* loader, ivec3 pos);
+	char gen_func(TerrainLoader* loader, ivec3 pos);
+};
+
+template <typename Elev, typename Land, typename ... Objs> class Biome { public:
+	static_assert(std::is_base_of<HeightMap,Elev>::value, "");
+	static_assert(std::is_base_of<LandGen,Land>::value, "");
+	//static_assert(std::is_base_of<TerrainObject,Objs>::value, ""); ...
+	TerrainObjectMerger<Objs ...> merger;
+	int get_height(TerrainLoader* loader, ivec2 pos);
+	char gen_func(TerrainLoader* loader, ivec3 pos);
+};
+
+class TerrainLoader { public:
+	int seed;
+	TerrainLoader(int newseed);
+	int get_height(ivec2 pos);
+	char gen_func(ivec3 pos);
+};
+
+template <int off> class Tree : public TerrainObject { public:
+	ivec3 get_nearest(TerrainLoader* loader, ivec3 pos);
+	char gen_func(TerrainLoader* loader, ivec3 offset, ivec3 pos);
+};
+
+class TallTree : public TerrainObject { public:
+	ivec3 get_nearest(TerrainLoader* loader, ivec3 pos);
+	char gen_func(TerrainLoader* loader, ivec3 offset, ivec3 pos);
+};
+
+class BigTree : public TerrainObject { public:
+	ivec3 get_nearest(TerrainLoader* loader, ivec3 pos);
+	char gen_func(TerrainLoader* loader, ivec3 offset, ivec3 pos);
+};
+
+class Flat : public HeightMap { public:
+	int get_height(TerrainLoader* loader, ivec2 pos);
+};
+
+class Shallow : public HeightMap { public:
+	int get_height(TerrainLoader* loader, ivec2 pos);
+};
+
+class Steep : public HeightMap { public:
+	int get_height(TerrainLoader* loader, ivec2 pos);
+};
+
+class Plains : public LandGen { public:
+	char gen_func(TerrainLoader* loader, ivec3 pos);
+};
+	
+
+
+/*
+	
 
 class TerrainBase {
 public:
@@ -167,5 +239,5 @@ public:
 	int priority();
 	bool is_valid(ivec3);
 };
-
+*/
 #endif
