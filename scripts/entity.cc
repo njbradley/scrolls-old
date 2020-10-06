@@ -11,6 +11,8 @@
 #include "blockdata.h"
 #include "cross-platform.h"
 
+#include <algorithm>
+
 using namespace glm;
 
 using namespace std;
@@ -1097,6 +1099,126 @@ void FallingBlockEntity::calc_constraints() {
     }
     
     position = newpos;
+}
+
+
+
+
+void FallingBlockEntity::render(RenderVecs* allvecs) {
+  // vecs.clear();
+  // block->all([=] (Pixel* pix) {
+  //   pix->set_render_flag();
+  //   pix->render_index = pair<int,int>(1,0);
+  // });
+  // block->render(&vecs, int(position.x), int(position.y), int(position.z));
+  //
+  
+  
+  if (render_flag) {
+    vecs.clear();
+    block.block->all([=] (Pixel* pix) {
+      pix->render_index = pair<int,int>(-1,0);
+      pix->set_render_flag();
+      pix->sunlight = lightmax;
+    });
+    bool faces[] = {true,true,true,true,true,true};
+    block.block->render(&vecs, &vecs, &block, 0, 0, 0, 1, faces, true, false);
+    for (int i = 0; i < vecs.num_verts; i++) {
+      vecs.verts[i*3+0] += blockpos.x;
+      vecs.verts[i*3+1] += blockpos.y;
+      vecs.verts[i*3+2] += blockpos.z;
+    }
+    render_flag = false;
+  }
+  
+  MemVecs translated;
+  translated.add(&vecs);
+  //cout << 't' << translated.num_verts << endl;
+  
+  //cout << 'y' << translated.num_verts << endl;
+  for (int i = 0; i < translated.num_verts; i++) {
+    translated.verts[i*3+0] += position.x;
+    translated.verts[i*3+1] += position.y;
+    translated.verts[i*3+2] += position.z;
+  }
+  
+  for (int i = 0; i < translated.num_verts/6; i ++) {
+    vec3 totalpos = vec3(translated.verts[i*6*3+0], translated.verts[i*6*3+1], translated.verts[i*6*3+2]) + 0.5f;
+    //cout << totalpos.x << ' ' << totalpos.y << ' ' << totalpos.z << ' ' << position.x <<  ' ' << position.y << ' ' << position.x << endl;
+    
+    ivec3 worldpos(totalpos);
+    Block* block = world->get_global(worldpos.x, worldpos.y, worldpos.z, 1);
+    if (block != nullptr) {
+      Pixel* pix = block->get_pix();
+      for (int j = 0; j < 6; j ++) {
+        int index = (i*6+j)*2;
+        translated.light[index+0] = pix->sunlight/lightmax;
+        translated.light[index+1] = pix->blocklight/lightmax;
+        if (pix->blocklight == 0) {
+          //cout << totalpos.x << ' ' << totalpos.y << ' ' << totalpos.z << ' ' << position.x <<  ' ' << position.y << ' ' << position.x << endl;
+        }
+        //cout << pix->blocklight/lightmax << endl;
+      }
+    }
+    
+  }
+  
+  if (render_index == pair<int,int>(-1,0)) {
+    render_index = allvecs->add(&translated);
+  } else {
+    allvecs->edit(render_index, &translated); //ERR: passes problemic vector? segfault deep in allvecs.edit, where translated.verts is added on
+  }
+}
+
+
+
+void FallingBlockEntity::calc_light(vec3 offset, vec2 angle) {
+  //cout << 105 << endl;
+  vector<ivec3> new_lit_blocks;
+  
+  
+  block.block->all([&] (Pixel* pix) {
+    cout << "loop" << pix << ' ' << int(pix->value) << endl;
+    cout << pix->blocklight << endl;
+    ivec3 blockpos;
+    pix->global_position(&blockpos.x, &blockpos.y, &blockpos.z);
+    ivec3 gpos (position + vec3(blockpos));
+    Block* b = world->get_global(gpos.x, gpos.y, gpos.z, 1);
+    cout << b << endl;
+    if (b != nullptr) {
+      Pixel* worldpix = b->get_pix();
+      ivec3 wpixpos;
+      worldpix->global_position(&wpixpos.x, &wpixpos.y, &wpixpos.z);
+      bool exists = false;
+      if (find(lit_blocks.begin(), lit_blocks.end(), wpixpos) != lit_blocks.end()) {
+        worldpix->entitylight = 0;
+        //worldpix->render_update();
+        exists = true;
+      }
+      if (pix->value != 0 and pix->blocklight > 0) {
+        worldpix->entitylight = pix->blocklight;
+        new_lit_blocks.push_back(wpixpos);
+        cout << "set lit block" << endl;
+        if (!exists) {
+          cout << "light update " << endl;
+          worldpix->set_light_flag();
+        }
+        cout << worldpix << endl;
+      }
+    }
+  });
+  
+  for (ivec3 pos : lit_blocks) {
+    if (find(new_lit_blocks.begin(), new_lit_blocks.end(), pos) == new_lit_blocks.end()) {
+      Block* block = world->get_global(pos.x, pos.y, pos.z, 1);
+      if (block != nullptr) {
+        block->get_pix()->entitylight = 0;
+        block->set_light_flag();
+      }
+    }
+  }
+  
+  lit_blocks.swap(new_lit_blocks);
 }
 
 

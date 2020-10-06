@@ -1118,6 +1118,13 @@ int main( void )
 				debug_visible = true;
 			} else if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
 				debug_visible = false;
+			} else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS) {
+				double begin = glfwGetTime();
+				ivec3 pos(world->player->position);
+				for (int i = 0; i < 1000000; i ++) {
+					Block* block = world->get_global(pos.x, pos.y, pos.z, 1);
+				}
+				cout << "1 mil get_global time: " << glfwGetTime() - begin << endl;
 			} else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
 				dump_buffers();
 				dump_emptys();

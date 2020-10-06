@@ -109,8 +109,8 @@ public:
   DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos);
   DisplayEntity(World* nworld, istream& ifile);
   ~DisplayEntity();
-  void render(RenderVecs* allvecs);
-  void calc_light(vec3 offset, vec2 ang);
+  virtual void render(RenderVecs* allvecs);
+  virtual void calc_light(vec3 offset, vec2 ang);
   virtual void on_timestep(double deltatime);
   virtual void to_file(ostream& ofile);
   //void die();
@@ -131,12 +131,15 @@ public:
 class FallingBlockEntity: public DisplayEntity, public Collider {
 public:
   BlockGroup* group;
+  vector<ivec3> lit_blocks;
   FallingBlockEntity(World* nworld, BlockGroup* newgroup);
   FallingBlockEntity(World* nworld, istream& ifile);
   void calc_constraints();
   Block * get_global(int,int,int,int);
   vec3 get_position() const;
   void on_timestep(double deltatime);
+  virtual void calc_light(vec3 offset, vec2 ang);
+  virtual void render(RenderVecs* allvecs);
   virtual void to_file(ostream& ofile);
   //virtual void to_file(ostream& ofile);
 };

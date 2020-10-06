@@ -1,5 +1,5 @@
 block torch {
-	:material: wood
+	:material: grass
 	:toughness: 0
 	:textures: [lamp]
 	:item_dropped: lamp 1
