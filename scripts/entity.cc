@@ -931,7 +931,7 @@ void NamedEntity::on_timestep(double deltatime) {
 
 FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup): DisplayEntity(nworld, newgroup->position, vec3(0,0,0),
 vec3(1,1,1), newgroup->block, vec3(0,0,0)), group(newgroup) {
-  box2 = vec3(block.block->scale - 0.2, block.block->scale, block.block->scale);
+  box2 = vec3(block.block->scale, block.block->scale, block.block->scale);
   immune = true;
 }
 
@@ -1136,23 +1136,29 @@ void FallingBlockEntity::render(RenderVecs* allvecs) {
   //cout << 't' << translated.num_verts << endl;
   
   //cout << 'y' << translated.num_verts << endl;
-  for (int i = 0; i < translated.num_verts; i++) {
-    translated.verts[i*3+0] += position.x;
-    translated.verts[i*3+1] += position.y;
-    translated.verts[i*3+2] += position.z;
-  }
   
   for (int i = 0; i < translated.num_verts/6; i ++) {
-    vec3 totalpos = vec3(translated.verts[i*6*3+0], translated.verts[i*6*3+1], translated.verts[i*6*3+2]) + 0.5f;
+    vec3 totalpos (0,0,0);
+    for (int j = 0; j < 6; j ++) {
+      int index = i*6+j;
+      totalpos.x += translated.verts[index*3+0];
+      totalpos.y += translated.verts[index*3+1];
+      totalpos.z += translated.verts[index*3+2];
+    }
+    totalpos /= 6.0f;
+    // = vec3(translated.verts[i*6*3+0], translated.verts[i*6*3+1], translated.verts[i*6*3+2]) + 0.5f;
     //cout << totalpos.x << ' ' << totalpos.y << ' ' << totalpos.z << ' ' << position.x <<  ' ' << position.y << ' ' << position.x << endl;
     
-    ivec3 worldpos(totalpos);
+    totalpos += position;
+    
+    ivec3 worldpos = ivec3(totalpos) - ivec3(totalpos.x < 0, totalpos.y < 0, totalpos.x < 0);
+    //cout << worldpos.x << ' ' << worldpos.y << ' ' << worldpos.z << endl;
     Block* block = world->get_global(worldpos.x, worldpos.y, worldpos.z, 1);
     if (block != nullptr) {
       Pixel* pix = block->get_pix();
       for (int j = 0; j < 6; j ++) {
         int index = (i*6+j)*2;
-        translated.light[index+0] = pix->sunlight/lightmax;
+        translated.light[index+0] = translated.light[index+0] * pix->sunlight/lightmax;
         translated.light[index+1] = pix->blocklight/lightmax;
         if (pix->blocklight == 0) {
           //cout << totalpos.x << ' ' << totalpos.y << ' ' << totalpos.z << ' ' << position.x <<  ' ' << position.y << ' ' << position.x << endl;
@@ -1162,6 +1168,13 @@ void FallingBlockEntity::render(RenderVecs* allvecs) {
     }
     
   }
+  
+  for (int i = 0; i < translated.num_verts; i++) {
+    translated.verts[i*3+0] += position.x;
+    translated.verts[i*3+1] += position.y;
+    translated.verts[i*3+2] += position.z;
+  }
+  
   
   if (render_index == pair<int,int>(-1,0)) {
     render_index = allvecs->add(&translated);
@@ -1178,13 +1191,12 @@ void FallingBlockEntity::calc_light(vec3 offset, vec2 angle) {
   
   
   block.block->all([&] (Pixel* pix) {
-    cout << "loop" << pix << ' ' << int(pix->value) << endl;
-    cout << pix->blocklight << endl;
+    //cout << "loop" << pix << ' ' << int(pix->value) << endl;
+    //cout << pix->blocklight << endl;
     ivec3 blockpos;
     pix->global_position(&blockpos.x, &blockpos.y, &blockpos.z);
     ivec3 gpos (position + vec3(blockpos));
     Block* b = world->get_global(gpos.x, gpos.y, gpos.z, 1);
-    cout << b << endl;
     if (b != nullptr) {
       Pixel* worldpix = b->get_pix();
       ivec3 wpixpos;
@@ -1198,12 +1210,12 @@ void FallingBlockEntity::calc_light(vec3 offset, vec2 angle) {
       if (pix->value != 0 and pix->blocklight > 0) {
         worldpix->entitylight = pix->blocklight;
         new_lit_blocks.push_back(wpixpos);
-        cout << "set lit block" << endl;
+        //cout << "set lit block" << endl;
         if (!exists) {
-          cout << "light update " << endl;
+          //cout << "light update " << endl;
           worldpix->set_light_flag();
         }
-        cout << worldpix << endl;
+        // /cout << worldpix << endl;
       }
     }
   });

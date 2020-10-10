@@ -197,6 +197,7 @@ void BlockGroup::copy_to_block() {
 				newpix = block->get_global(local.x, local.y, local.z, 1)->get_pix();
 			}
 			newpix->set(orig->value, orig->direction, orig->extras, false);
+			newpix->reset_lightlevel();
 		}
 	} else {
 		Pixel* orig = world->get_global(position.x, position.y, position.z, 1)->get_pix();
@@ -919,15 +920,15 @@ void DissolveGroup::tick() {
 
 
 FluidGroup::FluidGroup(World* world, ivec3 starting_pos): BlockGroup(world, starting_pos) {
-	// for (ivec3 pos : block_poses) {
-	// 	fill_levels[pos] = 1.0;
-	// }
+	for (ivec3 pos : block_poses) {
+		levels[pos] = 1.0;
+	}
 }
 
 FluidGroup::FluidGroup(World* world, istream& ifile): BlockGroup(world, ifile) {
-	// for (ivec3 pos : block_poses) {
-	// 	fill_levels[pos] = 1.0;
-	// }
+	for (ivec3 pos : block_poses) {
+		levels[pos] = 1.0;
+	}
 }
 
 void FluidGroup::add_block(ivec3 pos) {
@@ -980,58 +981,100 @@ void FluidGroup:make_level(ivec3 pos, FluidLevel* level) {
 }*/
 		
 
-void FluidGroup::tick() {/*
+void FluidGroup::tick() {
 	if (tickclock > viscosity) {
-		const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,0,1}};
+		const ivec3 dirs[] = {{0,-1,0}, {-1,0,0}, {0,0,-1}, {1,0,0}, {0,0,1}};
+		const ivec3 dirs2d[] = {{-1,0,0}, {0,0,-1}, {1,0,0}, {0,0,1}};
+		const double cut_off = 0.05;
 		
-		vector<FluidLevel> new_levels;
+		unordered_map<ivec3,double,ivec3_hash> new_levels;
 		
-		int ylevel = INT_MIN;
-		unordered_set<ivec3,ivec3_hash> unused_blocks(block_poses);
+		vector<ivec3> new_blocks;
 		
-		while (unused_blocks.size() > 0) {
-			int next_level = ylevel;
-			vector<ivec3> blocks_at_level;
+		for (ivec3 pos : block_poses) {
+			double level = levels[pos];
+			new_levels[pos] += level;
 			
-			for (ivec3 pos : unused_blocks) {
-				if (pos.y == ylevel) {
-					blocks_at_level.push_back(pos);
-				} else if (pos.y > ylevel and (pos.y < next_level or next_level == ylevel)) {
-					next_level = pos.y;
+			vector<ivec3> dirs_open;
+			for (ivec3 dir : dirs) {
+				bool open = block_poses.count(pos+dir) > 0;
+				if (!open) {
+					char val = world->get(pos.x+dir.x, pos.y+dir.y, pos.z+dir.z);
+					open = (val == 0);
+					if (dir.y == -1) {
+						//cout << "dir y -1 val !!!!!!!!!!!!! " << int(val) << endl;
+					}
+					if (open) {
+						levels[pos+dir] = 0;
+						//cout << int(val) << ' ';
+						//print(pos+dir);
+					}
+				}
+				if (open) {
+					double other_level = levels[pos+dir];
+					if (dir.y == -1) {
+						if (other_level < 1) {
+							new_blocks.push_back(pos+dir);
+							double amount_given = std::min(level, 1 - other_level);
+							new_levels[pos+dir] += amount_given;
+							new_levels[pos] -= amount_given;
+							//cout << "braking!!!!" << endl;
+							break;
+						}
+					} else if (other_level < level) {
+						dirs_open.push_back(dir);
+					}
 				}
 			}
 			
-			if (blocks_at_level.size() == 0) {
-				ylevel = next_level;
-			} else {
-				new_levels.emplace_back();
-				make_level(blocks_at_level[0], &new_levels.back());
-				for (ivec3 pos : new_levels.back().block_poses) {
-					unused_blocks.erase(pos);
+			for (ivec3 dir : dirs_open) {
+				double other_level = levels[pos+dir];
+				double amount_given = ((level - other_level) / (1 + dirs_open.size()));
+				if (level - amount_given > cut_off) {
+					new_blocks.push_back(pos+dir);
+					new_levels[pos+dir] += amount_given;
+					new_levels[pos] -= amount_given;
 				}
 			}
 		}
 		
-		for (FluidLevel& level : new_levels) {
-			for (ivec3 pos : level.block_poses) {
-				bool flow_down = false;
-				if (block_poses.count(pos - ivec3(0,1,0)) > 0) {
-					for (FluidLevel& otherlevel : new_levels) {
-						if (otherlevel.ylevel == pos.y-1 and otherlevel.block_poses.count(pos - ivec3(0,1,0)) > 0) {
-							if (otherlevel.fill <= otherlevel.block_poses.size()-1) {
-								otherlevel.fill += 1;
-								level.fill -= 1;
-								flow_down = true;
-							} else if (otherlevel.fill < otherlevel.block_poses.size()) {
-								level.fill -= otherlevel.block_poses.size() - otherlevel.fill;
-								otherlevel.fill = otherlevel.block_poses.size();
-								flow_down = true;
-							}
+		for (ivec3 pos : new_blocks) {
+			add_block(pos);
+		}
+		
+		for (ivec3 pos : block_poses) {
+			if (block_poses.count(pos - ivec3(0,1,0)) > 0) {
+				double level = levels[pos];
+				double below_level = levels[pos-ivec3(0,1,0)];
+				if (below_level < 1) {
+					double amount_given = std::min(level, 1 - below_level);
+					new_levels[pos-ivec3(0,1,0)] += amount_given;
+					new_levels[pos] -= amount_given;
+				}
+			}
+		}
+			
+		
+		vector<ivec3> poses_to_del;
+		
+		for (pair<ivec3,double> level_pair : new_levels) {
+			//cout << level_pair.first.x << ' ' << level_pair.first.y << ' ' << level_pair.first.z << ' ' << level_pair.second << ',';
+			if (level_pair.second < cut_off) {
+				poses_to_del.push_back(level_pair.first);
+			}
+		}
+		
+		for (ivec3 pos : poses_to_del) {
+			del_block(pos);
+			new_levels.erase(pos);
+		}
+		
+		levels.swap(new_levels);
 		
 		tickclock = 0;
 	} else {
 		tickclock ++;
-	}*/
+	}
 }
 
 #endif

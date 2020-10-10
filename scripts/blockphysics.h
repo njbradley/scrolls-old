@@ -177,8 +177,9 @@ class DissolveGroup: public BlockGroup { public:
 // }
 
 class FluidGroup: public BlockGroup, public PipeInterface { public:
-	int viscosity = 5;
+	int viscosity = 1;
 	int tickclock = 0;
+	unordered_map<ivec3,double,ivec3_hash> levels;
 	
 	FluidGroup(World* nworld, ivec3 starting_pos);
 	FluidGroup(World* nworld, istream& ifile);

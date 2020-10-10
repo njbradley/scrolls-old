@@ -680,6 +680,18 @@ int main( void )
 			//cout << "rendering!!!!" << endl;
 			//auto fut =  std::async([&] () {world->render();});//();
 			//world->render();
+			
+			// TileLoop loop(world);
+			// for (Tile* tile : loop) {
+			// 	if (tile->chunk->render_flag and tile->fully_loaded) {
+			// 		tile->render(&world->glvecs, &world->transparent_glvecs);
+			// 		world->glvecs.clean();
+		  //     world->transparent_glvecs.clean();
+		  //     glFinish();
+			// 		break;
+			// 	}
+			// }
+			
 			num_tris = world->glvecs.num_verts/3;//world->glvecs.num_verts/3;
 			//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, matbuffer, &num_tris, render_flag);
 			render_flag = false;

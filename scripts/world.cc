@@ -519,14 +519,22 @@ bool World::render() {
     bool changed = false;
     TileLoop loop(this);
     double start = glfwGetTime();
-    int i = 0;
     for (Tile* tile : loop) {
+      changed = changed or (tile->chunk->render_flag and tile->fully_loaded);
+      if (changed) {
+        tile->render(&glvecs, &transparent_glvecs);
+        break;
+      }
+    }
+    if (!changed) {
+      loop = TileLoop(this);
+      for (Tile* tile : loop) {
         changed = changed or tile->chunk->render_flag;
         tile->render(&glvecs, &transparent_glvecs);
         if (changed) {
           break;
         }
-        i++;
+      }
     }
     for (pair<int,int> render_index : dead_render_indexes) {
       glvecs.del(render_index);
