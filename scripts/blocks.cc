@@ -622,9 +622,13 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
     if (block != nullptr) {
       block->all_side([&] (Pixel* pix) {
         if (pix->sunlight < sunlight - newdec*scale or (pix->sunlight + newdec*scale == oldsunlight and sunlight < oldsunlight)) {
-          ivec3 pos;
-          pix->global_position(&pos.x, &pos.y, &pos.z);
-          next_poses.emplace(pos);
+          if (tile != pix->tile) {
+            ivec3 pos;
+            pix->global_position(&pos.x, &pos.y, &pos.z);
+            next_poses.emplace(pos);
+          } else {
+            pix->set_light_flag();
+          }
         }
         if (changed) pix->set_render_flag();
       }, -dir.x, -dir.y, -dir.z);

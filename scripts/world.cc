@@ -329,37 +329,7 @@ void World::get_async_loaded_chunks() {
   vector<Tile*> loaded_chunks = threadmanager->get_loaded_tiles();
   //if (tiles_lock.try_lock_for(std::chrono::seconds(1))) {
     for (Tile* tile : loaded_chunks) {
-      ivec3 pos = tile->pos;
-      
-      for (int i = 0; i < tiles.size(); i ++) {
-        if (tiles[i] == nullptr) {
-          // dfile << "load" << i << ' ';
-          tiles[i] = tile;
-          // dfile << "LOAD" << i << endl;
-          break;
-        }
-      }
-      
-      for (int i = 0; i < loading_chunks.size(); i ++) {
-        if (loading_chunks[i] == pos) {
-          loading_chunks.erase(loading_chunks.begin()+i);
-          break;
-        }
-      }
-      for (BlockGroup* group : physicsgroups) {
-        ivec3 gpos = group->position;
-        ivec3 cpos = gpos/chunksize - ivec3(gpos.x<0, gpos.y<0, gpos.z<0);
-        if (cpos == pos) {
-          group->set_pix_pointers();
-        }
-      }
-      tile->chunk->all([=] (Pixel* pix) {
-        if (BlockGroup::is_persistant(pix->value)) {
-          int gx, gy, gz;
-          pix->global_position(&gx, &gy, &gz);
-          pix->tile->world->block_update(gx, gy, gz);
-        }
-      });
+      add_tile(tile);
     }
     for (int i = deleting_chunks.size()-1; i >= 0; i --) {
       if (tileat(deleting_chunks[i]) == nullptr) {
@@ -368,6 +338,40 @@ void World::get_async_loaded_chunks() {
     }
     //tiles_lock.unlock();
   //}
+}
+
+void World::add_tile(Tile* tile) {
+  ivec3 pos = tile->pos;
+  
+  for (int i = 0; i < tiles.size(); i ++) {
+    if (tiles[i] == nullptr) {
+      // dfile << "load" << i << ' ';
+      tiles[i] = tile;
+      // dfile << "LOAD" << i << endl;
+      break;
+    }
+  }
+  
+  for (int i = 0; i < loading_chunks.size(); i ++) {
+    if (loading_chunks[i] == pos) {
+      loading_chunks.erase(loading_chunks.begin()+i);
+      break;
+    }
+  }
+  for (BlockGroup* group : physicsgroups) {
+    ivec3 gpos = group->position;
+    ivec3 cpos = gpos/chunksize - ivec3(gpos.x<0, gpos.y<0, gpos.z<0);
+    if (cpos == pos) {
+      group->set_pix_pointers();
+    }
+  }
+  tile->chunk->all([=] (Pixel* pix) {
+    if (BlockGroup::is_persistant(pix->value)) {
+      int gx, gy, gz;
+      pix->global_position(&gx, &gy, &gz);
+      pix->tile->world->block_update(gx, gy, gz);
+    }
+  });
 }
 
 void World::timestep() {

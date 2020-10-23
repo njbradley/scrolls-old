@@ -356,7 +356,7 @@ void Player::left_mouse(double deltatime) {
 			pix->global_position(&gx, &gy, &gz);
 			//cout << gx << ' ' << gy << ' ' << gz << endl;
 			
-			ivec3 blockpos(x, y, z);
+			ivec3 blockpos = ivec3(x, y, z) - ivec3(x<0, y<0, z<0);
 			
 			//cout << blockpos.x << ' ' << blockpos.y << ' ' << blockpos.z << endl;
 			//cout << ':' << x << ' ' << y << ' ' << z << endl;

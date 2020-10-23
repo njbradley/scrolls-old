@@ -40,6 +40,7 @@ using namespace glm;
 #include "materials.h"
 #include "ui.h"
 #include "text.h"
+#include "graphics.h"
 
 
 #include "cross-platform.h"
@@ -48,25 +49,8 @@ using namespace glm;
 
 #include <future>
 
-int num_blocks;
-int num_uis;
-
-int last_num_verts = 0;
-int last_num_ui_verts = 0;
-
 int max_fps;
 double min_ms_per_frame;
-
-GLuint vertexbuffer;
-GLuint uvbuffer;
-GLuint lightbuffer;
-GLuint matbuffer;
-GLuint vertex_ui_buffer;
-GLuint uv_ui_buffer;
-GLuint mat_ui_buffer;
-
-vec3 clearcolor;
-int view_distance;
 
 bool framerate_sync = true;
 
@@ -82,9 +66,11 @@ float initialFoV = 110.0f;
 
 ThreadManager* threadmanager;
 
+GraphicsContext* graphics;
+
 void set_display_env(vec3 new_clear_color, int new_view_dist) {
-	clearcolor = new_clear_color;
-	view_distance = new_view_dist;
+	graphics->clearcolor = new_clear_color;
+	graphics->view_distance = new_view_dist;
 }
 
 void wait() {
@@ -219,39 +205,7 @@ void load_settings() {
 	}
 }
 
-void make_ui_buffer(Player* player, string debugstream, GLuint vertexbuffer, GLuint uvbuffer, GLuint matbuffer, int * num_tris) {
-	MemVecs vecs;
-	if (last_num_ui_verts != 0) {
-		vecs.verts.reserve(last_num_ui_verts*3);
-		vecs.uvs.reserve(last_num_ui_verts*2);
-		vecs.mats.reserve(last_num_ui_verts);
-	}
-	if (debug_visible) {
-		render_debug(&vecs, debugstream);
-	} else {
-		render_debug(&vecs, "");
-	}
-	player->render_ui(&vecs);
-	if (menu != nullptr) {
-		menu->render(window, world, player, &vecs);
-	}
-	int num_verts = vecs.num_verts;
-	last_num_ui_verts = num_verts;
-	
-	*num_tris = num_verts/3;
-	
-	GLfloat i = 0.0f;
-	GLint j = 0;
-	//cout << sizeof(i) << ' ' << sizeof(j) << endl;
-	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(i)*3, &vecs.verts.front(), GL_STATIC_DRAW);
-	
-	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(i)*2, &vecs.uvs.front(), GL_STATIC_DRAW);
-	
-	glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &vecs.mats.front(), GL_STATIC_DRAW);
-}
+
 
 
 void inven_menu() {
@@ -277,7 +231,7 @@ void level_select_menu() {
 			w->close_world();
 			delete w;
 			world = new World(result, threadmanager);
-			world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+			graphics->set_world_buffers(world, allocated_memory);
 			threadmanager->rendering = true;
 			render_flag = true;
 			//debug_visible = true;
@@ -296,7 +250,7 @@ void new_world_menu() {
 			w->close_world();
 			delete w;
 			world = new World(result, threadmanager, time(NULL));
-			world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+			graphics->set_world_buffers(world, allocated_memory);
 			threadmanager->rendering = true;
 			render_flag = true;
 		}
@@ -321,229 +275,32 @@ void main_menu() {
 	});
 }
 
-void tests() {
-	
-	clock_t start = clock();
-	
-	for (int i = 0; i < 64; i ++) {
-		for (int j = 0; j < 64; j ++) {
-			for (int k = 0; k < 64; k ++) {
-				world->loader.gen_func(ivec3(i,j,k));
-			}
-		}
-	}
-	
-	clock_t total = clock() - start;
-	cout << "pure gen func: " << double(total)/CLOCKS_PER_SEC << endl;
-	
-	start = clock();
-	
-	Tile tile(ivec3(0,0,0), world);
-	
-	total = clock() - start;
-	cout << "tile gen func: " << double(total)/CLOCKS_PER_SEC << endl;
-	
-	cout << "tests done" << endl;
-	exit(0);
-}
+
 
 
 
 int main( void )
 {
 	
-	//system("rmdir saves /s /q");
 	load_settings();
 	min_ms_per_frame = 1000.0/max_fps;
-	
-	//boost::asio::io_service io_service;
 	
 	cout.precision(10);
 	
 	matstorage = new MaterialStorage();
 	blocks = new BlockStorage();
-	
 	itemstorage = new ItemStorage();
-	
 	recipestorage = new RecipeStorage();
 	entitystorage = new EntityStorage();
 	mobstorage = new MobStorage();
 	
+	graphics = new GraphicsContext();
 	
-	
-	
-	// Initialise GLFW
-	if( !glfwInit() )
-	{
-		fprintf( stderr, "Failed to initialize GLFW\n" );
-		getchar();
-		return -1;
-	}
-	
-	glfwWindowHint(GLFW_SAMPLES, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	
-	if (fullscreen) {
-		const GLFWvidmode* return_struct = glfwGetVideoMode( glfwGetPrimaryMonitor() );
-		set_screen_dims(return_struct->width, return_struct->height);
-		window = glfwCreateWindow( screen_x, screen_y, "Scrolls - An Adventure Game", glfwGetPrimaryMonitor(), nullptr);
-	} else {
-		// Open a window and create its OpenGL context
-		window = glfwCreateWindow( screen_x, screen_y, "Scrolls - An Adventure Game", fullscreen ? glfwGetPrimaryMonitor() : nullptr, nullptr);
-	}
-	glfwSetWindowPos(window, 100, 40);
-	
-	threadmanager = new ThreadManager(window);
-	
-	//launch_threads(window); 
-	
-	if( window == NULL ){
-		fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
-		getchar();
-		glfwTerminate();
-		return -1;
-	}
-  glfwMakeContextCurrent(window);
-	
-	
-	//wait();
-	// Initialize GLEW
-	glewExperimental = true; // Needed for core profile
-	if (glewInit() != GLEW_OK) {
-		fprintf(stderr, "Failed to initialize GLEW\n");
-		getchar();
-		glfwTerminate();
-		return -1;
-	}
-	
-	int maxsize;
-	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxsize);
-	cout << "maxsize: " << maxsize << endl;
-	
-	
-	// Ensure we can capture the escape key being pressed below
-	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-	glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
-  // Hide the mouse and enable unlimited mouvement
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	
-  // Set the mouse at the center of the screen
-  glfwPollEvents();
-  glfwSetCursorPos(window, screen_x/2, screen_y/2);
-
-	// Dark blue background
-	clearcolor = vec3(0.4f, 0.7f, 1.0f);
-	glClearColor(clearcolor.x, clearcolor.y, clearcolor.z, 0.0f);
-	
-	// Enable depth test
-	glEnable(GL_DEPTH_TEST);
-	// Accept fragment if it closer to the camera than the former one
-	glDepthFunc(GL_LESS);
-	
-	// Cull triangles which normal is not towards the camera
-	glEnable(GL_CULL_FACE);
-	
-	GLuint VertexArrayID;
-	glGenVertexArrays(1, &VertexArrayID);
-	
-	GLuint uiVertexArrayID;
-	glGenVertexArrays(1, &uiVertexArrayID);
-	
-	
-	// Create and compile our GLSL program from the shaders
-	GLuint programID = LoadShaders( "resources/shaders/block.vs", "resources/shaders/block.fs" );
-	GLuint uiProgram = LoadShaders( "resources/shaders/ui.vs", "resources/shaders/ui.fs" );
-	
-	// Get a handle for our "MVP" uniform
-	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
-	
-	
-	////// get mats from folders
-	//vector<string> block_tex;
-	vector<string> uis;
-	//get_files_folder("resources/blocks", &block_tex);
-	get_files_folder("resources/textures/ui", &uis);
-	ifstream num_blocks_file("resources/textures/blocks/num_blocks.txt");
-	num_blocks_file >> num_blocks;
-	
-	
-	num_uis = uis.size() + 1;
-	
-	
-	GLuint block_textures[num_blocks];
-	GLuint transparent_block_textures[num_blocks];
-	GLuint ui_textures[num_uis];
-	// Load the texture
-	
-	int size = 1;
-	for (int i = 0; i < num_blocks; i ++) {
-		string block = "resources/textures/blocks/" + std::to_string(size);
-		block_textures[i] = loadBMP_array_folder(block);
-	}
-	
-	for (int i = 0; i < num_blocks; i ++) {
-		string block = "resources/textures/blocks/transparent/" + std::to_string(size);
-		transparent_block_textures[i] = loadBMP_array_folder(block, true);
-	}
-	
-	for( int i = 0; i < uis.size(); i ++) {
-		string ui = "resources/textures/ui/" + uis[i];
-		ui_names[uis[i]] = i;
-		const char* data = ui.c_str();
-		ui_textures[i] = loadBMP_custom(data, true);
-	}
-	
-	ui_textures[num_uis-1] = loadBMP_image_folder("resources/textures/items", true);
-	ui_names["items.bmp"] = num_uis-1;
-	// Load the texture
-	//GLuint Texture = loadBMP_custom("scrolls/resources/blocks/dirt.bmp");
-	//GLuint Texture = loadDDS("uvtemplate.DDS");
-	
-	// Get a handle for our "myTextureSampler" uniform
-	GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
-	GLuint uiTextureID  = glGetUniformLocation(uiProgram, "myTextureSampler");
-	GLuint viewdistID = glGetUniformLocation(programID, "view_distance");
-	GLuint clearcolorID = glGetUniformLocation(programID, "clear_color");
-	GLuint player_positionID = glGetUniformLocation(programID, "player_position");
-	GLuint sunlightID = glGetUniformLocation(programID, "sunlight");
 	
 	int num_tris;
 	int num_ui_tris;
 	
-	glBindVertexArray(uiVertexArrayID);
-	
-	GLuint uibuffs[3];
-	glGenBuffers(3, uibuffs);
-	vertex_ui_buffer = uibuffs[0];
-	uv_ui_buffer = uibuffs[1];
-	mat_ui_buffer = uibuffs[2];
-	//glGenBuffers(1, &mat_ui_buffer);
-	//glGenBuffers(1, &mat_ui_buffer);
-	//glGenBuffers(1, &mat_ui_buffer);
-	
-	
-	
-	glBindVertexArray(VertexArrayID);
-	
-	GLuint blockbuffs[4];
-	glGenBuffers(4, blockbuffs);
-	vertexbuffer = blockbuffs[0];
-	uvbuffer = blockbuffs[1];
-	lightbuffer = blockbuffs[2];
-	matbuffer = blockbuffs[3];
-	
-	//glGenBuffers(1, &vertexbuffer);
-	//glGenBuffers(1, &uvbuffer);
-	//glGenBuffers(1, &lightbuffer);
-	//glGenBuffers(1, &matbuffer);
-	
-	//string level = menu(window, vertexbuffer, uvbuffer, matbuffer, uiVertexArrayID, uiTextureID, ui_textures, num_uis, uiProgram, "Select World:", worlds );
-	//if (level == "") {
-	//	return 0;
-	//}
+	threadmanager = new ThreadManager(window);
 	
 	//wait();
 	ifstream ifile("saves/latest.txt");
@@ -552,22 +309,22 @@ int main( void )
 		ofstream ofile("saves/saves.txt");
 		ofile << "";
 		world = new World("Starting-World", threadmanager, 12345);
-		world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+		graphics->set_world_buffers(world, allocated_memory);
 	} else {
 		string latest;
 		ifile >> latest;
 		if (latest != "") {
 			world = new World(latest, threadmanager);
-			world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+			graphics->set_world_buffers(world, allocated_memory);
 		} else {
 			ifstream ifile2("saves/saves.txt");
 			ifile2 >> latest;
 			if (latest != "") {
 				world = new World(latest, threadmanager);
-				world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+				graphics->set_world_buffers(world, allocated_memory);
 			} else {
 				world = new World("Starting-World", threadmanager, 12345);
-				world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+				graphics->set_world_buffers(world, allocated_memory);
 			}
 		}
 	}
@@ -584,7 +341,7 @@ int main( void )
 	bool reaching_max_fps = true;
 	double slow_frame = 0;
 	int slow_tick = 0;
-	view_distance = view_dist * World::chunksize * 10;
+	graphics->view_distance = view_dist * World::chunksize * 10;
 	bool dologtime = false;
 	
 	
@@ -673,6 +430,7 @@ int main( void )
 			GLenum err;
 			while((err = glGetError()) != GL_NO_ERROR) {
 				debugstream << "err: " << std::hex << err << std::dec << endl;
+				cout << "err: " << std::hex << err << std::dec << endl;
 			}
 			
 		}
@@ -807,48 +565,12 @@ int main( void )
 		currentTime = glfwGetTime();
 		
 		
-		
-		
-		// Clear the screen
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		//-----------------------------------------------------FIRST DRAW CALL-------------------------------------------------------------------------------------------------------------------------//
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		
 		double start = glfwGetTime();
-		glBindVertexArray(VertexArrayID);
 		
-		
-		// Use our shader
-		glUseProgram(programID);
-		
-		// Compute the MVP matrix from keyboard and mouse input
-		glm::mat4 ProjectionMatrix = world->player->getProjectionMatrix();
-		glm::mat4 ViewMatrix = world->player->getViewMatrix();
-		glm::mat4 ModelMatrix = glm::mat4(1.0);
-		glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
-		
-		// Send our transformation to the currently bound shader,
-		// in the "MVP" uniform
-		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-		glUniform3f(clearcolorID, clearcolor.x * world->sunlight, clearcolor.y * world->sunlight, clearcolor.z * world->sunlight);
-		glClearColor(clearcolor.x * world->sunlight, clearcolor.y * world->sunlight, clearcolor.z * world->sunlight, 0.0f);
-		glUniform1i(viewdistID, view_distance);
-		glUniform3f(player_positionID, world->player->position.x, world->player->position.y, world->player->position.z);
-		glUniform1f(sunlightID, world->sunlight);
-		
-		int ids[num_blocks];
-		for (int i = 0; i < num_blocks; i ++) {
-			ids[i] = i;
-			glActiveTexture(GL_TEXTURE0+i);
-			glBindTexture(GL_TEXTURE_2D_ARRAY, block_textures[i]);
-		}
-		
-		// if (!world->glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
-		// 	cout << "glvecs lock has timed out" << endl;
-		// 	exit(1);
-		// }
 		world->glvecs.writelock.lock();
 		world->transparent_glvecs.writelock.lock();
 		time = glfwGetTime() - start;
@@ -857,151 +579,10 @@ int main( void )
 		}
 		start = glfwGetTime();
 		
-		// Bind our texture in Texture Unit 0
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_2D, Texture);
-		// Set our "myTextureSampler" sampler to use Texture Unit 0
-		//glUniform1i(TextureID, 0);
-		glUniform1iv(TextureID, num_blocks, ids);
 		
-		// 1rst attribute buffer : vertices
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-		glVertexAttribPointer(
-			0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-			3,                  // size
-			GL_FLOAT,           // type
-			GL_FALSE,           // normalized?
-			0,                  // stride
-			(void*)0            // array buffer offset
-		);
-		
-		// 2nd attribute buffer : UVs
-		glEnableVertexAttribArray(1);
-		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-		glVertexAttribPointer(
-			1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-			2,                                // size : U+V => 2
-			GL_FLOAT,                         // type
-			GL_FALSE,                         // normalized?
-			0,                                // stride
-			(void*)0                          // array buffer offset
-		);
-		
-		glEnableVertexAttribArray(2);
-		glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-		glVertexAttribPointer(
-			2,                                // attribute. No particular reason for 2, but must match the layout in the shader.
-			2,                                // size : 1
-			GL_FLOAT,                         // type
-			GL_FALSE,                         // normalized?
-			0,                                // stride
-			(void*)0                          // array buffer offset
-		);
-		
-		glEnableVertexAttribArray(3);
-		glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
-		glVertexAttribIPointer(
-			3,                                // attribute. No particular reason for 2, but must match the layout in the shader.
-			2,                                // size : 1
-			GL_INT,                         // type
-			                         // normalized?
-			0,                                // stride
-			(void*)0                          // array buffer offset
-		);
-		//cout << num_tris << endl;
-		// Draw the triangle !
-		
-		glDrawArrays(GL_TRIANGLES, 0, num_tris*3); // 12*3 indices starting at 0 -> 12 triangles
+		graphics->block_draw_call(world);
 		
 		
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		//glDisable(GL_CULL_FACE);
-		
-		for (int i = 0; i < num_blocks; i ++) {
-	 		ids[i] = i;
-		 	glActiveTexture(GL_TEXTURE0+i);
-		 	glBindTexture(GL_TEXTURE_2D_ARRAY, transparent_block_textures[i]);
-		}
-		
-		glUniform1iv(TextureID, num_blocks, ids);
-		
-		
-		glDrawArrays(GL_TRIANGLES, world->transparent_glvecs.offset, world->transparent_glvecs.num_verts);
-		
-		
-		glDisableVertexAttribArray(0);
-		glDisableVertexAttribArray(1);
-		glDisableVertexAttribArray(2);
-		glDisableVertexAttribArray(3);
-		
-		
-		glDisable(GL_DEPTH_TEST);
-		glDepthMask(GL_FALSE);
-		//glEnable(GL_CULL_FACE);
-		//
-		// glEnableVertexAttribArray(0);
-		// glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-		// glVertexAttribPointer(
-		// 	0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-		// 	3,                  // size
-		// 	GL_FLOAT,           // type
-		// 	GL_FALSE,           // normalized?
-		// 	0,                  // stride
-		// 	(void*)0            // array buffer offset
-		// );
-		//
-		// // 2nd attribute buffer : UVs
-		// glEnableVertexAttribArray(1);
-		// glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-		// glVertexAttribPointer(
-		// 	1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-		// 	2,                                // size : U+V => 2
-		// 	GL_FLOAT,                         // type
-		// 	GL_FALSE,                         // normalized?
-		// 	0,                                // stride
-		// 	(void*)0                          // array buffer offset
-		// );
-		//
-		// glEnableVertexAttribArray(2);
-		// glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-		// glVertexAttribPointer(
-		// 	2,                                // attribute. No particular reason for 2, but must match the layout in the shader.
-		// 	2,                                // size : 1
-		// 	GL_FLOAT,                         // type
-		// 	GL_FALSE,                         // normalized?
-		// 	0,                                // stride
-		// 	(void*)0                          // array buffer offset
-		// );
-		//
-		// glEnableVertexAttribArray(3);
-		// glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
-		// glVertexAttribIPointer(
-		// 	3,                                // attribute. No particular reason for 2, but must match the layout in the shader.
-		// 	2,                                // size : 1
-		// 	GL_INT,                         // type
-		// 	                         // normalized?
-		// 	0,                                // stride
-		// 	(void*)0                          // array buffer offset
-		// );
-		//
-		// for (int i = 0; i < num_blocks; i ++) {
-		// 	ids[i] = i;
-		// 	glActiveTexture(GL_TEXTURE0+i);
-		// 	glBindTexture(GL_TEXTURE_2D_ARRAY, block_textures[i]);
-		// }
-		//
-		// glUniform1iv(TextureID, num_blocks, ids);
-		//
-		//
-		// glDrawArrays(GL_TRIANGLES, world->transparent_glvecs.offset, world->transparent_glvecs.num_verts);
-		//
-		//
-		// glDisableVertexAttribArray(0);
-		// glDisableVertexAttribArray(1);
-		// glDisableVertexAttribArray(2);
-		// glDisableVertexAttribArray(3);
 		
 		world->glvecs.writelock.unlock();
 		world->transparent_glvecs.writelock.unlock();
@@ -1014,76 +595,8 @@ int main( void )
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		//-----------------------------------------------------SECOND DRAW CALL------------------------------------------------------------------------------------------------------------------------//
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		begin = glfwGetTime();
-		make_ui_buffer(world->player, debugstream.str(), vertex_ui_buffer, uv_ui_buffer, mat_ui_buffer, &num_ui_tris);
-		double buffertime = glfwGetTime() - begin;
-		if (dologtime and buffertime > 0.001) {
-			cout << "buffer " << buffertime << ' ';
-		}
-		//allow trancaperancy
 		
-		
-		glBindVertexArray(uiVertexArrayID);
-		//*
-		glUseProgram(uiProgram);
-		
-		int uv_ids[num_uis];
-		for (int i = 0; i < num_uis; i ++) {
-			uv_ids[i] = i;
-			glActiveTexture(GL_TEXTURE0+i);
-			glBindTexture(GL_TEXTURE_2D, ui_textures[i]);
-		}
-		
-		glUniform1iv(uiTextureID, num_uis, uv_ids);
-		
-		// 1rst attribute buffer : vertices
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, vertex_ui_buffer);
-		glVertexAttribPointer(
-			0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-			3,                  // size
-			GL_FLOAT,           // type
-			GL_FALSE,           // normalized?
-			0,                  // stride
-			(void*)0            // array buffer offset
-		);
-		
-		// 2nd attribute buffer : UVs
-		glEnableVertexAttribArray(1);
-		glBindBuffer(GL_ARRAY_BUFFER, uv_ui_buffer);
-		glVertexAttribPointer(
-			1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-			2,                                // size : U+V => 2
-			GL_FLOAT,                         // type
-			GL_FALSE,                         // normalized?
-			0,                                // stride
-			(void*)0                          // array buffer offset
-		);
-		
-		glEnableVertexAttribArray(2);
-		glBindBuffer(GL_ARRAY_BUFFER, mat_ui_buffer);
-		glVertexAttribIPointer(
-			2,                                // attribute. No particular reason for 2, but must match the layout in the shader.
-			1,                                // size : 1
-			GL_INT,                         // type
-			                         // normalized?
-			0,                                // stride
-			(void*)0                          // array buffer offset
-		);
-		
-		// Draw the triangle !
-		glDrawArrays(GL_TRIANGLES, 0, num_ui_tris*3); // 12*3 indices starting at 0 -> 12 triangles
-		
-		glDisableVertexAttribArray(0);
-		glDisableVertexAttribArray(1);
-		glDisableVertexAttribArray(2);
-		
-		
-		// disable transparency
-		glEnable(GL_DEPTH_TEST);
-		glDisable(GL_BLEND);
-		glDepthMask(GL_TRUE);
-		//*/
+		graphics->ui_draw_call(world, &debugstream);
 		// Swap buffers
 		
 		time = glfwGetTime() - begin;
@@ -1201,20 +714,6 @@ int main( void )
 	threadmanager->close();
 	delete threadmanager;
 	// Cleanup VBO and shader
-	glDeleteBuffers(1, &vertexbuffer);
-	glDeleteBuffers(1, &uvbuffer);
-	glDeleteBuffers(1, &lightbuffer);
-	glDeleteBuffers(1, &matbuffer);
-	
-	glDeleteBuffers(1, &vertex_ui_buffer);
-	glDeleteBuffers(1, &uv_ui_buffer);
-	glDeleteBuffers(1, &mat_ui_buffer);
-	
-	glDeleteProgram(programID);
-	glDeleteProgram(uiProgram);
-	
-	glDeleteTextures(1, &TextureID);
-	glDeleteVertexArrays(1, &VertexArrayID);
 	
 	if (world != nullptr) {
 		cout << "deleting world" << endl;
@@ -1227,7 +726,7 @@ int main( void )
 	delete recipestorage;
 	delete entitystorage;
 	
-	
+	delete graphics;
 	//wait();
 	
 	// Close OpenGL window and terminate GLFW

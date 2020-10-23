@@ -105,6 +105,7 @@ class World: public Collider {
         void update_lighting();
         void load_nearby_chunks();
         void get_async_loaded_chunks();
+        void add_tile(Tile* tile);
         Tile* tileat(ivec3 pos);
         Block* get_global(int x, int y, int z, int scale);
         void summon(DisplayEntity* entity);

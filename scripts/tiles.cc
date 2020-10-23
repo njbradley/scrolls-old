@@ -37,11 +37,32 @@ void Tile::update_lighting() {
   }
 }
 
+void Tile::lighting_update() {
+  chunk->lighting_update();
+  if (lightflag) {
+      //update_lighting();
+      const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
+      for (ivec3 dir : dirs) {
+        Tile* tile = world->tileat(pos+dir);
+        if (tile != nullptr) {
+          tile->chunk->all_side([] (Pixel* pix) {
+            pix->set_render_flag();
+          }, -dir.x, -dir.y, -dir.z);
+        }
+      }
+      // for (int i = 0; i < 10; i ++) {
+      //   chunk->calculate_lightlevel();
+      // }
+    lightflag = false;
+  }
+}
+
 void Tile::render(GLVecs* glvecs, GLVecs* transvecs) {
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {
+  
   if (deletelock.try_lock_shared()) {
     if (lightflag) {
-        update_lighting();
+        //update_lighting();
         const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
         for (ivec3 dir : dirs) {
           Tile* tile = world->tileat(pos+dir);

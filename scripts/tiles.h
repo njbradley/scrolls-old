@@ -29,6 +29,7 @@ class Tile {
 		void render(GLVecs* vecs, GLVecs* transvecs);
 		void save();
 		void update_lighting();
+		void lighting_update();
 		Block* generate(ivec3 pos);
 		void del(bool remove_faces);
 		void generate_chunk(ivec3 pos);

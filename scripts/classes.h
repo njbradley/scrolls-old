@@ -96,6 +96,7 @@ class Tile;
 class TerrainLoader;
 class TerrainObject;
 class Program;
+class GraphicsContext;
 template <typename T> class CommandConst;
 template <typename T> class CommandVar;
 template <typename T, typename ... Tparams> class CommandMethod;

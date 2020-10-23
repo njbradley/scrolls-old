@@ -44,6 +44,8 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 		sstr << FragmentShaderStream.rdbuf();
 		FragmentShaderCode = sstr.str();
 		FragmentShaderStream.close();
+	} else {
+		exit(1);
 	}
 
 	GLint Result = GL_FALSE;
@@ -106,7 +108,7 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 	
 	glDeleteShader(VertexShaderID);
 	glDeleteShader(FragmentShaderID);
-
+	
 	return ProgramID;
 }
 
