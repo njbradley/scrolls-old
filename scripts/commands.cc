@@ -529,12 +529,21 @@ worldsummon([] (Program* program, vec3 pos, string entityname) {
   else if (entityname == "ent") entity = new Ent(program->world, pos);
 	else if (entityname == "glofly") entity = new Glofly(program->world, pos);
 	else if (entityname == "ghost") entity = new Ghost(program->world, pos);
-	else entity = new Mob(program->world, pos, entityname);
+	else if (mobstorage->mobdata.find(entityname) != mobstorage->mobdata.end()) {
+		entity = new Mob(program->world, pos, entityname);
+	} else {
+		*program->errout << "ERR: entity name '" << entityname << "' is not valid " << endl;
+		return;
+	}
 	
 	program->world->summon(entity);
 }),
 worldsetblock([] (Program* program, ivec3 pos, string blockname, int direction) {
-	program->world->set(pos.x, pos.y, pos.z, blocks->names[blockname], direction);
+	if (blocks->names.find(blockname) != blocks->names.end()) {
+		program->world->set(pos.x, pos.y, pos.z, blocks->names[blockname], direction);
+	} else {
+		*program->errout << "ERR: block name '" << blockname << "' is not valid" << endl;
+	}
 }),
 printd([] (Program* program, double val) {
 	*program->out << val << endl;

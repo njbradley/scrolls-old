@@ -84,14 +84,14 @@ TileLoop::iterator TileLoop::end() {
 
 
 
-World::World(string newname, int newseed): loader(seed), seed(newseed), name(newname), closing_world(false), sunlight(1),
-commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * 2, nullptr) {
+World::World(string newname, ThreadManager* manager, int newseed): loader(seed), seed(newseed), name(newname), closing_world(false), sunlight(1),
+commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * 2, nullptr), threadmanager(manager) {
     setup_files();
     startup();
 }
 
-World::World(string oldname): loader(seed), name(oldname), closing_world(false), sunlight(1),
-commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * 2, nullptr) {
+World::World(string oldname, ThreadManager* manager): loader(seed), name(oldname), closing_world(false), sunlight(1),
+commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * 2, nullptr), threadmanager(manager) {
     //unzip();
     load_data_file();
     loader.seed = seed;
@@ -178,7 +178,7 @@ void World::startup() {
     lighting_flag = true;
     cout << "loading chunks from file" << endl;
     gen_start_time = glfwGetTime();
-    load_nearby_chunks();
+    //load_nearby_chunks();
     load_groups();
 }
 
@@ -669,6 +669,7 @@ void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras
         ivec3 pos(newblock->px, newblock->py, newblock->pz);
         Block* result = newblock->get_pix()->subdivide();
         //cout << "ksdjflakjsd" << result->px << ' ' << result->py << ' ' << result->pz << endl;
+        //cout << "splitting tile" << endl;
         tileat(pos)->chunk = result;
       } else {
         newblock->get_pix()->subdivide();
@@ -685,6 +686,33 @@ void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras
         newblock = get_global((int)x, (int)y, (int)z, 1);
     }
     newblock->get_pix()->set(val, direction, extras);
+    bool same = true;
+    Block* parentblock = newblock;
+    ivec3 pcoords;
+    while (same and parentblock->parent != nullptr) {
+      pcoords = ivec3(parentblock->px, parentblock->py, parentblock->pz);
+      parentblock = parentblock->parent;
+      parentblock->all([&] (Pixel* pix) {
+        same = same and pix->value == val;
+      });
+    }
+    //cout << parentblock->scale << ' ' << pcoords.x << ' ' << pcoords.y << ' ' << pcoords.z << endl;
+    if (parentblock->parent == nullptr) {
+      //cout << "joining tile" << endl;
+      pcoords = ivec3(parentblock->px, parentblock->py, parentblock->pz);
+      Tile* tile = tileat(pcoords);
+      Pixel* new_big_pix = new Pixel(pcoords.x, pcoords.y, pcoords.z, 0, parentblock->scale, nullptr, tile);
+      tile->chunk->del(true);
+      delete tile->chunk;
+      tile->chunk = new_big_pix;
+      new_big_pix->set(val, direction, extras);
+    } else if (parentblock != newblock->parent) {
+      parentblock->get_chunk()->blocks[pcoords.x][pcoords.y][pcoords.z]->del(true);
+      Pixel* new_big_pix = new Pixel(pcoords.x, pcoords.y, pcoords.z, 0, parentblock->scale/csize, parentblock->get_chunk(), newblock->get_pix()->tile);
+      parentblock->get_chunk()->blocks[pcoords.x][pcoords.y][pcoords.z] = new_big_pix;
+      new_big_pix->set(val, direction, extras);
+    }
+      
     //if (val != 0 and blocks->blocks[val]->rotation_enabled) {
     //  newblock->get_pix()->direction = direction;
     //}

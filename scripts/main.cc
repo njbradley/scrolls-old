@@ -80,6 +80,8 @@ bool errors = false;
 
 float initialFoV = 110.0f;
 
+ThreadManager* threadmanager;
+
 void set_display_env(vec3 new_clear_color, int new_view_dist) {
 	clearcolor = new_clear_color;
 	view_distance = new_view_dist;
@@ -274,7 +276,7 @@ void level_select_menu() {
 			world = nullptr;
 			w->close_world();
 			delete w;
-			world = new World(result);
+			world = new World(result, threadmanager);
 			world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
 			threadmanager->rendering = true;
 			render_flag = true;
@@ -293,7 +295,7 @@ void new_world_menu() {
 			world = nullptr;
 			w->close_world();
 			delete w;
-			world = new World(result, time(NULL));
+			world = new World(result, threadmanager, time(NULL));
 			world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
 			threadmanager->rendering = true;
 			render_flag = true;
@@ -396,7 +398,7 @@ int main( void )
 	
 	threadmanager = new ThreadManager(window);
 	
-	//launch_threads(window);
+	//launch_threads(window); 
 	
 	if( window == NULL ){
 		fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
@@ -549,22 +551,22 @@ int main( void )
 		create_dir("saves");
 		ofstream ofile("saves/saves.txt");
 		ofile << "";
-		world = new World("Starting-World", 12345);
+		world = new World("Starting-World", threadmanager, 12345);
 		world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
 	} else {
 		string latest;
 		ifile >> latest;
 		if (latest != "") {
-			world = new World(latest);
+			world = new World(latest, threadmanager);
 			world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
 		} else {
 			ifstream ifile2("saves/saves.txt");
 			ifile2 >> latest;
 			if (latest != "") {
-				world = new World(latest);
+				world = new World(latest, threadmanager);
 				world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
 			} else {
-				world = new World("Starting-World", 12345);
+				world = new World("Starting-World", threadmanager, 12345);
 				world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
 			}
 		}

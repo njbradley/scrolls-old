@@ -38,6 +38,7 @@ class Block: public Collider { public:
     virtual void del(bool remove_faces) = 0;
     //virtual void calculate_lightlevel() = 0;
     virtual void calculate_lightlevel(int recursion_level) = 0;
+    virtual Chunk* get_chunk() = 0;
     virtual Pixel* get_pix() = 0;
     // returns a pixel pointer if the object is a pixel,
     // otherwise returns nullptr
@@ -98,6 +99,7 @@ public:
     // runs the function only on blocks touching the
     // side specified by the three ints, dx, dy, dz.
     Pixel* get_pix();
+    Chunk* get_chunk();
     int get_sunlight(int dx, int dy, int dz);
     int get_blocklight(int dx, int dy, int dz);
     void set(char val, int direction = -1, BlockExtra* extras = nullptr, bool update = true);
@@ -142,6 +144,7 @@ class Chunk: public Block { public:
     bool continues() const;
     Block * get(int x, int y, int z) const;
     Pixel* get_pix();
+    Chunk* get_chunk();
     char get() const;
     void set_all_render_flags();
     //void set(char val, int direction, BlockExtra* extras);

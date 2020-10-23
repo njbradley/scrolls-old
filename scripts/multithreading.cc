@@ -11,8 +11,6 @@
 
 #include <atomic>
 
-ThreadManager* threadmanager;
-
 ThreadJob::ThreadJob(ivec3 npos): pos(npos), result(nullptr), complete(false) {
 	
 }

@@ -283,9 +283,9 @@ void Player::right_mouse(double deltatime) {
 	int ox = (int)x - (x<0);
 	int oy = (int)y - (y<0);
 	int oz = (int)z - (z<0);
-	x -= pointing.x*0.001;
-	y -= pointing.y*0.001;
-	z -= pointing.z*0.001;
+	x -= pointing.x*0.002;
+	y -= pointing.y*0.002;
+	z -= pointing.z*0.002;
 	int dx = (int)x - (x<0) - ox;
 	int dy = (int)y - (y<0) - oy;
 	int dz = (int)z - (z<0) - oz;
@@ -339,7 +339,6 @@ void Player::left_mouse(double deltatime) {
 	
 	
 	//cout << "skdfls " << int(pix->value) << endl;
-	//cout << ':' << x << ' ' << y << ' ' << z << endl;
 	
 	if (attack_recharge <= 0) {
 		Item* item = inven.get(selitem);
@@ -352,14 +351,15 @@ void Player::left_mouse(double deltatime) {
 			
 			//ivec3 blockpos = ivec3((int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
 			
-			//cout << blockpos.x << ' ' << blockpos.y << ' ' << blockpos.z << endl;
 			//cout << hitpos.x << ' ' << hitpos.y << ' ' << hitpos.z << endl;
 			int gx,gy,gz;
 			pix->global_position(&gx, &gy, &gz);
 			//cout << gx << ' ' << gy << ' ' << gz << endl;
 			
-			ivec3 blockpos(gx, gy, gz);
+			ivec3 blockpos(x, y, z);
 			
+			//cout << blockpos.x << ' ' << blockpos.y << ' ' << blockpos.z << endl;
+			//cout << ':' << x << ' ' << y << ' ' << z << endl;
 			if (blockpos != block_breaking) {
 				break_progress = 0;
 				block_breaking = blockpos;

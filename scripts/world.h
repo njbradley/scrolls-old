@@ -52,6 +52,7 @@ class World: public Collider {
     vector<ivec3> deleting_chunks;
     unordered_set<ivec3,ivec3_hash> block_updates;
     unordered_set<ivec3,ivec3_hash> light_updates;
+    ThreadManager* threadmanager;
     //mutable std::shared_timed_mutex tiles_lock;
     char* tmparr;
     public:
@@ -82,8 +83,8 @@ class World: public Collider {
 				
         static const int chunksize = 64;
         
-        World(string newname, int newseed);
-        World(string oldname);
+        World(string newname, ThreadManager* manager, int newseed);
+        World(string oldname, ThreadManager* manager);
         void set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size);
         vec3 get_position() const;
         void unzip();

@@ -107,7 +107,7 @@ Block* Block::raycast(Collider* this_world, double* x, double* y, double* z, dou
     double tz = (dz < 0) ? lz/(-dz) : (scale-lz)/dz;
     
     //cout << "ts " << tx << ' ' << ty << ' ' << tz << endl;
-    double extra = 0.0001;
+    double extra = 0.001;
     
     if (tx < ty and tx < tz) { // hits x wall first
         *x += dx*(tx+extra);
@@ -226,6 +226,10 @@ void Pixel::all_side(function<void(Pixel*)> func, int dx, int dy, int dz) {
 
 Pixel* Pixel::get_pix() {
     return this;
+}
+
+Chunk* Pixel::get_chunk() {
+    return nullptr;
 }
 
 int Pixel::get_sunlight(int dx, int dy, int dz) {
@@ -847,7 +851,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collide
        
       int minscale = blockdata->minscale;
       
-      const GLfloat uvmax = newscale;
+      const GLfloat uvmax = scale;
       // /char mat = tex_index;
       /*GLfloat new_uvs[] = {
           0.0f, 1.0f * newscale/minscale,
@@ -1241,6 +1245,9 @@ Pixel* Chunk::get_pix() {
     return nullptr;
 }
 
+Chunk* Chunk::get_chunk() {
+    return this;
+}
 char Chunk::get() const {
     cout << "error: get() called on chunk object" << endl;
 }

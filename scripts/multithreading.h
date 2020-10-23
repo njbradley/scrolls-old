@@ -44,8 +44,6 @@ public:
 	void close();
 };
 
-extern ThreadManager* threadmanager;
-
 
 class LoadingThread {
 	ThreadManager* parent;
