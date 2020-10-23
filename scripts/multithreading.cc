@@ -87,7 +87,7 @@ vector<Tile*> ThreadManager::get_loaded_tiles() {
 	vector<Tile*> tiles;
 	for ( int i = 0; i < num_threads; i ++) {
 		if (loading[i] != nullptr and loading[i]->complete and loading[i]->lock.try_lock_for(std::chrono::seconds(1))) {
-			tiles.push_back(loading[i]->result);
+			//tiles.push_back(loading[i]->result);
 			loading[i]->lock.unlock();
 			delete loading[i];
 			loading[i] = nullptr;
@@ -127,9 +127,12 @@ void LoadingThread::operator()() {
 		if (world != nullptr and parent->loading[index] != nullptr and parent->loading[index]->complete == false) {
 				parent->loading[index]->lock.lock();
 				//cout << parent->loading[index] << endl;
-				parent->loading[index]->result = new Tile(parent->loading[index]->pos, world);
+				Tile* tile = new Tile(parent->loading[index]->pos, world);
+				parent->loading[index]->result = tile;
+				world->add_tile(tile);
 				parent->loading[index]->complete = true;
 				parent->loading[index]->lock.unlock();
+				tile->lighting_update();
 				std::this_thread::sleep_for(std::chrono::milliseconds(20));
 		} else {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));

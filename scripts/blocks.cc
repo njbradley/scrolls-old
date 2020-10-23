@@ -461,7 +461,13 @@ void Pixel::lighting_update() {
     while (poses.size() > 0) {
       for (ivec3 pos : poses) {
         Block* b =tile->world->get_global(pos.x, pos.y, pos.z, 1);
-        if (b != nullptr) b->get_pix()->calculate_sunlight(next_poses);
+        if (b != nullptr) {
+          b->get_pix()->calculate_sunlight(next_poses);
+          if (b->get_pix()->tile != tile) {
+            cout << "err!!!! light update cross tiles " << ' ' << tile->pos.x << ' ' << tile->pos.y << ' ' << tile->pos.z << ' ';
+            print(b->get_pix()->tile->pos);
+          }
+        }
       }
       poses.swap(next_poses);
       next_poses.clear();
@@ -488,99 +494,6 @@ void Pixel::reset_lightlevel() {
   }
   entitylight = 0;
 }
-
-/*
-void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
-  if (tile == nullptr or value != 0) {
-    return;
-  }
-  const int decrement = 1;
-  int gx, gy, gz;
-  global_position(&gx, &gy, &gz);
-  Block* above = tile->world->get_global(gx, gy+scale, gz, scale);
-  int oldsunlight = sunlight;
-  int abovesun = 0;
-  if (above != nullptr) {
-    above->all_side([&] (Pixel* pix) {
-      if (pix->sunlight > abovesun and pix->sunlight != oldsunlight-decrement) {
-        abovesun = pix->sunlight;
-      }
-    }, 0, -1, 0);
-  } else {
-    abovesun = lightmax;
-  }
-  if (abovesun == lightmax) {
-    sunlight = lightmax;
-  } else {
-    int sidesun = 0;
-    const ivec3 dirs[] = {{-1,0,0}, {0,0,-1}, {1,0,0}, {0,0,1}};
-    for (ivec3  dir : dirs) {
-      Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
-      if (block != nullptr) {
-        block->all_side([&] (Pixel* pix) {
-          if (pix->sunlight > sidesun and pix->sunlight != oldsunlight-decrement) {
-            sidesun = pix->sunlight;
-          }
-        }, -dir.x, -dir.y, -dir.z);
-      }
-    }
-    
-    int belowsun = 0;
-    Block* below = tile->world->get_global(gx, gy-scale, gz, scale);
-    if (below != nullptr) {
-      below->all_side([&] (Pixel* pix) {
-        if (pix->sunlight > belowsun and pix->sunlight != oldsunlight+decrement) {
-          belowsun = pix->sunlight;
-        }
-      }, 0, 1, 0);
-    }
-    
-    if (sidesun > abovesun and sidesun > belowsun) {
-      sunlight = sidesun - decrement;
-    } else if (belowsun > abovesun and belowsun > sidesun) {
-      sunlight = belowsun - decrement;
-    } else if (abovesun > 0) {
-      sunlight = abovesun + decrement;
-    } else {
-      sunlight = abovesun;
-    }
-    if (sunlight < 0) {
-      sunlight = 0;
-    }
-  }
-  
-  if (sunlight != oldsunlight) {
-    const ivec3 dirs[] = {{-1,0,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
-    
-    for (ivec3 dir : dirs) {
-      Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
-      if (block != nullptr) {
-        block->all_side([&] (Pixel* pix) {
-          if (pix->sunlight < sunlight-decrement or (pix->sunlight == oldsunlight-decrement and sunlight < oldsunlight)) {
-            ivec3 pos;
-            pix->global_position(&pos.x, &pos.y, &pos.z);
-            next_poses.emplace(pos);
-            //pix->calculate_sunlight(recursion_level-1);
-            pix->set_render_flag();
-          }
-        }, -dir.x, -dir.y, -dir.z);
-      }
-    }
-    
-    Block* below = tile->world->get_global(gx, gy-scale, gz, scale);
-    if (below != nullptr) {
-      below->all_side([&] (Pixel* pix) {
-        if (pix->sunlight < sunlight + decrement or (pix->sunlight == oldsunlight-decrement and sunlight < oldsunlight)) {
-          ivec3 pos;
-          pix->global_position(&pos.x, &pos.y, &pos.z);
-          next_poses.emplace(pos);
-          //pix->calculate_sunlight(recursion_level-1);
-          pix->set_render_flag();
-        }
-      }, 0, 1, 0);
-    }
-  }
-}*/
 
 void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
   if (tile == nullptr or (value != 0 and !blocks->blocks[value]->transparent)) {
@@ -622,7 +535,7 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
     if (block != nullptr) {
       block->all_side([&] (Pixel* pix) {
         if (pix->sunlight < sunlight - newdec*scale or (pix->sunlight + newdec*scale == oldsunlight and sunlight < oldsunlight)) {
-          if (tile != pix->tile) {
+          if (tile == pix->tile) {
             ivec3 pos;
             pix->global_position(&pos.x, &pos.y, &pos.z);
             next_poses.emplace(pos);
