@@ -74,6 +74,7 @@ class Program { public:
 	ostream* out;
 	ostream* errout;
 	vector<Command> lines;
+	vector<string> history;
 	Varlist<double> doublevars;
 	Varlist<int> intvars;
 	Varlist<string> stringvars;

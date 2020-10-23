@@ -11,6 +11,7 @@
 #include "blockphysics.h"
 #include "world.h"
 #include "entity.h"
+#include "mobs.h"
 
 #include "generative.h"
 
@@ -311,28 +312,24 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
 void Pixel::random_tick() {
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
-  // if (value == blocks->names["dirt"] and world->get(gx, gy+scale, gz) == 0) {
-  //   set(blocks->names["grass"]);
-  //   cout << "grass grown at " << gx << ' ' << gy << ' ' << gz << endl;
-  // }
-  // if (value == blocks->names["leaves"] and world->get(gx, gy+scale, gz) == 0) {
-  //   tile->entities.push_back(new NamedEntity(tile->world, vec3(gx, gy, gz), "skeleton"));
-  //   cout << "spawned skeleton at " << gx << ' ' << gy << ' ' << gz << endl;
-  // }
+  if (value == blocks->names["dirt"] and world->get(gx, gy+scale, gz) == 0) {
+    set(blocks->names["grass"]);
+    cout << "grass grown at " << gx << ' ' << gy << ' ' << gz << endl;
+  }
   
-  // Block* above = world->get_global(gx, gy+scale, gz, 1);
-  // if (value == blocks->names["grass"] and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 1
-  // and tile->world->mobcount < 20) {
-  //   world->summon(new Pig(tile->world, vec3(gx, gy+5, gz)));
-  // }
-  //
-  // if (tile->world->difficulty > 0) {
-  //   if ((value == blocks->names["snow"]) and tile->entities.size() < 1 and above != nullptr and above->get() == 0
-  //   and tile->world->mobcount < 20 and above->get_pix()->sunlight == lightmax and tile->world->sunlight < 0.1) {
-  //     cout << "skeleton spawned" << endl;
-  //     world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
-  //   }
-  // }
+  Block* above = world->get_global(gx, gy+scale, gz, 1);
+  if (value == blocks->names["grass"] and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 10) {
+    world->summon(new Pig(tile->world, vec3(gx, gy+5, gz)));
+    cout << "pig spawn " << endl;
+  }
+  
+  if (tile->world->difficulty > 0) {
+    if ((value == blocks->names["snow"]) and tile->entities.size() < 10 and above != nullptr and above->get() == 0
+     and above->get_pix()->sunlight == lightmax and tile->world->sunlight < 0.1) {
+      cout << "skeleton spawned" << endl;
+      world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
+    }
+  }
 }
 
 void Pixel::tick() {

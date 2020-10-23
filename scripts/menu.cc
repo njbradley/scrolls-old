@@ -501,21 +501,35 @@ void TextInputMenu::close(World* world) {
 
 
 
+int arrow_key = 0;
 
+void special_callback_command(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+  if (key == GLFW_KEY_BACKSPACE && action == GLFW_PRESS) {
+    //cout << "backspace" << endl;
+    text_buff += '\b';
+  }
+  if (key == GLFW_KEY_UP and action == GLFW_PRESS) {
+    arrow_key = 1;
+  }
+  if (key == GLFW_KEY_DOWN and action == GLFW_PRESS) {
+    arrow_key = -1;
+  }
+}
 
-
-CommandMenu::CommandMenu(function<void()> after_func): TextInputMenu("commands", false, [=] (string str) {
+CommandMenu::CommandMenu(Program* newprogram, function<void()> after_func): TextInputMenu("commands", false, [=] (string str) {
     if (str != "" and str[str.length()-1] == '\n') {
       str.erase(str.length()-1);
-      cout << "full command" << endl << str << endl;
       stringstream ss(str);
       world->commandprogram.lines.clear();
       world->commandprogram.parse_lines(ss);
       world->commandprogram.run();
+      world->commandprogram.history.push_back(str);
       after_func();
     }
-  }) {
-  
+  }), program(newprogram) {
+    
+    glfwSetKeyCallback(window, special_callback_command);
 }
 
 void CommandMenu::render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs) {
@@ -531,11 +545,29 @@ void CommandMenu::render(GLFWwindow* window, World* world, Player* player, MemVe
     }
     text_buff = "";
   }
+  if (arrow_key != 0) {
+    if (history_index == -1 and arrow_key == 1) {
+      history_index = program->history.size();
+    }
+    if (history_index != -1) {
+      history_index -= arrow_key;
+      if (history_index < 0) {
+        history_index = 0;
+      } else if (history_index >= program->history.size()) {
+        history_index = -1;
+        text = "";
+      } else {
+        text = program->history[history_index];
+      }
+    }
+    arrow_key = 0;
+  }
   if (glfwGetKey(window, GLFW_KEY_ENTER ) == GLFW_PRESS) {
     text += '\n';
     close(world);
   }
 }
+
 
 // void CommandMenu::string_callback(string str) {
 //   stringstream ss(str);

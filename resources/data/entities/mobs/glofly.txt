@@ -3,6 +3,6 @@ mob glofly {
 	:box2: 0.75 0.75 0.75
 	:blockpos: -0.5 -0.5 -0.5
 	:blockpath: glofly
-	:emitted_light: 8
+	:emitted_light: 12
 	:health: 4
 }

@@ -621,7 +621,7 @@ int main( void )
 			} else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
 				inven_menu();
 			} else if (glfwGetKey(window, GLFW_KEY_SEMICOLON) == GLFW_PRESS) {
-				menu = new CommandMenu([&]() {
+				menu = new CommandMenu(&world->commandprogram, [&]() {
 					delete menu;
 					menu = nullptr;
 				});
