@@ -19,6 +19,7 @@
 #include "crafting.h"
 #include "ui.h"
 #include "text.h"
+#include "game.h"
 
 
 int last_num_ui_verts_menu;
@@ -264,11 +265,11 @@ void ToolMenu::close(World* world) {
 CraftingMenu::CraftingMenu(int newlevel, function<void()> after_func): level(newlevel), after(after_func), page(0), button(1),
 inputs {0,0,0,0,0,0}, outputs {0,0,0,0,0,0} {
   start();
-  get_recipes();
-  render_page();
+  get_recipes(game->world);
+  render_page(game->world);
 }
 
-void CraftingMenu::get_recipes() {
+void CraftingMenu::get_recipes(World* world) {
   vector<Recipe*> possible;
   vector<Recipe*> others;
   recipes.clear();
@@ -291,7 +292,7 @@ void CraftingMenu::get_recipes() {
   }
 }
 
-void CraftingMenu::render_page() {
+void CraftingMenu::render_page(World* world) {
   ItemContainer inven(&world->player->inven, &world->player->backpack);
   for (int i = 0; i < len_page; i ++) {
     if (i+page*len_page < recipes.size()) {
@@ -385,8 +386,8 @@ void CraftingMenu::render(GLFWwindow* window, World* world, Player* player, MemV
       }
     }
     if (changed) {
-      get_recipes();
-      render_page();
+      get_recipes(world);
+      render_page(world);
     }
   }
 }
@@ -521,10 +522,10 @@ CommandMenu::CommandMenu(Program* newprogram, function<void()> after_func): Text
     if (str != "" and str[str.length()-1] == '\n') {
       str.erase(str.length()-1);
       stringstream ss(str);
-      world->commandprogram.lines.clear();
-      world->commandprogram.parse_lines(ss);
-      world->commandprogram.run();
-      world->commandprogram.history.push_back(str);
+      game->world->commandprogram.lines.clear();
+      game->world->commandprogram.parse_lines(ss);
+      game->world->commandprogram.run();
+      game->world->commandprogram.history.push_back(str);
       after_func();
     }
   }), program(newprogram) {

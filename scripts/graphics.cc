@@ -12,27 +12,26 @@
 #include "texture.h"
 #include "menu.h"
 #include "cross-platform.h"
+#include "game.h"
 
-extern bool fullscreen;
-extern bool debug_visible;
 
-GraphicsContext::GraphicsContext() {
+GraphicsContext::GraphicsContext(Game* newgame): game(newgame) {
 	init_glfw();
 	load_textures();
 }
 
-GraphicsContext::set_world_buffers(World* world, int allocated_memory) {
+void GraphicsContext::set_world_buffers(World* world, int allocated_memory) {
 	world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
 }
 
-GraphicsContext::init_glfw() {
+void GraphicsContext::init_glfw() {
 	
 	// Initialise GLFW
 	if( !glfwInit() )
 	{
 		fprintf( stderr, "Failed to initialize GLFW\n" );
 		getchar();
-		return -1;
+		return;
 	}
 	
 	glfwWindowHint(GLFW_SAMPLES, 4);
@@ -41,7 +40,7 @@ GraphicsContext::init_glfw() {
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	
-	if (fullscreen) {
+	if (game->fullscreen) {
 		const GLFWvidmode* return_struct = glfwGetVideoMode( glfwGetPrimaryMonitor() );
 		set_screen_dims(return_struct->width, return_struct->height);
 		window = glfwCreateWindow( screen_x, screen_y, "Scrolls - An Adventure Game", glfwGetPrimaryMonitor(), nullptr);
@@ -57,7 +56,7 @@ GraphicsContext::init_glfw() {
 		fprintf( stderr, "Failed to open GLFW window.\n" );
 		getchar();
 		glfwTerminate();
-		return -1;
+		return;
 	}
   glfwMakeContextCurrent(window);
 	
@@ -69,7 +68,7 @@ GraphicsContext::init_glfw() {
 		fprintf(stderr, "Failed to initialize GLEW\n");
 		getchar();
 		glfwTerminate();
-		return -1;
+		return;
 	}
 	
 	// Ensure we can capture the escape key being pressed below
@@ -134,7 +133,7 @@ GraphicsContext::init_glfw() {
 	
 }
 
-GraphicsContext::load_textures() {
+void GraphicsContext::load_textures() {
 	////// get mats from folders
 	//vector<string> block_tex;
 	vector<string> uis;
@@ -176,7 +175,7 @@ GraphicsContext::load_textures() {
 
 
 
-GraphicsContext::block_draw_call(World* world) {
+void GraphicsContext::block_draw_call(World* world) {
 	
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
@@ -300,14 +299,14 @@ void GraphicsContext::make_ui_buffer(Player* player, string debugstream) {
 		vecs.uvs.reserve(last_num_ui_verts*2);
 		vecs.mats.reserve(last_num_ui_verts);
 	}
-	if (debug_visible) {
+	if (game->debug_visible) {
 		render_debug(&vecs, debugstream);
 	} else {
 		render_debug(&vecs, "");
 	}
 	player->render_ui(&vecs);
 	if (menu != nullptr) {
-		menu->render(window, world, player, &vecs);
+		menu->render(window, game->world, player, &vecs);
 	}
 	int num_verts = vecs.num_verts;
 	last_num_ui_verts = num_verts;
@@ -327,7 +326,7 @@ void GraphicsContext::make_ui_buffer(Player* player, string debugstream) {
 	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &vecs.mats.front(), GL_STATIC_DRAW);
 }
 
-GraphicsContext::ui_draw_call(World* world, std::stringstream* debugstream) {
+void GraphicsContext::ui_draw_call(World* world, std::stringstream* debugstream) {
 	
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
@@ -397,6 +396,11 @@ GraphicsContext::ui_draw_call(World* world, std::stringstream* debugstream) {
 	// disable transparency
 	//*/
 	// Swap buffers
+}
+
+void GraphicsContext::swap() {
+	glfwSwapBuffers(window);
+	glfwPollEvents();
 }
 
 GraphicsContext::~GraphicsContext() {

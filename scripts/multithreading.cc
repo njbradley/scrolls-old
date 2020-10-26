@@ -8,6 +8,7 @@
 #include "rendervec.h"
 #include "world.h"
 #include "tiles.h"
+#include "game.h"
 
 #include <atomic>
 
@@ -15,7 +16,7 @@ ThreadJob::ThreadJob(ivec3 npos): pos(npos), result(nullptr), complete(false) {
 	
 }
 
-ThreadManager::ThreadManager(GLFWwindow* window) {
+ThreadManager::ThreadManager(Game* newgame): game(newgame) {
 	rendering = false;
 	render_running = true;
 	glfwWindowHint(GLFW_SAMPLES, 4);
@@ -124,12 +125,12 @@ void LoadingThread::operator()() {
 	while (parent->load_running[index]) {
 		//cout << parent->loading[index] << endl;
 		
-		if (world != nullptr and parent->loading[index] != nullptr and parent->loading[index]->complete == false) {
+		if (game != nullptr and game->world != nullptr and parent->loading[index] != nullptr and parent->loading[index]->complete == false) {
 				parent->loading[index]->lock.lock();
 				//cout << parent->loading[index] << endl;
-				Tile* tile = new Tile(parent->loading[index]->pos, world);
+				Tile* tile = new Tile(parent->loading[index]->pos, game->world);
 				parent->loading[index]->result = tile;
-				world->add_tile(tile);
+				game->world->add_tile(tile);
 				parent->loading[index]->complete = true;
 				parent->loading[index]->lock.unlock();
 				tile->lighting_update();
@@ -151,7 +152,7 @@ void DeletingThread::operator()() {
 	//glfwMakeContextCurrent(window);
 	while (parent->del_running[index]) {
 		if (parent->deleting[index] != nullptr) {
-			world->del_chunk(*parent->deleting[index], true);
+			game->world->del_chunk(*parent->deleting[index], true);
 			delete parent->deleting[index];
 			parent->deleting[index] = nullptr;
 		} else {
@@ -173,11 +174,11 @@ void RenderingThread::operator()() {
 	while (parent->render_running) {
 		bool wait = true;
 		if (parent->rendering) {
-			wait = !world->render();
-			parent->render_num_verts = world->glvecs.num_verts;
+			wait = !game->world->render();
+			parent->render_num_verts = game->world->glvecs.num_verts;
 		}
 		if (wait) {
-			if (busy and parent->rendering and world != nullptr and !world->initial_generation) {
+			if (busy and parent->rendering and game->world != nullptr and !game->world->initial_generation) {
 				times ++;
 				if (times > 5) {
 					cout << "rendered done " << glfwGetTime() - start_time << endl;
@@ -200,8 +201,8 @@ void TickThread::operator()() {
 	//glfwMakeContextCurrent(window);
 	while (parent->render_running) {
 		double start_time = glfwGetTime();
-		if (world != nullptr) {
-			world->tick();
+		if (game != nullptr and game->world != nullptr) {
+			game->world->tick();
 		}
 		ms = (glfwGetTime() - start_time) * 1000;
 		parent->tick_ms = ms;

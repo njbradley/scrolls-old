@@ -7,6 +7,7 @@
 #include "blocks.h"
 #include "materials.h"
 #include "cross-platform.h"
+#include "game.h"
 
 BlockStorage* blocks;
 
@@ -208,14 +209,14 @@ void BlockData::do_rcaction(Pixel* pix) {
 
 
 
-BlockStorage::BlockStorage(string path) {
+BlockStorage::BlockStorage() {
     vector<string> block_paths;
-    get_files_folder(path + "resources/data/blocks", &block_paths);
+    get_files_folder("resources/data/blocks", &block_paths);
     num_blocks = block_paths.size();
     int i = 0;
     for (string filename : block_paths) {
         i ++;
-        ifstream ifile(path + "resources/data/blocks/" + filename);
+        ifstream ifile("resources/data/blocks/" + filename);
         BlockData* data = new BlockData(ifile);
         blocks[(char)i] = data;
         names[data->name] = (char)i;

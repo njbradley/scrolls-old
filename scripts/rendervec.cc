@@ -3,6 +3,7 @@
 
 #include <ctime>
 #include "rendervec.h"
+#include "game.h"
 
 
 
@@ -18,7 +19,7 @@ void MemVecs::add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat sunlight, GLf
     num_verts += 6;
     if ( verts.size()/3 != num_verts or uvs.size()/2 != num_verts or light.size()/2 != num_verts or mats.size()/2 != num_verts) {
       cout << "ERR: unbalanced vectors in MemVecs::add_face" << endl;
-      crash(8327490283652347);
+      game->crash(8327490283652347);
     }
 }
 
@@ -30,7 +31,7 @@ pair<int,int> MemVecs::add(MemVecs* newvecs) {
   num_verts += newvecs->num_verts;
   if ( verts.size()/3 != num_verts or uvs.size()/2 != num_verts or light.size()/2 != num_verts or mats.size()/2 != num_verts) {
     cout << "ERR: unbalanced vectors in MemVecs::add" << endl;
-    crash(3928657839029036);
+    game->crash(3928657839029036);
   }
   return pair<int,int>((num_verts - newvecs->num_verts)/6, newvecs->num_verts/6);
 }
@@ -132,7 +133,7 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
     }
     if (num_verts+newvecs->num_verts > size_alloc) {
         writelock.unlock();
-        crash(2);
+        game->crash(2);
         return pair<int,int>(-1,0);
     }
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
@@ -162,7 +163,7 @@ void GLVecs::del(pair<int,int> index) {
       cout << index.first << ' ' << index.second << endl;
       cout << "big problem" << endl;
       writelock.unlock();
-      // crash(19782984921423);
+      // game->crash(19782984921423);
       return;
     }
     
@@ -184,7 +185,7 @@ void GLVecs::del(pair<int,int> index) {
         if (index.second > 0) {
           cout << index.first << ' ' << index.second << ' ' << empty[i].first << ' '<< empty[i].second << " problem" << endl;
           writelock.unlock();
-          crash(1567483904356848390);
+          game->crash(1567483904356848390);
         }
       }
       if (empty[i].first + empty[i].second == index.first) {
@@ -197,7 +198,7 @@ void GLVecs::del(pair<int,int> index) {
           num_verts -= empty[i].second*6;
           //cout << ' ' << num_verts/6 << endl;
           empty.erase(empty.begin()+i);
-          //crash(1178656827093404);
+          //game->crash(1178656827093404);
         }
         clean_flag = true;
         writelock.unlock();
@@ -213,7 +214,7 @@ void GLVecs::del(pair<int,int> index) {
           num_verts -= empty[i].second*6;
           //cout << ' ' << num_verts/6 << endl;
           empty.erase(empty.begin()+i);
-          //crash(829578937180496782);
+          //game->crash(829578937180496782);
         }
         clean_flag = true;
         writelock.unlock();

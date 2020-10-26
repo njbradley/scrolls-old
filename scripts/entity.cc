@@ -10,6 +10,7 @@
 #include "materials.h"
 #include "blockdata.h"
 #include "cross-platform.h"
+#include "game.h"
 
 #include <algorithm>
 
@@ -871,7 +872,7 @@ Block* NamedEntity::loadblock(string name) {
   std::ifstream ifile(entitystorage->blocks[name], ios::binary);
   if (!ifile.good()) {
     cout << "file error code with " << name << " -- s9d8f0s98d0f9s80f98sd0" << endl;
-    hard_crash(29348023948029834);
+    game->hard_crash(29348023948029834);
   }
   int size;
   ifile >> size;
@@ -1036,7 +1037,7 @@ void FallingBlockEntity::calc_constraints() {
             for (int x = (int)pos2.x; x < pos.x+1; x ++) {
               for (int y = (int)pos2.y; y < pos.y+1; y ++) {
                 for (int z = (int)pos2.z; z < pos.z+1; z ++) {
-                  //crash(1);
+                  //game->crash(1);
                   Block* pix = world->get_global(x,y,z,1);
                   constraint = constraint or (pix != NULL and pix->get() != 0);
                 }

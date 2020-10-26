@@ -63,8 +63,8 @@ class CraftingMenu: public ItemMenu { public:
   ItemContainer inputs[len_page];
   
   CraftingMenu(int level, function<void()> after_func);
-  void get_recipes();
-  void render_page();
+  void get_recipes(World* world);
+  void render_page(World* world);
   void render(GLFWwindow* window, World* world, Player* player, MemVecs* uivecs);
   void close(World*);
 };

@@ -33,10 +33,7 @@ using std::ostream;
 using std::vector;
 using std::pair;
 
-void crash(long long);
-void hard_crash(long long);
-void set_display_env(vec3,int);
-
+void wait();
 void print(vec3 v);
 
 struct ivec3_comparator {
@@ -97,18 +94,14 @@ class TerrainLoader;
 class TerrainObject;
 class Program;
 class GraphicsContext;
+class Game;
 template <typename T> class CommandConst;
 template <typename T> class CommandVar;
 template <typename T, typename ... Tparams> class CommandMethod;
 
 //////////////////////// GLOBAL VARIABLES ////////////////////////
-extern bool render_flag;
-extern std::stringstream debugstream;
 extern GLFWwindow* window;
-extern World* world;
+extern Game* game;
 extern Menu* menu;
-extern DisplayEntity* debugentity;
-extern Pixel* debugblock;
-extern int num_pixels;
 
 #endif

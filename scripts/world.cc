@@ -296,7 +296,7 @@ void World::load_nearby_chunks() {
         }
       }
     }
-    //crash(17658654574687);
+    //game->crash(17658654574687);
     const double max_distance = std::sqrt((maxrange)*(maxrange)*2);
     //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
     TileLoop loop(this);
@@ -311,7 +311,6 @@ void World::load_nearby_chunks() {
         if (threadmanager->add_deleting_job(pos)) {
           deleting_chunks.push_back(pos);
         }
-        render_flag = true;
       }
     }
     //  tiles_lock.unlock();
@@ -799,7 +798,7 @@ void World::zip() {
 }
 
 bool World::is_world_closed() {
-  return closing_world and world->tiles.size() == 0 and world->deleting_chunks.size() == 0;
+  return closing_world and tiles.size() == 0 and deleting_chunks.size() == 0;
 }
 
 void World::close_world() {
@@ -815,7 +814,7 @@ void World::close_world() {
       }
     //  tiles_lock.unlock();
     //} else {
-    //  hard_crash(923400304);
+    //  hard_game->crash(923400304);
     //}
     for (ivec3 pos : poses) {
         del_chunk(pos, false);

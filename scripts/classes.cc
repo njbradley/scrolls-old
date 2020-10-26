@@ -30,9 +30,19 @@ using std::ofstream;
 using std::istream;
 using std::ostream;
 
-void crash(long long);
-void hard_crash(long long);
-void set_display_env(vec3,int);
+
+
+//////////////////////// GLOBAL VARIABLES ////////////////////////
+Game* game;
+GLFWwindow* window;
+Menu* menu;
+
+
+void wait() {
+	//return;
+	std::cout << "Press ENTER to continue...";
+	std::cin.ignore( std::numeric_limits <std::streamsize> ::max(), '\n' );
+}
 
 void print(vec3 v);
 
@@ -55,16 +65,5 @@ size_t ivec3_hash::operator() (const ivec3& pos) const {
 //ofstream dfile("debug.txt");
 int dloc = -69;
 
-////////////////// CLASSES ///////////////////////////
 
-
-//////////////////////// GLOBAL VARIABLES ////////////////////////
-bool render_flag;
-std::stringstream debugstream;
-GLFWwindow* window;
-World* world;
-Menu* menu;
-DisplayEntity* debugentity;
-Pixel* debugblock;
-int num_pixels = 0;
 #endif

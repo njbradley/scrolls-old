@@ -12,6 +12,7 @@
 #include "world.h"
 #include "entity.h"
 #include "mobs.h"
+#include "game.h"
 
 #include "generative.h"
 
@@ -180,7 +181,6 @@ Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile):
   Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(nullptr), physicsgroup(nullptr), tile(ntile), direction(0) {
-    num_pixels++;
     reset_lightlevel();
     generate_extras();
     if (value != 0) {
@@ -190,7 +190,6 @@ Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile, BlockExtra* new_extra):
   Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(new_extra), physicsgroup(nullptr), tile(ntile), direction(0) {
-    num_pixels++;
     reset_lightlevel();
     if (value != 0) {
       direction = blocks->blocks[value]->default_direction;
@@ -298,7 +297,7 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
       const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
       for (ivec3 dir : dir_array) {
         dir *= scale;
-        block = world->get_global(gx+dir.x, gy+dir.y, gz+dir.z, scale);
+        block = tile->world->get_global(gx+dir.x, gy+dir.y, gz+dir.z, scale);
         if (block != nullptr) {
           block->render_update();
           int bx, by, bz;
@@ -312,14 +311,14 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
 void Pixel::random_tick() {
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
-  if (value == blocks->names["dirt"] and world->get(gx, gy+scale, gz) == 0) {
+  if (value == blocks->names["dirt"] and tile->world->get(gx, gy+scale, gz) == 0) {
     set(blocks->names["grass"]);
     cout << "grass grown at " << gx << ' ' << gy << ' ' << gz << endl;
   }
   
-  Block* above = world->get_global(gx, gy+scale, gz, 1);
-  if (value == blocks->names["grass"] and world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 10) {
-    world->summon(new Pig(tile->world, vec3(gx, gy+5, gz)));
+  Block* above = tile->world->get_global(gx, gy+scale, gz, 1);
+  if (value == blocks->names["grass"] and tile->world->get(gx, gy+scale, gz) == 0 and tile->entities.size() < 10) {
+    tile->world->summon(new Pig(tile->world, vec3(gx, gy+5, gz)));
     cout << "pig spawn " << endl;
   }
   
@@ -327,7 +326,7 @@ void Pixel::random_tick() {
     if ((value == blocks->names["snow"]) and tile->entities.size() < 10 and above != nullptr and above->get() == 0
      and above->get_pix()->sunlight == lightmax and tile->world->sunlight < 0.1) {
       cout << "skeleton spawned" << endl;
-      world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
+      tile->world->summon(new Skeleton(tile->world, vec3(gx, gy+5, gz)));
     }
   }
 }
@@ -976,7 +975,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collide
     //cout << render_index << endl;
     //cout << "done rendering" << endl;
     //cout << *num_verts << endl;
-    //crash(1);
+    //game->crash(1);
 }
 
 Chunk* Pixel::subdivide() {
@@ -1012,7 +1011,7 @@ Chunk* Pixel::subdivide() {
 Chunk* Pixel::subdivide(function<char(ivec3)> gen_func) {
     //render_update();
     if (render_index.first != -1) {
-        world->glvecs.del(render_index);
+        tile->world->glvecs.del(render_index);
     }
     if (scale == 1) {
         cout << "error: block alreasy at scale 1" << endl;
@@ -1057,7 +1056,7 @@ Chunk* Pixel::resolve(bool yield) {
   global_position(&gx, &gy, &gz);
   ivec3 gpos(gx, gy, gz);
   bool solid = true;
-  char val = world->loader.gen_func(gpos);
+  char val = tile->world->loader.gen_func(gpos);
   Chunk* chunk = new Chunk(px, py, pz, scale, parent);
   int newscale = scale/csize;
   if (yield) {
@@ -1067,7 +1066,7 @@ Chunk* Pixel::resolve(bool yield) {
     for (int y = 0; y < csize; y ++) {
       for (int z = 0; z < csize; z ++) {
         ivec3 pos(x,y,z);
-        char newval = world->loader.gen_func(gpos+pos*newscale);
+        char newval = tile->world->loader.gen_func(gpos+pos*newscale);
         Pixel* pix = new Pixel(x, y, z, newval, newscale, chunk, tile);
         solid = solid and val == newval;
         if (newscale > 1) {
@@ -1227,7 +1226,7 @@ void Chunk::rotate(int axis, int dir) {
           newpos = negative[j*csize+k];
         } else {
           cout << "ERR: dir is not 1 -1 " << endl;
-          crash(8237948232222);
+          game->crash(8237948232222);
         }
         if (axis == 0) {
           tmp[j*csize+k]->px = i;
@@ -1308,7 +1307,7 @@ int Chunk::get_blocklight(int dx, int dy, int dz) {
                 float level = blocks[x][y][z]->get_blocklight(dx, dy, dz);
                 if (level == -1) {
                     cout << "blocks.h error" << endl;
-                    crash(485934759257949384);
+                    game->crash(485934759257949384);
                     return -1;
                 }
                 if (blocks[x][y][z]->is_air(dx,dy,dz) or level != 0) {
@@ -1358,7 +1357,7 @@ int Chunk::get_sunlight(int dx, int dy, int dz) {
                 int level = blocks[x][y][z]->get_sunlight(dx, dy, dz);
                 if (level == -1) {
                     cout << "blocks.h error" << endl;
-                    crash(485934759257949384);
+                    game->crash(485934759257949384);
                     return -1;
                 }
                 if (blocks[x][y][z]->is_air(dx,dy,dz)) {

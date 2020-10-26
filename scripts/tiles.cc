@@ -251,7 +251,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
   //   writelock.unlock();
   // } else {
   //   cout << "tile locked when created?" << endl;
-  //   crash(1188188839499);
+  //   game->crash(1188188839499);
   // }
 }
 

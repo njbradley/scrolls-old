@@ -6,7 +6,6 @@
 #include "blockdata.h"
 
 
-
 vector<pair<int,int> > paths;
 
 double lerp(double a0, double a1, double w) {
@@ -84,7 +83,6 @@ double perlin(double x, double y, int seed, int layer) {
     
     value = lerp(ix0, ix1, sy);
     //cout << value << endl;
-    //crash(0);
     return value;
 }
 

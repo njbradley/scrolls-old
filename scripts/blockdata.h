@@ -65,7 +65,7 @@ class BlockStorage { public:
     map<string, char> names;
     int num_blocks;
     
-    BlockStorage(string path = "");
+    BlockStorage();
     ~BlockStorage();
 };
 

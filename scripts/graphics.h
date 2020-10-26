@@ -4,6 +4,7 @@
 #include "classes.h"
 
 class GraphicsContext { public:
+	Game* game;
 	//GLFWwindow* window;
 	GLuint VertexArrayID;
 	GLuint uiVertexArrayID;
@@ -40,13 +41,14 @@ class GraphicsContext { public:
 	GLuint player_positionID;
 	GLuint sunlightID;
 	
-	GraphicsContext();
-	set_world_buffers(World* world, int mem);
-	init_glfw();
-	load_textures();
-	block_draw_call(World* world);
+	GraphicsContext(Game* game);
+	void set_world_buffers(World* world, int mem);
+	void init_glfw();
+	void load_textures();
+	void block_draw_call(World* world);
 	void make_ui_buffer(Player* player, string debugstream);
-	ui_draw_call(World* world, std::stringstream* debugstream);
+	void ui_draw_call(World* world, std::stringstream* debugstream);
+	void swap();
 	~GraphicsContext();
 };
 

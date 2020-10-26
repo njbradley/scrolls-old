@@ -12,6 +12,7 @@
 #include "ui.h"
 #include "cross-platform.h"
 #include "text.h"
+#include "game.h"
 
 
 
@@ -24,7 +25,6 @@ float horizontalAngle = 3.14f;
 float verticalAngle = 0.0f;
 // Initial Field of View
 */
-extern float initialFoV;
 
 
 float speed = 80.0f; // 3 units / second
@@ -267,8 +267,8 @@ void Player::right_mouse(double deltatime) {
 	}
 	
 	if (pix == nullptr) {
-		debugblock = nullptr;
-		debugentity = nullptr;
+		game->debugblock = nullptr;
+		game->debugentity = nullptr;
 		return;
 	}
 	if (target_entity != nullptr) {
@@ -307,8 +307,8 @@ void Player::right_mouse(double deltatime) {
 			}
 			inven.use(selitem);
 		} else {
-			debugblock = pix;
-			debugentity = target_entity;
+			game->debugblock = pix;
+			game->debugentity = target_entity;
 		}
 	
 	}
@@ -465,9 +465,9 @@ void Player::computeMatricesFromInputs(){
 	Block* camerablock = world->get_global(int(position.x), int(position.y), int(position.z), 1);
 	if (camerablock != 0) {
 		if (camerablock->get() == 7) {
-			set_display_env(vec3(0.2,0.2,0.6), 10);
+			game->set_display_env(vec3(0.2,0.2,0.6), 10);
 		} else {
-			set_display_env(vec3(0.4,0.7,1.0), 2000000);
+			game->set_display_env(vec3(0.4,0.7,1.0), 2000000);
 		}
 	}
 	
@@ -642,7 +642,7 @@ void Player::computeMatricesFromInputs(){
 	}
 	
 	
-	float FoV = initialFoV;// - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a callback for this. It's a bit too complicated for this beginner's tutorial, so it's disabled instead.
+	float FoV = game->initialFoV;// - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a callback for this. It's a bit too complicated for this beginner's tutorial, so it's disabled instead.
 	
 	
 	// Projection matrix : 45 Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
