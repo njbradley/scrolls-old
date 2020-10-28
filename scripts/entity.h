@@ -34,6 +34,7 @@ class Entity { public:
     double damage_health = 0;
     double healing_speed = 0;
     bool in_water = false;
+    double step_distance = 0;
     
     Entity(World* nworld, vec3 pos, vec3 hitbox1, vec3 hitbox2);
     void timestep();

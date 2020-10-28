@@ -17,6 +17,7 @@
 #include "entity.h"
 #include "blockphysics.h"
 #include "commands.h"
+#include "game.h"
 
 #include <algorithm>
 #include <GL/glew.h>
@@ -235,7 +236,6 @@ void World::spawn_player() {
   player->autojump = true;
   player->health = 10;
   player->max_health = 10;
-  
   set_player_vars();
 }
 
@@ -246,6 +246,9 @@ void World::set_player_vars() {
   commandprogram.vec3vars["me.vel"] = velvar;
   commandprogram.doublevars["me.health"] = CommandVar<double>(&player->health);
   
+  if (game != nullptr) {
+    game->audio.listener = player;
+  }
 }
 
 void World::load_nearby_chunks() {

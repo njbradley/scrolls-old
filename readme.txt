@@ -10,9 +10,18 @@ Compiling:
 To compile scrolls, you will need a c++14 compatable compiler, and the libraries: glfw, glew, glm, stb_image, boost
 On windows, most of these libraries can be downloaded in precomplied states, and only glfw, glew and boost need libraries,
 the rest are header only. I use Mingw for compiling, which works well.
+On windows, msys2 can be used to install the libraries:
+	mingw-w64-x86_64-gcc
+	mingw-w64-x86_64-make
+	mingw-w64-x86_64-freealut
+	mingw-w64-x86_64-openal
+	mingw-w64-x86_64-glm
+	mingw-w64-x86_64-glfw
+	mingw-w64-x86_64-glew
 On mac and linux, the libraries can be installed with atp-get or brew.
 The compile command is rather simple with make, run the command "make main" in the
-root directory. on windows with mingw the command is "mingw32-make main" but otherwise
+root directory. Specify the platform by adding PLAT=MAC or PLAT=LINUX.
+on windows with mingw the command is "mingw32-make main" but otherwise
 it is the same.
 Thats it! now you should have an executable! However, it has to be kept with the resources folder wherever you run it.
 

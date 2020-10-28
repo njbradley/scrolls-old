@@ -309,6 +309,7 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
 }
 
 void Pixel::random_tick() {
+  return;
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
   if (value == blocks->names["dirt"] and tile->world->get(gx, gy+scale, gz) == 0) {
@@ -1163,6 +1164,7 @@ Chunk* Chunk::get_chunk() {
 }
 char Chunk::get() const {
     cout << "error: get() called on chunk object" << endl;
+    return -1;
 }
 
 void Chunk::lighting_update() {

@@ -42,6 +42,7 @@ using namespace glm;
 #include "text.h"
 #include "graphics.h"
 #include "game.h"
+#include "audio.h"
 
 
 #include "cross-platform.h"

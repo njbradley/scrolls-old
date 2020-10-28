@@ -5,6 +5,7 @@
 #include "world.h"
 #include "graphics.h"
 #include "multithreading.h"
+#include "audio.h"
 
 #include <iomanip>
 
@@ -22,6 +23,7 @@ class Game { public:
 	float initialFoV = 110.0f;
 	
 	GraphicsContext graphics;
+	AudioContext audio;
 	ThreadManager threadmanager;
 	
 	DisplayEntity* debugentity = nullptr;

@@ -4,6 +4,7 @@
 #include "mobs.h"
 #include "world.h"
 #include "cross-platform.h"
+#include "game.h"
 
 MobStorage* mobstorage;
 
@@ -218,6 +219,10 @@ void Pig::on_timestep(double deltatime) {
 		
 	}
 	if (!dead_falling) {
+		if (rand() %50 == 0) {
+			//game->audio.play_sound("break.wav", position);
+		}
+		
 		if (int(position.x - next_point.x) == 0 and int(position.z - next_point.z) == 0) {
 			if (rand()%100 == 0) {
 				limbs[4]->angle.x = rand()%100/50.0 - 1;
@@ -241,11 +246,11 @@ void Pig::on_timestep(double deltatime) {
 			}
 			angle.x = lon;
 		  if (consts[4]) {
+		    vel.x += 15 * dist.x * deltatime;
+		    vel.z += 15 * dist.z * deltatime;
+		  } else {
 		    vel.x += 5 * dist.x * deltatime;
 		    vel.z += 5 * dist.z * deltatime;
-		  } else {
-		    vel.x += 0.5 * dist.x * deltatime;
-		    vel.z += 0.5 * dist.z * deltatime;
 		  }
 		  if (consts[4] and (consts[0] or consts[2] or consts[3] or consts[5])) {
 		    vel.y = 20;

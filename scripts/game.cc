@@ -102,6 +102,7 @@ void Game::setup_gameloop() {
 	graphics.view_distance = view_dist * World::chunksize * 10;
 	
 	threadmanager.rendering = true;
+	audio.listener = world->player;
 }
 
 
@@ -253,6 +254,8 @@ void Game::gametick() {
 		cout << "swap " << time << endl;
 	}
 	
+	audio.tick();
+	
 	if (menu == nullptr) {
 		if (glfwGetKey(window, GLFW_KEY_M ) == GLFW_PRESS) {
 			main_menu();
@@ -377,6 +380,7 @@ void Game::print_debug() {
 	debugstream << endl;
 	world->glvecs.status(debugstream);
 	world->transparent_glvecs.status(debugstream);
+	audio.status(debugstream);
 	debugstream << "------threads-------" << endl;
 	debugstream << "load ";
 	for (int i = 0; i < threadmanager.num_threads; i ++) {
@@ -401,36 +405,6 @@ void Game::print_debug() {
 	while((err = glGetError()) != GL_NO_ERROR) {
 		debugstream << "err: " << std::hex << err << std::dec << endl;
 		cout << "err: " << std::hex << err << std::dec << endl;
-	}
-	
-	debugstream << "-----block-entity-tracking-----" << endl;
-	if (game->debugentity != nullptr) {
-		debugstream << "tracking entity " << game->debugentity << endl;
-		debugstream << "x:" << game->debugentity->position.x << " y:" << game->debugentity->position.y << " z:" << game->debugentity->position.z << endl;
-		debugstream << "dx:" << game->debugentity->vel.x << " dy:" << game->debugentity->vel.y << " dz:" << game->debugentity->vel.z << endl;
-		debugstream << "consts: ";
-		for (bool b : game->debugentity->consts ) {
-			debugstream << b << ' ';
-		}
-		debugstream << endl;
-	}
-	if (game->debugblock != nullptr) {
-		int gx, gy, gz;
-		game->debugblock->global_position(&gx, &gy, &gz);
-		string name = "undef";
-		BlockData* data = blocks->blocks[game->debugblock->get()];
-		if (data != nullptr) {
-			name = data->name;
-		}
-		
-		debugstream << "tracking block " << game->debugblock << " at " << gx << "x " << gy << "y " << gz << "z " << endl;
-		debugstream << " type:" << name << " char:" << int(game->debugblock->value) << " scale:" << game->debugblock->scale << endl;
-		debugstream << " direction:" << int(game->debugblock->direction) << " render_index:" << game->debugblock->render_index.first << ',' << game->debugblock->render_index.second << endl;
-		debugstream << " parent coords:" << game->debugblock->px << ',' << game->debugblock->py << ',' << game->debugblock->pz << endl;
-		debugstream << " physics_group:" << game->debugblock->physicsgroup << endl;
-		if (game->debugblock->physicsgroup != nullptr) {
-			//game->debugblock->physicsgroup->to_file(debugstream);
-		}
 	}
 	
 	debugstream << "-----block-entity-tracking-----" << endl;

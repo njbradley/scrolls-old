@@ -13,6 +13,7 @@
 #include "cross-platform.h"
 #include "text.h"
 #include "game.h"
+#include "audio.h"
 
 
 
@@ -303,6 +304,7 @@ void Player::right_mouse(double deltatime) {
 				CharArray* arr = item->data->onplace;
 				if (arr != nullptr) {
 					arr->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
+					game->audio.play_sound("place", vec3(x, y, z));
 				}
 			}
 			inven.use(selitem);
@@ -369,12 +371,15 @@ void Player::left_mouse(double deltatime) {
 				inven.make_single(selitem);
 			}
 			break_progress += item->collision(pix);
+			game->audio.play_sound("break", vec3(blockpos));
 			//cout << break_progress << endl;
 			
 			
 			if (true and break_progress >= 1) {
 				
 				set_block_breaking_vecs(pix, blockpos, 0);
+				
+				game->audio.play_sound("hit", position);
 				// double time_needed = item->dig_time(pix->get());
 				// double damage_per_sec = 1/time_needed;
 				//
@@ -403,6 +408,9 @@ void Player::left_mouse(double deltatime) {
 }
 
 void Player::die() {
+	if (game->audio.listener == this) {
+		game->audio.listener = nullptr;
+	}
 	const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
 	vector<ItemStack> items;
 	for (ItemStack stack : inven.items) {
@@ -521,6 +529,8 @@ void Player::computeMatricesFromInputs(){
 		0,
 		sin(angle.x - 3.14f/2.0f)
 	);
+	
+	
 	
 	
 	// Up vector
