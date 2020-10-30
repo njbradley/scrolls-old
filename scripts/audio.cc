@@ -45,7 +45,7 @@ Sound::Sound(AudioContext* newcontext, string filename): context(newcontext) {
 				string dirpath;
 				ifile >> dirpath;
 				vector<string> newfiles;
-				get_files_folder("resources/sounds/" + dirpath, &newfiles, "*.wav");
+				get_files_folder("resources/sounds/" + dirpath, &newfiles);
 				for (string path : newfiles) {
 					wavfiles.push_back(dirpath + '/' + path);
 				}
@@ -167,10 +167,12 @@ void AudioContext::init_context() {
 
 void AudioContext::load_sounds() {
 	vector<string> paths;
-	get_files_folder("resources/sounds", &paths, "*.txt");
+	get_files_folder("resources/sounds", &paths);
 	for (string path : paths) {
-		Sound* sound = new Sound(this, path);
-		library[sound->name] = sound;
+		if (path.find(".txt") != string::npos) {
+			Sound* sound = new Sound(this, path);
+			library[sound->name] = sound;
+		}
 	}
 	cout << "loaded in " << paths.size() << " sound files " << endl;
 }
