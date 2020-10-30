@@ -1,4 +1,6 @@
 material grass {
 	:toughness: 1.5
 	:elastic: 1
+	:hitsound: grass-hit
+	:breaksound: grass-hit
 }

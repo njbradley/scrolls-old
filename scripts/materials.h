@@ -2,11 +2,14 @@
 #define MATERIALS_PREDEF
 
 #include "classes.h"
+#include "audio.h"
 
 class Material { public:
 	string name;
 	double toughness;
 	double elastic;
+	string breaksound;
+	string hitsound;
 	
 	Material(istream& ifile);
 	// calculates a score based on the outlined impact. The score will be

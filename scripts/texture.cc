@@ -19,8 +19,6 @@ GLuint loadBMP_custom(const char * imagepath, bool transparency){
 	
 	unsigned char * data;
 	
-	cout << imagepath << endl;
-	
 	int width, height, nrChannels;
     data = stbi_load(imagepath, &width, &height, &nrChannels, (transparency) ? 4 : 3);
     //SOIL_load_image("sample.png", &width, &height, 0, SOIL_LOAD_RGB);

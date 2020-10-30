@@ -5,6 +5,8 @@
 #include "cross-platform.h"
 #include "entity.h"
 
+#include <stdlib.h>
+
 
 Sound::Sound(AudioContext* newcontext, string filename): context(newcontext) {
 	string dataname = "resources/sounds/" + filename;
@@ -16,7 +18,6 @@ Sound::Sound(AudioContext* newcontext, string filename): context(newcontext) {
     cout << "ERR: this file is not a audio data file " << endl;
   } else {
     ifile >> name;
-		cout << name << endl;
     getline(ifile, buff, '{');
     string varname;
     getline(ifile, buff, ':');
@@ -24,7 +25,6 @@ Sound::Sound(AudioContext* newcontext, string filename): context(newcontext) {
     while (!ifile.eof() and varname != "") {
       if (varname == "range") {
         ifile >> range;
-				cout << range << endl;
       } else if (varname == "file") {
 				string path;
 				ifile >> path;
@@ -66,21 +66,19 @@ Sound::Sound(AudioContext* newcontext, string filename): context(newcontext) {
 		
 		for (int i = 0; i < num_buffers; i ++) {
 			string fullname = "resources/sounds/" + wavfiles[i];
-			cout << fullname << endl;
-			ALsizei size, freq;
+			ALsizei size;
+			ALfloat freq;
 			ALenum format;
-			ALvoid *data;
-			ALboolean loop = AL_FALSE;
 			
-			alutLoadWAVFile((ALbyte*)fullname.c_str(), &format, &data, &size, &freq, &loop);
-			cout << "size: " << size << ' ' << freq << endl;
+			ALvoid *data = alutLoadMemoryFromFile(fullname.c_str(), &format, &size, &freq);
 			
 			alBufferData(buffers[i], format, data, size, freq);
-			cout << buffers[i] << endl;
 			double newdur = double(size) / freq;
 			if (newdur > duration) {
 				duration = newdur;
 			}
+			
+			free(data);
 		}
 	}
 }
@@ -158,6 +156,8 @@ void AudioContext::init_context() {
 		cout << "ERR: openal context not made current" << endl;
 	}
 	
+	alutInitWithoutContext(nullptr, nullptr);
+	
 	ALfloat listenerOri[] = { 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f };
 
 	alListener3f(AL_POSITION, 0, 0, 1.0f);
@@ -176,7 +176,7 @@ void AudioContext::load_sounds() {
 }
 
 PlayingSound* AudioContext::play_sound(string name, vec3 pos, float gain, float pitch) {
-	if (listener != nullptr and glm::length(pos - listener->position) < library[name]->range) {
+	if (name != "null" and listener != nullptr and glm::length(pos - listener->position) < library[name]->range) {
 		PlayingSound* newsound = new PlayingSound(library[name], pos);
 		newsound->gain(gain);
 		newsound->pitch(pitch);

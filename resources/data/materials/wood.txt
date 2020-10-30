@@ -1,4 +1,6 @@
 material wood {
 	:toughness: 15
 	:elastic: 4
+	:hitsound: wood-hit
+	:breaksound: wood-hit
 }

@@ -49,7 +49,7 @@ void Entity::timestep() {
         cout << "warning: had to drop ticks" << endl;
     }
     
-    step_distance -= glm::length(vec2(vel.x, vel.z))*deltaTime;
+    step_distance -= glm::length(vec3(vel.x, int(vel.y), vel.z))*deltaTime;
   	if (consts[4] and step_distance < 0) {
   		step_distance = 4;
   		game->audio.play_sound("step", position - vec3(0, 4, 0), 0.5);

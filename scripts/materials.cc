@@ -6,7 +6,7 @@
 
 MaterialStorage* matstorage;
 
-Material::Material(istream& ifile): toughness(0), elastic(0) {
+Material::Material(istream& ifile): toughness(0), elastic(0), breaksound("null"), hitsound("null") {
 	string buff;
 	ifile >> buff;
 	if (buff == "material") {
@@ -19,6 +19,10 @@ Material::Material(istream& ifile): toughness(0), elastic(0) {
 				ifile >> toughness;
 			} else if (varname == "elastic") {
 				ifile >> elastic;
+			} else if (varname == "breaksound") {
+				ifile >> breaksound;
+			} else if (varname == "hitsound") {
+				ifile >> hitsound;
 			}
 			getline(ifile, buff, ':');
 			getline(ifile, varname, ':');

@@ -14,6 +14,7 @@
 #include "text.h"
 #include "game.h"
 #include "audio.h"
+#include "materials.h"
 
 
 
@@ -371,7 +372,8 @@ void Player::left_mouse(double deltatime) {
 				inven.make_single(selitem);
 			}
 			break_progress += item->collision(pix);
-			game->audio.play_sound("break", vec3(blockpos));
+			BlockData* data = blocks->blocks[pix->value];
+			game->audio.play_sound(data->material->hitsound, vec3(blockpos), 0.1);
 			//cout << break_progress << endl;
 			
 			
@@ -379,7 +381,7 @@ void Player::left_mouse(double deltatime) {
 				
 				set_block_breaking_vecs(pix, blockpos, 0);
 				
-				game->audio.play_sound("hit", position);
+				game->audio.play_sound(data->material->breaksound, vec3(blockpos));
 				// double time_needed = item->dig_time(pix->get());
 				// double damage_per_sec = 1/time_needed;
 				//

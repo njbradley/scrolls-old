@@ -1,4 +1,6 @@
 material dirt {
 	:toughness: 1
 	:elastic: 1
+	:breaksound: dirt-hit
+	:hitsound: dirt-hit
 }
