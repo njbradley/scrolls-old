@@ -7,7 +7,7 @@ OPT := -O3
 
 
 ifeq ($(PLAT),MAC)
-LIBS := -lglfw -framework CoreVideo -framework OpenGL -framework IOKit -lGLEW
+LIBS := -lglfw -framework CoreVideo -framework OpenGL -framework IOKit -lGLEW -lopenal -lalut
 else
 ifeq ($(PLAT),LINUX)
 LIBS := -lGLEW -lGL -pthread -lglfw
