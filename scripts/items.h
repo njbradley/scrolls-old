@@ -26,6 +26,7 @@ public:
   double reach = 1;
   double weight = 1;
   double area;
+  double durability;
   bool isnull;
   bool modified;
   bool stackable = false;
@@ -77,8 +78,19 @@ class ItemStack {
 public:
   Item item;
   int count;
+  vector<Item> unique;
   ItemStack(Item,int);
+  ItemStack(istream& ifile);
+  void to_file(ostream& ofile);
   void render(MemVecs* vecs, float x, float y);
+  bool add(Item newitem);
+  bool add(ItemStack otherstack);
+  Item take();
+  ItemStack take(int num);
+  ItemStack half();
+  Item* get_unique();
+  bool isnull();
+  void trim();
 };
 
 class ItemStorage { public:
@@ -102,7 +114,7 @@ class ItemContainer {
         ItemContainer(ItemContainer*, ItemContainer*);
         bool add(ItemStack itemstack);
         Item* get(int index);
-        Item* use(int index);
+        Item use(int index);
         bool contains(ItemStack);
         bool take(ItemStack);
         void make_single(int index);

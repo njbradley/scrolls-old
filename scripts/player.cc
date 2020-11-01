@@ -368,10 +368,11 @@ void Player::left_mouse(double deltatime) {
 				block_breaking = blockpos;
 			}
 			
-			if (!item->isnull and item->data->sharpenable and inven.items[selitem].count > 1) {
-				inven.make_single(selitem);
+			if (!item->isnull and item->data->sharpenable) {
+				item = inven.items[selitem].get_unique();
 			}
 			break_progress += item->collision(pix);
+			inven.items[selitem].trim();
 			BlockData* data = blocks->blocks[pix->value];
 			game->audio.play_sound(data->material->hitsound, vec3(blockpos), 0.1);
 			//cout << break_progress << endl;

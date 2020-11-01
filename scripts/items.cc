@@ -69,11 +69,12 @@ Item::Item(ItemData* newdata): data(newdata), isnull(data == nullptr), modified(
     weight = data->starting_weight;
     reach = data->starting_reach;
     stackable = data->stackable;
+    durability = 1;
   }
 }
 
 Item::Item(ItemData* newdata, double newsharpness, double newweight, double newreach): data(newdata), isnull(data == nullptr),
-sharpness(newsharpness), weight(newweight), reach(newreach), stackable(false), modified(true) {
+sharpness(newsharpness), weight(newweight), reach(newreach), stackable(false), modified(true), durability(1) {
   
 }
 
@@ -97,10 +98,23 @@ Item::Item(istream& ifile) {
       reach = data->starting_reach;
       modified = false;
       stackable = data->stackable;
+      durability = 1;
     }
     while (ifile.peek() == ' ' and !ifile.eof()) {
       ifile.get();
     }
+    
+    if (ifile.peek() == '%') {
+      ifile.get();
+      ifile >> durability;
+    } else {
+      durability = 1;
+    }
+    
+    while (ifile.peek() == ' ' and !ifile.eof()) {
+      ifile.get();
+    }
+    
     if (ifile.peek() == '[') {
       ifile.get();
       do {
@@ -252,12 +266,13 @@ double Item::collision(Pixel* pix) {
   
   if (head != nullptr and !head->isnull and head->data->sharpenable) {
     item_damage /= head->weight;
-    head->weight -= item_damage;
-    head->modified = true;
-    head->stackable = false;
+    head->durability -= item_damage;
+    //head->modified = true;
   }
   
-  trim();
+  if (!stackable) {
+    trim();
+  }
   return block_damage;
 }
 
@@ -271,14 +286,14 @@ double Item::get_recharge_time() {
 
 void Item::trim() {
   for (int i = addons.size() - 1; i >= 0; i --) {
-    if (addons[i].data->sharpenable and addons[i].weight <= 0) {
+    if (addons[i].data->sharpenable and addons[i].durability <= 0) {
       addons.erase(addons.begin() + i);
     } else {
       addons[i].trim();
     }
   }
   
-  if (!isnull and data->sharpenable and weight <= 0) {
+  if (!isnull and data->sharpenable and durability <= 0) {
     isnull = true;
     data = nullptr;
     addons.clear();
@@ -332,6 +347,9 @@ void Item::to_file(ostream& ofile) {
     } else {
       ofile << data->name << ' ';
     }
+    if (durability < 1) {
+      ofile << '%' << durability << ' ';
+    }
     if (addons.size() > 0) {
       ofile << "[ ";
       for (Item& item : addons) {
@@ -369,6 +387,9 @@ void Item::render(MemVecs* vecs, float x, float y, float scale) {
     draw_image_uv(vecs, "items.bmp", x, y, scale, scale*aspect_ratio, 0, 1, 0.0f, 1.0f/itemstorage->total_images);
   } else {
     draw_image_uv(vecs, "items.bmp", x, y, scale, scale*aspect_ratio, 0, 1, float(data->texture)/itemstorage->total_images, float(data->texture+1)/itemstorage->total_images);
+    if (durability < 1) {
+      draw_icon(vecs, 12, x, y, scale, durability*scale*aspect_ratio);
+    }
     int i = 0;
     for (Item& item : addons) {
       item.render(vecs, x + scale*i*0.3f, y + scale, scale);
@@ -459,9 +480,137 @@ ItemStack::ItemStack(Item newitem, int newcount): item(newitem), count(newcount)
   
 }
 
+ItemStack::ItemStack(istream& ifile): item(ifile) {
+  ifile >> count;
+  if (ifile.peek() == '(') {
+    ifile.get();
+    do {
+      unique.emplace_back(ifile);
+      while (ifile.peek() == ' ' and !ifile.eof()) {
+        ifile.get();
+      }
+    } while (ifile.peek() != ')');
+    ifile.get();
+  }
+}
+
+void ItemStack::to_file(ostream& ofile) {
+  item.to_file(ofile);
+  ofile << count;
+  if (unique.size() > 0) {
+    ofile << "( ";
+    for (Item ite : unique) {
+      ite.to_file(ofile);
+    }
+    ofile << ")";
+  }
+  ofile << ' ';
+}
+  
+
 void ItemStack::render(MemVecs* vecs, float x, float y) {
-  item.render(vecs, x, y);
+  if (unique.size() > 0) {
+    get_unique()->render(vecs, x, y);
+  } else {
+    item.render(vecs, x, y);
+  }
   draw_text(vecs, std::to_string(count), x+0.02, y+0.02f);
+}
+
+bool ItemStack::add(Item newitem) {
+  if (isnull()) {
+    item = newitem;
+  }
+  if (newitem.data == item.data and item.stackable and newitem.stackable) {
+    if (newitem.durability != 1) {
+      unique.push_back(newitem);
+    }
+    count ++;
+    return true;
+  }
+  return false;
+}
+
+bool ItemStack::add(ItemStack newstack) {
+  if (isnull()) {
+    item = newstack.item;
+  }
+  if (newstack.item.data == item.data and item.stackable and newstack.item.stackable) {
+    count += newstack.count;
+    for (Item newunique : newstack.unique) {
+      unique.push_back(newunique);
+    }
+    return true;
+  }
+  return false;
+}
+
+Item ItemStack::take() {
+  if (count > 0) {
+    count --;
+    if (unique.size() > 0) {
+      Item tmp = unique.back();
+      unique.pop_back();
+      return tmp;
+    }
+    Item ret = item;
+    if (count == 0) {
+      item = Item(nullptr);
+    }
+    return ret;
+  }
+  return Item(nullptr);
+}
+
+ItemStack ItemStack::take(int num) {
+  if (num >= count) {
+    ItemStack result = *this;
+    item = Item(nullptr);
+    count = 0;
+    return result;
+  }
+  ItemStack result(item, num);
+  int i = 0;
+  while (i < num and unique.size() > 0) {
+    result.unique.push_back(unique.back());
+    unique.pop_back();
+  }
+  count -= num;
+  return result;
+}
+
+ItemStack ItemStack::half() {
+  return take(count/2);
+}
+
+Item* ItemStack::get_unique() {
+  if (isnull()) {
+    return nullptr;
+  }
+  if (!item.stackable) {
+    return &item;
+  }
+  if (unique.size() == 0) {
+    unique.push_back(item);
+  }
+  return &unique.back();
+}
+
+bool ItemStack::isnull() {
+  return item.isnull;
+}
+
+void ItemStack::trim() {
+  for (int i = unique.size() - 1; i >= 0; i --) {
+    unique[i].trim();
+    if (unique[i].isnull) {
+      unique.erase(unique.begin() + i);
+      count --;
+    }
+  }
+  if (count == 0) {
+    item = Item(nullptr);
+  }
 }
 
 /////////////////////////////// ITEMSTRAGE////////////////////////////////////////////////
@@ -500,10 +649,7 @@ ItemContainer::ItemContainer(int newsize): size(newsize) {
 ItemContainer::ItemContainer(istream& ifile) {
   ifile >> size;
   for (int i = 0; i < size; i ++) {
-    int count;
-    Item item(ifile);
-    ifile >> count;
-    items.push_back(ItemStack(item, count));
+    items.emplace_back(ifile);
   }
 }
 
@@ -514,24 +660,19 @@ ItemContainer::ItemContainer(ItemContainer* first, ItemContainer* second) {
 }
 
 bool ItemContainer::add(ItemStack itemstack) {
-    if (itemstack.item.stackable) {
-      for (int i = 0; i < items.size(); i ++) {
-        if (itemstack.item.data == items[i].item.data and items[i].item.stackable) {
-          //cout << "add " << items[i].item.stackable << ' ' << items[i].item.get_name() << endl;
-          //and itemstack.item.addons.size() < 0 and items[i].item.addons.size() < 0) {
-          items[i].count += itemstack.count;
-          return true;
-        }
+  if (itemstack.item.stackable) {
+    for (int i = 0; i < items.size(); i ++) {
+      if (!items[i].isnull() and items[i].add(itemstack)) {
+        return true;
       }
     }
-    for (int i = 0; i < items.size(); i ++) {
-        if (items[i].item.data == nullptr) {
-            items[i] = itemstack;
-            return true;
-        }
+  }
+  for (int i = 0; i < items.size(); i ++) {
+    if (items[i].add(itemstack)) {
+      return true;
     }
-    return false;
-    //items.push_back(pair<Item*,int>(item,num));
+  }
+  return false;
 }
 
 Item* ItemContainer::get(int index) {
@@ -541,9 +682,9 @@ Item* ItemContainer::get(int index) {
     return nullptr;
 }
 
-Item* ItemContainer::use(int index) {
+Item ItemContainer::use(int index) {
     if (index < items.size()) {
-        Item* ret = &items[index].item;
+        Item ret = items[index].item;
         items[index].count--;
         if (items[index].count <= 0) {
           items[index] = ItemStack(nullptr,0);
@@ -555,7 +696,7 @@ Item* ItemContainer::use(int index) {
 
 bool ItemContainer::contains(ItemStack itemstack) {
   for (ItemStack is : items) {
-    if (is.item.data == itemstack.item.data) {
+    if (is.item.data == itemstack.item.data and !is.item.modified) {
       if (is.count >= itemstack.count) {
         return true;
       } else {
@@ -614,8 +755,7 @@ void ItemContainer::clear() {
 void ItemContainer::save_to_file(ostream& ofile) {
   ofile << size << ' ';
   for (ItemStack itemstack : items) {
-    itemstack.item.to_file(ofile);
-    ofile << itemstack.count << ' ';
+    itemstack.to_file(ofile);
   }
   ofile << endl;
 }

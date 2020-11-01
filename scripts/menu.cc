@@ -52,6 +52,28 @@ ItemMenu::ItemMenu(): in_hand(nullptr, 0) {
 
 void ItemMenu::on_item_click(ItemContainer* container, int index, int button) {
   if (button == 1) {
+    if (!in_hand.isnull()) {
+      if (container->items[index].add(in_hand)) {
+        in_hand = ItemStack(nullptr, 0);
+        return;
+      }
+    }
+    ItemStack tmp = in_hand;
+    in_hand = container->items[index];
+    container->items[index] = tmp;
+  } else if (button == 2) {
+    if (in_hand.isnull()) {
+      in_hand = container->items[index].half();
+    } else {
+      Item tmp = in_hand.take();
+      if (!container->items[index].add(tmp)) {
+        in_hand.add(tmp);
+      }
+    }
+  }
+  
+  return;
+  if (button == 1) {
     if (!in_hand.item.isnull or !container->items[index].item.isnull) {
       if (in_hand.item.data != container->items[index].item.data or
       !in_hand.item.stackable or !container->items[index].item.stackable) {
