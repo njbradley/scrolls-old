@@ -59,6 +59,8 @@ class Block: public Collider { public:
     virtual void lighting_update() = 0;
     Block* raycast(Collider* world, double* x, double* y, double* z, double dx, double dy, double dz, double time);
     Block* get_world();
+    BlockIter iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(1,1,1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr);
+    BlockIter iterside(ivec3 dir);
     vec3 get_position() const;
     
     static Block* from_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent, Tile* tile);
@@ -85,7 +87,7 @@ public:
     int lightsource = -1;
     BlockExtra* extras = nullptr;
     Tile* tile;
-    BlockGroup* physicsgroup;
+    BlockGroup* group = nullptr;
     //int num;
     //ItemContainer* container;
     
@@ -171,6 +173,25 @@ class BlockContainer: public Collider { public:
 	vec3 get_position() const;
 	Block* get_global(int x, int y, int z, int size);
 };
+
+class BlockIter { public:
+  Block* base;
+  ivec3 start_pos;
+  ivec3 end_pos;
+  ivec3 (*increment_func)(ivec3 pos, ivec3 startpos, ivec3 endpos);
+  class iterator { public:
+    BlockIter* parent;
+    Pixel* pix;
+    Pixel* operator*();
+    iterator operator++();
+    friend bool operator!=(const iterator& iter1, const iterator& iter2);
+  };
+  iterator begin();
+  iterator end();
+};
+    
+    
+    
 
 
 #endif

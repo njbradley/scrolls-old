@@ -19,6 +19,8 @@ using glm::vec3;
 using glm::ivec3;
 using glm::vec2;
 using glm::ivec2;
+using glm::vec4;
+using glm::ivec4;
 using glm::mat4;
 using std::cout;
 using std::endl;
@@ -49,12 +51,17 @@ struct ivec3_hash {
 	size_t operator() (const ivec3& pos) const;
 };
 
+struct ivec4_hash {
+	size_t operator() (const ivec4& pos) const;
+};
+
 //ofstream dfile("debug.txt");
 extern int dloc;
 
 ////////////////// CLASSES ///////////////////////////
 class Block;
 class BlockContainer;
+class BlockIter;
 class Collider;
 class Chunk;
 class Pixel;
@@ -69,6 +76,7 @@ class FallingBlockEntity;
 class Player;
 class BlockStorage;
 class BlockGroup;
+class UnlinkedGroup;
 class AxleInterface;
 class PipeInterface;
 class AxleGroup;

@@ -45,9 +45,9 @@ void Tile::lighting_update() {
       for (ivec3 dir : dirs) {
         Tile* tile = world->tileat(pos+dir);
         if (tile != nullptr) {
-          tile->chunk->all_side([] (Pixel* pix) {
+          for (Pixel* pix : tile->chunk->iterside(-dir)) {
             pix->set_render_flag();
-          }, -dir.x, -dir.y, -dir.z);
+          }
         }
       }
       // for (int i = 0; i < 10; i ++) {
@@ -67,9 +67,9 @@ void Tile::render(GLVecs* glvecs, GLVecs* transvecs) {
         for (ivec3 dir : dirs) {
           Tile* tile = world->tileat(pos+dir);
           if (tile != nullptr) {
-            tile->chunk->all_side([] (Pixel* pix) {
+            for (Pixel* pix : tile->chunk->iterside(-dir)) {
               pix->set_render_flag();
-            }, -dir.x, -dir.y, -dir.z);
+            }
           }
         }
         // for (int i = 0; i < 10; i ++) {

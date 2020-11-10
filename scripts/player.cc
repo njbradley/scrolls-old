@@ -296,9 +296,9 @@ void Player::right_mouse(double deltatime) {
 	//Pixel* pix = target->get_pix();
 	if (blocks->blocks[pix->value]->rcaction != "null" and !shifting) {
 		blocks->blocks[pix->value]->do_rcaction(pix);
-	} else if (pix->physicsgroup != nullptr and !shifting and pix->physicsgroup->rcaction(this, inhand)) {
+	}/* else if (pix->group != nullptr and !shifting and pix->group->rcaction(this, inhand)) {
 		
-	} else {
+	} */else {
 		if (!inhand->isnull and inhand->data->onplace != nullptr) {
 			Item* item = inven.get(selitem);
 			if (!item->isnull) {
@@ -439,9 +439,9 @@ void Player::die() {
 		vector<string> options = {"Respawn"};
 		menu = new SelectMenu("You Died", options, [&, pos, items] (string result) {
 			Pixel* chest = world->get_global(pos.x, pos.y, pos.z, 1)->get_pix();
-			if (chest->physicsgroup != nullptr) {
+			if (chest->group != nullptr) {
 				for (ItemStack stack : items) {
-					chest->physicsgroup->add_item(stack);
+					//chest->group->add_item(stack); ////todo
 				}
 			}
 			if (result == "Respawn") {

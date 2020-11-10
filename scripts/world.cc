@@ -184,6 +184,7 @@ void World::startup() {
 }
 
 void World::load_groups() {
+  return;/*
   vector<string> group_paths;
   get_files_folder("saves/" + name + "/groups", &group_paths);
   for (string path : group_paths) {
@@ -200,10 +201,11 @@ void World::load_groups() {
   for (BlockGroup* group : physicsgroups) {
     group->link();
   }
-  cout << "linked groups sucessfully" << endl;
+  cout << "linked groups sucessfully" << endl;*/
 }
 
 void World::save_groups() {
+  return;/*
   vector<string> group_paths;
   get_files_folder("saves/" + name + "/groups", &group_paths);
   for (string path : group_paths) {
@@ -221,7 +223,7 @@ void World::save_groups() {
     delete group;
   }
   cout << "saved " << physicsgroups.size() << " groups to file" << endl;
-  physicsgroups.clear();
+  physicsgroups.clear();*/
 }
 
 void World::spawn_player() {
@@ -360,20 +362,20 @@ void World::add_tile(Tile* tile) {
       break;
     }
   }
-  for (BlockGroup* group : physicsgroups) {
-    ivec3 gpos = group->position;
-    ivec3 cpos = gpos/chunksize - ivec3(gpos.x<0, gpos.y<0, gpos.z<0);
-    if (cpos == pos) {
-      group->set_pix_pointers();
-    }
-  }
-  tile->chunk->all([=] (Pixel* pix) {
-    if (BlockGroup::is_persistant(pix->value)) {
-      int gx, gy, gz;
-      pix->global_position(&gx, &gy, &gz);
-      pix->tile->world->block_update(gx, gy, gz);
-    }
-  });
+  // for (BlockGroup* group : physicsgroups) {
+  //   ivec3 gpos = group->position;
+  //   ivec3 cpos = gpos/chunksize - ivec3(gpos.x<0, gpos.y<0, gpos.z<0);
+  //   if (cpos == pos) {
+  //     group->set_pix_pointers();
+  //   }
+  // }
+  // tile->chunk->all([=] (Pixel* pix) {
+  //   if (BlockGroup::is_persistant(pix->value)) {
+  //     int gx, gy, gz;
+  //     pix->global_position(&gx, &gy, &gz);
+  //     pix->tile->world->block_update(gx, gy, gz);
+  //   }
+  // });
 }
 
 void World::timestep() {
@@ -422,10 +424,19 @@ void World::timestep() {
 }
 
 void World::tick() {
+  for (ivec3 pos : block_updates) {
+    //cout << pos.x << endl;
+    Block* block = get_global(pos.x, pos.y, pos.z, 1);
+    if (block != nullptr and block->get_pix() != nullptr) {
+      block->get_pix()->tick();
+    }
+  }
+  block_updates.clear();
   //cout << "world tick" << endl;
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {
   
     //world->load_nearby_chunks();
+    /*
     for (ivec3 pos : block_updates) {
       Pixel* pix = get_global(pos.x, pos.y, pos.z, 1)->get_pix();
       BlockGroup* group = pix->physicsgroup;
@@ -459,7 +470,7 @@ void World::tick() {
         block->get_pix()->tick();
       }
     }
-    block_updates.clear();
+    block_updates.clear();*/
     
     // for (BlockGroup* group : physicsgroups) {
     //   group->remove_pix_pointers();
@@ -698,9 +709,9 @@ void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras
     while (same and parentblock->parent != nullptr) {
       pcoords = ivec3(parentblock->px, parentblock->py, parentblock->pz);
       parentblock = parentblock->parent;
-      parentblock->all([&] (Pixel* pix) {
+      for (Pixel* pix : parentblock->iter()) {
         same = same and pix->value == val;
-      });
+      }
     }
     //cout << parentblock->scale << ' ' << pcoords.x << ' ' << pcoords.y << ' ' << pcoords.z << endl;
     if (parentblock->parent == nullptr) {

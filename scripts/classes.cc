@@ -62,6 +62,11 @@ size_t ivec3_hash::operator() (const ivec3& pos) const {
 	return ihash(pos.x) ^ ihash(pos.y) ^ ihash(pos.z);
 }
 
+size_t ivec4_hash::operator() (const ivec4& pos) const {
+  std::hash<int> ihash;
+	return ihash(pos.x) ^ ihash(pos.y) ^ ihash(pos.z) ^ ihash(pos.w);
+}
+
 //ofstream dfile("debug.txt");
 int dloc = -69;
 

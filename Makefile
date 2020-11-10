@@ -1,6 +1,6 @@
 
 CXX := g++
-CXXFLAGS := -std=c++14 -DGLEW_STATIC 
+CXXFLAGS := -std=c++14 -DGLEW_STATIC
 LIBS := -lglew32s -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32
 LDFLAGS :=
 OPT := -O3
@@ -17,7 +17,7 @@ EXESUFFIX :=.exe
 endif
 endif
 
-TARGETS := main gentest
+TARGETS := main gentest blocktest
 MAINS := $(addprefix build/, $(addsuffix .o, $(TARGETS)))
 SCRIPTNAMES := audio blockdata blockphysics blocks classes commands crafting cross-platform entity game generative graphics items materials menu mobs multithreading player rendervec shader terrain text texture tiles ui world
 HEADERS := blockdata.h blockphysics.h blocks.h classes.h collider.h commands.h crafting.h cross-platform.h entity.h generative.h items.h materials.h menu.h mobs.h multithreading.h rendervec.h shader.h terrain.h text.h texture.h tiles.h ui.h world.h graphics.h game.h audio.h

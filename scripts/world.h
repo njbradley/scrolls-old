@@ -59,7 +59,7 @@ class World: public Collider {
         //unordered_map<ivec3, Tile*, ivec3_hash> tiles;
         vector<Tile*> tiles;
         std::mutex tilelock;
-        unordered_set<BlockGroup*> physicsgroups;
+        //unordered_set<BlockGroup*> physicsgroups;
     		vector<pair<int,int> > dead_render_indexes;
         int seed;
         int difficulty = 1;
