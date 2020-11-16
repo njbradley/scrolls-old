@@ -70,5 +70,14 @@ size_t ivec4_hash::operator() (const ivec4& pos) const {
 //ofstream dfile("debug.txt");
 int dloc = -69;
 
+ostream& operator<<(ostream& out, ivec3 pos) {
+	out << pos.x << ',' << pos.y << ',' << pos.z;
+	return out;
+}
+
+ostream& operator<<(ostream& out, vec3 pos) {
+	out << pos.x << ',' << pos.y << ',' << pos.z;
+	return out;
+}
 
 #endif

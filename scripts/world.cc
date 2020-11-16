@@ -25,7 +25,6 @@
 using std::thread;
 #include "terrain.h"
 
-#define csize 2
 
 
 
@@ -281,8 +280,8 @@ void World::load_nearby_chunks() {
     
     if (!closing_world) {
       for (int range = 0; range < maxrange; range ++) {
-        for (int x = px-range; x < px+range+1; x ++) {
-          for (int y = py-range; y < py+range+1; y ++) {
+        for (int y = py-range; y < py+range+1; y ++) {
+          for (int x = px-range; x < px+range+1; x ++) {
             for (int z = pz-range; z < pz+range+1; z ++) {
               if (x == px-range or x == px+range or y == py-range or y == py+range or z == pz-range or z == pz+range) {
                 //cout << range << ' ' << x << ' ' << y << ' ' << z << endl;

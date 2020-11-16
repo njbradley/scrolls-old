@@ -26,7 +26,7 @@ double poshashfloat(int seed, ivec3 pos, int myseed) {
 
 
 
-ivec3 TerrainObject::get_nearest_3d(TerrainLoader* loader, ivec3 pos, ivec3 size, int radius, int position_offset) {
+ivec3 TerrainObjectPlacer::get_nearest_3d(TerrainLoader* loader, ivec3 pos, ivec3 size, int radius, int position_offset) {
 	ivec3 gap = radius - size;
 	ivec3 rounded = pos/radius - ivec3(pos.x<0, pos.y<0, pos.z<0);
 	int layer = size.x ^ size.y ^ size.z ^ radius;
@@ -39,7 +39,7 @@ ivec3 TerrainObject::get_nearest_3d(TerrainLoader* loader, ivec3 pos, ivec3 size
 	return nearest;
 }
 
-ivec3 TerrainObject::get_nearest_2d(TerrainLoader* loader, ivec3 pos3d, ivec3 size, int radius, int position_offset) {
+ivec3 TerrainObjectPlacer::get_nearest_2d(TerrainLoader* loader, ivec3 pos3d, ivec3 size, int radius, int position_offset) {
 	ivec3 orig_pos = pos3d;
 	pos3d += ivec3(position_offset, 0, position_offset);
 	ivec2 pos (pos3d.x, pos3d.z);
@@ -62,6 +62,12 @@ ivec3 TerrainObject::get_nearest_2d(TerrainLoader* loader, ivec3 pos3d, ivec3 si
 
 
 
+
+template <typename Elev1, typename Elev2, double (*ratiofunc)(TerrainLoader* loader, ivec2 pos)>
+int HeightMapMerger<Elev1,Elev2,ratiofunc>::get_height(TerrainLoader* loader, ivec2 pos) {
+	double ratio = ratiofunc(loader, pos);
+	return Elev1().get_height(loader, pos) * ratio + Elev2().get_height(loader, pos) * (1-ratio);
+}
 
 
 
@@ -127,6 +133,11 @@ char Biome<Elev,Land,Objs...>::gen_func(TerrainLoader* loader, ivec3 pos) {
 
 
 
+ClimateParams::ClimateParams(TerrainLoader* loader, ivec3 pos):
+wetness(scaled_perlin(pos.x, pos.z, 1, 100, loader->seed, 100)),
+temp(scaled_perlin(pos.x, pos.z, 1, 100, loader->seed, 101)) {
+	
+}
 
 
 
@@ -135,19 +146,92 @@ TerrainLoader::TerrainLoader(int newseed): seed(newseed) {
 	
 }
 
+BiomeBase* TerrainLoader::get_biome(ivec3 pos) {
+	return get_biome(pos, ClimateParams(this, pos));
+}
+
+double ratiofunc(TerrainLoader* loader, ivec2 pos) {
+	ClimateParams params(loader, ivec3(pos.x,0,pos.y));
+	return params.temp / 2 - 0.2;
+}
+	
+
+BiomeBase* TerrainLoader::get_biome(ivec3 pos, ClimateParams params) {
+	if (params.temp > 0.6) {
+		return get_biome<Shallow>(pos, params);
+	} else if (params.temp > 0.4) {
+		return get_biome<HeightMapMerger<Shallow,Steep,ratiofunc>>(pos, params);
+	} else {
+		return get_biome<Steep>(pos, params);
+	}
+}
+
+template <typename Elev>
+BiomeBase* TerrainLoader::get_biome(ivec3 pos, ClimateParams params) {
+	return get_biome<Elev,Plains>(pos, params);
+}
+
+template <typename Elev, typename Land>
+BiomeBase* TerrainLoader::get_biome(ivec3 pos, ClimateParams params) {
+	if (params.wetness > 0.5) {
+		return new Biome<Elev,Land,TallTree,Tree<0>>();
+	} else {
+		return new Biome<Elev,Land,Tree<0>>();
+	}
+}
+
+
+
 int TerrainLoader::get_height(ivec2 pos) {
-	return Biome<Shallow,Plains,BigTree,TallTree,Tree<0> >().get_height(this, pos);
+	BiomeBase* biome = get_biome(ivec3(pos.x, 0, pos.y));
+	int height = biome->get_height(this,pos);
+	delete biome;
+	return height;
 }
 
 char TerrainLoader::gen_func(ivec3 pos) {
-	char val = Biome<Shallow,Plains,TallTree,Tree<0> >().gen_func(this, pos);
+	BiomeBase* biome = get_biome(pos);
+	char val = biome->gen_func(this,pos);
+	delete biome;
 	return val;
 }
 
 
 
+template <int sx, int sy, int sz, int radius, int pos_offset>
+ivec3 Placer2D<sx,sy,sz,radius,pos_offset>::get_nearest(TerrainLoader* loader, ivec3 pos) {
+	return get_nearest_2d(loader, pos, ivec3(sx,sy,sz), radius, pos_offset);
+}
 
 
+
+
+template <typename Placer, typename ... Objs>
+ivec3 RareObjects<Placer,Objs...>::get_nearest(TerrainLoader* loader, ivec3 pos) {
+	return Placer().get_nearest(loader, pos);
+}
+
+template <typename Placer, typename ... Objs>
+char RareObjects<Placer,Objs...>::gen_func(TerrainLoader* loader, ivec3 off, ivec3 pos) {
+	int index = poshash(loader->seed, off, 1290) % sizeof...(Objs);
+	return gen_func<Objs...>(loader, off, pos, index);
+}
+
+template <typename Placer, typename ... Objs>
+template <typename FirstObj, typename SecondObj, typename ... OtherObjs>
+char RareObjects<Placer,Objs...>::gen_func(TerrainLoader* loader, ivec3 off, ivec3 pos, int index) {
+	if (index <= 0) {
+		return FirstObj().gen_func(loader, off, pos);
+	} else {
+		return gen_func<SecondObj,OtherObjs...>(loader, off, pos, index-1);
+	}
+}
+
+template <typename Placer, typename ... Objs>
+template <typename LastObj>
+char RareObjects<Placer,Objs...>::gen_func(TerrainLoader* loader, ivec3 off, ivec3 pos, int index) {
+	return LastObj().gen_func(loader, off, pos);
+}
 
 template <int off> ivec3 Tree<off>::get_nearest(TerrainLoader* loader, ivec3 pos) {
 	return get_nearest_2d(loader, pos, ivec3(10,15,10), 20, off);
@@ -272,7 +356,7 @@ int Shallow::get_height(TerrainLoader* loader, ivec2 pos) {
 }
 
 int Steep::get_height(TerrainLoader* loader, ivec2 pos) {
-	return int(get_heightmap(pos.x, pos.y, 238479))*2;
+	return int(get_heightmap(pos.x, pos.y, 238479))*2/3;
 }
 
 

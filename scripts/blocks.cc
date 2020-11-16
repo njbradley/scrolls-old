@@ -16,7 +16,6 @@
 
 #include "generative.h"
 
-#define csize 2
 
 const float lightmax = 20.0f;
 
@@ -31,6 +30,10 @@ const float lightmax = 20.0f;
 Block::Block(int x, int y, int z, int newscale, Chunk* newparent) :
     px(x), py(y), pz(z), scale(newscale), parent(newparent) {
     set_render_flag();
+}
+
+Block::~Block() {
+  
 }
 
 void Block::set_render_flag() {
@@ -154,19 +157,50 @@ BlockIter Block::iter(ivec3 startpos, ivec3 endpos, ivec3 (*iterfunc)(ivec3 pos,
   return BlockIter {this, startpos, endpos, iterfunc};
 }
 
-BlockIter Block::iterside(ivec3 dir) {
+ConstBlockIter Block::const_iter(ivec3 startpos, ivec3 endpos, ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end)) const {
+  if (iterfunc == nullptr) {
+    iterfunc = [] (ivec3 pos, ivec3 startpos, ivec3 endpos) {
+  		pos.z++;
+  		if (pos.z > endpos.z) {
+  			pos.z = startpos.z;
+  			pos.y ++;
+  			if (pos.y > endpos.y) {
+  				pos.y = startpos.y;
+  				pos.x ++;
+  			}
+  		}
+  		return pos;
+  	};
+  }
+  return ConstBlockIter {this, startpos, endpos, iterfunc};
+}
+
+BlockIter Block::iter_side(ivec3 dir) {
   ivec3 startpos (0,0,0);
-  ivec3 endpos (1,1,1);
-  startpos += (dir+1)/2;
-  endpos -= (1-dir)/2;
+  ivec3 endpos (csize-1, csize-1, csize-1);
+  startpos += (dir+1)/2 * (csize-1);
+  endpos -= (1-dir)/2 * (csize-1);
   return iter(startpos, endpos);
 }
 
+ConstBlockIter Block::const_iter_side(ivec3 dir) const {
+  ivec3 startpos (0,0,0);
+  ivec3 endpos (csize-1, csize-1, csize-1);
+  startpos += (dir+1)/2 * (csize-1);
+  endpos -= (1-dir)/2 * (csize-1);
+  return const_iter(startpos, endpos);
+}
+
 Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent, Tile* tile) {
+    if (ifile.eof()) {
+      cout << "ERR: Unexpected eof when reading block data file" << endl;
+      return nullptr;
+    }
     char c;
-    ifile.read(&c,1);
+    c = ifile.peek();
     std::this_thread::yield();
-    if (c == '{') {
+    if (c == char(0b11000000)) {
+        ifile.get();
         Chunk* chunk = new Chunk(px, py, pz, scale, parent);
         for (int x = 0; x < csize; x ++) {
             for (int y = 0; y < csize; y ++) {
@@ -175,62 +209,117 @@ Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk
                 }
             }
         }
-        ifile.read(&c,1);
-        if (c != '}') {
-            cout << "error, mismatched {} in save file" << endl;
-        }
+        // ifile.read(&c,1);
+        // if (c != 0b) {
+        //     cout << "error, mismatched {} in save file" << endl;
+        // }
         return (Block*) chunk;
     } else {
-        if (c == '~') {
-          c = ifile.get();
-          BlockExtra* extra = new BlockExtra(ifile);
-          Pixel* p = new Pixel(px, py, pz, c, scale, parent, tile, extra);
-          return (Block*) p;
-        } else {
-          int direction = -1;
-          if (c >= 100) {
-            direction = c - 100;
-            c = ifile.get();
+        bool value_set = false;
+        char type;
+        unsigned int data;
+        int direction = -1;
+        while (!value_set and !ifile.eof()) {
+          read_pix_val(ifile, &type, &data);
+          if (type == 0b00) {
+            c = data;
+            value_set = true;
+          } else if (type == 0b01) {
+            direction = data;
+          } else {
+            cout << "ERR: unknown type tag in block data file '" << (type & 0b10) << (type & 0b1) << "'" << endl;
           }
-          Pixel* p = new Pixel(px, py, pz, c, scale, parent, tile);
-          if (direction != -1) {
-            p->direction = direction;
-          }
-          return (Block*) p;
         }
+        Pixel* p = new Pixel(px, py, pz, c, scale, parent, tile);
+        if (direction != -1) {
+          p->direction = direction;
+        }
+        return (Block*) p;
     }
 }
 
+int Block::get_sunlight(int dx, int dy, int dz) const {
+  int lightlevel = 0;
+  int num = 0;
+  
+  for (const Pixel* pix : const_iter_side(ivec3(dx, dy, dz))) {
+    if (pix->is_air(dx, dy, dz)) {
+      lightlevel += pix->sunlight;
+      num ++;
+    }
+  }
+  if (num > 0) {
+    return lightlevel / num;
+  }
+  return 0;
+}
 
+int Block::get_blocklight(int dx, int dy, int dz) const {
+  int lightlevel = 0;
+  int num = 0;
+  
+  for (const Pixel* pix : const_iter_side(ivec3(dx, dy, dz))) {
+    if (pix->is_air(dx, dy, dz)) {
+      int light;
+      const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
+      ivec3 source_dir = -dirs[pix->lightsource];
+      if (source_dir.x == dx and source_dir.y == dy and source_dir.z == dz) {
+        light = pix->blocklight;
+      } else {
+        light = pix->blocklight*0.875;
+      }
+      
+      lightlevel += light;
+      num ++;
+    }
+  }
+  if (num > 0) {
+    return lightlevel / num;
+  }
+  return 0;
+}
+
+bool Block::is_air(int dx, int dy, int dz, char otherval) const {
+  for (const Pixel* pix : const_iter_side(ivec3(dx, dy, dz))) {
+    bool isair = (pix->value == 0 or (blocks->blocks[pix->value]->transparent and otherval != pix->value));
+    if (isair) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void Block::write_pix_val(ostream& ofile, char type, unsigned int value) {
+  ofile << char((type << 6) | ((value%32) << 1) | (value/32 > 0));
+  value /= 32;
+  while (value > 0) {
+    ofile << char(((value%128) << 1) | (value/128 > 0));
+    value /= 128;
+  }
+}
+
+void Block::read_pix_val(istream& ifile, char* type, unsigned int* value) {
+  char data = ifile.get();
+  *type = (data & 0b11000000) >> 6;
+  *value = (data & 0b00111110) >> 1;
+  int multiplier = 32;
+  while ((data & 0b00000001) and !ifile.eof()) {
+    data = ifile.get();
+    *value = *value | ((multiplier * (data & 0b11111110)) >> 1);
+    multiplier *= 128;
+  }
+}
+  
+  
 
 ///////////////////////////////// CLASS PIXEL /////////////////////////////////////
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile):
-  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(nullptr), tile(ntile), direction(0) {
-    reset_lightlevel();
-    generate_extras();
-    if (value != 0) {
-      direction = blocks->blocks[value]->default_direction;
-    }
-}
-
-Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile, BlockExtra* new_extra):
-  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), extras(new_extra), tile(ntile), direction(0) {
+  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), tile(ntile), direction(0) {
     reset_lightlevel();
     if (value != 0) {
       direction = blocks->blocks[value]->default_direction;
     }
-}
-
-void Pixel::generate_extras() {
-  if (extras != nullptr) {
-    delete extras;
-  }
-  if (value != 0) {
-    if (blocks->blocks[value]->extras != nullptr) {
-      extras = new BlockExtra(this);
-    }
-  }
 }
 
 bool Pixel::continues() const {
@@ -242,14 +331,6 @@ char Pixel::get() const {
     return value;
 }
 
-void Pixel::all(function<void(Pixel*)> func) {
-    func(this);
-}
-
-void Pixel::all_side(function<void(Pixel*)> func, int dx, int dy, int dz) {
-    func(this);
-}
-
 Pixel* Pixel::get_pix() {
     return this;
 }
@@ -258,23 +339,12 @@ Chunk* Pixel::get_chunk() {
     return nullptr;
 }
 
-int Pixel::get_sunlight(int dx, int dy, int dz) {
-  return sunlight;
+const Pixel* Pixel::get_pix() const {
+    return this;
 }
 
-int Pixel::get_blocklight(int dx, int dy, int dz) {
-  const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
-  ivec3 source_dir = -dirs[lightsource];
-  if (source_dir.x == dx and source_dir.y == dy and source_dir.z == dz) {
-    return blocklight;
-  } else {
-    return blocklight*0.875;
-  }
-}
-
-bool Pixel::is_air(int dx, int dy, int dz, char otherval) const {
-    //cout << "pix is air reaturning:" << (value == 0) << endl;
-    return value == 0 or blocks->blocks[value]->transparent and otherval != value;
+const Chunk* Pixel::get_chunk() const {
+    return nullptr;
 }
 
 Block* Pixel::get_global(int x, int y, int z, int scale) {
@@ -296,12 +366,7 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
     }
     
     value = val;
-    if (newextras == nullptr) {
-      generate_extras();
-    } else {
-      delete extras;
-      extras = newextras;
-    }
+    
     direction = newdirection;
     
     
@@ -330,7 +395,9 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
         dir *= scale;
         block = tile->world->get_global(gx+dir.x, gy+dir.y, gz+dir.z, scale);
         if (block != nullptr) {
-          block->render_update();
+          for (Pixel* pix : block->iter_side(-dir)) {
+            pix->render_update();
+          }
           int bx, by, bz;
           block->global_position(&bx, &by, &bz);
           //tile->world->block_update(bx, by, bz);
@@ -377,7 +444,7 @@ void Pixel::tick() {
     for (ivec3 dir : dir_array) {
       Block* block = tile->world->get_global(gx + dir.x*scale, gy + dir.y*scale, gz + dir.z*scale, scale);
       if (block != nullptr) {
-        for (Pixel* pix : block->iterside(-dir)) {
+        for (Pixel* pix : block->iter_side(-dir)) {
           if (pix->group != nullptr) {
             if (pix->group->spread_to_fill(ivec3(gx, gy, gz))) {
               placed = true;
@@ -486,9 +553,6 @@ void Pixel::del(bool remove_faces) {
         tile->world->glvecs.del(render_index);
       }
     }
-    if (extras != nullptr) {
-      delete extras;
-    }
     // if (physicsgroup != nullptr and !physicsgroup->persistant()) {
     //   physicsgroup->block_poses.erase(ivec3(gx, gy, gz));
     //   if (physicsgroup->block_poses.size() == 0) {
@@ -572,7 +636,7 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
       block == nullptr;
     }
     if (block != nullptr) {
-      for (Pixel* pix : block->iterside(-dir)) {
+      for (Pixel* pix : block->iter_side(-dir)) {
         if (pix->tile != tile and dir.y == 1 and pix->tile->lightflag) {
           sunlight = lightmax;
         } else if (pix->sunlight - newdec*pix->scale > sunlight and pix->sunlight + oppdec*scale != oldsunlight) {
@@ -592,7 +656,7 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
       block == nullptr;
     }
     if (block != nullptr) {
-      for (Pixel* pix : block->iterside(-dir)) {
+      for (Pixel* pix : block->iter_side(-dir)) {
         if (pix->sunlight < sunlight - newdec*scale or (pix->sunlight + newdec*scale == oldsunlight and sunlight < oldsunlight)) {
           if (tile == pix->tile) {
             ivec3 pos;
@@ -625,7 +689,7 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
     Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
     if (block != nullptr) {
       int inverse_index = index<3 ? index + 3 : index - 3;
-      for (Pixel* pix : block->iterside(-dir)) {
+      for (Pixel* pix : block->iter_side(-dir)) {
         if (pix->blocklight - decrement*pix->scale > blocklight and pix->lightsource != inverse_index) {
           blocklight = pix->blocklight - decrement*pix->scale;
           lightsource = index;
@@ -641,7 +705,7 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
     Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
     if (block != nullptr) {
       int inverse_index = index<3 ? index + 3 : index - 3;
-      for (Pixel* pix : block->iterside(-dir)) {
+      for (Pixel* pix : block->iter_side(-dir)) {
         if (pix->blocklight < blocklight - decrement*scale or (pix->lightsource == inverse_index and blocklight < oldblocklight)) {
           ivec3 pos;
           pix->global_position(&pos.x, &pos.y, &pos.z);
@@ -652,12 +716,6 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
     }
     index ++;
   }
-}
-        
-
-void Pixel::calculate_lightlevel(int recursion_level) {
-  cout << "bad" << endl;
-  exit(1);
 }
 
 void Pixel::rotate(int axis, int dir) {
@@ -1156,50 +1214,14 @@ Chunk* Pixel::resolve(bool yield) {
   }
 }
 
-// Chunk* Pixel::resolve(function<char(ivec3)> gen_func) {
-//   int gx, gy, gz;
-//   global_position(&gx, &gy, &gz);
-//   //cout << gx << ' ' << gy << ' ' << gz << "res" << endl;
-//   bool shell = true;
-//   bool full = true;
-//   char val = gen_func(ivec3(gx, gy, gz));
-//   for (int ox = 0; ox < scale and shell; ox ++) {
-//     for (int oy = 0; oy < scale and shell; oy ++) {
-//       for (int oz = 0; oz < scale and shell; oz ++) {
-//         char newval = gen_func(ivec3(gx+ox, gy+oy, gz+oz));
-//         if (newval != val) {
-//           if (ox == 0 or ox == scale-1 or oy == 0 or oy == scale-1 or oz == 0 or oz == scale-1) {
-//             shell = false;
-//           }
-//           full = false;
-//         }
-//       }
-//     }
-//   }
-//   if (shell) {
-//     if (val == 0 and !full) {
-//       return subdivide(gen_func);
-//     }
-//   } else {
-//     return subdivide(gen_func);
-//   }
-//   value = val;
-//   return nullptr;
-// }
-
 void Pixel::save_to_file(ostream& of, bool yield) {
-    if (yield) {
-      std::this_thread::yield();
-    }
-    if (extras == nullptr) {
-      if (value != 0 and direction != blocks->blocks[value]->default_direction) {
-        of << char(100 + direction);
-      }
-      of << value;
-    } else {
-      of << '~' << value;
-      extras->save_to_file(of);
-    }
+  if (yield) {
+    std::this_thread::yield();
+  }
+  if (value != 0 and direction != blocks->blocks[value]->default_direction) {
+    write_pix_val(of, 0b01, direction);
+  }
+  write_pix_val(of, 0b00, value);
 }
 
 
@@ -1224,6 +1246,15 @@ Pixel* Chunk::get_pix() {
 Chunk* Chunk::get_chunk() {
     return this;
 }
+
+const Pixel* Chunk::get_pix() const {
+    return nullptr;
+}
+
+const Chunk* Chunk::get_chunk() const {
+    return this;
+}
+
 char Chunk::get() const {
     cout << "error: get() called on chunk object" << endl;
     return -1;
@@ -1240,26 +1271,6 @@ void Chunk::lighting_update() {
         }
     }
   }
-}
-
-void Chunk::calculate_lightlevel(int recursion_level) {
-    for (int x = 0; x < csize; x ++) {
-        for (int y = csize-1; y >= 0; y --) {
-            for (int z = 0; z < csize; z ++) {
-                blocks[x][y][z]->calculate_lightlevel(recursion_level);
-            }
-        }
-    }
-}
-
-void Chunk::all(function<void(Pixel*)> func) {
-    for (int x = 0; x < csize; x ++) {
-        for (int y = 0; y < csize; y ++) {
-            for (int z = 0; z < csize; z ++) {
-                blocks[x][y][z]->all(func);
-            }
-        }
-    }
 }
 
 void Chunk::rotate(int axis, int dir) {
@@ -1313,133 +1324,6 @@ void Chunk::rotate(int axis, int dir) {
   }
 }
 
-void Chunk::all_side(function<void(Pixel*)> func, int dx, int dy, int dz) {
-    int x_start = 0;
-    int x_end = csize;
-    int y_start = 0;
-    int y_end = csize;
-    int z_start = 0;
-    int z_end = csize;
-    if (dx != 0) {
-        x_start = (int)( dx/2.0f + 0.5f );
-        x_end = 1 + x_start;
-    }
-    if (dy != 0) {
-        y_start = (int)( dy/2.0f + 0.5f );
-        y_end = 1 + y_start;
-    }
-    if (dz != 0) {
-        z_start = (int)( dz/2.0f + 0.5f );
-        z_end = 1 + z_start;
-    }
-    for (int x = x_start; x < x_end; x ++) {
-        for (int y = y_start; y < y_end; y ++) {
-            for (int z = z_start; z < z_end; z ++) {
-                blocks[x][y][z]->all_side(func, dx, dy, dz);
-            }
-        }
-    }
-}
-
-int Chunk::get_blocklight(int dx, int dy, int dz) {
-    int x_start = 0;
-    int x_end = csize;
-    int y_start = 0;
-    int y_end = csize;
-    int z_start = 0;
-    int z_end = csize;
-    if (dx != 0) {
-        x_start = (int)( dx/2.0f + 0.5f );
-        x_end = 1 + x_start;
-    }
-    if (dy != 0) {
-        y_start = (int)( dy/2.0f + 0.5f );
-        y_end = 1 + y_start;
-    }
-    if (dz != 0) {
-        z_start = (int)( dz/2.0f + 0.5f );
-        z_end = 1 + z_start;
-    }
-    
-    int lightlevel = 0;
-    int num = 0;
-    
-    //cout << "for loop:" << endl;
-    for (int x = x_start; x < x_end; x ++) {
-        for (int y = y_start; y < y_end; y ++) {
-            for (int z = z_start; z < z_end; z ++) {
-                float level = blocks[x][y][z]->get_blocklight(dx, dy, dz);
-                if (level == -1) {
-                    cout << "blocks.h error" << endl;
-                    game->crash(485934759257949384);
-                    return -1;
-                }
-                if (blocks[x][y][z]->is_air(dx,dy,dz) or level != 0) {
-                    if (level != 1) {
-                    //cout << level << ' ' << x << ' ' << y << ' ' << z << endl;
-                }
-                    lightlevel += level;
-                    num ++;
-                }
-            }
-        }
-    }
-    if (num == 0) {
-        return 0;
-    } else {
-        return  lightlevel/num;
-    }
-}
-
-int Chunk::get_sunlight(int dx, int dy, int dz) {
-    int x_start = 0;
-    int x_end = csize;
-    int y_start = 0;
-    int y_end = csize;
-    int z_start = 0;
-    int z_end = csize;
-    if (dx != 0) {
-        x_start = (int)( dx/2.0f + 0.5f );
-        x_end = 1 + x_start;
-    }
-    if (dy != 0) {
-        y_start = (int)( dy/2.0f + 0.5f );
-        y_end = 1 + y_start;
-    }
-    if (dz != 0) {
-        z_start = (int)( dz/2.0f + 0.5f );
-        z_end = 1 + z_start;
-    }
-    
-    int lightlevel = 0;
-    int num = 0;
-    
-    //cout << "for loop:" << endl;
-    for (int x = x_start; x < x_end; x ++) {
-        for (int y = y_start; y < y_end; y ++) {
-            for (int z = z_start; z < z_end; z ++) {
-                int level = blocks[x][y][z]->get_sunlight(dx, dy, dz);
-                if (level == -1) {
-                    cout << "blocks.h error" << endl;
-                    game->crash(485934759257949384);
-                    return -1;
-                }
-                if (blocks[x][y][z]->is_air(dx,dy,dz)) {
-                    if (level != 1) {
-                      //cout << level << ' ' << x << ' ' << y << ' ' << z << endl;
-                    }
-                    lightlevel += level;
-                    num ++;
-                }
-            }
-        }
-    }
-    if (num == 0) {
-        return 2;
-    } else {
-        return  lightlevel/num;
-    }
-}
 
 void Chunk::render(RenderVecs* vecs, RenderVecs* transvecs, Collider* collider, int gx, int gy, int gz, int depth, bool faces[6], bool render_null, bool yield) {
   if (render_flag) {
@@ -1486,16 +1370,6 @@ void Chunk::del(bool remove_faces) {
     }
 }
 
-void Chunk::render_update() {
-    for (int x = 0; x < csize; x ++) {
-        for (int y = 0; y < csize; y ++) {
-            for (int z = 0; z < csize; z ++) {
-                blocks[x][y][z]->render_update();
-            }
-        }
-    }
-}
-
 void Chunk::set_all_render_flags() {
     render_flag = true;
     for (int x = 0; x < csize; x ++) {
@@ -1533,47 +1407,9 @@ Block* Chunk::get_global(int x, int y, int z, int nscale) {
         return get(nlx, nly, nlz)->get_global(lx, ly, lz, nscale);
     }
 }
-            
-
-bool Chunk::is_air(int dx, int dy, int dz, char otherval) const {
-    //cout << "is_air(dx" << dx << " dy" << dy << " dz" << dz << ")\n";
-    int gx, gy, gz;
-    global_position(&gx, &gy, &gz);
-    //cout << gx << ' ' << gy << ' ' << gz << endl;
-    bool air = false;
-    int x_start = 0;
-    int x_end = csize;
-    int y_start = 0;
-    int y_end = csize;
-    int z_start = 0;
-    int z_end = csize;
-    if (dx != 0) {
-        x_start = (int)( dx/2.0f + 0.5f );
-        x_end = 1 + x_start;
-    }
-    if (dy != 0) {
-        y_start = (int)( dy/2.0f + 0.5f );
-        y_end = 1 + y_start;
-    }
-    if (dz != 0) {
-        z_start = (int)( dz/2.0f + 0.5f );
-        z_end = 1 + z_start;
-    }
-    //cout << "for loop:" << endl;
-    for (int x = x_start; x < x_end; x ++) {
-        for (int y = y_start; y < y_end; y ++) {
-            for (int z = z_start; z < z_end; z ++) {
-                //cout << x << ' ' << y << ' ' << z << ' ' << get(x, y, z)->is_air(dx, dy, dz) << endl;
-                air = air or get(x, y, z)->is_air(dx, dy, dz, otherval);
-            }
-        }
-    }
-    //cout << "returning:" << air << endl << endl;
-    return air;
-}
 
 void Chunk::save_to_file(ostream& of, bool yield) {
-    of << "{";
+    of << char(0b11000000);
     for (int x = 0; x < csize; x ++) {
         for (int y = 0; y < csize; y ++) {
             for (int z = 0; z < csize; z ++) {
@@ -1581,7 +1417,6 @@ void Chunk::save_to_file(ostream& of, bool yield) {
             }
         }
     }
-    of << "}";
 }
 
 
@@ -1615,38 +1450,28 @@ Block* BlockContainer::get_global(int x, int y, int z, int size) {
 
 
 
+
+
 Pixel* BlockIter::iterator::operator*() {
   return pix;
 }
 
 BlockIter::iterator BlockIter::iterator::operator++() {
-  //cout << "operator ++" << endl;
   Block* block = pix;
-  //cout << "start block " << block << endl;
   while (block->parent != parent->base->parent and block->px == parent->end_pos.x and block->py == parent->end_pos.y and block->pz == parent->end_pos.z) {
     block = block->parent;
-    //cout << "went up one level " << block << endl;
   }
   if (block->parent == parent->base->parent) {
-    //cout << "reached .end() returning" << endl;
     pix = nullptr;
     return *this;
   }
   ivec3 pos(block->px, block->py, block->pz);
-  //cout << "selected block p ";
-  //print(pos);
   pos = parent->increment_func(pos, parent->start_pos, parent->end_pos);
-  
-  //cout << "new pos ";
-  //print(pos);
   block = block->parent->blocks[pos.x][pos.y][pos.z];
-  //cout << "newblock " << block << endl;
   while (block->continues()) {
     block = block->get_chunk()->blocks[parent->start_pos.x][parent->start_pos.y][parent->start_pos.z];
-    //cout << "going deeper " << block << endl;
   }
   pix = block->get_pix();
-  //cout << "done " << endl;
   return *this;
 }
 
@@ -1663,6 +1488,52 @@ BlockIter::iterator BlockIter::end() {
 }
 
 bool operator!=(const BlockIter::iterator& iter1, const BlockIter::iterator& iter2) {
+  return iter1.parent != iter2.parent or iter1.pix != iter2.pix;
+}
+
+
+
+
+
+
+
+
+const Pixel* ConstBlockIter::iterator::operator*() {
+  return pix;
+}
+
+ConstBlockIter::iterator ConstBlockIter::iterator::operator++() {
+  const Block* block = pix;
+  while (block->parent != parent->base->parent and block->px == parent->end_pos.x and block->py == parent->end_pos.y and block->pz == parent->end_pos.z) {
+    block = block->parent;
+  }
+  if (block->parent == parent->base->parent) {
+    pix = nullptr;
+    return *this;
+  }
+  ivec3 pos(block->px, block->py, block->pz);
+  pos = parent->increment_func(pos, parent->start_pos, parent->end_pos);
+  block = block->parent->blocks[pos.x][pos.y][pos.z];
+  while (block->continues()) {
+    block = block->get_chunk()->blocks[parent->start_pos.x][parent->start_pos.y][parent->start_pos.z];
+  }
+  pix = block->get_pix();
+  return *this;
+}
+
+ConstBlockIter::iterator ConstBlockIter::begin() {
+  const Block* block = base;
+  while (block->continues()) {
+    block = block->get_chunk()->blocks[start_pos.x][start_pos.y][start_pos.z];
+  }
+  return {this, block->get_pix()};
+}
+
+ConstBlockIter::iterator ConstBlockIter::end() {
+  return {this, nullptr};
+}
+
+bool operator!=(const ConstBlockIter::iterator& iter1, const ConstBlockIter::iterator& iter2) {
   return iter1.parent != iter2.parent or iter1.pix != iter2.pix;
 }
 

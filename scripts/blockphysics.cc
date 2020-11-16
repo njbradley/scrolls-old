@@ -27,7 +27,7 @@ void BlockGroup::spread(unordered_set<ivec4,ivec4_hash>& last_poses) {
 			ivec4 offpos(pos.x + dir.x*pos.w, pos.y + dir.y*pos.w, pos.z + dir.z*pos.w, pos.w);
 			Block* block = world->get_global(offpos.x, offpos.y, offpos.z, offpos.w);
 			if (block != nullptr) {
-				for (Pixel* pix : block->iterside(-dir)) {
+				for (Pixel* pix : block->iter_side(-dir)) {
 					ivec4 pixpos;
 					pix->global_position(&pixpos.x, &pixpos.y, &pixpos.z);
 					pixpos.w = pix->scale;
@@ -139,7 +139,7 @@ bool UnlinkedGroup::del(ivec3 pos) {
 					ivec3 sidepos = pos + dir * block->scale;
 					Block* sideblock = world->get_global(sidepos.x, sidepos.y, sidepos.z, block->scale);
 					if (sideblock != nullptr) {
-						for (Pixel* pix : sideblock->iterside(-dir)) {
+						for (Pixel* pix : sideblock->iter_side(-dir)) {
 							if (pix->group == this) {
 								ivec4 gpos (0,0,0,pix->scale);
 								pix->global_position(&gpos.x, &gpos.y, &gpos.z);
@@ -183,7 +183,7 @@ bool UnlinkedGroup::del(ivec3 pos) {
 									ivec4 offpos(lastpos.x + dir.x*lastpos.w, lastpos.y + dir.y*lastpos.w, lastpos.z + dir.z*lastpos.w, lastpos.w);
 									Block* block = world->get_global(offpos.x, offpos.y, offpos.z, offpos.w);
 									if (block != nullptr) {
-										for (Pixel* pix : block->iterside(-dir)) {
+										for (Pixel* pix : block->iter_side(-dir)) {
 											ivec4 pixpos;
 											pix->global_position(&pixpos.x, &pixpos.y, &pixpos.z);
 											pixpos.w = pix->scale;

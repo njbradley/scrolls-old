@@ -55,6 +55,9 @@ struct ivec4_hash {
 	size_t operator() (const ivec4& pos) const;
 };
 
+ostream& operator<<(ostream& out, ivec3 pos);
+ostream& operator<<(ostream& out, vec3 pos);
+
 //ofstream dfile("debug.txt");
 extern int dloc;
 
@@ -62,6 +65,7 @@ extern int dloc;
 class Block;
 class BlockContainer;
 class BlockIter;
+class ConstBlockIter;
 class Collider;
 class Chunk;
 class Pixel;

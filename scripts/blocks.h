@@ -36,34 +36,36 @@ class Block: public Collider { public:
     virtual char get() const = 0;                 //get the value of the block. these two methods are exclusive for pixel/chunk, but same reaseon as above
     //virtual void set(char val, int direction = -1, BlockExtra* extras = nullptr) = 0;
     virtual void del(bool remove_faces) = 0;
-    //virtual void calculate_lightlevel() = 0;
-    virtual void calculate_lightlevel(int recursion_level) = 0;
     virtual Chunk* get_chunk() = 0;
     virtual Pixel* get_pix() = 0;
+    virtual const Chunk* get_chunk() const = 0;
+    virtual const Pixel* get_pix() const = 0;
     // returns a pixel pointer if the object is a pixel,
     // otherwise returns nullptr
-    virtual int get_sunlight(int dx, int dy, int dz) = 0;
-    virtual int get_blocklight(int dx, int dy, int dz) = 0;
-    virtual void all(function<void(Pixel*)>) = 0;
-    virtual void all_side(function<void(Pixel*)>,int,int,int) = 0;
+    int get_sunlight(int dx, int dy, int dz) const;
+    int get_blocklight(int dx, int dy, int dz) const;
     Block(int x, int y, int z, int newscale, Chunk* newparent);
+    virtual ~Block();
     void world_to_local(int x, int y, int z, int* lx, int* ly, int* lz) const;
     void global_position(int*, int*, int*) const;
     virtual void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield) = 0;
     virtual void rotate(int axis, int direction) = 0;
-    virtual bool is_air(int, int, int, char otherval = -1) const = 0;
+    bool is_air(int, int, int, char otherval = -1) const;
     virtual Block * get_global(int,int,int,int) = 0;
-    virtual void render_update() = 0;
     virtual void set_all_render_flags() = 0;
     virtual void save_to_file(ostream&, bool yield = false) = 0;
     virtual void lighting_update() = 0;
     Block* raycast(Collider* world, double* x, double* y, double* z, double dx, double dy, double dz, double time);
     Block* get_world();
-    BlockIter iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(1,1,1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr);
-    BlockIter iterside(ivec3 dir);
+    BlockIter iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(csize-1,csize-1,csize-1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr);
+    BlockIter iter_side(ivec3 dir);
+    ConstBlockIter const_iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(csize-1,csize-1,csize-1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr) const;
+    ConstBlockIter const_iter_side(ivec3 dir) const;
     vec3 get_position() const;
     
     static Block* from_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent, Tile* tile);
+    static void write_pix_val(ostream& ofile, char type, unsigned int val);
+    static void read_pix_val(istream& ifile, char* type, unsigned int* val);
 };
 
 class Pixel: public Block {
@@ -85,41 +87,34 @@ public:
     int sunlight;
     int entitylight;
     int lightsource = -1;
-    BlockExtra* extras = nullptr;
     Tile* tile;
     BlockGroup* group = nullptr;
     //int num;
     //ItemContainer* container;
     
     Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* tile);
-    Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* tile, BlockExtra* new_extra);
-    void generate_extras();
-    bool continues() const;
-    char get() const;
-    void all(function<void(Pixel*)> func);
-    void all_side(function<void(Pixel*)>,int,int,int);
+    virtual bool continues() const;
+    virtual char get() const;
     // runs the function only on blocks touching the
     // side specified by the three ints, dx, dy, dz.
-    Pixel* get_pix();
-    Chunk* get_chunk();
-    int get_sunlight(int dx, int dy, int dz);
-    int get_blocklight(int dx, int dy, int dz);
+    virtual Pixel* get_pix();
+    virtual Chunk* get_chunk();
+    virtual const Pixel* get_pix() const;
+    virtual const Chunk* get_chunk() const;
     void set(char val, int direction = -1, BlockExtra* extras = nullptr, bool update = true);
     // sets the value, direction, and BlockExtra of the pixel
     void render_update();
-    void set_all_render_flags();
+    virtual void set_all_render_flags();
     void tick();
     void random_tick();
-    void del(bool remove_faces);
-    void calculate_lightlevel(int recurstion_level);
+    virtual void del(bool remove_faces);
     void calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses);
     void calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses);
     void reset_lightlevel();
-    void rotate(int axis, int dir);
-    void lighting_update();
-    bool is_air(int dx, int dy, int dz, char otherval = -1) const;
-    Block* get_global(int x, int y, int z, int scale);
-    void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
+    virtual void rotate(int axis, int dir);
+    virtual void lighting_update();
+    virtual Block* get_global(int x, int y, int z, int scale);
+    virtual void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
     Chunk* subdivide();
     // splits the pixel into a chunk with 8 pixels of the
     // same value in it
@@ -136,33 +131,27 @@ public:
     // if the pixel is divided a chunk will be returned and
     // the parent will be altered. if the pixel is not divided,
     // a nullptr is returned
-    void save_to_file(ostream& of, bool yield = false);
+    virtual void save_to_file(ostream& of, bool yield = false);
 };
 
 class Chunk: public Block { public:
     Block * blocks[csize][csize][csize];
     
     Chunk(int x, int y, int z, int nscale, Chunk* nparent);
-    bool continues() const;
+    virtual bool continues() const;
     Block * get(int x, int y, int z) const;
-    Pixel* get_pix();
-    Chunk* get_chunk();
-    char get() const;
-    void set_all_render_flags();
-    //void set(char val, int direction, BlockExtra* extras);
-    void lighting_update();
-    void calculate_lightlevel(int recursion_level);
-    void all(function<void(Pixel*)> func);
-    void all_side(function<void(Pixel*)>,int,int,int);
-    int get_sunlight(int dx, int dy, int dz);
-    int get_blocklight(int dx, int dy, int dz);
-    void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
-    void del(bool remove_faces);
-    void render_update();
-    void rotate(int axis, int dir);
-    Block* get_global(int x, int y, int z, int nscale);
-    bool is_air(int dx, int dy, int dz, char otherval = -1) const;
-    void save_to_file(ostream& of, bool yield = false);
+    virtual Pixel* get_pix();
+    virtual Chunk* get_chunk();
+    virtual const Pixel* get_pix() const;
+    virtual const Chunk* get_chunk() const;
+    virtual char get() const;
+    virtual void set_all_render_flags();
+    virtual void lighting_update();
+    virtual void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
+    virtual void del(bool remove_faces);
+    virtual void rotate(int axis, int dir);
+    virtual Block* get_global(int x, int y, int z, int nscale);
+    virtual void save_to_file(ostream& of, bool yield = false);
 };
 
 
@@ -183,6 +172,22 @@ class BlockIter { public:
     BlockIter* parent;
     Pixel* pix;
     Pixel* operator*();
+    iterator operator++();
+    friend bool operator!=(const iterator& iter1, const iterator& iter2);
+  };
+  iterator begin();
+  iterator end();
+};
+
+class ConstBlockIter { public:
+  const Block* base;
+  ivec3 start_pos;
+  ivec3 end_pos;
+  ivec3 (*increment_func)(ivec3 pos, ivec3 startpos, ivec3 endpos);
+  class iterator { public:
+    ConstBlockIter* parent;
+    const Pixel* pix;
+    const Pixel* operator*();
     iterator operator++();
     friend bool operator!=(const iterator& iter1, const iterator& iter2);
   };

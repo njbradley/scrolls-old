@@ -415,6 +415,9 @@ CommandVoidFunc Command::set_oper_var(istream& ifile, string id, char oper) {
 		CommandOperator<vec3> coper(oper);
 		return program->vec3vars.at(id).setfunc(coper.getfunc(get_var<vec3>(id), parse<vec3>(ifile)));
 	}
+	*program->errout << "ERR: no variables by the name '" << id << endl;
+	program->error = true;
+	return CommandNullFunc<void>();
 }
 
 template <typename Type> CommandFunc<Type> Command::get_method(istream& ifile, string id) {
