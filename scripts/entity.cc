@@ -936,15 +936,15 @@ void NamedEntity::on_timestep(double deltatime) {
 
 
 
-FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup): DisplayEntity(nworld, {0,0,0}/*newgroup->position*/, vec3(0,0,0),
-vec3(1,1,1), nullptr/*newgroup->block*/, vec3(0,0,0)), group(newgroup) {
-  //box2 = vec3(block.block->scale, block.block->scale, block.block->scale);
+FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup): DisplayEntity(nworld, newgroup->position, vec3(0,0,0),
+vec3(1,1,1), newgroup->block, vec3(0,0,0)), group(newgroup) {
+  box2 = vec3(block.block->scale, block.block->scale, block.block->scale);
   immune = true;
 }
 
 FallingBlockEntity::FallingBlockEntity(World* nworld, istream& ifile): DisplayEntity(nworld, ifile) {
-  //group = BlockGroup::from_file(nworld, ifile);
-  //block = group->block;
+  group = BlockGroup::from_file(nworld, ifile);
+  block = group->block;
   // string buff;
   // int scale;
   // ifile >> scale;
@@ -954,17 +954,17 @@ FallingBlockEntity::FallingBlockEntity(World* nworld, istream& ifile): DisplayEn
 
 void FallingBlockEntity::to_file(ostream& ofile) {
   DisplayEntity::to_file(ofile);
-  //group->to_file(ofile);
+  group->to_file(ofile);
 }
 
 void FallingBlockEntity::on_timestep(double deltatime) {
-  // DisplayEntity::on_timestep(deltatime);
-  // if (consts[4]) {
-  //   group->copy_to_world(position);
-  //   delete group;
-  //   block.block = nullptr;
-  //   alive = false;
-  // }
+  DisplayEntity::on_timestep(deltatime);
+  if (consts[4]) {
+    group->copy_to_world(position);
+    delete group;
+    block.block = nullptr;
+    alive = false;
+  }
 }
     
 Block * FallingBlockEntity::get_global(int x, int y, int z, int size) {
@@ -974,13 +974,12 @@ Block * FallingBlockEntity::get_global(int x, int y, int z, int size) {
   //print (position);
   //print (index);
   int scale = block.block->scale;
-  //cout << ';' << endl;
-  // if ( index.x >= 0 and index.x < scale and index.y >= 0 and index.y < scale and index.z >= 0 and index.z < scale ) {
-  //   return block.block->get_global(index.x, index.y, index.z,size);
-  // } else {
-  //   return nullptr;
-  // }
-  return nullptr;
+  cout << ';' << endl;
+  if ( index.x >= 0 and index.x < scale and index.y >= 0 and index.y < scale and index.z >= 0 and index.z < scale ) {
+    return block.block->get_global(index.x, index.y, index.z,size);
+  } else {
+    return nullptr;
+  }
 }
 
 vec3 FallingBlockEntity::get_position() const {

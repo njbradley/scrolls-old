@@ -88,7 +88,7 @@ public:
     int entitylight;
     int lightsource = -1;
     Tile* tile;
-    BlockGroup* group = nullptr;
+    BlockGroup* physicsgroup = nullptr;
     //int num;
     //ItemContainer* container;
     

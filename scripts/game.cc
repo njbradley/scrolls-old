@@ -427,17 +427,18 @@ void Game::print_debug() {
 		if (data != nullptr) {
 			name = data->name;
 		}
-		if (game->debugblock->group != nullptr) {
-			game->debugblock->group->debug(debugstream);
-		}
+		// if (game->debugblock->group != nullptr) {
+		// 	game->debugblock->group->debug(debugstream);
+		// }
 		debugstream << "tracking block " << game->debugblock << " at " << gx << "x " << gy << "y " << gz << "z " << endl;
 		debugstream << " type:" << name << " char:" << int(game->debugblock->value) << " scale:" << game->debugblock->scale << endl;
 		debugstream << " direction:" << int(game->debugblock->direction) << " render_index:" << game->debugblock->render_index.first << ',' << game->debugblock->render_index.second << endl;
 		debugstream << " parent coords:" << game->debugblock->px << ',' << game->debugblock->py << ',' << game->debugblock->pz << endl;
-		debugstream << " physics_group:" << game->debugblock->group << endl;
-		if (game->debugblock->group != nullptr) {
-			//game->debugblock->physicsgroup->to_file(debugstream);
-		}
+		debugstream << " physics_group:" << game->debugblock->physicsgroup << ' ' << "light " << debugblock->blocklight << ' ' << debugblock->sunlight << endl;
+		
+		// if (game->debugblock->group != nullptr) {
+		// 	//game->debugblock->physicsgroup->to_file(debugstream);
+		// }
 	}
 }
 

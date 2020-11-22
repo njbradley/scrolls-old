@@ -370,18 +370,18 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
     direction = newdirection;
     
     
-    // if (physicsgroup != nullptr) {
-    //   physicsgroup->update_flag = true;//block_poses.erase(ivec3(gx,gy,gz));
-    //   //physicsgroup = nullptr;
-    // }
-    cout << "set group " << group << ' ' << gx << ' ' << gy << ' ' << gz << ' ' << scale << endl;
-    if (group != nullptr and value == 0) {
-      group->del(ivec3(gx, gy, gz));
+    if (physicsgroup != nullptr) {
+      physicsgroup->update_flag = true;//block_poses.erase(ivec3(gx,gy,gz));
+      //physicsgroup = nullptr;
     }
+    //cout << "set group " << group << ' ' << gx << ' ' << gy << ' ' << gz << ' ' << scale << endl;
+    // if (group != nullptr and value == 0) {
+    //   group->del(ivec3(gx, gy, gz));
+    // }
     if (tile != nullptr) {
       tile->world->block_update(gx, gy, gz);
     }
-    //physicsgroup = nullptr;
+    physicsgroup = nullptr;
     if (update) {
       //render_flag = true;
       //cout << gx << ' ' << gy << ' ' << gz << "-----------------------------" << render_index.first << ' ' << render_index.second << endl;
@@ -391,16 +391,16 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
       render_update();
       Block* block;
       const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
-      for (ivec3 dir : dir_array) {
-        dir *= scale;
+      for (ivec3 unit_dir : dir_array) {
+        ivec3 dir = unit_dir * scale;
         block = tile->world->get_global(gx+dir.x, gy+dir.y, gz+dir.z, scale);
         if (block != nullptr) {
-          for (Pixel* pix : block->iter_side(-dir)) {
+          for (Pixel* pix : block->iter_side(-unit_dir)) {
             pix->render_update();
           }
           int bx, by, bz;
           block->global_position(&bx, &by, &bz);
-          //tile->world->block_update(bx, by, bz);
+          tile->world->block_update(bx, by, bz);
         }
       }
     }
@@ -431,11 +431,11 @@ void Pixel::random_tick() {
 }
 
 void Pixel::tick() {
-	const ivec3 dir_array[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
+  const ivec3 dir_array[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
-  cout << "tick " << group << ' ' << int(value) << ' ' << ' ' << gx << ' ' << gy << ' ' << gz << ' ' << scale << endl;
-  if (group != nullptr and group->blockval != value) {
+  //cout << "tick " << group << ' ' << int(value) << ' ' << ' ' << gx << ' ' << gy << ' ' << gz << ' ' << scale << endl;
+  /*if (group != nullptr and group->blockval != value) {
     group->del(ivec3(gx, gy, gz));
     group = nullptr;
   }
@@ -462,14 +462,13 @@ void Pixel::tick() {
   }
   // if (group != nullptr and value == 0) {
   //   group->del(ivec3(gx, gy, gz));
-  // }
-  return;
+  // }*/
   if (tile == nullptr) {
     cout << "err" << endl;
   }
   //cout << "START PIX tick --------------------------";
   //print (ivec3(gx, gy, gz));
-  /*if (false) {// and physicsgroup == nullptr) {
+  if (physicsgroup == nullptr) {
     BlockGroup* group = BlockGroup::make_group(value, tile->world, ivec3(gx, gy, gz));
     //cout << group->block_poses.size() << " size!" << endl;
     if (group->block_poses.size() > 0) {
@@ -494,7 +493,7 @@ void Pixel::tick() {
     // else {
       //tile->world->physicsgroups.emplace(group);
     //}
-  }*/
+  }
   // if (value == blocks->names["dirt"] and world->get(gx, gy+scale, gz) == 0) {
   //   //set(blocks->names["grass"]);
   // }
@@ -553,12 +552,12 @@ void Pixel::del(bool remove_faces) {
         tile->world->glvecs.del(render_index);
       }
     }
-    // if (physicsgroup != nullptr and !physicsgroup->persistant()) {
-    //   physicsgroup->block_poses.erase(ivec3(gx, gy, gz));
-    //   if (physicsgroup->block_poses.size() == 0) {
-    //     delete physicsgroup;
-    //   }
-    // }
+    if (physicsgroup != nullptr and !physicsgroup->persistant()) {
+      physicsgroup->block_poses.erase(ivec3(gx, gy, gz));
+      if (physicsgroup->block_poses.size() == 0) {
+        delete physicsgroup;
+      }
+    }
 }
 
 void Pixel::lighting_update() {
@@ -632,7 +631,7 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
     int newdec = dir.y == 1 ? 0 : decrement;
     int oppdec = dir.y == -1 ? 0 : decrement;
     Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
-    if (block != nullptr and !block->get_pix()->tile->fully_loaded) {
+    if (block != nullptr and !(*block->iter().begin())->tile->fully_loaded) {
       block == nullptr;
     }
     if (block != nullptr) {
@@ -652,7 +651,7 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
   for (ivec3 dir : dirs) {
     int newdec = dir.y == -1 ? 0 : decrement;
     Block* block = tile->world->get_global(gx+dir.x*scale, gy+dir.y*scale, gz+dir.z*scale, scale);
-    if (block != nullptr and !block->get_pix()->tile->fully_loaded) {
+    if (block != nullptr and !(*block->iter().begin())->tile->fully_loaded) {
       block == nullptr;
     }
     if (block != nullptr) {
@@ -707,9 +706,13 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
       int inverse_index = index<3 ? index + 3 : index - 3;
       for (Pixel* pix : block->iter_side(-dir)) {
         if (pix->blocklight < blocklight - decrement*scale or (pix->lightsource == inverse_index and blocklight < oldblocklight)) {
-          ivec3 pos;
-          pix->global_position(&pos.x, &pos.y, &pos.z);
-          next_poses.emplace(pos);
+          if (pix->tile == tile) {
+            ivec3 pos;
+            pix->global_position(&pos.x, &pos.y, &pos.z);
+            next_poses.emplace(pos);
+          } else {
+            pix->set_light_flag();
+          }
         }
         if (changed) pix->set_render_flag();
       }
@@ -874,9 +877,9 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collide
         mat[i] = blockdata->texture[i];
       }
       int dirs[6] {0,0,0,0,0,0};
-      // if (physicsgroup != nullptr) {
-      //   physicsgroup->custom_textures(mat, dirs, ivec3(gx, gy, gz));
-      // }
+      if (physicsgroup != nullptr) {
+        physicsgroup->custom_textures(mat, dirs, ivec3(gx, gy, gz));
+      }
       
       if (direction != blockdata->default_direction) {
         rotate_to_origin(mat, dirs, blockdata->default_direction);
