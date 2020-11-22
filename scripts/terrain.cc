@@ -183,17 +183,21 @@ BiomeBase* TerrainLoader::get_biome(ivec3 pos, ClimateParams params) {
 
 
 int TerrainLoader::get_height(ivec2 pos) {
+	return Biome<Shallow,Plains,BigTree,TallTree,Tree<0> >().get_height(this, pos);
+	/*
 	BiomeBase* biome = get_biome(ivec3(pos.x, 0, pos.y));
 	int height = biome->get_height(this,pos);
 	delete biome;
-	return height;
+	return height;*/
 }
 
 char TerrainLoader::gen_func(ivec3 pos) {
+	return Biome<Shallow,Plains,TallTree,Tree<0> >().gen_func(this, pos);
+	/*
 	BiomeBase* biome = get_biome(pos);
 	char val = biome->gen_func(this,pos);
 	delete biome;
-	return val;
+	return val;*/
 }
 
 
