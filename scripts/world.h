@@ -25,7 +25,6 @@
 using std::unordered_set;
 using std::unordered_map;
 
-#define csize 2
 
 class TileLoop { public:
   World* world;

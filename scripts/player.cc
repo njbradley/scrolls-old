@@ -441,7 +441,7 @@ void Player::die() {
 			Pixel* chest = world->get_global(pos.x, pos.y, pos.z, 1)->get_pix();
 			if (chest->physicsgroup != nullptr) {
 				for (ItemStack stack : items) {
-					chest->physicsgroup->add_item(stack);
+					chest->physicsgroup->add_item(stack); ////todo
 				}
 			}
 			if (result == "Respawn") {

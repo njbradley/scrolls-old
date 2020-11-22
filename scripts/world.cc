@@ -25,7 +25,6 @@
 using std::thread;
 #include "terrain.h"
 
-#define csize 2
 
 
 
@@ -279,8 +278,8 @@ void World::load_nearby_chunks() {
     
     if (!closing_world) {
       for (int range = 0; range < maxrange; range ++) {
-        for (int x = px-range; x < px+range+1; x ++) {
-          for (int y = py-range; y < py+range+1; y ++) {
+        for (int y = py-range; y < py+range+1; y ++) {
+          for (int x = px-range; x < px+range+1; x ++) {
             for (int z = pz-range; z < pz+range+1; z ++) {
               if (x == px-range or x == px+range or y == py-range or y == py+range or z == pz-range or z == pz+range) {
                 //cout << range << ' ' << x << ' ' << y << ' ' << z << endl;
@@ -367,13 +366,13 @@ void World::add_tile(Tile* tile) {
       group->set_pix_pointers();
     }
   }
-  tile->chunk->all([=] (Pixel* pix) {
+  for (Pixel* pix : tile->chunk->iter()) {
     if (BlockGroup::is_persistant(pix->value)) {
       int gx, gy, gz;
       pix->global_position(&gx, &gy, &gz);
       pix->tile->world->block_update(gx, gy, gz);
     }
-  });
+  }
 }
 
 void World::timestep() {
@@ -422,10 +421,20 @@ void World::timestep() {
 }
 
 void World::tick() {
+  return;
+  // for (ivec3 pos : block_updates) {
+  //   //cout << pos.x << endl;
+  //   Block* block = get_global(pos.x, pos.y, pos.z, 1);
+  //   if (block != nullptr and block->get_pix() != nullptr) {
+  //     block->get_pix()->tick();
+  //   }
+  // }
+  // block_updates.clear();
   //cout << "world tick" << endl;
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {
   
     //world->load_nearby_chunks();
+    
     for (ivec3 pos : block_updates) {
       Pixel* pix = get_global(pos.x, pos.y, pos.z, 1)->get_pix();
       BlockGroup* group = pix->physicsgroup;
@@ -653,8 +662,11 @@ void World::summon(DisplayEntity* entity) {
 }
 
 void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras) {
+    cout << x << ' ' << y << ' ' << z << ' ' << int(val) << ' ' << direction << ' ' << extras << endl;
     int before = clock();
     Block* newblock = get_global(x,y,z, 1);
+    cout << newblock << endl;
+    cout << int(newblock->get_pix()->value) << endl;
     int minscale = 1;
     if (newblock == nullptr) {
         return;
@@ -668,6 +680,7 @@ void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras
             minscale = place_block_minscale;
         }
     }
+    cout << newblock << ' ' << 681 << endl;
     while (newblock->scale > minscale) {
       //cout << newblock->scale << endl;
       char val = newblock->get();
@@ -675,15 +688,18 @@ void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras
         ivec3 pos(newblock->px, newblock->py, newblock->pz);
         Block* result = newblock->get_pix()->subdivide();
         //cout << "ksdjflakjsd" << result->px << ' ' << result->py << ' ' << result->pz << endl;
-        //cout << "splitting tile" << endl;
+        cout << "splitting tile" << endl;
         tileat(pos)->chunk = result;
       } else {
+        cout << "splitting " << endl;
         newblock->get_pix()->subdivide();
       }
       delete newblock;
       newblock = get_global((int)x, (int)y, (int)z, 1);
     }
+    cout << newblock << endl;
     while (newblock->scale < minscale) {
+        cout << "building " << endl;
         Chunk* parent = newblock->parent;
         parent->del(true);
         Pixel* newpix = new Pixel(parent->px, parent->py, parent->pz, 0, parent->scale, parent->parent, newblock->get_pix()->tile);
@@ -698,13 +714,14 @@ void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras
     while (same and parentblock->parent != nullptr) {
       pcoords = ivec3(parentblock->px, parentblock->py, parentblock->pz);
       parentblock = parentblock->parent;
-      parentblock->all([&] (Pixel* pix) {
+      cout << parentblock << ' ' << parentblock->px;
+      for (Pixel* pix : parentblock->iter()) {
         same = same and pix->value == val;
-      });
+      }
     }
-    //cout << parentblock->scale << ' ' << pcoords.x << ' ' << pcoords.y << ' ' << pcoords.z << endl;
+    cout << parentblock->scale << ' ' << pcoords.x << ' ' << pcoords.y << ' ' << pcoords.z << endl;
     if (parentblock->parent == nullptr) {
-      //cout << "joining tile" << endl;
+      cout << "joining tile" << endl;
       pcoords = ivec3(parentblock->px, parentblock->py, parentblock->pz);
       Tile* tile = tileat(pcoords);
       Pixel* new_big_pix = new Pixel(pcoords.x, pcoords.y, pcoords.z, 0, parentblock->scale, nullptr, tile);
@@ -713,10 +730,12 @@ void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras
       tile->chunk = new_big_pix;
       new_big_pix->set(val, direction, extras);
     } else if (parentblock != newblock->parent) {
-      parentblock->get_chunk()->blocks[pcoords.x][pcoords.y][pcoords.z]->del(true);
+      Block* oldblock = parentblock->get_chunk()->blocks[pcoords.x][pcoords.y][pcoords.z];
       Pixel* new_big_pix = new Pixel(pcoords.x, pcoords.y, pcoords.z, 0, parentblock->scale/csize, parentblock->get_chunk(), newblock->get_pix()->tile);
       parentblock->get_chunk()->blocks[pcoords.x][pcoords.y][pcoords.z] = new_big_pix;
       new_big_pix->set(val, direction, extras);
+      oldblock->del(true);
+      delete oldblock;
     }
       
     //if (val != 0 and blocks->blocks[val]->rotation_enabled) {

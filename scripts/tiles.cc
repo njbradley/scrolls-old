@@ -45,9 +45,9 @@ void Tile::lighting_update() {
       for (ivec3 dir : dirs) {
         Tile* tile = world->tileat(pos+dir);
         if (tile != nullptr) {
-          tile->chunk->all_side([] (Pixel* pix) {
+          for (Pixel* pix : tile->chunk->iter_side(-dir)) {
             pix->set_render_flag();
-          }, -dir.x, -dir.y, -dir.z);
+          }
         }
       }
       // for (int i = 0; i < 10; i ++) {
@@ -67,9 +67,9 @@ void Tile::render(GLVecs* glvecs, GLVecs* transvecs) {
         for (ivec3 dir : dirs) {
           Tile* tile = world->tileat(pos+dir);
           if (tile != nullptr) {
-            tile->chunk->all_side([] (Pixel* pix) {
+            for (Pixel* pix : tile->chunk->iter_side(-dir)) {
               pix->set_render_flag();
-            }, -dir.x, -dir.y, -dir.z);
+            }
           }
         }
         // for (int i = 0; i < 10; i ++) {
@@ -285,28 +285,27 @@ void Tile::generate_chunk(ivec3 pos) {
 char Tile::gen_block(ostream& ofile, int gx, int gy, int gz, int scale) {
   if (scale == 1) {
     char val = world->loader.gen_func(ivec3(gx, gy, gz));
-    ofile << val;
+    Block::write_pix_val(ofile, 0b00, val);
     return val;
   } else {
     stringstream ss;
-    ss << '{';
-    char val = gen_block(ss, gx, gy, gz, scale/2);
+    ss << char(0b11000000);
+    char val = gen_block(ss, gx, gy, gz, scale/csize);
     bool all_same = val != -1;
     for (int x = 0; x < csize; x ++) {
       for (int y = 0; y < csize; y ++) {
         for (int z = 0; z < csize; z ++) {
           if (x > 0 or y > 0 or z > 0) {
-            char newval = gen_block(ss, gx+x*(scale/2), gy+y*(scale/2), gz+z*(scale/2), scale/2);
+            char newval = gen_block(ss, gx+x*(scale/csize), gy+y*(scale/csize), gz+z*(scale/csize), scale/csize);
             all_same = all_same and newval == val;
           }
         }
       }
     }
     if (all_same) {
-      ofile << val;
+      Block::write_pix_val(ofile, 0b00, val);
       return val;
     } else {
-      ss << '}';
       ofile << ss.rdbuf();
       return -1;
     }

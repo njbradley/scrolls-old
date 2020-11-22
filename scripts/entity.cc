@@ -701,11 +701,11 @@ void DisplayEntity::render(RenderVecs* allvecs) {
   
   if (render_flag) {
     vecs.clear();
-    block.block->all([=] (Pixel* pix) {
+    for (Pixel* pix : block.block->iter()) {
       pix->render_index = pair<int,int>(-1,0);
       pix->set_render_flag();
       pix->sunlight = lightmax;
-    });
+    }
     bool faces[] = {true,true,true,true,true,true};
     block.block->render(&vecs, &vecs, &block, 0, 0, 0, 1, faces, true, false);
     for (int i = 0; i < vecs.num_verts; i++) {
@@ -974,7 +974,7 @@ Block * FallingBlockEntity::get_global(int x, int y, int z, int size) {
   //print (position);
   //print (index);
   int scale = block.block->scale;
-  //cout << ';' << endl;
+  cout << ';' << endl;
   if ( index.x >= 0 and index.x < scale and index.y >= 0 and index.y < scale and index.z >= 0 and index.z < scale ) {
     return block.block->get_global(index.x, index.y, index.z,size);
   } else {
@@ -1006,7 +1006,7 @@ void FallingBlockEntity::calc_constraints() {
     if (block.block == nullptr) {
       return;
     }
-    block.block->all([&] (Pixel* pix) {
+    for (Pixel* pix : block.block->iter()) {
       if (!pix->is_air(0,0,0)) {
         int bx, by, bz;
         pix->global_position(&bx, &by, &bz);
@@ -1083,7 +1083,7 @@ void FallingBlockEntity::calc_constraints() {
           }
         }
       }
-    });
+    }
     
     
     
@@ -1123,11 +1123,11 @@ void FallingBlockEntity::render(RenderVecs* allvecs) {
   
   if (render_flag) {
     vecs.clear();
-    block.block->all([=] (Pixel* pix) {
+    for (Pixel* pix : block.block->iter()) {
       pix->render_index = pair<int,int>(-1,0);
       pix->set_render_flag();
       pix->sunlight = lightmax;
-    });
+    }
     bool faces[] = {true,true,true,true,true,true};
     block.block->render(&vecs, &vecs, &block, 0, 0, 0, 1, faces, true, false);
     for (int i = 0; i < vecs.num_verts; i++) {
@@ -1197,7 +1197,7 @@ void FallingBlockEntity::calc_light(vec3 offset, vec2 angle) {
   vector<ivec3> new_lit_blocks;
   
   
-  block.block->all([&] (Pixel* pix) {
+  for (Pixel* pix : block.block->iter()) {
     //cout << "loop" << pix << ' ' << int(pix->value) << endl;
     //cout << pix->blocklight << endl;
     ivec3 blockpos;
@@ -1225,7 +1225,7 @@ void FallingBlockEntity::calc_light(vec3 offset, vec2 angle) {
         // /cout << worldpix << endl;
       }
     }
-  });
+  }
   
   for (ivec3 pos : lit_blocks) {
     if (find(new_lit_blocks.begin(), new_lit_blocks.end(), pos) == new_lit_blocks.end()) {

@@ -22,25 +22,23 @@ BlockExtra::BlockExtra(Pixel* pix): pixel(pix) {
   //   inven = new ItemContainer(ifile);
   // } else {
     //cout << "generating " << filename.str() << " file cause there is no file" << endl;
-    inven = new ItemContainer(blocks->blocks[pix->value]->extras->inven->size);
+    //inven = new ItemContainer(blocks->blocks[pix->value]->extras->inven->size);
   //}
 }
 
 BlockExtra::~BlockExtra() {
-  delete inven;
+  //delete inven;
 }
 
 BlockExtra::BlockExtra() {}
 
 BlockExtra::BlockExtra(istream& ifile): pixel(nullptr) {
-  inven = new ItemContainer(ifile);
-  string buff;
-  getline(ifile, buff, ':');
+  
 }
 
 void BlockExtra::save_to_file(ostream& ofile) {
-  inven->save_to_file(ofile);
-  ofile << ':';
+  //inven->save_to_file(ofile);
+  //ofile << ':';
 }
 
 
@@ -188,21 +186,11 @@ BlockData::~BlockData() {
 void BlockData::do_rcaction(Pixel* pix) {
     if (rcaction == "crafting") {
       if (menu == nullptr) {
-        cout << "setting menu" << endl;
-        menu = new CraftingMenu( 6, [&] () {
-          cout << "done! " << endl;
-          delete menu;
-          menu = nullptr;
-        });
+        
       }
     } else if (rcaction == "chest") {
       if (menu == nullptr) {
-        cout << "setting menu" << endl;
-        menu = new InventoryMenu("chest", pix->extras->inven, [&] () {
-  				cout << "done! " << endl;
-  				delete menu;
-  				menu = nullptr;
-  			});
+        
       }
     }
 }

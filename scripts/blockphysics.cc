@@ -196,12 +196,12 @@ void BlockGroup::copy_to_block() {
 				newpix->subdivide();
 				newpix = block->get_global(local.x, local.y, local.z, 1)->get_pix();
 			}
-			newpix->set(orig->value, orig->direction, orig->extras, false);
+			newpix->set(orig->value, orig->direction, nullptr, false);
 			newpix->reset_lightlevel();
 		}
 	} else {
 		Pixel* orig = world->get_global(position.x, position.y, position.z, 1)->get_pix();
-		pix->set(orig->value, orig->direction, orig->extras, false);
+		pix->set(orig->value, orig->direction, nullptr, false);
 		pix->reset_lightlevel();
 		block = pix;
 	}
@@ -247,7 +247,7 @@ void BlockGroup::copy_to_world(ivec3 newpos) {
 	for (ivec3 pos : block_poses) {
 		ivec3 offset = pos - position;
 		Pixel* pix = block->get_global(offset.x, offset.y, offset.z,1)->get_pix(); // ERR: offset.z is uninitialized, something to do with new entity deleting system?
-		world->set(newpos.x+offset.x, newpos.y+offset.y, newpos.z+offset.z, pix->value, pix->direction, pix->extras);
+		world->set(newpos.x+offset.x, newpos.y+offset.y, newpos.z+offset.z, pix->value, pix->direction, nullptr);
 	}
 }
 

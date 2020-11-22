@@ -150,6 +150,7 @@ pair<int,int> GLVecs::add(MemVecs* newvecs) {
     writelock.unlock();
     return pair<int,int>(old_num_verts/6, newvecs->num_verts/6);
   }
+  return pair<int,int>(-1,0);
 }
 
 
