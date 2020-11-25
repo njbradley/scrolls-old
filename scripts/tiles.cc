@@ -38,22 +38,20 @@ void Tile::update_lighting() {
 }
 
 void Tile::lighting_update() {
+  const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
   chunk->lighting_update();
   if (lightflag) {
-      //update_lighting();
-      const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
-      for (ivec3 dir : dirs) {
-        Tile* tile = world->tileat(pos+dir);
-        if (tile != nullptr) {
-          for (Pixel* pix : tile->chunk->iter_side(-dir)) {
-            pix->set_render_flag();
-          }
-        }
-      }
-      // for (int i = 0; i < 10; i ++) {
-      //   chunk->calculate_lightlevel();
-      // }
     lightflag = false;
+    for (ivec3 dir : dirs) {
+      Tile* tile = world->tileat(pos+dir);
+      if (tile != nullptr) {
+        for (Pixel* pix : tile->chunk->iter_side(-dir)) {
+          pix->set_render_flag();
+          pix->set_light_flag();
+        }
+        //tile->lighting_update();
+      }
+    }
   }
 }
 
