@@ -212,6 +212,38 @@ template <> CommandFunc<string> CommandOperator<string>::getfunc(CommandFunc<str
 
 
 
+template <typename ... AllParams>
+template <int len, typename Return, typename ... CurrParams>
+CommandFunc<Return> ParamGroup<AllParams...>::MethodTree<len,Return,CurrParams...>::find_method(string name) {
+	for (pair<string,CommandMethod<Return,CurrParams...>> p : methods) {
+		if (p.first == name) {
+			return p.second.getfunc();
+}
+
+template <typename ... AllParams>
+template <int len, typename Return, typename ... CurrParams>
+template <typename ... MethodParams>
+void ParamGroup<AllParams...>::MethodTree<len,Return,CurrParams...>::add_method(string name, CommandMethod<Return,MethodParams...> newmethod) {
+	if constexpr(sizeof...(CurrParams) == sizeof...(MethodParams)) {
+		methods.emplace_back(name, newmethod);
+	} else {
+		//std::get<1>(next);
+		//std::get<MethodTree<len-1,Return,CurrParams...,int>>(next);
+		std::get<
+			MethodTree<len-1,Return,CurrParams...,
+			typename std::tuple_element<sizeof...(CurrParams),std::tuple<MethodParams...>>::type
+		>>(next).add_method(name, newmethod);
+	}
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -316,6 +348,8 @@ template <> CommandFunc<string> Command::parse_const<string>(istream& ifile) {
 	CommandConst<string> comconst(val);
 	return comconst.getfunc();
 }
+
+
 
 
 template <typename Tret, typename Tparamfirst, typename ... Tparamsleft, typename ... Tparams> CommandFunc<Tret>
@@ -470,6 +504,10 @@ template <> CommandFunc<ivec3> Command::get_method<ivec3>(istream& ifile, string
 	}
 }
 
+Command::Command(Program* newprogram): program(newprogram) {
+	
+}
+
 Command::Command(Program* newprogram, istream& ifile): program(newprogram), func(CommandNullFunc<void>()) {
 	string id;
 	char lett;
@@ -583,7 +621,14 @@ vec3vars({
 	{"me.pos", CommandVar<vec3>(nullptr)},
 	{"me.vel", CommandVar<vec3>()},
 }) {
-	
+	ParamGroup<int,double>::MethodTree<3,int> tree;
+	tree.add_method("test", CommandMethod<int,double>([] (Program* program, double str) {
+		cout << str << endl;
+		return 0;
+	}));
+	tree.find_method("test").func(this,3490.554);
+	cout << "test is done " << endl;
+	exit(1);
 }
 
 void Program::parse_lines(istream& ifile) {

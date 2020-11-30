@@ -17,7 +17,7 @@ EXESUFFIX :=.exe
 endif
 endif
 
-TARGETS := main gentest blocktest
+TARGETS := main gentest blocktest commandtest
 MAINS := $(addprefix build/, $(addsuffix .o, $(TARGETS)))
 SCRIPTNAMES := audio blockdata blockphysics blocks classes commands crafting cross-platform entity game generative graphics items materials menu mobs multithreading player rendervec shader terrain text texture tiles ui world
 HEADERS := blockdata.h blockphysics.h blocks.h classes.h collider.h commands.h crafting.h cross-platform.h entity.h generative.h items.h materials.h menu.h mobs.h multithreading.h rendervec.h shader.h terrain.h text.h texture.h tiles.h ui.h world.h graphics.h game.h audio.h

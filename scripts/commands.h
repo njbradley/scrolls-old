@@ -41,13 +41,29 @@ template <typename Type> class CommandOperator { public:
 	CommandOperator(char newoper);
 	CommandFunc<Type> getfunc(CommandFunc<Type> first, CommandFunc<Type> second);
 };
-	
-	
+
+template <typename ... AllParams>
+class ParamGroup { public:
+	template <int len, typename Return, typename ... CurrParams>
+	class MethodTree { public:
+		vector<pair<string,CommandMethod<Return, CurrParams...>>> methods;
+		std::tuple<MethodTree<len-1,Return,CurrParams...,AllParams>...> next;
+		//typename std::enable_if<(len <= 0), std::tuple<>>::type next;
+		
+		CommandFunc<Return> find_method(string name);
+		template <typename ... MethodParams> void add_method(string name, CommandMethod<Return,MethodParams...> newmethod);
+	};
+	template <typename Return, typename ... CurrParams>
+	class MethodTree<0,Return,CurrParams...> {
+		vector<pair<string,CommandMethod<Return, CurrParams...>>> methods;
+	};
+};
 
 class Command { public:
 	CommandVoidFunc func;
 	Program* program;
 	Command(Program* newprogram, istream& ifile);
+	Command(Program* newprogram);
 	template <typename Type> CommandFunc<Type> parse(istream& ifile);
 	template <typename Type> CommandFunc<Type> parse_const(istream& ifile);
 	
