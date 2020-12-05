@@ -193,8 +193,8 @@ int TerrainLoader::get_height(ivec2 pos) {
 }
 
 char TerrainLoader::gen_func(ivec3 pos) {
-	return get_height(ivec2(pos.x, pos.z)) < pos.y;
-	//return Biome<Shallow,Plains,TallTree,Tree<0> >().gen_func(this, pos);
+	//return get_height(ivec2(pos.x, pos.z)) < pos.y;
+	return Biome<Shallow,Plains,TallTree,Tree<0> >().gen_func(this, pos);
 	/*
 	BiomeBase* biome = get_biome(pos);
 	char val = biome->gen_func(this,pos);

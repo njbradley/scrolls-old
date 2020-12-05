@@ -95,14 +95,27 @@ void Tile::render(GLVecs* glvecs, GLVecs* transvecs) {
         //   changed = true;
         // }
         
+        
+        float dist = glm::length(vec3(player_chunk) - vec3(pos));
+        
+        int off = 2;
+        
+        // if (dist > 4) {
+        //   off = 0;
+        // } else
+        // if (dist > 3) {
+        //   off = 1;
+        // }
+        
         bool faces[] = {
-          player_chunk.x >= pos.x-1,
-          player_chunk.y >= pos.y-1,
-          player_chunk.z >= pos.z-1,
-          player_chunk.x <= pos.x+1,
-          player_chunk.y <= pos.y+1,
-          player_chunk.z <= pos.z+1,
+          player_chunk.x > pos.x-off,
+          player_chunk.y > pos.y-off,
+          player_chunk.z > pos.z-off,
+          player_chunk.x < pos.x+off,
+          player_chunk.y < pos.y+off,
+          player_chunk.z < pos.z+off,
         };
+        
         
         for (int i = 0; i < 6; i ++) {
           if (faces[i] != render_faces[i]) {

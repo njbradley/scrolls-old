@@ -115,6 +115,7 @@ public:
     virtual void lighting_update();
     virtual Block* get_global(int x, int y, int z, int scale);
     virtual void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
+    void render_smooth(RenderVecs* vecs, RenderVecs* transvecs, Collider* collider, vec3 view_normal);
     Chunk* subdivide();
     // splits the pixel into a chunk with 8 pixels of the
     // same value in it

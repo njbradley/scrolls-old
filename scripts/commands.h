@@ -50,12 +50,14 @@ class ParamGroup { public:
 		std::tuple<MethodTree<len-1,Return,CurrParams...,AllParams>...> next;
 		//typename std::enable_if<(len <= 0), std::tuple<>>::type next;
 		
-		CommandFunc<Return> find_method(string name);
+		CommandFunc<Return> find_method(Command* command, string name, istream& ifile);
 		template <typename ... MethodParams> void add_method(string name, CommandMethod<Return,MethodParams...> newmethod);
 	};
 	template <typename Return, typename ... CurrParams>
-	class MethodTree<0,Return,CurrParams...> {
+	class MethodTree<0,Return,CurrParams...> { public:
 		vector<pair<string,CommandMethod<Return, CurrParams...>>> methods;
+		
+		CommandFunc<Return> find_method(Command* command, string name, istream& ifile);
 	};
 };
 
@@ -105,6 +107,7 @@ class Program { public:
 	CommandMethod<void> killall;
 	CommandMethod<void,string,int> give;
 	CommandMethod<void,double,double> tp;
+	ParamGroup<int,double>::MethodTree<3,int> tree;
 	Program(World* world, ostream* newout, ostream* newerrout);
 	void parse_lines(istream& ifile);
 	void run();

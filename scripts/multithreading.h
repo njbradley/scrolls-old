@@ -10,6 +10,7 @@
 #include <chrono>
 #include <thread>
 #include <mutex>
+#include <list>
 
 using std::thread;
 
@@ -22,10 +23,22 @@ public:
 	ThreadJob(ivec3 npos);
 };
 
+template <typename T>
+class JobQueue {
+	std::list<T> queue;
+	std::mutex getlock;
+public:
+	void push_back(T newitem);
+	T pop_front();
+	bool empty();
+};
+
 class ThreadManager {
 public:
 	static const int num_threads = 3;
 	Game* game;
+	JobQueue<ivec3> load_queue;
+	JobQueue<ivec3> del_queue;
 	ThreadJob* loading[num_threads];
 	ivec3* deleting[num_threads];
 	bool load_running[num_threads];

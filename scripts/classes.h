@@ -93,6 +93,7 @@ class RenderVecs;
 class MemVecs;
 class GLVecs;
 class BlockExtra;
+class Command;
 class Menu;
 class InventoryMenu;
 class SelectMenu;

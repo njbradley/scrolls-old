@@ -974,7 +974,6 @@ Block * FallingBlockEntity::get_global(int x, int y, int z, int size) {
   //print (position);
   //print (index);
   int scale = block.block->scale;
-  cout << ';' << endl;
   if ( index.x >= 0 and index.x < scale and index.y >= 0 and index.y < scale and index.z >= 0 and index.z < scale ) {
     return block.block->get_global(index.x, index.y, index.z,size);
   } else {

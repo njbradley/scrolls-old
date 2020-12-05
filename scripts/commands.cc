@@ -214,10 +214,41 @@ template <> CommandFunc<string> CommandOperator<string>::getfunc(CommandFunc<str
 
 template <typename ... AllParams>
 template <int len, typename Return, typename ... CurrParams>
-CommandFunc<Return> ParamGroup<AllParams...>::MethodTree<len,Return,CurrParams...>::find_method(string name) {
+CommandFunc<Return> ParamGroup<AllParams...>::MethodTree<len,Return,CurrParams...>::find_method(Command* command, string name, istream& ifile) {
 	for (pair<string,CommandMethod<Return,CurrParams...>> p : methods) {
 		if (p.first == name) {
-			return p.second.getfunc();
+			cout << "found method ! level " << len << endl;
+			return command->parse_func<Return>(ifile, p.second.templ, p.second);
+		}
+	}
+	cout << "going past this node, len " << len << endl;
+	vector<CommandFunc<Return>> results;
+	((
+		results.push_back(std::get<MethodTree<len-1,Return,CurrParams...,AllParams>>(next).find_method(command, name, ifile))
+	), ...);
+	for (CommandFunc<Return> func : results) {
+		cout << "going into one option len " << len << endl;
+		cout << (CommandFunc<Return>(nullptr) == nullptr) << endl;
+		if (func != nullptr) {
+			cout << "found the option len " << len << endl;
+			return func;
+		} else {
+			cout << "!!!!!!!!!!!!!!! ksjdflksjdfl !!!!!!!!!!!!!!! " << endl;
+		}
+	}
+	cout << "nothing works at len " << len << endl;
+	return CommandFunc<Return>(nullptr);
+}
+
+template <typename ... AllParams>
+template <typename Return, typename ... CurrParams>
+CommandFunc<Return> ParamGroup<AllParams...>::MethodTree<0,Return,CurrParams...>::find_method(Command* command, string name, istream& ifile) {
+	for (pair<string,CommandMethod<Return,CurrParams...>> p : methods) {
+		if (p.first == name) {
+			return command->parse_func<Return>(ifile, p.second.templ, p.second);
+		}
+	}
+	return CommandFunc<Return>(nullptr);
 }
 
 template <typename ... AllParams>
@@ -226,7 +257,9 @@ template <typename ... MethodParams>
 void ParamGroup<AllParams...>::MethodTree<len,Return,CurrParams...>::add_method(string name, CommandMethod<Return,MethodParams...> newmethod) {
 	if constexpr(sizeof...(CurrParams) == sizeof...(MethodParams)) {
 		methods.emplace_back(name, newmethod);
+		cout << "placing method at " << len << " depth " << endl;
 	} else {
+		cout << " going deeper, at level " << len << endl;
 		//std::get<1>(next);
 		//std::get<MethodTree<len-1,Return,CurrParams...,int>>(next);
 		std::get<
@@ -485,6 +518,7 @@ template <> CommandFunc<void> Command::get_method<void>(istream& ifile, string i
 }
 
 template <> CommandFunc<int> Command::get_method<int>(istream& ifile, string id) {
+	//return program->tree.find_method(this, id, ifile);
 	if (id == "round") {
 		return parse_func<int>(ifile, program->dtoi.templ, program->dtoi);
 	} else {
@@ -621,14 +655,10 @@ vec3vars({
 	{"me.pos", CommandVar<vec3>(nullptr)},
 	{"me.vel", CommandVar<vec3>()},
 }) {
-	ParamGroup<int,double>::MethodTree<3,int> tree;
-	tree.add_method("test", CommandMethod<int,double>([] (Program* program, double str) {
-		cout << str << endl;
-		return 0;
-	}));
-	tree.find_method("test").func(this,3490.554);
-	cout << "test is done " << endl;
-	exit(1);
+	// tree.add_method("test", CommandMethod<int,double>([] (Program* program, double str) {
+	// 	cout << str << endl;
+	// 	return 0;
+	// }));
 }
 
 void Program::parse_lines(istream& ifile) {

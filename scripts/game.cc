@@ -360,6 +360,11 @@ void Game::print_debug() {
 		<< int((world->player->position.x/world->chunksize) - (world->player->position.x<0)) << ' '
 		<< int((world->player->position.y/world->chunksize) - (world->player->position.y<0)) << ' '
 		<< int((world->player->position.z/world->chunksize) - (world->player->position.z<0)) << endl;
+	ivec3 intppos(world->player->position);
+	debugstream << "inchunk: "
+		<< intppos.x % world->chunksize + world->chunksize * (intppos.x < 0 and intppos.x%world->chunksize != 0) << ' '
+		<< intppos.y % world->chunksize + world->chunksize * (intppos.y < 0 and intppos.y%world->chunksize != 0) << ' '
+		<< intppos.z % world->chunksize + world->chunksize * (intppos.z < 0 and intppos.z%world->chunksize != 0) << endl;
 	int loaded_tiles = 0;
 	for (Tile* tile : world->tiles) {
 		loaded_tiles += (tile != nullptr);

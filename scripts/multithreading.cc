@@ -16,6 +16,26 @@ ThreadJob::ThreadJob(ivec3 npos): pos(npos), result(nullptr), complete(false) {
 	
 }
 
+template <typename T>
+void JobQueue<T>::push_back(T newitem) {
+	queue.push_back(newitem);
+}
+
+template <typename T>
+T JobQueue<T>::pop_front() {
+	getlock.lock();
+	T item = queue.front();
+	queue.pop_front();
+	getlock.unlock();
+	return item;
+}
+
+template <typename T>
+bool JobQueue<T>::empty() {
+	return queue.empty();
+}
+
+
 ThreadManager::ThreadManager(Game* newgame): game(newgame) {
 	rendering = false;
 	render_running = true;
@@ -65,23 +85,27 @@ ThreadManager::ThreadManager(Game* newgame): game(newgame) {
 }
 
 bool ThreadManager::add_loading_job(ivec3 pos) {
-	for (int i = 0; i < num_threads; i ++) {
-		if (loading[i] == nullptr) {
-			loading[i] = new ThreadJob(pos);
-			return true;
-		}
-	}
-	return false;
+	load_queue.push_back(pos);
+	return true;
+	// for (int i = 0; i < num_threads; i ++) {
+	// 	if (loading[i] == nullptr) {
+	// 		loading[i] = new ThreadJob(pos);
+	// 		return true;
+	// 	}
+	// }
+	// return false;
 }
 
 bool ThreadManager::add_deleting_job(ivec3 pos) {
-	for (int i = 0; i < num_threads; i ++) {
-		if (deleting[i] == nullptr) {
-			deleting[i] = new ivec3(pos);
-			return true;
-		}
-	}
-	return false;
+	del_queue.push_back(pos);
+	return true;
+	// for (int i = 0; i < num_threads; i ++) {
+	// 	if (deleting[i] == nullptr) {
+	// 		deleting[i] = new ivec3(pos);
+	// 		return true;
+	// 	}
+	// }
+	// return false;
 }
 
 vector<Tile*> ThreadManager::get_loaded_tiles() {
@@ -124,20 +148,28 @@ void LoadingThread::operator()() {
 	//glfwMakeContextCurrent(window);
 	while (parent->load_running[index]) {
 		//cout << parent->loading[index] << endl;
-		
-		if (game != nullptr and game->world != nullptr and parent->loading[index] != nullptr and parent->loading[index]->complete == false) {
-				parent->loading[index]->lock.lock();
-				//cout << parent->loading[index] << endl;
-				Tile* tile = new Tile(parent->loading[index]->pos, game->world);
-				parent->loading[index]->result = tile;
-				game->world->add_tile(tile);
-				parent->loading[index]->complete = true;
-				parent->loading[index]->lock.unlock();
-				tile->lighting_update();
-				std::this_thread::sleep_for(std::chrono::milliseconds(20));
+		if (game != nullptr and game->world != nullptr and !parent->load_queue.empty()) {
+			ivec3 pos = parent->load_queue.pop_front();
+			Tile* tile = new Tile(pos, game->world);
+			game->world->add_tile(tile);
+			tile->lighting_update();
 		} else {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
+			
+		// if (game != nullptr and game->world != nullptr and parent->loading[index] != nullptr and parent->loading[index]->complete == false) {
+		// 		parent->loading[index]->lock.lock();
+		// 		//cout << parent->loading[index] << endl;
+		// 		Tile* tile = new Tile(parent->loading[index]->pos, game->world);
+		// 		parent->loading[index]->result = tile;
+		// 		game->world->add_tile(tile);
+		// 		parent->loading[index]->complete = true;
+		// 		parent->loading[index]->lock.unlock();
+		// 		tile->lighting_update();
+		// 		std::this_thread::sleep_for(std::chrono::milliseconds(20));
+		// } else {
+		// 	std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		// }
 		//cout << "hello from thread " << index << endl;
 	}
 	cout << "loading thread " << index << " exited" << endl;
@@ -151,10 +183,8 @@ DeletingThread::DeletingThread(GLFWwindow* nwindow, int newindex, ThreadManager*
 void DeletingThread::operator()() {
 	//glfwMakeContextCurrent(window);
 	while (parent->del_running[index]) {
-		if (parent->deleting[index] != nullptr) {
-			game->world->del_chunk(*parent->deleting[index], true);
-			delete parent->deleting[index];
-			parent->deleting[index] = nullptr;
+		if (!parent->del_queue.empty()) {
+			game->world->del_chunk(parent->del_queue.pop_front(), true);
 		} else {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
@@ -215,110 +245,6 @@ void TickThread::operator()() {
 
 
 
-/*
-atomic<bool> thread_render_flag;
-
-GLFWwindow* background_window;
-
-atomic<bool> vecs_locked;
-
-atomic<bool> thread_render_flag;
-
-
-
-void other_thread() {
-	glfwMakeContextCurrent(background_window);
-	
-	while (true) {
-		std::this_thread::sleep_for(std::chrono::milliseconds((int)(5)));
-		if (thread_render_flag.load() and !vecs_locked) {
-			cout << "drawing" << endl;
-			
-			thread_render_flag.store(false);
-		}
-	}
-}
-
-std::thread* t;
-
-
-GLuint fb[2] = {std::numeric_limits<GLuint>::max(), std::numeric_limits<GLuint>::max()}; //framebuffers
-GLuint rb[2] = {std::numeric_limits<GLuint>::max(), std::numeric_limits<GLuint>::max()}; //renderbuffers, color and depth
-
-
-
-
-/********************************************** TEST ********************************
-static void thread_____() {
-	glfwMakeContextCurrent(window_slave);
-	//create new shared framebuffer object
-	mutexGL.lock();
-	createFrameBuffer();
-	isFBOready = true;
-	mutexGL.unlock();
-	
-	for(;;){
-		mutexGL.lock();
-		if(!threadShouldRun){
-			mutexGL.unlock();
-			break;
-		}
-		if(isFBOdirty){
-			glBindFramebuffer(GL_FRAMEBUFFER, fb[1]);
-			float r = (float)rand() / (float)RAND_MAX;
-			glClearColor(r,r,r,1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			glFlush();
-			isFBOdirty = false;
-		}
-		mutexGL.unlock();
-	}
-	printf("Exiting thread..\n");
-	return;
-}
-
-void other_thread() {
-	
-	//glfwSetKeyCallback(window, key_callback);
-	glfwMakeContextCurrent(display_window);
-	
-	glGenFramebuffers(1, &fb[0]);
-	glViewport(0, 0, screen_x, screen_y;
-	
-  while (threadShouldRun) {
-		glfwPollEvents(); //get key input
-		if(!isFBOsetupOnce) {
-			createFrameBufferMain(); //isFBOsetupOnce = true when FBO can be used
-		} else {
-			if(checkFrameBuffer(fb[0])){
-				if(!mutexGL.try_lock_for(std::chrono::seconds(1))) {
-					continue;
-				}
-				if(!isFBOdirty){
-					copyFrameBuffer(fb[0]);
-					glfwSwapBuffers(window);
-					isFBOdirty = true;
-					//printf("Framebuffer OK\n");
-				} else {
-					glBindFramebuffer(GL_FRAMEBUFFER, 0);
-					glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
-					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				}
-				mutexGL.unlock();
-			} else {
-				printf("Framebuffer not ready!\n");
-				GLenum e = glGetError();
-				printf("OpenGL error: %X\n", e);
-			}
-		}
-  }
-  threadShouldRun = false; //other thread only reads this
-  gl_thread.join();
-  glfwDestroyWindow(window);
-  glfwDestroyWindow(window_slave);
-  glfwTerminate();
-  return 0;
-}
-*/
+template class JobQueue<ivec3>;
 
 #endif

@@ -278,8 +278,8 @@ void World::load_nearby_chunks() {
     
     if (!closing_world) {
       for (int range = 0; range < maxrange; range ++) {
-        for (int y = py-range; y < py+range+1; y ++) {
-        //for (int y = py+range; y >= py-range; y --) {
+        //for (int y = py-range; y < py+range+1; y ++) {
+        for (int y = py+range; y >= py-range; y --) {
           for (int x = px-range; x < px+range+1; x ++) {
             for (int z = pz-range; z < pz+range+1; z ++) {
               if (x == px-range or x == px+range or y == py-range or y == py+range or z == pz-range or z == pz+range) {
@@ -318,7 +318,7 @@ void World::load_nearby_chunks() {
     }
     //  tiles_lock.unlock();
     //}
-    if (!loaded_chunks and initial_generation) {
+    if (!loaded_chunks and threadmanager->load_queue.empty() and initial_generation) {
       cout << "Initial generation finished: " << glfwGetTime() - gen_start_time << 's' << endl;
       initial_generation = false;
     }
@@ -422,7 +422,6 @@ void World::timestep() {
 }
 
 void World::tick() {
-  return;
   // for (ivec3 pos : block_updates) {
   //   //cout << pos.x << endl;
   //   Block* block = get_global(pos.x, pos.y, pos.z, 1);
@@ -533,22 +532,31 @@ bool World::render() {
       lighting_flag = false;
     }
     bool changed = false;
-    TileLoop loop(this);
     double start = glfwGetTime();
-    for (Tile* tile : loop) {
-      changed = changed or (tile->chunk->render_flag and tile->fully_loaded);
-      if (changed) {
-        tile->render(&glvecs, &transparent_glvecs);
-        break;
-      }
-    }
-    if (!changed) {
-      loop = TileLoop(this);
+    ivec3 ppos(player->position);
+    ppos = ppos / chunksize - ivec3(ppos.x < 0, ppos.y < 0, ppos.z < 0);
+    Tile* playertile = tileat(ppos);
+    
+    if (playertile != nullptr and playertile->chunk->render_flag) {
+      playertile->render(&glvecs, &transparent_glvecs);
+      changed = true;
+    } else {
+      TileLoop loop(this);
       for (Tile* tile : loop) {
-        changed = changed or tile->chunk->render_flag;
-        tile->render(&glvecs, &transparent_glvecs);
+        changed = changed or (tile->chunk->render_flag and tile->fully_loaded);
         if (changed) {
+          tile->render(&glvecs, &transparent_glvecs);
           break;
+        }
+      }
+      if (!changed) {
+        loop = TileLoop(this);
+        for (Tile* tile : loop) {
+          changed = changed or tile->chunk->render_flag;
+          tile->render(&glvecs, &transparent_glvecs);
+          if (changed) {
+            break;
+          }
         }
       }
     }
@@ -663,11 +671,11 @@ void World::summon(DisplayEntity* entity) {
 }
 
 void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras) {
-    cout << x << ' ' << y << ' ' << z << ' ' << int(val) << ' ' << direction << ' ' << extras << endl;
+    // cout << x << ' ' << y << ' ' << z << ' ' << int(val) << ' ' << direction << ' ' << extras << endl;
     int before = clock();
     Block* newblock = get_global(x,y,z, 1);
-    cout << newblock << endl;
-    cout << int(newblock->get_pix()->value) << endl;
+    // cout << newblock << endl;
+    // cout << int(newblock->get_pix()->value) << endl;
     int minscale = 1;
     if (newblock == nullptr) {
         return;
@@ -681,7 +689,7 @@ void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras
             minscale = place_block_minscale;
         }
     }
-    cout << newblock << ' ' << 681 << endl;
+    // cout << newblock << ' ' << 681 << endl;
     while (newblock->scale > minscale) {
       //cout << newblock->scale << endl;
       char val = newblock->get();
@@ -689,18 +697,18 @@ void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras
         ivec3 pos(newblock->px, newblock->py, newblock->pz);
         Block* result = newblock->get_pix()->subdivide();
         //cout << "ksdjflakjsd" << result->px << ' ' << result->py << ' ' << result->pz << endl;
-        cout << "splitting tile" << endl;
+        // cout << "splitting tile" << endl;
         tileat(pos)->chunk = result;
       } else {
-        cout << "splitting " << endl;
+        // cout << "splitting " << endl;
         newblock->get_pix()->subdivide();
       }
       delete newblock;
       newblock = get_global((int)x, (int)y, (int)z, 1);
     }
-    cout << newblock << endl;
+    // cout << newblock << endl;
     while (newblock->scale < minscale) {
-        cout << "building " << endl;
+        // cout << "building " << endl;
         Chunk* parent = newblock->parent;
         parent->del(true);
         Pixel* newpix = new Pixel(parent->px, parent->py, parent->pz, 0, parent->scale, parent->parent, newblock->get_pix()->tile);
@@ -715,14 +723,14 @@ void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras
     while (same and parentblock->parent != nullptr) {
       pcoords = ivec3(parentblock->px, parentblock->py, parentblock->pz);
       parentblock = parentblock->parent;
-      cout << parentblock << ' ' << parentblock->px;
+      //cout << parentblock << ' ' << parentblock->px;
       for (Pixel* pix : parentblock->iter()) {
         same = same and pix->value == val;
       }
     }
-    cout << parentblock->scale << ' ' << pcoords.x << ' ' << pcoords.y << ' ' << pcoords.z << endl;
+    // cout << parentblock->scale << ' ' << pcoords.x << ' ' << pcoords.y << ' ' << pcoords.z << endl;
     if (parentblock->parent == nullptr) {
-      cout << "joining tile" << endl;
+      // cout << "joining tile" << endl;
       pcoords = ivec3(parentblock->px, parentblock->py, parentblock->pz);
       Tile* tile = tileat(pcoords);
       Pixel* new_big_pix = new Pixel(pcoords.x, pcoords.y, pcoords.z, 0, parentblock->scale, nullptr, tile);
