@@ -99,9 +99,11 @@ commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+
 }
 
 void World::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size) {
-  glvecs.set_buffers(verts, uvs, light, mats, start_size);
-  transparent_glvecs.set_buffers_prealloc(verts, uvs, light, mats, start_size*0.1, start_size - start_size*0.25);
-  glvecs.size_alloc = start_size - start_size*0.25;
+  vecs_dest.set_buffers(verts, uvs, light, mats, start_size);
+  glvecs.set_destination(&vecs_dest);
+  transparent_glvecs.set_destination_offset(&vecs_dest, start_size - start_size * 0.1);
+  // transparent_glvecs.set_buffers_prealloc(verts, uvs, light, mats, start_size*0.1, start_size - start_size*0.25);
+  // glvecs.size_alloc = start_size - start_size*0.25;
 }
 
 void World::unzip() {

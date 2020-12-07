@@ -102,6 +102,8 @@ void Game::setup_gameloop() {
 	slow_tick = 0;
 	graphics.view_distance = view_dist * World::chunksize * 10;
 	
+	afterswap_time = lastTime;
+	
 	threadmanager.rendering = true;
 	audio.listener = world->player;
 }
@@ -155,7 +157,7 @@ void Game::gametick() {
 	double ms = (currentTime-lastFrameTime)*1000;
 	if (debug_visible) {
 		debugstream << "-----time-----" << endl;
-		debugstream << "ms: " << ms << endl;
+		debugstream << "ms: " << preswap_time*1000 << endl;
 		debugstream << "ms(goal):" << min_ms_per_frame << endl;
 		debugstream << "reaching max fps: " << reaching_max_fps << " (" << slow_frame << ")" << endl;
 		debugstream << "tick thread ms: " << threadmanager.tick_ms << endl;
@@ -251,12 +253,16 @@ void Game::gametick() {
 	begin = glfwGetTime();
 	world->glvecs.sync();
 	world->transparent_glvecs.sync();
+	
+	preswap_time = glfwGetTime() - afterswap_time;
 	// cout << glfwGetTime() - begin << endl;
 	graphics.swap();
 	time = glfwGetTime() - begin;
 	if (dologtime and time > 0.001) {
 		cout << "swap " << time << endl;
 	}
+	
+	afterswap_time = glfwGetTime();
 	
 	audio.tick();
 	
@@ -550,7 +556,7 @@ void Game::set_display_env(vec3 new_clear_color, int new_view_dist) {
 void Game::dump_buffers() {
 	cout << "dumping out contents of memory vectors" << endl;
 	cout << "dumping vertex data" << endl;
-	float* data = (float*)glMapNamedBuffer( world->glvecs.vertexbuffer, GL_READ_ONLY);
+	float* data = (float*)glMapNamedBuffer( world->vecs_dest.vertexbuffer, GL_READ_ONLY);
 	int len = allocated_memory*3;
 	ofstream ofile("dump_buffers_verts.txt");
 	for (int i = 0; i < allocated_memory*3; i ++) {
@@ -563,10 +569,10 @@ void Game::dump_buffers() {
 	//char* dat = (char*)data;
 	//ofstream ofile("datadump.dat");
 	//ofile.write(dat, len*sizeof(float));
-	glUnmapNamedBuffer( world->glvecs.vertexbuffer );
+	glUnmapNamedBuffer( world->vecs_dest.vertexbuffer );
 	
 	cout << "dumping material data" << endl;
-	int* matdata = (int*)glMapNamedBuffer( world->glvecs.matbuffer, GL_READ_ONLY);
+	int* matdata = (int*)glMapNamedBuffer( world->vecs_dest.matbuffer, GL_READ_ONLY);
 	len = allocated_memory*2;
 	ofstream mofile("dump_buffers_mat.txt");
 	for (int i = 0; i < allocated_memory*2; i ++) {
@@ -578,10 +584,10 @@ void Game::dump_buffers() {
 	//char* dat = (char*)data;
 	//ofstream ofile("datadump.dat");
 	//ofile.write(dat, len*sizeof(float));
-	glUnmapNamedBuffer( world->glvecs.matbuffer );
+	glUnmapNamedBuffer( world->vecs_dest.matbuffer );
 	
 	cout << "dumping light data" << endl;
-	data = (float*)glMapNamedBuffer( world->glvecs.lightbuffer, GL_READ_ONLY);
+	data = (float*)glMapNamedBuffer( world->vecs_dest.lightbuffer, GL_READ_ONLY);
 	len = allocated_memory;
 	ofstream fofile("dump_buffers_light.txt");
 	for (int i = 0; i < allocated_memory*2; i ++) {
@@ -593,7 +599,7 @@ void Game::dump_buffers() {
 	//char* dat = (char*)data;
 	//ofstream ofile("datadump.dat");
 	//ofile.write(dat, len*sizeof(float));
-	glUnmapNamedBuffer( world->glvecs.lightbuffer );
+	glUnmapNamedBuffer( world->vecs_dest.lightbuffer );
 	
 }
 

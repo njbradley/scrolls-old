@@ -34,6 +34,8 @@ class Game { public:
 	double lastTime;
 	double currentTime;
 	double lastFrameTime;
+	double preswap_time;
+	double afterswap_time;
 	int nbFrames;
 	int fps;
 	bool reaching_max_fps;

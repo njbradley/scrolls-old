@@ -67,6 +67,7 @@ class World: public Collider {
         string name;
         AsyncGLVecs glvecs;
         AsyncGLVecs transparent_glvecs;
+        GLVecsDestination vecs_dest;
         Program commandprogram;
         TerrainLoader loader;
         bool lighting_flag;

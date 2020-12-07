@@ -409,31 +409,12 @@ AsyncGLVecs::Change::Change(RenderIndex newindex, MemVecs newvecs): index(newind
 }
 
 
-void AsyncGLVecs::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size) {
-  vertexbuffer = verts;
-  uvbuffer = uvs;
-  lightbuffer = light;
-  matbuffer = mats;
-  size_alloc = start_size;
-  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-  glBufferData(GL_ARRAY_BUFFER, RenderIndex::to_vert_index(start_size)*sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
-  glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-  glBufferData(GL_ARRAY_BUFFER, RenderIndex::to_uv_index(start_size)*sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
-  glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-  glBufferData(GL_ARRAY_BUFFER, RenderIndex::to_light_index(start_size)*sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
-  glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
-  glBufferData(GL_ARRAY_BUFFER, RenderIndex::to_mat_index(start_size)*sizeof(GLint), NULL, GL_DYNAMIC_DRAW);
-  
-  //cout << "err: " << std::hex << glGetError() << std::dec << endl;
+void AsyncGLVecs::set_destination(GLVecsDestination* dest) {
+  destination = dest;
 }
 
-
-void AsyncGLVecs::set_buffers_prealloc(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size, int newoffset) {
-  vertexbuffer = verts;
-  uvbuffer = uvs;
-  lightbuffer = light;
-  matbuffer = mats;
-  size_alloc = start_size;
+void AsyncGLVecs::set_destination_offset(GLVecsDestination* dest, int newoffset) {
+  destination = dest;
   offset = newoffset;
 }
 
@@ -527,15 +508,9 @@ void AsyncGLVecs::sync() {
       change->vecs.mats.resize(RenderIndex::to_mat_index(change->index.size));
     }
     
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-    glBufferSubData(GL_ARRAY_BUFFER, change->index.vert_start()*sizeof(GLfloat) + RenderIndex::to_vert_index(offset)*sizeof(GLfloat), change->vecs.verts.size()*sizeof(GLfloat), &change->vecs.verts.front());
-    glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-    glBufferSubData(GL_ARRAY_BUFFER, change->index.uv_start()*sizeof(GLfloat) + RenderIndex::to_uv_index(offset)*sizeof(GLfloat), change->vecs.uvs.size()*sizeof(GLfloat), &change->vecs.uvs.front());
-    glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-    glBufferSubData(GL_ARRAY_BUFFER, change->index.light_start()*sizeof(GLfloat) + RenderIndex::to_light_index(offset)*sizeof(GLfloat), change->vecs.light.size()*sizeof(GLfloat), &change->vecs.light.front());
-    glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
-    glBufferSubData(GL_ARRAY_BUFFER, change->index.mat_start()*sizeof(GLint) + RenderIndex::to_mat_index(offset)*sizeof(GLfloat), change->vecs.mats.size()*sizeof(GLfloat), &change->vecs.mats.front());
-    
+    RenderIndex writeindex = change->index;
+    writeindex.start += offset;
+    destination->write(writeindex, &change->vecs);
   }
   
   addlock.lock();
@@ -551,7 +526,44 @@ void AsyncGLVecs::sync() {
   
 
 void AsyncGLVecs::status(std::ostream& ofile) {
-  ofile << "num_verts: " << num_verts << " num_changes: " << changes.size() << " num_emptys: " << emptys.size() << endl;
+  ofile << "size:" << num_verts << endl;
+  ofile << "changes:" << changes.size() << " emptys:" << emptys.size() << endl;
 }
+
+
+
+
+
+
+void GLVecsDestination::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size) {
+  vertexbuffer = verts;
+  uvbuffer = uvs;
+  lightbuffer = light;
+  matbuffer = mats;
+  size_alloc = start_size;
+  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+  glBufferData(GL_ARRAY_BUFFER, RenderIndex::to_vert_index(start_size)*sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+  glBufferData(GL_ARRAY_BUFFER, RenderIndex::to_uv_index(start_size)*sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
+  glBufferData(GL_ARRAY_BUFFER, RenderIndex::to_light_index(start_size)*sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
+  glBufferData(GL_ARRAY_BUFFER, RenderIndex::to_mat_index(start_size)*sizeof(GLint), NULL, GL_DYNAMIC_DRAW);
+  
+  //cout << "err: " << std::hex << glGetError() << std::dec << endl;
+}
+
+
+void GLVecsDestination::write(RenderIndex index, MemVecs* vecs) {
+  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+  glBufferSubData(GL_ARRAY_BUFFER, index.vert_start()*sizeof(GLfloat), vecs->verts.size()*sizeof(GLfloat), &vecs->verts.front());
+  glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+  glBufferSubData(GL_ARRAY_BUFFER, index.uv_start()*sizeof(GLfloat), vecs->uvs.size()*sizeof(GLfloat), &vecs->uvs.front());
+  glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
+  glBufferSubData(GL_ARRAY_BUFFER, index.light_start()*sizeof(GLfloat), vecs->light.size()*sizeof(GLfloat), &vecs->light.front());
+  glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
+  glBufferSubData(GL_ARRAY_BUFFER, index.mat_start()*sizeof(GLint), vecs->mats.size()*sizeof(GLfloat), &vecs->mats.front());
+}
+
 
 #endif

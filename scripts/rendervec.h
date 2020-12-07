@@ -108,14 +108,10 @@ class AsyncGLVecs: public RenderVecs { public:
     std::list<Change>::iterator change;
   };
   
-  GLuint vertexbuffer;
-  GLuint uvbuffer;
-  GLuint lightbuffer;
-  GLuint matbuffer;
+  GLVecsDestination* destination;
   
-  int size_alloc;
-  int offset = 0;
   int num_verts = 0;
+  int offset = 0;
   
   std::mutex addlock;
   std::mutex emptyaddlock;
@@ -124,14 +120,28 @@ class AsyncGLVecs: public RenderVecs { public:
   std::list<Change> changes;
   std::list<Empty> emptys;
   
-  void set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size);
-  void set_buffers_prealloc(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size, int newoffset);
+  void set_destination(GLVecsDestination* dest);
+  void set_destination_offset(GLVecsDestination* dest, int newoffset);
   RenderIndex add(MemVecs* newvecs);
   void del(RenderIndex index);
   void sync();
   void edit(RenderIndex index, MemVecs* newvecs);
   void status(std::ostream& ofile);
 };
+
+class GLVecsDestination { public:
+  GLuint vertexbuffer;
+  GLuint uvbuffer;
+  GLuint lightbuffer;
+  GLuint matbuffer;
+  
+  int size_alloc;
+  int offset = 0;
+  
+  void set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size);
+  void write(RenderIndex index, MemVecs* data);
+};
+  
 
 
 #endif

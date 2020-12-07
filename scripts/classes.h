@@ -93,6 +93,7 @@ class ItemContainer;
 class RenderVecs;
 class MemVecs;
 class GLVecs;
+class GLVecsDestination;
 class BlockExtra;
 class Command;
 class Menu;

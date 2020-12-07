@@ -16,7 +16,7 @@ class Tile {
 		World* world;
 		int render_depth = 1;
 		bool render_faces[6] = {true,true,true,true,true,true};
-		bool optimized_render = true;
+		bool optimized_render = false;
 		std::shared_timed_mutex deletelock;
 		bool deleting;
 		bool lightflag = true;
