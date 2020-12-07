@@ -599,6 +599,7 @@ Command::Command(Program* newprogram, istream& ifile): program(newprogram), func
 Program::Program(World* nworld, ostream* newout, ostream* newerrout): world(nworld), out(newout), errout(newerrout),
 worldsummon([] (Program* program, vec3 pos, string entityname) {
 	DisplayEntity* entity;
+	entity = new Pig(program->world, pos);
 	if (entityname == "pig") entity = new Pig(program->world, pos);
 	else if (entityname == "skeleton") entity = new Skeleton(program->world, pos);
   else if (entityname == "ent") entity = new Ent(program->world, pos);
@@ -610,7 +611,6 @@ worldsummon([] (Program* program, vec3 pos, string entityname) {
 		*program->errout << "ERR: entity name '" << entityname << "' is not valid " << endl;
 		return;
 	}
-	
 	program->world->summon(entity);
 }),
 worldsetblock([] (Program* program, ivec3 pos, string blockname, int direction) {

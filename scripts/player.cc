@@ -92,21 +92,21 @@ void Player::init_block_breaking_vecs() {
 			block_breaking_tex = i;
 		}
 	}
-	block_breaking_render_index = pair<int,int> (-1,0);
+	block_breaking_render_index = RenderIndex::npos;
 }
 
 void Player::set_block_breaking_vecs(Pixel* pixref, ivec3 hitpos, int level) {
 	if (level == 0) {
-		if (block_breaking_render_index.first != -1) {
+		if (!block_breaking_render_index.isnull()) {
 			world->transparent_glvecs.del(block_breaking_render_index);
-			block_breaking_render_index = pair<int,int>(-1,0);
+			block_breaking_render_index = RenderIndex::npos;
 		}
 		return;
 	}
 	level --;
 	int gx, gy, gz;
 	Pixel pix = *pixref;
-	pix.render_index = pair<int,int>(-1,0);
+	pix.render_index = RenderIndex::npos;
 	pix.render_flag = true;
 	pix.global_position(&gx, &gy, &gz);
 	int pgx, pgy, pgz;
@@ -143,7 +143,7 @@ void Player::set_block_breaking_vecs(Pixel* pixref, ivec3 hitpos, int level) {
 		vecs.mats[i*2+1] = block_breaking_tex + level;
 	}
 	
-	if (block_breaking_render_index.first != -1) {
+	if (!block_breaking_render_index.isnull()) {
 		world->transparent_glvecs.del(block_breaking_render_index);
 	}
 	block_breaking_render_index = world->transparent_glvecs.add(&vecs);

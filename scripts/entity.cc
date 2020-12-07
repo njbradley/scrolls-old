@@ -702,7 +702,7 @@ void DisplayEntity::render(RenderVecs* allvecs) {
   if (render_flag) {
     vecs.clear();
     for (Pixel* pix : block.block->iter()) {
-      pix->render_index = pair<int,int>(-1,0);
+      pix->render_index = RenderIndex::npos;
       pix->set_render_flag();
       pix->sunlight = lightmax;
     }
@@ -717,7 +717,7 @@ void DisplayEntity::render(RenderVecs* allvecs) {
     //   cout << "lib:";
     //   print(limb->position);
     //   limb->render_flag = true;
-    //   limb->render_index = pair<int,int>(-1,0);
+    //   limb->render_index = RenderIndex::npos;
     //   limb->render(&vecs);
     //   cout << vecs.num_verts << '-' << endl;
     // }
@@ -729,7 +729,7 @@ void DisplayEntity::render(RenderVecs* allvecs) {
   
   
   for (DisplayEntity* limb : limbs) {
-    limb->render_index = pair<int,int>(-1,0);
+    limb->render_index = RenderIndex::npos;
     limb->render(&translated);
   }
   //cout << 'y' << translated.num_verts << endl;
@@ -757,7 +757,7 @@ void DisplayEntity::render(RenderVecs* allvecs) {
       translated.light[i*2+1] = blocklight/lightmax;
     }
   }
-  if (render_index == pair<int,int>(-1,0)) {
+  if (render_index.isnull()) {
     render_index = allvecs->add(&translated);
   } else {
     allvecs->edit(render_index, &translated); //ERR: passes problemic vector? segfault deep in allvecs.edit, where translated.verts is added on
@@ -840,9 +840,9 @@ DisplayEntity::~DisplayEntity() {
       b->get_pix()->render_update();
     }
   }
-  if (render_index.first != -1) {
-    //world->glvecs.del(render_index);
-    world->dead_render_indexes.push_back(render_index);
+  if (!render_index.isnull()) {
+    world->glvecs.del(render_index);
+    //world->dead_render_indexes.push_back(render_index);
   }
   if (block.block != nullptr) {
     block.block->del(false);
@@ -850,7 +850,7 @@ DisplayEntity::~DisplayEntity() {
   }
   
   for (DisplayEntity* limb : limbs) {
-    limb->render_index = pair<int,int>(-1,0);
+    limb->render_index = RenderIndex::npos;
     delete limb;
   }
 }
@@ -1123,7 +1123,7 @@ void FallingBlockEntity::render(RenderVecs* allvecs) {
   if (render_flag) {
     vecs.clear();
     for (Pixel* pix : block.block->iter()) {
-      pix->render_index = pair<int,int>(-1,0);
+      pix->render_index = RenderIndex::npos;
       pix->set_render_flag();
       pix->sunlight = lightmax;
     }
@@ -1182,7 +1182,7 @@ void FallingBlockEntity::render(RenderVecs* allvecs) {
   }
   
   
-  if (render_index == pair<int,int>(-1,0)) {
+  if (render_index.isnull()) {
     render_index = allvecs->add(&translated);
   } else {
     allvecs->edit(render_index, &translated); //ERR: passes problemic vector? segfault deep in allvecs.edit, where translated.verts is added on

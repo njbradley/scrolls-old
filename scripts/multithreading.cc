@@ -39,15 +39,15 @@ bool JobQueue<T>::empty() {
 ThreadManager::ThreadManager(Game* newgame): game(newgame) {
 	rendering = false;
 	render_running = true;
-	glfwWindowHint(GLFW_SAMPLES, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-	GLFWwindow* renderwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
+	// glfwWindowHint(GLFW_SAMPLES, 4);
+	// glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	// glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	// glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
+	// glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	// glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+	// GLFWwindow* renderwindow = glfwCreateWindow( screen_x, screen_y, "back", nullptr, window);
 	
-	rendering_thread = thread(RenderingThread(renderwindow, this));
+	rendering_thread = thread(RenderingThread(nullptr, this));
 	
 	// glfwWindowHint(GLFW_SAMPLES, 4);
 	// glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -200,7 +200,7 @@ RenderingThread::RenderingThread(GLFWwindow* nwindow, ThreadManager* newparent):
 }
 
 void RenderingThread::operator()() {
-	glfwMakeContextCurrent(window);
+	//glfwMakeContextCurrent(window);
 	while (parent->render_running) {
 		bool wait = true;
 		if (parent->rendering) {

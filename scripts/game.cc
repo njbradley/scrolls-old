@@ -215,8 +215,8 @@ void Game::gametick() {
 	
 	double start = glfwGetTime();
 	
-	world->glvecs.writelock.lock();
-	world->transparent_glvecs.writelock.lock();
+	// world->glvecs.writelock.lock();
+	// world->transparent_glvecs.writelock.lock();
 	time = glfwGetTime() - start;
 	if (dologtime and time > 0.001) {
 		cout << "unlocking took " << time << endl;
@@ -228,8 +228,8 @@ void Game::gametick() {
 	
 	
 	
-	world->glvecs.writelock.unlock();
-	world->transparent_glvecs.writelock.unlock();
+	// world->glvecs.writelock.unlock();
+	// world->transparent_glvecs.writelock.unlock();
 	
 	double all = glfwGetTime() - start;
 	if (dologtime and all > 0.001) {
@@ -249,6 +249,9 @@ void Game::gametick() {
 	}
 	
 	begin = glfwGetTime();
+	world->glvecs.sync();
+	world->transparent_glvecs.sync();
+	// cout << glfwGetTime() - begin << endl;
 	graphics.swap();
 	time = glfwGetTime() - begin;
 	if (dologtime and time > 0.001) {
@@ -275,13 +278,13 @@ void Game::gametick() {
 		} else if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) {
 			cout << "njbradley is king" << endl;
 		} else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
-			world->glvecs.clean_flag = true;
-			world->transparent_glvecs.clean_flag = true;
-			double s = glfwGetTime();
-			world->glvecs.clean();
-			world->transparent_glvecs.clean();
-			double t = glfwGetTime() - s;
-			cout << "time: " << t << endl;
+			// world->glvecs.clean_flag = true;
+			// world->transparent_glvecs.clean_flag = true;
+			// double s = glfwGetTime();
+			// world->glvecs.clean();
+			// world->transparent_glvecs.clean();
+			// double t = glfwGetTime() - s;
+			// cout << "time: " << t << endl;
 		} else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
 			world->player->spectator = true;
 		} else if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
@@ -437,7 +440,7 @@ void Game::print_debug() {
 		// }
 		debugstream << "tracking block " << game->debugblock << " at " << gx << "x " << gy << "y " << gz << "z " << endl;
 		debugstream << " type:" << name << " char:" << int(game->debugblock->value) << " scale:" << game->debugblock->scale << endl;
-		debugstream << " direction:" << int(game->debugblock->direction) << " render_index:" << game->debugblock->render_index.first << ',' << game->debugblock->render_index.second << endl;
+		debugstream << " direction:" << int(game->debugblock->direction) << " render_index:" << game->debugblock->render_index.start << ',' << game->debugblock->render_index.size << endl;
 		debugstream << " parent coords:" << game->debugblock->px << ',' << game->debugblock->py << ',' << game->debugblock->pz << endl;
 		debugstream << " physics_group:" << game->debugblock->physicsgroup << ' ' << "light " << debugblock->blocklight << ' ' << debugblock->sunlight << endl;
 		
@@ -595,10 +598,10 @@ void Game::dump_buffers() {
 }
 
 void Game::dump_emptys() {
-	ofstream ofile("dump_emptys.txt");
-	for (pair<int,int> index : world->glvecs.empty) {
-		ofile << index.first << ' ' << index.second << endl;
-	}
+	// ofstream ofile("dump_emptys.txt");
+	// for (RenderIndex index : world->glvecs.emptys) {
+	// 	ofile << index.start << ' ' << index.size << endl;
+	// }
 }
 
 

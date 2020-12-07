@@ -6,6 +6,101 @@
 #include "game.h"
 
 
+RenderIndex::RenderIndex(int newstart, int newsize): start(newstart), size(newsize) {
+  
+}
+
+RenderIndex::RenderIndex(pair<int,int> pairindex): start(pairindex.first), size(pairindex.second) {
+  
+}
+
+RenderIndex::RenderIndex(): start(-1), size(0) {
+  
+}
+
+int RenderIndex::to_vert_index(int num) {
+  return num*3;
+}
+
+int RenderIndex::to_uv_index(int num) {
+  return num*2;
+}
+
+int RenderIndex::to_light_index(int num) {
+  return num*2;
+}
+
+int RenderIndex::to_mat_index(int num) {
+  return num*2;
+}
+
+int RenderIndex::vert_start() const {
+  return to_vert_index(start);
+}
+
+int RenderIndex::uv_start() const {
+  return to_uv_index(start);
+}
+
+int RenderIndex::light_start() const {
+  return to_light_index(start);
+}
+
+int RenderIndex::mat_start() const {
+  return to_mat_index(start);
+}
+
+int RenderIndex::vert_size() const {
+  return to_vert_index(size);
+}
+
+int RenderIndex::uv_size() const {
+  return to_uv_index(size);
+}
+
+int RenderIndex::light_size() const {
+  return to_light_index(size);
+}
+
+int RenderIndex::mat_size() const {
+  return to_mat_index(size);
+}
+
+int RenderIndex::vert_end() const {
+  return vert_start() + to_vert_index(size);
+}
+
+int RenderIndex::uv_end() const {
+  return uv_start() + to_uv_index(size);
+}
+
+int RenderIndex::light_end() const {
+  return light_start() + to_light_index(size);
+}
+
+int RenderIndex::mat_end() const {
+  return mat_start() + to_mat_index(size);
+}
+
+int RenderIndex::end() const {
+  return start + size;
+}
+
+bool RenderIndex::isnull() const {
+  return start == -1 and size == 0;
+}
+
+bool RenderIndex::can_add(RenderIndex other) const {
+  return (start <= other.start and end() > other.start)
+  or (other.start <= start and other.end() > start);
+}
+
+RenderIndex RenderIndex::add(RenderIndex other) {
+  return RenderIndex(std::min(start, other.start), std::max(end(), other.end()));
+}
+
+const RenderIndex RenderIndex::npos(-1,0);
+
 
 void MemVecs::add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat sunlight, GLfloat blocklight, GLint minscale, GLint mat) {
     verts.insert(verts.end(), newverts, newverts+6*3);
@@ -23,7 +118,7 @@ void MemVecs::add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat sunlight, GLf
     }
 }
 
-pair<int,int> MemVecs::add(MemVecs* newvecs) {
+RenderIndex MemVecs::add(MemVecs* newvecs) {
   verts.insert(verts.end(), newvecs->verts.begin(), newvecs->verts.end());
   uvs.insert(uvs.end(), newvecs->uvs.begin(), newvecs->uvs.end());
   light.insert(light.end(), newvecs->light.begin(), newvecs->light.end());
@@ -33,16 +128,14 @@ pair<int,int> MemVecs::add(MemVecs* newvecs) {
     cout << "ERR: unbalanced vectors in MemVecs::add" << endl;
     game->crash(3928657839029036);
   }
-  return pair<int,int>((num_verts - newvecs->num_verts)/6, newvecs->num_verts/6);
+  return RenderIndex((num_verts - newvecs->num_verts), newvecs->num_verts);
 }
 
-void MemVecs::del(pair<int,int> index) {
-  int start = index.first*6;
-  int end = start + index.second*6;
-  verts.erase(verts.begin()+start*3, verts.begin()+end*3);
-  uvs.erase(uvs.begin()+start*2, uvs.begin()+end*2);
-  light.erase(light.begin()+start*2, light.begin()+end*2);
-  mats.erase(mats.begin()+start*2, mats.begin()+end*2);
+void MemVecs::del(RenderIndex index) {
+  verts.erase(verts.begin()+index.vert_start(), verts.begin()+index.vert_end());
+  uvs.erase(uvs.begin()+index.uv_start(), uvs.begin()+index.uv_end());
+  light.erase(light.begin()+index.light_start(), light.begin()+index.light_end());
+  mats.erase(mats.begin()+index.mat_start(), mats.begin()+index.mat_end());
 }
   
 
@@ -54,13 +147,11 @@ void MemVecs::clear() {
   num_verts = 0;
 }
 
-void MemVecs::edit(pair<int,int> index, MemVecs* newvecs) {
-  int start = index.first;
-  verts.insert(verts.begin()+start*3, newvecs->verts.begin(), newvecs->verts.end());
-  uvs.insert(uvs.begin()+start*2, newvecs->uvs.begin(), newvecs->uvs.end());
-  light.insert(light.begin()+start*2, newvecs->light.begin(), newvecs->light.end());
-  mats.insert(mats.begin()+start*2, newvecs->mats.begin(), newvecs->mats.end());
-  
+void MemVecs::edit(RenderIndex index, MemVecs* newvecs) {
+  verts.insert(verts.begin()+index.vert_start(), newvecs->verts.begin(), newvecs->verts.end());
+  uvs.insert(uvs.begin()+index.uv_start(), newvecs->uvs.begin(), newvecs->uvs.end());
+  light.insert(light.begin()+index.light_start(), newvecs->light.begin(), newvecs->light.end());
+  mats.insert(mats.begin()+index.mat_start(), newvecs->mats.begin(), newvecs->mats.end());
 }
 
 
@@ -68,7 +159,7 @@ void MemVecs::edit(pair<int,int> index, MemVecs* newvecs) {
 
 
 
-
+/*
 void GLVecs::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size) {
     vertexbuffer = verts;
     uvbuffer = uvs;
@@ -306,6 +397,161 @@ void GLVecs::status(std::stringstream & message) {
         sum += f.second;
     }
     message << "empty: " << sum << " in " << empty.size() << "emptys" << endl;
+}*/
+
+
+AsyncGLVecs::Change::Change(RenderIndex newindex): index(newindex) {
+  
+}
+
+AsyncGLVecs::Change::Change(RenderIndex newindex, MemVecs newvecs): index(newindex), vecs(newvecs) {
+  
+}
+
+
+void AsyncGLVecs::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size) {
+  vertexbuffer = verts;
+  uvbuffer = uvs;
+  lightbuffer = light;
+  matbuffer = mats;
+  size_alloc = start_size;
+  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+  glBufferData(GL_ARRAY_BUFFER, RenderIndex::to_vert_index(start_size)*sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+  glBufferData(GL_ARRAY_BUFFER, RenderIndex::to_uv_index(start_size)*sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
+  glBufferData(GL_ARRAY_BUFFER, RenderIndex::to_light_index(start_size)*sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
+  glBufferData(GL_ARRAY_BUFFER, RenderIndex::to_mat_index(start_size)*sizeof(GLint), NULL, GL_DYNAMIC_DRAW);
+  
+  //cout << "err: " << std::hex << glGetError() << std::dec << endl;
+}
+
+
+void AsyncGLVecs::set_buffers_prealloc(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size, int newoffset) {
+  vertexbuffer = verts;
+  uvbuffer = uvs;
+  lightbuffer = light;
+  matbuffer = mats;
+  size_alloc = start_size;
+  offset = newoffset;
+}
+
+RenderIndex AsyncGLVecs::add(MemVecs* vecs) {
+  synclock.lock_shared();
+  
+  for (std::list<Empty>::iterator empty = emptys.begin(); empty != emptys.end(); empty ++) {
+    if (empty->index.size > vecs->num_verts) {
+      addlock.lock();
+      RenderIndex result(empty->index.start, vecs->num_verts);
+      changes.push_back({result, *vecs});
+      addlock.unlock();
+      empty->index = RenderIndex(empty->index.start + vecs->num_verts, empty->index.size - vecs->num_verts);
+      if (empty->change != changes.end()) {
+        empty->change->index = empty->index;
+      }
+      synclock.unlock_shared();
+      return result;
+    } else if (empty->index.size == vecs->num_verts) {
+      RenderIndex result(empty->index.start, vecs->num_verts);
+      if (empty->change == changes.end()) {
+        addlock.lock();
+        changes.push_back({result, *vecs});
+        addlock.unlock();
+      } else {
+        empty->change->vecs.add(vecs);
+      }
+      emptys.erase(empty);
+      synclock.unlock_shared();
+      return result;
+    }
+  }
+  
+  addlock.lock();
+  RenderIndex result(num_verts, vecs->num_verts);
+  changes.push_back({result, *vecs});
+  num_verts += vecs->num_verts;
+  addlock.unlock();
+  
+  synclock.unlock_shared();
+  return result;
+}
+
+void AsyncGLVecs::del(RenderIndex index) {
+  synclock.lock_shared();
+  
+  for (std::list<Empty>::iterator empty = emptys.begin(); empty != emptys.end(); empty ++) {
+    if (index.can_add(empty->index)) {
+      empty->index = index.add(empty->index);
+      if (empty->change != changes.end()) {
+        empty->change->index = empty->index;
+      }
+      synclock.unlock_shared();
+      return;
+    }
+  }
+  
+  addlock.lock();
+  changes.emplace_back(index);
+  std::list<Change>::iterator newchange = changes.begin();
+  for (int i = 0; i < changes.size()-1; i ++) {
+    newchange ++;
+  }
+  addlock.unlock();
+  
+  emptyaddlock.lock();
+  emptys.push_back({index, newchange});
+  emptyaddlock.unlock();
+  
+  synclock.unlock_shared();
+}
+
+void AsyncGLVecs::edit(RenderIndex index, MemVecs* vecs) {
+  synclock.lock_shared();
+  
+  addlock.lock();
+  changes.push_back({index, *vecs});
+  addlock.unlock();
+  
+  synclock.unlock_shared();
+}
+
+void AsyncGLVecs::sync() {
+  synclock.lock();
+  
+  for (std::list<Change>::iterator change = changes.begin(); change != changes.end(); change ++) {
+    if (change->vecs.num_verts == 0) {
+      change->vecs.verts.resize(RenderIndex::to_vert_index(change->index.size));
+      change->vecs.uvs.resize(RenderIndex::to_uv_index(change->index.size));
+      change->vecs.light.resize(RenderIndex::to_light_index(change->index.size));
+      change->vecs.mats.resize(RenderIndex::to_mat_index(change->index.size));
+    }
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+    glBufferSubData(GL_ARRAY_BUFFER, change->index.vert_start()*sizeof(GLfloat) + RenderIndex::to_vert_index(offset)*sizeof(GLfloat), change->vecs.verts.size()*sizeof(GLfloat), &change->vecs.verts.front());
+    glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+    glBufferSubData(GL_ARRAY_BUFFER, change->index.uv_start()*sizeof(GLfloat) + RenderIndex::to_uv_index(offset)*sizeof(GLfloat), change->vecs.uvs.size()*sizeof(GLfloat), &change->vecs.uvs.front());
+    glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
+    glBufferSubData(GL_ARRAY_BUFFER, change->index.light_start()*sizeof(GLfloat) + RenderIndex::to_light_index(offset)*sizeof(GLfloat), change->vecs.light.size()*sizeof(GLfloat), &change->vecs.light.front());
+    glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
+    glBufferSubData(GL_ARRAY_BUFFER, change->index.mat_start()*sizeof(GLint) + RenderIndex::to_mat_index(offset)*sizeof(GLfloat), change->vecs.mats.size()*sizeof(GLfloat), &change->vecs.mats.front());
+    
+  }
+  
+  addlock.lock();
+  changes.clear();
+  addlock.unlock();
+  
+  for (std::list<Empty>::iterator empty = emptys.begin(); empty != emptys.end(); empty ++) {
+    empty->change = changes.end();
+  }
+  
+  synclock.unlock();
+}
+  
+
+void AsyncGLVecs::status(std::ostream& ofile) {
+  ofile << "num_verts: " << num_verts << " num_changes: " << changes.size() << " num_emptys: " << emptys.size() << endl;
 }
 
 #endif

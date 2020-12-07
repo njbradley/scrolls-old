@@ -66,7 +66,7 @@ class Player: public Entity {
   ivec3 block_breaking;
   double attack_recharge = 0;
   double total_attack_recharge = 0.2;
-  pair<int,int> block_breaking_render_index;
+  RenderIndex block_breaking_render_index;
   MemVecs block_breaking_vecs;
   int block_breaking_tex;
   
@@ -98,7 +98,7 @@ public:
   vec3 blockpos;
   vector<DisplayEntity*> limbs;
   MemVecs vecs;
-  pair<int,int> render_index;
+  RenderIndex render_index;
   bool render_flag;
   bool dead_falling;
   int sunlight = 10;

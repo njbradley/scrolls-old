@@ -65,8 +65,8 @@ class World: public Collider {
         bool generation = true;
         bool saving = true;
         string name;
-        GLVecs glvecs;
-        GLVecs transparent_glvecs;
+        AsyncGLVecs glvecs;
+        AsyncGLVecs transparent_glvecs;
         Program commandprogram;
         TerrainLoader loader;
         bool lighting_flag;

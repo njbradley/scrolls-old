@@ -126,8 +126,8 @@ void Mob::on_timestep(double deltatime) {
 
 void Mob::fall_apart(DisplayEntity* entity) {
 	entity->dead_falling = true;
-	int render_off = entity->vecs.num_verts/6;
-	entity->render_index.second = render_off;
+	int render_off = entity->vecs.num_verts;
+	entity->render_index.size = render_off;
 	for (DisplayEntity* limb : entity->limbs) {
 		// rotation
 		float x = limb->position.x;
@@ -144,8 +144,8 @@ void Mob::fall_apart(DisplayEntity* entity) {
 		limb->vel = limb->position*3.0f + vec3(0,6,0) + entity->vel;
 		limb->angle += entity->angle;
 		limb->position += entity->position + vec3(0,0.1f,0);
-		limb->render_index = pair<int,int>(entity->render_index.first + render_off, limb->vecs.num_verts/6);
-		render_off += limb->render_index.second;
+		limb->render_index = RenderIndex(entity->render_index.start + render_off, limb->vecs.num_verts);
+		render_off += limb->render_index.size;
 		entity->world->summon(limb);
 		limb->drop_ticks();
 		fall_apart(limb);

@@ -78,6 +78,7 @@ class Entity;
 class DisplayEntity;
 class FallingBlockEntity;
 class Player;
+class RenderIndex;
 class BlockStorage;
 class BlockGroup;
 class UnlinkedGroup;

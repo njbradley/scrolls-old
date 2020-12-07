@@ -55,7 +55,7 @@ void Tile::lighting_update() {
   }
 }
 
-void Tile::render(GLVecs* glvecs, GLVecs* transvecs) {
+void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {
   
   if (deletelock.try_lock_shared()) {

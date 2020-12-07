@@ -26,7 +26,7 @@ class Tile {
 		Tile(ivec3 position, World* world);
 		void timestep();
 		void drop_ticks();
-		void render(GLVecs* vecs, GLVecs* transvecs);
+		void render(RenderVecs* vecs, RenderVecs* transvecs);
 		void save();
 		void update_lighting();
 		void lighting_update();

@@ -387,7 +387,7 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
     physicsgroup = nullptr;
     if (update) {
       //render_flag = true;
-      //cout << gx << ' ' << gy << ' ' << gz << "-----------------------------" << render_index.first << ' ' << render_index.second << endl;
+      //cout << gx << ' ' << gy << ' ' << gz << "-----------------------------" << render_index.start << ' ' << render_index.size << endl;
       //cout << "global position " << gx << ' ' << gy << ' ' << gz << endl;
       //light_flag = true;
       reset_lightlevel();
@@ -500,7 +500,7 @@ void Pixel::tick() {
   // if (value == blocks->names["dirt"] and world->get(gx, gy+scale, gz) == 0) {
   //   //set(blocks->names["grass"]);
   // }
-  //cout << gx << ' ' << gy << ' ' << gz << "-----------------------------" << render_index.first << ' ' << render_index.second << endl;
+  //cout << gx << ' ' << gy << ' ' << gz << "-----------------------------" << render_index.start << ' ' << render_index.size << endl;
   //cout << "global position " << gx << ' ' << gy << ' ' << gz << endl;
   /*
   if (parent != nullptr and extras == nullptr) {
@@ -526,7 +526,7 @@ void Pixel::render_update() {
     
     //cout << gx << ' ' << gy << ' ' << gz << endl;
     //cout << render_index << endl;
-    //cout << "render_update() " << render_index.first << ' ' << render_index.second << endl;
+    //cout << "render_update() " << render_index.start << ' ' << render_index.size << endl;
     //lightlevel = -1;
     //calculate_lightlevel();
         //world->glvecs.del(render_index);
@@ -537,8 +537,8 @@ void Pixel::render_update() {
         // if (tile != nullptr) {
         //   tile->world->block_update(gx, gy, gz);
         // }
-        //cout << render_index.first << ' ' << render_index.second << " x" << endl;
-        //render_index.first = -(render_index.first+2);
+        //cout << render_index.start << ' ' << render_index.size << " x" << endl;
+        //render_index.start = -(render_index.start+2);
 }
 
 void Pixel::set_all_render_flags() {
@@ -548,7 +548,7 @@ void Pixel::set_all_render_flags() {
 void Pixel::del(bool remove_faces) {
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);
-    if (remove_faces and tile != nullptr and render_index.first != -1) {
+    if (remove_faces and tile != nullptr and render_index.start != -1) {
       if (render_transparent) {
         tile->world->transparent_glvecs.del(render_index);
       } else {
@@ -861,13 +861,13 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collide
     render_flag = false;
     
     if (value == 0 or depth < 0) {
-      if (render_index.first > -1) {
+      if (render_index.start > -1) {
         if (render_transparent) {
           transvecs->del(render_index);
         } else {
           allvecs->del(render_index);
         }
-        render_index = pair<int,int>(-1, 0);
+        render_index = RenderIndex::npos;
       }
       return;
     } else {
@@ -1085,7 +1085,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collide
           vecs.add_face(face, new_uvs, 0.7f * facesunlight, faceblocklight, minscale, mat[0]); //0.4f
       }
       
-      if (render_index != pair<int,int>(-1,0)) {
+      if (!render_index.isnull()) {
         if (render_transparent) {
           transvecs->del(render_index);
           //cout << "transparent delete " << endl;
@@ -1093,7 +1093,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collide
           allvecs->del(render_index);
           //cout << "normal delete " << endl;
         }
-        render_index = pair<int,int>(-1,0);
+        render_index = RenderIndex::npos;
       }
       if (vecs.num_verts != 0) {
         if (blockdata->transparent) {
@@ -1493,9 +1493,9 @@ void Pixel::render_smooth(RenderVecs* allvecs, RenderVecs* transvecs, Collider* 
     }
   }
   
-  if (render_index != pair<int,int>(-1,0)) {
+  if (!render_index.isnull()) {
     allvecs->del(render_index);
-    render_index = pair<int,int>(-1,0);
+    render_index = RenderIndex::npos;
   }
   if (vecs.num_verts != 0) {
     render_index = allvecs->add(&vecs);
@@ -1510,7 +1510,7 @@ void Pixel::render_smooth(RenderVecs* allvecs, RenderVecs* transvecs, Collider* 
 
 
 Chunk* Pixel::subdivide() {
-  if (render_index.first != -1 and tile != nullptr) {
+  if (render_index.start != -1 and tile != nullptr) {
     if (render_transparent) {
       tile->world->transparent_glvecs.del(render_index);
     } else {
@@ -1541,7 +1541,7 @@ Chunk* Pixel::subdivide() {
 
 Chunk* Pixel::subdivide(function<char(ivec3)> gen_func) {
     //render_update();
-    if (render_index.first != -1) {
+    if (render_index.start != -1) {
         tile->world->glvecs.del(render_index);
     }
     if (scale == 1) {

@@ -7,6 +7,7 @@
 #include <thread>
 
 #include "collider.h"
+#include "rendervec.h"
 
 #define csize 2
 
@@ -81,7 +82,7 @@ class Pixel: public Block {
 public:
     char value;
     char direction;
-    pair<int,int> render_index;
+    RenderIndex render_index;
     bool render_transparent = false;
     int blocklight;
     int sunlight;

@@ -566,19 +566,20 @@ bool World::render() {
     }
     dead_render_indexes.clear();
     
-    if (glvecs.clean_flag or transparent_glvecs.clean_flag or changed) {
-      glvecs.clean();
-      //cout << "changed" << endl;
-      transparent_glvecs.clean();
-      //if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
-        //int before = clock();
-        glFinish();
-        //cout << "glfinish time " << clock() - before << endl;
-        //glvecs.writelock.unlock();
-      //}
-      return true;
-    }
-    return false;
+    // if (glvecs.clean_flag or transparent_glvecs.clean_flag or changed) {
+    //   glvecs.clean();
+    //   //cout << "changed" << endl;
+    //   transparent_glvecs.clean();
+    //   //if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
+    //     //int before = clock();
+    //     glFinish();
+    //     //cout << "glfinish time " << clock() - before << endl;
+    //     //glvecs.writelock.unlock();
+    //   //}
+    //   return true;
+    // }
+    //return false;
+    return changed;
 }
 
 void World::update_lighting() {
