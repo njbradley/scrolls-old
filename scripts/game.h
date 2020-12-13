@@ -16,6 +16,7 @@ class Settings { public:
 	bool fullscreen = false;
 	float initialFoV = 110.0f;
 	
+	Settings();
 	void load_settings();
 };
 

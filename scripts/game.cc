@@ -21,6 +21,10 @@
 
 
 
+Settings::Settings() {
+	load_settings();
+}
+
 void Settings::load_settings() {
 	ifstream ifile("saves/settings.txt");
 	if (ifile.good()) {
@@ -82,7 +86,6 @@ void Settings::load_settings() {
 
 
 Game::Game(): graphics(&settings) {
-	settings.load_settings();
 	min_ms_per_frame = 1000.0/settings.max_fps;
 	
 	matstorage = new MaterialStorage();

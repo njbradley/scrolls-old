@@ -9,6 +9,8 @@ class ServerGame { public:
 	std::thread iothread;
 	bool playing = true;
 	
+	World* world;
+	
 	class IOthread { public:
 		ServerGame* game;
 		IOthread(ServerGame* game);

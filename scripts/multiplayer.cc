@@ -178,7 +178,7 @@ void ClientSocketManager::send(ClientPacket* packet) {
 	char data[Packet::packetsize];
 	int written = 0;
 	packet->pack(data, &written);
-	socket.send_to(boost::asio::buffer(data), server_endpoint);
+	socket.send_to(boost::asio::buffer(data, written), server_endpoint);
 	delete packet;
 }
 
@@ -233,7 +233,7 @@ void ServerSocketManager::send(ServerPacket* packet, int clientid) {
 	char data[Packet::packetsize];
 	int written = 0;
 	packet->pack(data, &written);
-	socket.send_to(boost::asio::buffer(data), clients[clientid].endpoint);
+	socket.send_to(boost::asio::buffer(data, written), clients[clientid].endpoint);
 	delete packet;
 }
 

@@ -2,6 +2,12 @@
 #define SERVERGAME
 
 #include "servergame.h"
+#include "entity.h"
+#include "mobs.h"
+#include "blockdata.h"
+#include "materials.h"
+#include "items.h"
+#include "crafting.h"
 
 ServerGame::IOthread::IOthread(ServerGame* newgame): game(newgame) {
 	
@@ -32,6 +38,10 @@ void ServerGame::command(string command) {
 	} else if (command == "stop") {
 		playing = false;
 	}
+}
+
+void ServerGame::setup_gameloop() {
+	
 }
 
 void ServerGame::gametick() {
