@@ -15,7 +15,7 @@
 #include "game.h"
 
 
-GraphicsContext::GraphicsContext(Game* newgame): game(newgame) {
+GraphicsContext::GraphicsContext(Settings* newsettings): settings(newsettings) {
 	init_glfw();
 	load_textures();
 }
@@ -40,7 +40,7 @@ void GraphicsContext::init_glfw() {
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	
-	if (game->fullscreen) {
+	if (settings->fullscreen) {
 		const GLFWvidmode* return_struct = glfwGetVideoMode( glfwGetPrimaryMonitor() );
 		set_screen_dims(return_struct->width, return_struct->height);
 		window = glfwCreateWindow( screen_x, screen_y, "Scrolls - An Adventure Game", glfwGetPrimaryMonitor(), nullptr);
@@ -299,11 +299,11 @@ void GraphicsContext::make_ui_buffer(Player* player, string debugstream) {
 		vecs.uvs.reserve(last_num_ui_verts*2);
 		vecs.mats.reserve(last_num_ui_verts);
 	}
-	if (game->debug_visible) {
+	//if (game->debug_visible) {
 		render_debug(&vecs, debugstream);
-	} else {
-		render_debug(&vecs, "");
-	}
+	//} else {
+	//	render_debug(&vecs, "");
+	//}
 	player->render_ui(&vecs);
 	if (menu != nullptr) {
 		menu->render(window, game->world, player, &vecs);

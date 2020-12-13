@@ -36,7 +36,7 @@ bool JobQueue<T>::empty() {
 }
 
 
-ThreadManager::ThreadManager(Game* newgame): game(newgame) {
+ThreadManager::ThreadManager() {
 	rendering = false;
 	render_running = true;
 	// glfwWindowHint(GLFW_SAMPLES, 4);

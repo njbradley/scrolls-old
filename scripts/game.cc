@@ -18,9 +18,72 @@
 #include "blockphysics.h"
 
 
-Game::Game(): graphics(this), threadmanager(this) {
-	load_settings();
-	min_ms_per_frame = 1000.0/max_fps;
+
+
+
+void Settings::load_settings() {
+	ifstream ifile("saves/settings.txt");
+	if (ifile.good()) {
+		string name;
+		while (!ifile.eof()) {
+			getline(ifile, name, ':');
+			if (name == "fov") {
+				ifile >> initialFoV;
+			} else if (name == "fullscreen") {
+				ifile >> name;
+				fullscreen = name == "on";
+			} else if (name == "max_fps") {
+				ifile >> max_fps;
+			} else if (name == "framerate_sync") {
+				string sync;
+				ifile >> sync;
+				framerate_sync = sync == "on";
+			} else if (name == "view_dist") {
+				ifile >> view_dist;
+			} else if (name == "alloc_memory") {
+				ifile >> allocated_memory;
+				allocated_memory *= 6;
+			} else if (name == "dims") {
+				int x,y;
+				ifile >> x >> y;
+				set_screen_dims(x, y);
+			} else if (name == "") {
+				continue;
+			} else {
+				cout << "error reading settings file" << endl;
+				cout << "no setting '" << name << "'" << endl;
+				exit(1);
+			}
+			getline(ifile, name);
+		}
+	} else {
+		create_dir("saves");
+		ofstream ofile("saves/settings.txt");
+		ofile << "fov: 90" << endl;
+		ofile << "fullscreen: true" << endl;
+		ofile << "dims: 1600 900" << endl;
+		ofile << "max_fps: 90" << endl;
+		ofile << "framerate_sync: on" << endl;
+		ofile << "alloc_memory: 700000" << endl;
+		ofile << "view_dist: 3" << endl;
+		load_settings();
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+Game::Game(): graphics(&settings) {
+	settings.load_settings();
+	min_ms_per_frame = 1000.0/settings.max_fps;
 	
 	matstorage = new MaterialStorage();
 	blocks = new BlockStorage();
@@ -36,29 +99,29 @@ Game::Game(): graphics(this), threadmanager(this) {
 		ofstream ofile("saves/saves.txt");
 		ofile << "";
 		world = new World("Starting-World", &threadmanager, 12345);
-		graphics.set_world_buffers(world, allocated_memory);
+		graphics.set_world_buffers(world, settings.allocated_memory);
 	} else {
 		string latest;
 		ifile >> latest;
 		if (latest != "") {
 			world = new World(latest, &threadmanager);
-			graphics.set_world_buffers(world, allocated_memory);
+			graphics.set_world_buffers(world, settings.allocated_memory);
 		} else {
 			ifstream ifile2("saves/saves.txt");
 			ifile2 >> latest;
 			if (latest != "") {
 				world = new World(latest, &threadmanager);
-				graphics.set_world_buffers(world, allocated_memory);
+				graphics.set_world_buffers(world, settings.allocated_memory);
 			} else {
 				world = new World("Starting-World", &threadmanager, 12345);
-				graphics.set_world_buffers(world, allocated_memory);
+				graphics.set_world_buffers(world, settings.allocated_memory);
 			}
 		}
 	}
 	
 	graphics.view_distance = view_dist * World::chunksize * 10;
 	
-	if (framerate_sync) {
+	if (settings.framerate_sync) {
 		glfwSwapInterval(1);
 	} else {
 		glfwSwapInterval(0);
@@ -195,7 +258,7 @@ void Game::gametick() {
 	
 	////////////// sleep to max fps
 	double sleep_needed = min_ms_per_frame-ms;
-	if (!framerate_sync and sleep_needed > 0) {
+	if (!settings.framerate_sync and sleep_needed > 0) {
 		
 		double time = lastFrameTime + min_ms_per_frame/1000.0;
 		double newtime = glfwGetTime();
@@ -480,7 +543,7 @@ void Game::level_select_menu() {
 			w->close_world();
 			delete w;
 			world = new World(result, &threadmanager);
-			graphics.set_world_buffers(world, allocated_memory);
+			graphics.set_world_buffers(world, settings.allocated_memory);
 			threadmanager.rendering = true;
 			//debug_visible = true;
 		}
@@ -498,7 +561,7 @@ void Game::new_world_menu() {
 			w->close_world();
 			delete w;
 			world = new World(result, &threadmanager, time(NULL));
-			graphics.set_world_buffers(world, allocated_memory);
+			graphics.set_world_buffers(world, settings.allocated_memory);
 			threadmanager.rendering = true;
 		}
 		delete menu;
@@ -557,9 +620,9 @@ void Game::dump_buffers() {
 	cout << "dumping out contents of memory vectors" << endl;
 	cout << "dumping vertex data" << endl;
 	float* data = (float*)glMapNamedBuffer( world->vecs_dest.vertexbuffer, GL_READ_ONLY);
-	int len = allocated_memory*3;
+	int len = settings.allocated_memory*3;
 	ofstream ofile("dump_buffers_verts.txt");
-	for (int i = 0; i < allocated_memory*3; i ++) {
+	for (int i = 0; i < settings.allocated_memory*3; i ++) {
 		ofile << i/6/3 << ' ' << data[i] << endl;
 		// if (data[i] > 100000 or i%(len/100) == 0 or i < 1000) {
 		//
@@ -573,9 +636,9 @@ void Game::dump_buffers() {
 	
 	cout << "dumping material data" << endl;
 	int* matdata = (int*)glMapNamedBuffer( world->vecs_dest.matbuffer, GL_READ_ONLY);
-	len = allocated_memory*2;
+	len = settings.allocated_memory*2;
 	ofstream mofile("dump_buffers_mat.txt");
-	for (int i = 0; i < allocated_memory*2; i ++) {
+	for (int i = 0; i < settings.allocated_memory*2; i ++) {
 		//if (matdata[i] > 100000 or i%(len/100) == 0 or i < 1000) {
 			mofile << i/6/2 << ' ' << matdata[i] << endl;
 		//}
@@ -588,9 +651,9 @@ void Game::dump_buffers() {
 	
 	cout << "dumping light data" << endl;
 	data = (float*)glMapNamedBuffer( world->vecs_dest.lightbuffer, GL_READ_ONLY);
-	len = allocated_memory;
+	len = settings.allocated_memory;
 	ofstream fofile("dump_buffers_light.txt");
-	for (int i = 0; i < allocated_memory*2; i ++) {
+	for (int i = 0; i < settings.allocated_memory*2; i ++) {
 		//if (data[i] > 100000 or i%(len/100) == 0 or i < 1000) {
 			fofile << i/6 << ' ' << data[i] << endl;
 		//}
@@ -612,54 +675,7 @@ void Game::dump_emptys() {
 
 
 
-void Game::load_settings() {
-	ifstream ifile("saves/settings.txt");
-	if (ifile.good()) {
-		string name;
-		while (!ifile.eof()) {
-			getline(ifile, name, ':');
-			if (name == "fov") {
-				ifile >> initialFoV;
-			} else if (name == "fullscreen") {
-				ifile >> name;
-				fullscreen = name == "on";
-			} else if (name == "max_fps") {
-				ifile >> max_fps;
-			} else if (name == "framerate_sync") {
-				string sync;
-				ifile >> sync;
-				framerate_sync = sync == "on";
-			} else if (name == "view_dist") {
-				ifile >> view_dist;
-			} else if (name == "alloc_memory") {
-				ifile >> allocated_memory;
-				allocated_memory *= 6;
-			} else if (name == "dims") {
-				int x,y;
-				ifile >> x >> y;
-				set_screen_dims(x, y);
-			} else if (name == "") {
-				continue;
-			} else {
-				cout << "error reading settings file" << endl;
-				cout << "no setting '" << name << "'" << endl;
-				exit(1);
-			}
-			getline(ifile, name);
-		}
-	} else {
-		create_dir("saves");
-		ofstream ofile("saves/settings.txt");
-		ofile << "fov: 90" << endl;
-		ofile << "fullscreen: true" << endl;
-		ofile << "dims: 1600 900" << endl;
-		ofile << "max_fps: 90" << endl;
-		ofile << "framerate_sync: on" << endl;
-		ofile << "alloc_memory: 700000" << endl;
-		ofile << "view_dist: 3" << endl;
-		load_settings();
-	}
-}
+
 
 
 

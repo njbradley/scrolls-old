@@ -12,15 +12,15 @@ else
 ifeq ($(PLAT),LINUX)
 LIBS := -lGLEW -lGL -pthread -lglfw
 else
-LIBS := -lglew32 -lopenal -lalut -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32
+LIBS := -lglew32 -lopenal -lalut -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32 -lboost_system-mt -lWs2_32
 EXESUFFIX :=.exe
 endif
 endif
 
-TARGETS := main gentest blocktest commandtest
+TARGETS := main gentest blocktest commandtest block_editor server client
 MAINS := $(addprefix build/, $(addsuffix .o, $(TARGETS)))
-SCRIPTNAMES := audio blockdata blockphysics blocks classes commands crafting cross-platform entity game generative graphics items materials menu mobs multithreading player rendervec shader terrain text texture tiles ui world
-HEADERS := blockdata.h blockphysics.h blocks.h classes.h collider.h commands.h crafting.h cross-platform.h entity.h generative.h items.h materials.h menu.h mobs.h multithreading.h rendervec.h shader.h terrain.h text.h texture.h tiles.h ui.h world.h graphics.h game.h audio.h
+SCRIPTNAMES := audio blockdata blockphysics blocks classes clientgame commands crafting cross-platform entity game generative graphics items materials menu mobs multithreading multiplayer player rendervec servergame shader terrain text texture tiles ui world
+HEADERS := blockdata.h blockphysics.h blocks.h classes.h clientgame.h collider.h commands.h crafting.h cross-platform.h entity.h generative.h items.h materials.h menu.h mobs.h multithreading.h multiplayer.h rendervec.h servergame.h shader.h terrain.h text.h texture.h tiles.h ui.h world.h graphics.h game.h audio.h
 #OBJ := blockdata.o blockphysics.o blocks.o classes.o commands.o crafting.o cross-platform.o entity.o generative.o items.o materials.o menu.o mobs.o multithreading.o player.o rendervec.o shader.o terrain.o text.o texture.o tiles.o ui.o world.o $(MAINS)
 OBJ := $(addprefix build/, $(addsuffix .o, $(SCRIPTNAMES)))
 #SRC := $(addprefix scripts/, $(addsuffix .cc, $(SCRIPTNAMES)))

@@ -36,7 +36,6 @@ public:
 class ThreadManager {
 public:
 	static const int num_threads = 3;
-	Game* game;
 	JobQueue<ivec3> load_queue;
 	JobQueue<ivec3> del_queue;
 	ThreadJob* loading[num_threads];
@@ -51,7 +50,7 @@ public:
 	std::thread tick_thread;
 	int render_num_verts = 0;
 	int tick_ms;
-	ThreadManager(Game* game);
+	ThreadManager();
 	bool add_loading_job(ivec3 pos);
 	bool add_deleting_job(ivec3 pos);
 	vector<Tile*> get_loaded_tiles();

@@ -4,7 +4,7 @@
 #include "classes.h"
 
 class GraphicsContext { public:
-	Game* game;
+	Settings* settings;
 	//GLFWwindow* window;
 	GLuint VertexArrayID;
 	GLuint uiVertexArrayID;
@@ -41,7 +41,7 @@ class GraphicsContext { public:
 	GLuint player_positionID;
 	GLuint sunlightID;
 	
-	GraphicsContext(Game* game);
+	GraphicsContext(Settings* newsettings);
 	void set_world_buffers(World* world, int mem);
 	void init_glfw();
 	void load_textures();

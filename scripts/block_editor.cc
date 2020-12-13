@@ -17,26 +17,25 @@ using std::stringstream;
 #include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
 
-#include "scripts/shader.h"
-#include "scripts/texture.h"
-#include "scripts/player.h"
-#include "scripts/entity.h"
-#include "scripts/menu.h"
-#include "scripts/world.h"
-#include "scripts/blockdata.h"
-#include "scripts/tiles.h"
-#include "scripts/blocks.h"
-#include "scripts/items.h"
-#include "scripts/crafting.h"
-#include "scripts/terrain.h"
-#include "scripts/blockphysics.h"
-#include "scripts/multithreading.h"
+#include "shader.h"
+#include "texture.h"
+#include "entity.h"
+#include "menu.h"
+#include "world.h"
+#include "blockdata.h"
+#include "tiles.h"
+#include "blocks.h"
+#include "items.h"
+#include "crafting.h"
+#include "terrain.h"
+#include "blockphysics.h"
+#include "multithreading.h"
 
-#include "scripts/cross-platform.h"
-#include "scripts/mobs.h"
-#include "scripts/commands.h"
+#include "cross-platform.h"
+#include "mobs.h"
+#include "commands.h"
 
-#include "scripts/classes.h"
+#include "classes.h"
 
 int num_blocks;
 int num_uis;
@@ -66,70 +65,7 @@ bool errors = false;
 
 bool rotation_enabled;
 
-/*
-// Initial position : on +Z
-glm::vec3 position = glm::vec3( 25, 45, 5 );
-// Initial horizontal angle : toward -Z
-float horizontalAngle = 3.14f;
-// Initial vertical angle : none
-float verticalAngle = 0.0f;
-// Initial Field of View
-*/
-// float initialFoV = 85.0f;
-//
-//
-// float speed = 40.0f; // 3 units / second
-// float mouseSpeed = 0.005f;
-//
-// void mouse_button_call(GLFWwindow*, int, int, int);
-// bool mouse;
-// int button;
 
-void wait() {
-	return;
-	std::cout << "Press ENTER to continue...";
-	std::cin.ignore( std::numeric_limits <std::streamsize> ::max(), '\n' );
-}
-
-void dump_buffers() {
-	float* data = (float*)glMapNamedBuffer( world->glvecs.vertexbuffer, GL_READ_ONLY);
-	int len = allocated_memory*3;
-	ofstream ofile("dump_buffers.txt");
-	for (int i = 0; i < len; i ++) {
-		if (data[i] > 100000 or i%(len/100) == 0 or i < 1000) {
-			ofile << i/6/3 << ' ' << data[i] << endl;
-		}
-	}
-	ofile << "numverts" << world->glvecs.num_verts/6 << endl;
-	//char* dat = (char*)data;
-	//ofstream ofile("datadump.dat");
-	//ofile.write(dat, len*sizeof(float));
-	glUnmapNamedBuffer( world->glvecs.vertexbuffer );
-}
-
-void dump_emptys() {
-	ofstream ofile("dump_emptys.txt");
-	for (pair<int,int> index : world->glvecs.empty) {
-		ofile << index.first << ' ' << index.second << endl;
-	}
-}
-
-void crash(long long err_code) {
-	cout << "fatal error encountered! shutting down cleanly: err code: " << err_code << endl;
-	dump_buffers();
-	dump_emptys();
-	errors = true;
-	playing = false;
-}
-
-void hard_crash(long long err_code) {
-	cout << "fatal error encountered! unable to close cleanly: err code: " << err_code << endl;
-	dump_buffers();
-	dump_emptys();
-	errors = true;
-	wait();
-	exit(1);
-}
 
 
 BlockContainer* worldblock;
@@ -795,13 +731,9 @@ int main( int numargs, const char** args)
 			//cout << "rendering!!!!" << endl;
 			//auto fut =  std::async([&] () {world->render();});//();
 			bool changed = worldblock->block->render_flag;
-			worldblock->block->render(&glvecs, worldblock, 0,0,0);
-			if (changed) {
-				glvecs.clean();
-			}
-			num_tris = glvecs.num_verts/3;//threadmanager->render_num_verts/3;//world->glvecs.num_verts/3;
-			//make_vertex_buffer(vertexbuffer, uvbuffer, lightbuffer, matbuffer, &num_tris, render_flag);
-			//render_flag = false;
+			bool[6] faces = {true, true, true, true, true, true};
+			worldblock->block->render(&glvecs, &transparent_glvecs, worldblock, 0,0,0, 1, faces, true, false);
+			
 		}
 		
 		
@@ -835,104 +767,7 @@ int main( int numargs, const char** args)
 			std::this_thread::sleep_for(std::chrono::milliseconds((int)(min_ms_per_frame-ms)));
 		}
 		
-		
-		currentTime = glfwGetTime();
-		// Clear the screen
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		//-----------------------------------------------------FIRST DRAW CALL-------------------------------------------------------------------------------------------------------------------------//
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		
-		glBindVertexArray(VertexArrayID);
-		
-		
-		// Use our shader
-		glUseProgram(programID);
-		
-		// Compute the MVP matrix from keyboard and mouse input
-		glm::mat4 ProjectionMatrix = player->getProjectionMatrix();
-		glm::mat4 ViewMatrix = player->getViewMatrix();
-		glm::mat4 ModelMatrix = glm::mat4(1.0);
-		glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
-		
-		// Send our transformation to the currently bound shader,
-		// in the "MVP" uniform
-		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-		glUniform3f(clearcolorID, clearcolor.x, clearcolor.y, clearcolor.z);
-		glUniform1i(viewdistID, view_distance);
-		glUniform1f(sunlightID, 1.0f);
-		
-		
-		int ids[num_blocks];
-		for (int i = 0; i < num_blocks; i ++) {
-			ids[i] = i;
-			glActiveTexture(GL_TEXTURE0+i);
-			glBindTexture(GL_TEXTURE_2D_ARRAY, block_textures[i]);
-		}
-		
-		
-		
-		// Bind our texture in Texture Unit 0
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_2D, Texture);
-		// Set our "myTextureSampler" sampler to use Texture Unit 0
-		//glUniform1i(TextureID, 0);
-		glUniform1iv(TextureID, num_blocks, ids);
-		
-		// 1rst attribute buffer : vertices
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-		glVertexAttribPointer(
-			0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-			3,                  // size
-			GL_FLOAT,           // type
-			GL_FALSE,           // normalized?
-			0,                  // stride
-			(void*)0            // array buffer offset
-		);
-		
-		// 2nd attribute buffer : UVs
-		glEnableVertexAttribArray(1);
-		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-		glVertexAttribPointer(
-			1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-			2,                                // size : U+V => 2
-			GL_FLOAT,                         // type
-			GL_FALSE,                         // normalized?
-			0,                                // stride
-			(void*)0                          // array buffer offset
-		);
-		
-		glEnableVertexAttribArray(2);
-		glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-		glVertexAttribPointer(
-			2,                                // attribute. No particular reason for 2, but must match the layout in the shader.
-			1,                                // size : 1
-			GL_FLOAT,                         // type
-			GL_FALSE,                         // normalized?
-			0,                                // stride
-			(void*)0                          // array buffer offset
-		);
-		
-		glEnableVertexAttribArray(3);
-		glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
-		glVertexAttribIPointer(
-			3,                                // attribute. No particular reason for 2, but must match the layout in the shader.
-			2,                                // size : 1
-			GL_INT,                         // type
-			                         // normalized?
-			0,                                // stride
-			(void*)0                          // array buffer offset
-		);
-		//cout << num_tris << endl;
-		// Draw the triangle !
-		glDrawArrays(GL_TRIANGLES, 0, num_tris*3); // 12*3 indices starting at 0 -> 12 triangles
-		
-		glDisableVertexAttribArray(0);
-		glDisableVertexAttribArray(1);
-		glDisableVertexAttribArray(2);
-		glDisableVertexAttribArray(3);
+		graphics.block_draw_call(world);
 		
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		//-----------------------------------------------------SECOND DRAW CALL------------------------------------------------------------------------------------------------------------------------//
@@ -1061,16 +896,3 @@ int main( int numargs, const char** args)
 	
 	cout << "completed without errors" << endl;
 }
-
-
-/*
-All other scripts included into this script are considered part of the
-game and are under this same license
-
-Copyright 2020 Nicholas Bradley. All rights reserved.
-
-I grant the right to download and modify the game for your own personal use.
-Please do not distribute or sell original or modified copies of this game without express permission.
-
-This software is provided 'as is' with no expressed or implied warranties.
-*/

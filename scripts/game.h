@@ -9,18 +9,24 @@
 
 #include <iomanip>
 
+class Settings { public:
+	int max_fps;
+	bool framerate_sync = true;
+	int allocated_memory;
+	bool fullscreen = false;
+	float initialFoV = 110.0f;
+	
+	void load_settings();
+};
+
 class Game { public:
 	World* world;
 	
-	int max_fps;
-	double min_ms_per_frame;
-	bool framerate_sync = true;
-	int allocated_memory;
-	bool debug_visible = true;
-	bool fullscreen = false;
+	Settings settings;
 	bool playing = true;
 	bool errors = false;
-	float initialFoV = 110.0f;
+	double min_ms_per_frame;
+	bool debug_visible = true;
 	
 	GraphicsContext graphics;
 	AudioContext audio;
@@ -62,7 +68,6 @@ class Game { public:
 	void dump_buffers();
 	void dump_emptys();
 	
-	void load_settings();
 };
 
 
