@@ -1,3 +1,4 @@
 item lamp {
 	:block: torch
+	:lightlevel: 18
 }

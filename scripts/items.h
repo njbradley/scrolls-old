@@ -69,6 +69,7 @@ class ItemData {
         double starting_reach;
         bool sharpenable;
         Material* material;
+        int lightlevel;
             
         ItemData(ifstream & ifile);
         ~ItemData();

@@ -403,7 +403,7 @@ void Item::render(MemVecs* vecs, float x, float y, float scale) {
 
 ItemData::ItemData(ifstream & ifile):
 stackable(true), onplace(nullptr), rcaction("null"), starting_weight(0),
-starting_sharpness(0), starting_reach(0), sharpenable(false) {
+starting_sharpness(0), starting_reach(0), sharpenable(false), lightlevel(0) {
   
   string buff;
   ifile >> buff;
@@ -435,6 +435,8 @@ starting_sharpness(0), starting_reach(0), sharpenable(false) {
         ifile >> rcaction;
       } else if (varname == "toughness") {
         ifile >> toughness;
+      } else if (varname == "lightlevel") {
+        ifile >> lightlevel;
       } else if (varname == "weight") {
         ifile >> starting_weight;
         sharpenable = true;

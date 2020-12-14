@@ -56,7 +56,33 @@ class Entity { public:
 };
 
 
-class Player: public Entity {
+class DisplayEntity: public Entity {
+public:
+  BlockContainer block;
+  vec3 blockpos;
+  vector<DisplayEntity*> limbs;
+  MemVecs vecs;
+  RenderIndex render_index;
+  bool render_flag;
+  bool dead_falling;
+  int sunlight = 10;
+  int blocklight = 0;
+  int emitted_light = 0;
+  bool emitted_light_flag = false;
+  ivec3 lit_block;
+  DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos,
+    vector<DisplayEntity*> newlimbs);
+  DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos);
+  DisplayEntity(World* nworld, istream& ifile);
+  ~DisplayEntity();
+  virtual void render(RenderVecs* allvecs);
+  virtual void calc_light(vec3 offset, vec2 ang);
+  virtual void on_timestep(double deltatime);
+  virtual void to_file(ostream& ofile);
+  //void die();
+};
+
+class Player: public DisplayEntity {
 	
 	mat4 ViewMatrix;
 	mat4 ProjectionMatrix;
@@ -88,33 +114,8 @@ class Player: public Entity {
     void raycast(Pixel** hit, vec3* hitpos, DisplayEntity** entity);
 		void mouse_button();
 		void computeMatricesFromInputs();
+    void update_held_light();
 		void render_ui(MemVecs * uivecs);
-};
-
-
-class DisplayEntity: public Entity {
-public:
-  BlockContainer block;
-  vec3 blockpos;
-  vector<DisplayEntity*> limbs;
-  MemVecs vecs;
-  RenderIndex render_index;
-  bool render_flag;
-  bool dead_falling;
-  int sunlight = 10;
-  int blocklight = 0;
-  int emitted_light = 0;
-  ivec3 lit_block;
-  DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos,
-    vector<DisplayEntity*> newlimbs);
-  DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos);
-  DisplayEntity(World* nworld, istream& ifile);
-  ~DisplayEntity();
-  virtual void render(RenderVecs* allvecs);
-  virtual void calc_light(vec3 offset, vec2 ang);
-  virtual void on_timestep(double deltatime);
-  virtual void to_file(ostream& ofile);
-  //void die();
 };
 
 class NamedEntity: public DisplayEntity {

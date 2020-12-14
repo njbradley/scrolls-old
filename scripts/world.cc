@@ -539,6 +539,8 @@ bool World::render() {
     ppos = ppos / chunksize - ivec3(ppos.x < 0, ppos.y < 0, ppos.z < 0);
     Tile* playertile = tileat(ppos);
     
+    player->render(&glvecs);
+    
     if (playertile != nullptr and playertile->chunk->render_flag) {
       playertile->render(&glvecs, &transparent_glvecs);
       changed = true;

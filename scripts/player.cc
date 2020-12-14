@@ -56,7 +56,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 
 Player::Player(World* newworld, vec3 pos):
-	Entity(newworld, pos, vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7)), inven(10), backpack(10) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
+DisplayEntity(newworld, pos, vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7), new Pixel(0,0,0, 0, 1, nullptr, nullptr), vec3(0,0,0)),
+inven(10), backpack(10) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
 	glfwSetMouseButtonCallback(window, mouse_button_call);
 	glfwSetScrollCallback(window, scroll_callback);
 	if (newworld == nullptr) {
@@ -71,16 +72,17 @@ Player::Player(World* newworld, vec3 pos):
 }
 
 Player::Player(World* newworld, istream& ifile):
-	Entity(newworld, vec3(0,0,0), vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7)), inven(ifile), backpack(ifile) {
-		ifile >> selitem;
-		ifile >> position.x >> position.y >> position.z;
-		ifile >> vel.x >> vel.y >> vel.z >> angle.x >> angle.y;
-		ifile >> health >> max_health >> damage_health >> healing_health >> healing_speed;
-		ifile >> flying >> autojump;
-		glfwSetMouseButtonCallback(window, mouse_button_call);
-		glfwSetScrollCallback(window, scroll_callback);
-		
-		init_block_breaking_vecs();
+DisplayEntity(newworld, vec3(0,0,0), vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7), new Pixel(0,0,0, 0, 1, nullptr, nullptr), vec3(0,0,0)),
+inven(ifile), backpack(ifile) {
+	ifile >> selitem;
+	ifile >> position.x >> position.y >> position.z;
+	ifile >> vel.x >> vel.y >> vel.z >> angle.x >> angle.y;
+	ifile >> health >> max_health >> damage_health >> healing_health >> healing_speed;
+	ifile >> flying >> autojump;
+	glfwSetMouseButtonCallback(window, mouse_button_call);
+	glfwSetScrollCallback(window, scroll_callback);
+	update_held_light();
+	init_block_breaking_vecs();
 }
 
 void Player::init_block_breaking_vecs() {
@@ -622,6 +624,7 @@ void Player::computeMatricesFromInputs(){
 	for (int i = 0; i < 10; i ++) {
 		if (glfwGetKey(window, (i != 9) ? GLFW_KEY_1 + i : GLFW_KEY_0)) {
 			selitem = i;
+			update_held_light();
 			break;
 		}
 	}
@@ -647,6 +650,7 @@ void Player::computeMatricesFromInputs(){
 		} if (selitem > 9) {
 			selitem = 9;
 		}
+		update_held_light();
 		scroll = 0;
 	}
 	
@@ -669,6 +673,21 @@ void Player::computeMatricesFromInputs(){
 
 	// For the next frame, the "last time" will be "now"
 	lastTime = currentTime;
+}
+
+void Player::update_held_light() {
+	Item* item = inven.get(selitem);
+	if (item->isnull) {
+		if (emitted_light != 0) {
+			emitted_light = 0;
+			emitted_light_flag = true;
+		}
+	} else {
+		if (emitted_light != item->data->lightlevel) {
+			emitted_light = item->data->lightlevel;
+			emitted_light_flag = true;
+		}
+	}
 }
 
 void Player::render_ui(MemVecs * uivecs) {

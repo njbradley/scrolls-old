@@ -781,7 +781,9 @@ void DisplayEntity::calc_light(vec3 offset, vec2 ang) {
   rotpos.z = tmpx * sin(ang.x) + position.z * cos(ang.x);
   
   Block* b = world->get_global(rotpos.x+offset.x, rotpos.y+offset.y, rotpos.z+offset.z, 1);
-  if (emitted_light == 0) {
+    
+  
+  if (emitted_light == 0 and !emitted_light_flag) {
     if (b != nullptr) {
       sunlight = b->get_pix()->sunlight;
       blocklight = b->get_pix()->blocklight;
@@ -795,7 +797,7 @@ void DisplayEntity::calc_light(vec3 offset, vec2 ang) {
       ivec3 newpos;
       pix->global_position(&newpos.x, &newpos.y, &newpos.z);
       sunlight = pix->sunlight;
-      if (newpos != lit_block) {
+      if (newpos != lit_block or emitted_light_flag) {
         Block* bb = world->get_global(lit_block.x, lit_block.y, lit_block.z, 1);
         if (bb != nullptr) {
           bb->get_pix()->entitylight = 0;
@@ -817,6 +819,7 @@ void DisplayEntity::calc_light(vec3 offset, vec2 ang) {
       blocklight = emitted_light;
     }
   }
+  emitted_light_flag = false;
   
   for (DisplayEntity* limb : limbs) {
     limb->calc_light(offset+rotpos, ang+angle);
