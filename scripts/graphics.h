@@ -45,9 +45,9 @@ class GraphicsContext { public:
 	void set_world_buffers(World* world, int mem);
 	void init_glfw();
 	void load_textures();
-	void block_draw_call(World* world);
+	void block_draw_call(Player* player, float sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs);
 	void make_ui_buffer(Player* player, string debugstream);
-	void ui_draw_call(World* world, std::stringstream* debugstream);
+	void ui_draw_call(Player* player, std::stringstream* debugstream);
 	void swap();
 	~GraphicsContext();
 };

@@ -723,44 +723,47 @@ void DisplayEntity::render(RenderVecs* allvecs) {
     // }
     render_flag = false;
   }
-  MemVecs translated;
-  translated.add(&vecs);
-  //cout << 't' << translated.num_verts << endl;
   
-  
-  for (DisplayEntity* limb : limbs) {
-    limb->render_index = RenderIndex::npos;
-    limb->render(&translated);
-  }
-  //cout << 'y' << translated.num_verts << endl;
-  for (int i = 0; i < translated.num_verts; i++) {
-    // translated.verts[i*3+0] += blockpos.x;
-    // translated.verts[i*3+1] += blockpos.y;
-    // translated.verts[i*3+2] += blockpos.z;
-    float x = translated.verts[i*3+0];
-    float y = translated.verts[i*3+1];
-    float z = translated.verts[i*3+2];
-    translated.verts[i*3+0] = x * cos(angle.y) - y * sin(angle.y);
-    translated.verts[i*3+1] = x * sin(angle.y) + y * cos(angle.y);
-    x = translated.verts[i*3+0];
-    y = translated.verts[i*3+1];
-    z = translated.verts[i*3+2];
-    translated.verts[i*3+0] = x * cos(angle.x) - z * sin(angle.x);
-    translated.verts[i*3+2] = x * sin(angle.x) + z * cos(angle.x);
+  if (vecs.num_verts > 0) {
+    MemVecs translated;
+    translated.add(&vecs);
+    //cout << 't' << translated.num_verts << endl;
     
-    translated.verts[i*3+0] += position.x;
-    translated.verts[i*3+1] += position.y;
-    translated.verts[i*3+2] += position.z;
     
-    translated.light[i*2+0] = int(translated.light[i*2+0]*sunlight)/lightmax;
-    if (translated.light[i*2+1] == 0) {
-      translated.light[i*2+1] = blocklight/lightmax;
+    for (DisplayEntity* limb : limbs) {
+      limb->render_index = RenderIndex::npos;
+      limb->render(&translated);
     }
-  }
-  if (render_index.isnull()) {
-    render_index = allvecs->add(&translated);
-  } else {
-    allvecs->edit(render_index, &translated); //ERR: passes problemic vector? segfault deep in allvecs.edit, where translated.verts is added on
+    //cout << 'y' << translated.num_verts << endl;
+    for (int i = 0; i < translated.num_verts; i++) {
+      // translated.verts[i*3+0] += blockpos.x;
+      // translated.verts[i*3+1] += blockpos.y;
+      // translated.verts[i*3+2] += blockpos.z;
+      float x = translated.verts[i*3+0];
+      float y = translated.verts[i*3+1];
+      float z = translated.verts[i*3+2];
+      translated.verts[i*3+0] = x * cos(angle.y) - y * sin(angle.y);
+      translated.verts[i*3+1] = x * sin(angle.y) + y * cos(angle.y);
+      x = translated.verts[i*3+0];
+      y = translated.verts[i*3+1];
+      z = translated.verts[i*3+2];
+      translated.verts[i*3+0] = x * cos(angle.x) - z * sin(angle.x);
+      translated.verts[i*3+2] = x * sin(angle.x) + z * cos(angle.x);
+      
+      translated.verts[i*3+0] += position.x;
+      translated.verts[i*3+1] += position.y;
+      translated.verts[i*3+2] += position.z;
+      
+      translated.light[i*2+0] = int(translated.light[i*2+0]*sunlight)/lightmax;
+      if (translated.light[i*2+1] == 0) {
+        translated.light[i*2+1] = blocklight/lightmax;
+      }
+    }
+    if (render_index.isnull()) {
+      render_index = allvecs->add(&translated);
+    } else {
+      allvecs->edit(render_index, &translated); //ERR: passes problemic vector? segfault deep in allvecs.edit, where translated.verts is added on
+    }
   }
   //cout << render_index.first << ',' << render_index.second << ' ' << vecs.num_verts << endl;
   // cout << position.x << ' ' << position.y << ' ' << position.z << endl;

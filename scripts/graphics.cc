@@ -175,7 +175,7 @@ void GraphicsContext::load_textures() {
 
 
 
-void GraphicsContext::block_draw_call(World* world) {
+void GraphicsContext::block_draw_call(Player* player, float sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) {
 	
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
@@ -196,19 +196,19 @@ void GraphicsContext::block_draw_call(World* world) {
 	glUseProgram(programID);
 	
 	// Compute the MVP matrix from keyboard and mouse input
-	glm::mat4 ProjectionMatrix = world->player->getProjectionMatrix();
-	glm::mat4 ViewMatrix = world->player->getViewMatrix();
+	glm::mat4 ProjectionMatrix = player->getProjectionMatrix();
+	glm::mat4 ViewMatrix = player->getViewMatrix();
 	glm::mat4 ModelMatrix = glm::mat4(1.0);
 	glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 	
 	// Send our transformation to the currently bound shader,
 	// in the "MVP" uniform
 	glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-	glUniform3f(clearcolorID, clearcolor.x * world->sunlight, clearcolor.y * world->sunlight, clearcolor.z * world->sunlight);
-	glClearColor(clearcolor.x * world->sunlight, clearcolor.y * world->sunlight, clearcolor.z * world->sunlight, 0.0f);
+	glUniform3f(clearcolorID, clearcolor.x * sunlight, clearcolor.y * sunlight, clearcolor.z * sunlight);
+	glClearColor(clearcolor.x * sunlight, clearcolor.y * sunlight, clearcolor.z * sunlight, 0.0f);
 	glUniform1i(viewdistID, view_distance);
-	glUniform3f(player_positionID, world->player->position.x, world->player->position.y, world->player->position.z);
-	glUniform1f(sunlightID, world->sunlight);
+	glUniform3f(player_positionID, player->position.x, player->position.y, player->position.z);
+	glUniform1f(sunlightID, sunlight);
 	
 	
 	// 1rst attribute buffer : vertices
@@ -267,7 +267,7 @@ void GraphicsContext::block_draw_call(World* world) {
 	}
 	glUniform1iv(TextureID, num_blocks, ids);
 	
-	glDrawArrays(GL_TRIANGLES, 0, world->glvecs.num_verts); // 12*3 indices starting at 0 -> 12 triangles
+	glDrawArrays(GL_TRIANGLES, 0, glvecs->num_verts); // 12*3 indices starting at 0 -> 12 triangles
 	
 	
 	glEnable(GL_BLEND);
@@ -283,7 +283,7 @@ void GraphicsContext::block_draw_call(World* world) {
 	glUniform1iv(TextureID, num_blocks, ids);
 	
 	
-	glDrawArrays(GL_TRIANGLES, world->transparent_glvecs.offset, world->transparent_glvecs.num_verts);
+	glDrawArrays(GL_TRIANGLES, transparent_glvecs->offset, transparent_glvecs->num_verts);
 	
 	
 	glDisableVertexAttribArray(0);
@@ -326,7 +326,7 @@ void GraphicsContext::make_ui_buffer(Player* player, string debugstream) {
 	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &vecs.mats.front(), GL_STATIC_DRAW);
 }
 
-void GraphicsContext::ui_draw_call(World* world, std::stringstream* debugstream) {
+void GraphicsContext::ui_draw_call(Player* player, std::stringstream* debugstream) {
 	
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
@@ -338,7 +338,7 @@ void GraphicsContext::ui_draw_call(World* world, std::stringstream* debugstream)
 	//*
 	glUseProgram(uiProgram);
 	
-	make_ui_buffer(world->player, debugstream->str());
+	make_ui_buffer(player, debugstream->str());
 	
 	int uv_ids[num_uis];
 	

@@ -292,7 +292,7 @@ void Game::gametick() {
 	start = glfwGetTime();
 	
 	
-	graphics.block_draw_call(world);
+	graphics.block_draw_call(world->player, world->sunlight, &world->glvecs, &world->transparent_glvecs);
 	
 	
 	
@@ -308,7 +308,7 @@ void Game::gametick() {
 	//-----------------------------------------------------SECOND DRAW CALL------------------------------------------------------------------------------------------------------------------------//
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
-	graphics.ui_draw_call(world, &debugstream);
+	graphics.ui_draw_call(world->player, &debugstream);
 	// Swap buffers
 	
 	time = glfwGetTime() - begin;

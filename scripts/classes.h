@@ -94,6 +94,7 @@ class ItemContainer;
 class RenderVecs;
 class MemVecs;
 class GLVecs;
+class AsyncGLVecs;
 class GLVecsDestination;
 class BlockExtra;
 class Command;
