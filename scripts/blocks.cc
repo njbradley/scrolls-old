@@ -355,6 +355,24 @@ Block* Pixel::get_global(int x, int y, int z, int scale) {
     return this;
 }
 
+Block* Pixel::set_global(ivec4 pos, char val, int direction) {
+  if (val == value) {
+    return this;
+  } else if (pos.w == scale) {
+    set(val, direction, nullptr, true);
+    return this;
+  } else if (pos.w < scale) {
+    Chunk* newchunk = subdivide();
+    newchunk->set_global(pos, val, direction);
+    del(true);
+    delete this;
+    return newchunk;
+  } else {
+    cout << "ERR: blocks.cc:368 " << endl;
+    return nullptr;
+  }
+}
+
 void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) {
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);
@@ -1802,31 +1820,57 @@ void Chunk::set_all_render_flags() {
 }
 
 Block* Chunk::get_global(int x, int y, int z, int nscale) {
-    //cout << "blocks get_global " << x << ' ' << y << ' ' << z << " scale:" << nscale << endl;
     if (nscale == scale) {
-        //cout << " at scale return this\n\n";
         return this;
     } else {
-        if (x < 0 or x >= scale or y < 0 or y >= scale or z < 0 or z >= scale) {
-            //cout << "ret null ---s -- - - -- -" << endl;
-            //return nullptr;
-        }
         int lx, ly, lz;
-        //cout << 206 << endl;
         world_to_local(x, y, z, &lx, &ly, &lz);
-        //cout << lx << ' ' << ly << ' ' << lz << endl;
         if (lx < 0 or lx >= csize*scale or ly < 0 or ly >= csize*scale or lz < 0 or lz >= csize*scale) {
-            //cout << "returning null -------------------------------\n\n";
             return nullptr;
         }
         int nlx = lx/(scale/csize);
         int nly = ly/(scale/csize);
         int nlz = lz/(scale/csize);
-        //cout << nlx << ' ' << nly << ' ' << nlz << endl;
-        //cout << "sdfkhaskdfjhaksldfhalkjsdfhalksfh 229 ksjdfl;akjfd;alksdjf;alksdfja;sd" << endl;
         return get(nlx, nly, nlz)->get_global(lx, ly, lz, nscale);
     }
 }
+
+Block* Chunk::set_global(ivec4 pos, char val, int direction) {
+  if (pos.w == scale) {
+    Tile* tile = get_global(pos.x, pos.y, pos.z, 1)->get_pix()->tile;
+    Pixel* pix = new Pixel(px, py, pz, 0, scale, parent, tile);
+    pix->set(val, direction, nullptr, true);
+    del(true);
+    delete this;
+    return pix;
+  } else if (pos.w < scale) {
+    ivec3 lpos;
+    world_to_local(pos.x, pos.y, pos.z, &lpos.x, &lpos.y, &lpos.z);
+    if (lpos.x < 0 or lpos.x >= csize*scale or lpos.y < 0 or lpos.y >= csize*scale or lpos.z < 0 or lpos.z >= csize*scale) {
+      return this;
+    }
+    ivec3 nlpos = lpos / (scale / csize);
+    blocks[nlpos.x][nlpos.y][nlpos.z] = blocks[nlpos.x][nlpos.y][nlpos.z]->set_global(ivec4(lpos.x, lpos.y, lpos.z, pos.w), val, direction);
+    if (!blocks[nlpos.x][nlpos.y][nlpos.z]->continues()) {
+      for (Pixel* pix : iter()) {
+        if (pix->value != val) {
+          return this;
+        }
+      }
+      Tile* tile = get_global(pos.x, pos.y, pos.z, 1)->get_pix()->tile;
+      Pixel* pix = new Pixel(px, py, pz, 0, scale, parent, tile);
+      pix->set(val, direction, nullptr, true);
+      del(true);
+      delete this;
+      return pix;
+    }
+    return this;
+  } else {
+    cout << "ERR: blocks.cc 1866 " << endl;
+    return nullptr;
+  }
+}
+    
 
 void Chunk::save_to_file(ostream& of, bool yield) {
     of << char(0b11000000);

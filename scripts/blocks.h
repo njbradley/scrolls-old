@@ -53,6 +53,7 @@ class Block: public Collider { public:
     virtual void rotate(int axis, int direction) = 0;
     bool is_air(int, int, int, char otherval = -1) const;
     virtual Block * get_global(int,int,int,int) = 0;
+    virtual Block* set_global(ivec4 pos, char val, int direction = -1) = 0;
     virtual void set_all_render_flags() = 0;
     virtual void save_to_file(ostream&, bool yield = false) = 0;
     virtual void lighting_update() = 0;
@@ -115,6 +116,7 @@ public:
     virtual void rotate(int axis, int dir);
     virtual void lighting_update();
     virtual Block* get_global(int x, int y, int z, int scale);
+    virtual Block* set_global(ivec4 pos, char val, int direction = -1);
     virtual void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
     void render_smooth(RenderVecs* vecs, RenderVecs* transvecs, Collider* collider, vec3 view_normal);
     Chunk* subdivide();
@@ -153,6 +155,7 @@ class Chunk: public Block { public:
     virtual void del(bool remove_faces);
     virtual void rotate(int axis, int dir);
     virtual Block* get_global(int x, int y, int z, int nscale);
+    virtual Block* set_global(ivec4 pos, char val, int direction = -1);
     virtual void save_to_file(ostream& of, bool yield = false);
 };
 
