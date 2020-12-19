@@ -676,6 +676,23 @@ void World::summon(DisplayEntity* entity) {
 }
 
 void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras) {
+  int px = x/chunksize;
+  int py = y/chunksize;
+  int pz = z/chunksize;
+  if (x < 0 and -x%chunksize != 0) {
+      px --;
+  } if (y < 0 and -y%chunksize != 0) {
+      py --;
+  } if (z < 0 and -z%chunksize != 0) {
+      pz --;
+  }
+  Tile* tile = tileat(ivec3(px, py, pz));
+  //cout << "tile " << ivec3(px, py, pz) << endl;
+  int lx = x - px*chunksize;
+  int ly = y - py*chunksize;
+  int lz = z - pz*chunksize;
+  tile->chunk = tile->chunk->set_global(ivec4(lx, ly, lz, 1), val, direction);
+  return;
     // cout << x << ' ' << y << ' ' << z << ' ' << int(val) << ' ' << direction << ' ' << extras << endl;
     int before = clock();
     Block* newblock = get_global(x,y,z, 1);

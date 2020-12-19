@@ -356,15 +356,19 @@ Block* Pixel::get_global(int x, int y, int z, int scale) {
 }
 
 Block* Pixel::set_global(ivec4 pos, char val, int direction) {
+  //cout << pos.x << ' ' << pos.y << ' ' << pos.z << ' ' << pos.w << ' ' << int(val) << ' ' << direction << endl;
   if (val == value) {
+    //cout << "set_global pix same val" << endl;
     return this;
   } else if (pos.w == scale) {
+    //cout << "set_global pix diff val" << endl;
     set(val, direction, nullptr, true);
     return this;
   } else if (pos.w < scale) {
+    //cout << "subdividing" << endl;
     Chunk* newchunk = subdivide();
     newchunk->set_global(pos, val, direction);
-    del(true);
+    //del(true);
     delete this;
     return newchunk;
   } else {
@@ -915,7 +919,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collide
        
       int minscale = blockdata->minscale;
       
-      const GLfloat uvmax = scale;
+      const GLfloat uvmax = 1.0f;//scale;
       // /char mat = tex_index;
       /*GLfloat new_uvs[] = {
           0.0f, 1.0f * newscale/minscale,
@@ -1836,7 +1840,9 @@ Block* Chunk::get_global(int x, int y, int z, int nscale) {
 }
 
 Block* Chunk::set_global(ivec4 pos, char val, int direction) {
+  //cout << pos.x << ' ' << pos.y << ' ' << pos.z << ' ' << pos.w << ' ' << int(val) << ' ' << direction << endl;
   if (pos.w == scale) {
+    //cout << "set_global chunk unsubdividing " << endl;
     Tile* tile = get_global(pos.x, pos.y, pos.z, 1)->get_pix()->tile;
     Pixel* pix = new Pixel(px, py, pz, 0, scale, parent, tile);
     pix->set(val, direction, nullptr, true);
@@ -1844,9 +1850,11 @@ Block* Chunk::set_global(ivec4 pos, char val, int direction) {
     delete this;
     return pix;
   } else if (pos.w < scale) {
+    //cout << "set_global chunk going deeper " << endl;
     ivec3 lpos;
     world_to_local(pos.x, pos.y, pos.z, &lpos.x, &lpos.y, &lpos.z);
     if (lpos.x < 0 or lpos.x >= csize*scale or lpos.y < 0 or lpos.y >= csize*scale or lpos.z < 0 or lpos.z >= csize*scale) {
+      cout << "out of range" << endl;
       return this;
     }
     ivec3 nlpos = lpos / (scale / csize);
@@ -1857,6 +1865,7 @@ Block* Chunk::set_global(ivec4 pos, char val, int direction) {
           return this;
         }
       }
+      //cout << "merging " << endl;
       Tile* tile = get_global(pos.x, pos.y, pos.z, 1)->get_pix()->tile;
       Pixel* pix = new Pixel(px, py, pz, 0, scale, parent, tile);
       pix->set(val, direction, nullptr, true);

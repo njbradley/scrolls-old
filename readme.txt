@@ -18,11 +18,13 @@ On windows, msys2 can be used to install the libraries:
 	mingw-w64-x86_64-glm
 	mingw-w64-x86_64-glfw
 	mingw-w64-x86_64-glew
+	mingw-w64-x86_64-boost
 On linux, apt can be used:
 	libglfw3-dev
 	libglew-dev
 	libalut-dev
 	libglm-dev
+	libboost-all-dev
 On mac and linux, the libraries can be installed with atp-get or brew.
 The compile command is rather simple with make, run the command "make main" in the
 root directory. Specify the platform by adding PLAT=MAC or PLAT=LINUX.
