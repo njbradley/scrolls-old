@@ -26,12 +26,8 @@ bool BlockGroup::add(Pixel* pix) {
 	if (final) {
 		return false;
 	}
-	if (pix->group != nullptr) {
-		if (!pix->group->final and !final and pix->group->blocktype == blocktype) {
-			if (pix->group->size > size) {
-				return false;
-			}
-		}
+	if (pix->group != nullptr and !can_take(pix)) {
+		return false;
 	}
 	if (size == 0 and uniform_type) {
 		blocktype = pix->value;
@@ -41,7 +37,7 @@ bool BlockGroup::add(Pixel* pix) {
 			pix->group->del(pix);
 		}
 		pix->group = this;
-		size ++;
+		size += pix->scale * pix->scale * pix->scale;
 		return true;
 	}
 	return false;
@@ -60,8 +56,9 @@ void BlockGroup::spread(Pixel* pix, int depth) {
 					spread(sidepix, depth-1);
 					if (!contains(sidepix)) {
 						if (sidepix->group != nullptr) {
-							if (!final and !sidepix->group->final and sidepix->group->blocktype == blocktype) {
-								cout << "would let take over " << endl;
+							if (sidepix->group->can_take(pix)) {
+								cout << "blocktypes " << int(blocktype) << ' ' << int(sidepix->group->blocktype) << endl;
+								cout << "would let take over " << this << '.' << size << ' '  << ' ' << pix << ' ' << ' ' << sidepix->group << '.' << sidepix->group->size << endl;
 								del(pix);
 								sidepix->group->spread(pix);
 								return;
@@ -85,10 +82,16 @@ void BlockGroup::spread(Pixel* pix, int depth) {
 bool BlockGroup::del(Pixel* pix) {
 	if (contains(pix)) {
 		pix->group = nullptr;
-		size --;
+		size -= pix->scale * pix->scale * pix->scale;
 		return true;
 	}
 	return false;
+}
+
+bool BlockGroup::can_take(Pixel* pix) {
+	return !final and pix->group != nullptr and pix->group != this
+	and !pix->group->final and pix->group->blocktype == blocktype
+	and pix->group->size <= size;
 }
 
 bool BlockGroup::contains(Pixel* pix) {

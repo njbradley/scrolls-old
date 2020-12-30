@@ -424,14 +424,15 @@ void World::timestep() {
 }
 
 void World::tick() {
-  for (ivec3 pos : block_updates) {
+  unordered_set<ivec3,ivec3_hash> local_updates;
+  local_updates.swap(block_updates);
+  for (ivec3 pos : local_updates) {
     //cout << pos.x << endl;
     Block* block = get_global(pos.x, pos.y, pos.z, 1);
     if (block != nullptr and block->get_pix() != nullptr) {
       block->get_pix()->tick();
     }
   }
-  block_updates.clear();
   /*
   //cout << "world tick" << endl;
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {

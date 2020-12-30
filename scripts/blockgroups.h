@@ -20,6 +20,7 @@ class BlockGroup { public:
 	bool add(Pixel* pix);
 	void spread(Pixel* pix, int depth = 10);
 	bool del(Pixel* pix);
+	bool can_take(Pixel* pix);
 	bool contains(Pixel* pix);
 	static constexpr ivec3 dir_array[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
 };

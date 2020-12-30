@@ -466,10 +466,15 @@ void Pixel::tick() {
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
   cout << "tick " << group << ' ' << int(value) << ' ' << ' ' << gx << ' ' << gy << ' ' << gz << ' ' << scale << endl;
-  
-  if (group == nullptr) {
+  if (value == 0) {
+    if (group != nullptr) {
+      group->del(this);
+    }
+    group = nullptr;
+  } else if (group == nullptr) {
+    cout << "type block " << blocks->blocks[value]->name << endl;
     BlockGroup* newgroup = new BlockGroup(tile->world);
-    newgroup->spread(this, 5);
+    newgroup->spread(this);
     cout << newgroup << ' ' << group << endl;
     if (group != nullptr) {
       cout << group->size << endl;
@@ -593,12 +598,9 @@ void Pixel::del(bool remove_faces) {
         tile->world->glvecs.del(render_index);
       }
     }
-    // if (physicsgroup != nullptr and !physicsgroup->persistant()) {
-    //   physicsgroup->block_poses.erase(ivec3(gx, gy, gz));
-    //   if (physicsgroup->block_poses.size() == 0) {
-    //     delete physicsgroup;
-    //   }
-    // }
+    if (group != nullptr) {
+      group->del(this);
+    }
 }
 
 void Pixel::lighting_update() {

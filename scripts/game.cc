@@ -189,6 +189,7 @@ void Game::gametick() {
 	}
 	
 	begin = glfwGetTime();
+	debugstream.str("");
 	if (debug_visible) {
 		print_debug();
 		
@@ -375,7 +376,7 @@ void Game::gametick() {
 		} else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
 			dump_buffers();
 			dump_emptys();
-			game->crash(1);
+			crash(1);
 		} else if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS) {
 			map<Material*,char> mat_blocks;
 			for (pair<char,BlockData*> kv : blocks->blocks) {
@@ -405,7 +406,7 @@ void Game::gametick() {
 					ofile << endl;
 				}
 			}
-			game->crash(443456765);
+			crash(443456765);
 		}
 	} else {
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE ) == GLFW_PRESS) {
@@ -489,34 +490,34 @@ void Game::print_debug() {
 	}
 	
 	debugstream << "-----block-entity-tracking-----" << endl;
-	if (game->debugentity != nullptr) {
-		debugstream << "tracking entity " << game->debugentity << endl;
-		debugstream << "x:" << game->debugentity->position.x << " y:" << game->debugentity->position.y << " z:" << game->debugentity->position.z << endl;
-		debugstream << "dx:" << game->debugentity->vel.x << " dy:" << game->debugentity->vel.y << " dz:" << game->debugentity->vel.z << endl;
+	if (debugentity != nullptr) {
+		debugstream << "tracking entity " << debugentity << endl;
+		debugstream << "x:" << debugentity->position.x << " y:" << debugentity->position.y << " z:" << debugentity->position.z << endl;
+		debugstream << "dx:" << debugentity->vel.x << " dy:" << debugentity->vel.y << " dz:" << debugentity->vel.z << endl;
 		debugstream << "consts: ";
-		for (bool b : game->debugentity->consts ) {
+		for (bool b : debugentity->consts ) {
 			debugstream << b << ' ';
 		}
 		debugstream << endl;
 	}
-	if (game->debugblock != nullptr) {
+	if (debugblock != nullptr) {
 		int gx, gy, gz;
-		game->debugblock->global_position(&gx, &gy, &gz);
+		debugblock->global_position(&gx, &gy, &gz);
 		string name = "undef";
-		BlockData* data = blocks->blocks[game->debugblock->get()];
+		BlockData* data = blocks->blocks[debugblock->get()];
 		if (data != nullptr) {
 			name = data->name;
 		}
-		// if (game->debugblock->group != nullptr) {
-		// 	game->debugblock->group->debug(debugstream);
+		// if (debugblock->group != nullptr) {
+		// 	debugblock->group->debug(debugstream);
 		// }
-		debugstream << "tracking block " << game->debugblock << " at " << gx << "x " << gy << "y " << gz << "z " << endl;
-		debugstream << " type:" << name << " char:" << int(game->debugblock->value) << " scale:" << game->debugblock->scale << endl;
-		debugstream << " direction:" << int(game->debugblock->direction) << " render_index:" << game->debugblock->render_index.start << ',' << game->debugblock->render_index.size << endl;
-		debugstream << " parent coords:" << game->debugblock->px << ',' << game->debugblock->py << ',' << game->debugblock->pz << endl;
-		debugstream << " physics_group:" << game->debugblock->group << ' ' << "light " << debugblock->blocklight << ' ' << debugblock->sunlight << endl;
+		debugstream << "tracking block " << debugblock << " at " << gx << "x " << gy << "y " << gz << "z " << endl;
+		debugstream << " type:" << name << " char:" << int(debugblock->value) << " scale:" << debugblock->scale << endl;
+		debugstream << " direction:" << int(debugblock->direction) << " render_index:" << debugblock->render_index.start << ',' << debugblock->render_index.size << endl;
+		debugstream << " parent coords:" << debugblock->px << ',' << debugblock->py << ',' << debugblock->pz << endl;
+		debugstream << " physics_group:" << debugblock->group << ' ' << "light " << debugblock->blocklight << ' ' << debugblock->sunlight << endl;
 		
-		if (game->debugblock->group != nullptr) {
+		if (debugblock->group != nullptr) {
 			debugstream << " group: size " << debugblock->group->size << endl;
 		}
 	}
@@ -598,8 +599,8 @@ void Game::crash(long long err_code) {
 	}
 	//dump_buffers();
 	//dump_emptys();
-	game->errors = true;
-	game->playing = false;
+	errors = true;
+	playing = false;
 }
 
 void Game::hard_crash(long long err_code) {
