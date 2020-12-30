@@ -28,7 +28,7 @@ using namespace glm;
 #include "items.h"
 #include "crafting.h"
 #include "terrain.h"
-#include "blockphysics.h"
+#include "blockgroups.h"
 #include "multithreading.h"
 
 #include "cross-platform.h"

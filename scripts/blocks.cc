@@ -8,7 +8,7 @@
 #include "rendervec.h"
 #include "blockdata.h"
 #include "tiles.h"
-#include "blockphysics.h"
+#include "blockgroups.h"
 #include "world.h"
 #include "entity.h"
 #include "mobs.h"
@@ -316,11 +316,13 @@ void Block::read_pix_val(istream& ifile, char* type, unsigned int* value) {
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile):
   Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), tile(ntile), direction(0) {
-    reset_lightlevel();
     if (value != 0) {
       if (blocks->blocks.find(value) == blocks->blocks.end()) {
         cout << "ERR: unknown char code " << int(value) << " (corrupted file?)" << endl;
       }
+    }
+    reset_lightlevel();
+    if (value != 0) {
       direction = blocks->blocks[value]->default_direction;
     }
 }
@@ -394,11 +396,15 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
     
     direction = newdirection;
     
-    
-    if (physicsgroup != nullptr) {
-      physicsgroup->update_flag = true;//block_poses.erase(ivec3(gx,gy,gz));
-      //physicsgroup = nullptr;
+    if (group != nullptr) {
+      cout << "del pix " << endl;
+      group->del(this);
+      cout << "delled pix " << endl;
     }
+    // if (physicsgroup != nullptr) {
+    //   physicsgroup->update_flag = true;//block_poses.erase(ivec3(gx,gy,gz));
+    //   //physicsgroup = nullptr;
+    // }
     //cout << "set group " << group << ' ' << gx << ' ' << gy << ' ' << gz << ' ' << scale << endl;
     // if (group != nullptr and value == 0) {
     //   group->del(ivec3(gx, gy, gz));
@@ -406,7 +412,7 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
     if (tile != nullptr) {
       tile->world->block_update(gx, gy, gz);
     }
-    physicsgroup = nullptr;
+    //physicsgroup = nullptr;
     if (update) {
       //render_flag = true;
       //cout << gx << ' ' << gy << ' ' << gz << "-----------------------------" << render_index.start << ' ' << render_index.size << endl;
@@ -459,7 +465,17 @@ void Pixel::tick() {
   const ivec3 dir_array[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
-  //cout << "tick " << group << ' ' << int(value) << ' ' << ' ' << gx << ' ' << gy << ' ' << gz << ' ' << scale << endl;
+  cout << "tick " << group << ' ' << int(value) << ' ' << ' ' << gx << ' ' << gy << ' ' << gz << ' ' << scale << endl;
+  
+  if (group == nullptr) {
+    BlockGroup* newgroup = new BlockGroup(tile->world);
+    newgroup->spread(this, 5);
+    cout << newgroup << ' ' << group << endl;
+    if (group != nullptr) {
+      cout << group->size << endl;
+    }
+  }
+  
   /*if (group != nullptr and group->blockval != value) {
     group->del(ivec3(gx, gy, gz));
     group = nullptr;
@@ -492,33 +508,33 @@ void Pixel::tick() {
     cout << "err" << endl;
   }
   //cout << "START PIX tick --------------------------";
-  //print (ivec3(gx, gy, gz));
-  if (physicsgroup == nullptr) {
-    BlockGroup* group = BlockGroup::make_group(value, tile->world, ivec3(gx, gy, gz));
-    //cout << group->block_poses.size() << " size!" << endl;
-    if (group->block_poses.size() > 0) {
-      if (!group->consts[4] and group->groupname != "water-group") {
-        // for (int i = 0; i < 6; i ++) {
-        //   cout << group->consts[i] << ' ';
-        // } cout << endl;
-        // cout << "copying " << group->block_poses.size() << endl;
-        group->copy_to_block();
-        // cout << "erasing" << endl;
-        group->erase_from_world();
-        // cout << "done" << endl;
-        tile->block_entities.push_back(new FallingBlockEntity(tile->world, group));
-      } else {
-        if (group->persistant()) {
-          tile->world->physicsgroups.emplace(group);
-        }
-      }
-    } else {
-      delete group;
-    }
-    // else {
-      //tile->world->physicsgroups.emplace(group);
-    //}
-  }
+  // //print (ivec3(gx, gy, gz));
+  // if (physicsgroup == nullptr) {
+  //   BlockGroup* group = BlockGroup::make_group(value, tile->world, ivec3(gx, gy, gz));
+  //   //cout << group->block_poses.size() << " size!" << endl;
+  //   if (group->block_poses.size() > 0) {
+  //     if (!group->consts[4] and group->groupname != "water-group") {
+  //       // for (int i = 0; i < 6; i ++) {
+  //       //   cout << group->consts[i] << ' ';
+  //       // } cout << endl;
+  //       // cout << "copying " << group->block_poses.size() << endl;
+  //       group->copy_to_block();
+  //       // cout << "erasing" << endl;
+  //       group->erase_from_world();
+  //       // cout << "done" << endl;
+  //       tile->block_entities.push_back(new FallingBlockEntity(tile->world, group));
+  //     } else {
+  //       if (group->persistant()) {
+  //         tile->world->physicsgroups.emplace(group);
+  //       }
+  //     }
+  //   } else {
+  //     delete group;
+  //   }
+  //   // else {
+  //     //tile->world->physicsgroups.emplace(group);
+  //   //}
+  // }
   // if (value == blocks->names["dirt"] and world->get(gx, gy+scale, gz) == 0) {
   //   //set(blocks->names["grass"]);
   // }
@@ -577,12 +593,12 @@ void Pixel::del(bool remove_faces) {
         tile->world->glvecs.del(render_index);
       }
     }
-    if (physicsgroup != nullptr and !physicsgroup->persistant()) {
-      physicsgroup->block_poses.erase(ivec3(gx, gy, gz));
-      if (physicsgroup->block_poses.size() == 0) {
-        delete physicsgroup;
-      }
-    }
+    // if (physicsgroup != nullptr and !physicsgroup->persistant()) {
+    //   physicsgroup->block_poses.erase(ivec3(gx, gy, gz));
+    //   if (physicsgroup->block_poses.size() == 0) {
+    //     delete physicsgroup;
+    //   }
+    // }
 }
 
 void Pixel::lighting_update() {
@@ -859,278 +875,160 @@ void Pixel::rotate_to_origin(int* mats, int* dirs, int rotation) {
   }
 }
 
+void Pixel::render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* block, ivec3 dir, int uv_dir, int minscale, int mat, bool render_null) {
+  GLfloat uvmax = 1.0f;
+  if ((block != nullptr and block->is_air(-dir.x, -dir.y, -dir.z, value)) or (block == nullptr and render_null)) {
+    GLfloat face[] = {x,y,z, x,y,z, x,y,z, x,y,z, x,y,z, x,y,z};
+    
+    GLfloat new_uvs[] = {
+        0.0f, uvmax,
+        uvmax, uvmax,
+        uvmax, 0.0f,
+        uvmax, 0.0f,
+        0.0f, 0.0f,
+        0.0f, uvmax
+    };
+    rotate_uv(new_uvs,uv_dir);
+    
+    float faceblocklight = 0, facesunlight = 1;
+    if (block != nullptr) {
+      faceblocklight = block->get_blocklight(-dir.x, -dir.y, -dir.z) / lightmax;
+      facesunlight = block->get_sunlight(-dir.x, -dir.y, -dir.z) / lightmax;
+    }
+    
+    for (int i = 0; i < 3; i ++) {
+      int j,k;
+      if (i == 0) {
+        k = (i + 1 < 3) ? i+1 : i-2;
+        j = (i + 2 < 3) ? i+2 : i-1;
+      } else {
+        j = (i + 1 < 3) ? i+1 : i-2;
+        k = (i + 2 < 3) ? i+2 : i-1;
+      }
+      if (dir[i] == 1) {
+        for (int h = 0; h < 6; h ++) {
+          face[h*3+i] += scale;
+        }
+      }
+      if ((dir[i] == -1 and i > 0) or (i == 0 and dir[i] == 1)) {
+        face[0*3+j] += scale;
+        face[4*3+j] += scale;
+        face[5*3+j] += scale;
+        
+        face[2*3+k] += scale;
+        face[3*3+k] += scale;
+        face[4*3+k] += scale;
+      } else if ((dir[i] == 1 and i > 0) or (i == 0 and dir[i] == -1)) {
+        face[1*3+j] += scale;
+        face[2*3+j] += scale;
+        face[3*3+j] += scale;
+        
+        face[2*3+k] += scale;
+        face[3*3+k] += scale;
+        face[4*3+k] += scale;
+      }
+    }
+    
+    if (dir.y == -1) {
+      facesunlight *= 0.5f;
+    } else if (dir.y == 1) {
+      facesunlight *= 0.9f;
+    } else {
+      facesunlight *= 0.7f;
+    }
+    
+    vecs->add_face(face, new_uvs, facesunlight, faceblocklight, minscale, mat);
+  }
+}
+
 void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collider, int gx, int gy, int gz, int depth, bool faces[6], bool render_null, bool yield) {
-    // render_smooth(allvecs, transvecs, collider, vec3(0,0,0));
-    // return;
-    if (!render_flag) {
-        return;
-    }
-    
-    MemVecs vecs;
-    
-    int newscale = scale;
-    if (scale < depth) {
-      newscale = depth;
-    } else {
-      gx += px*scale;
-      gy += py*scale;
-      gz += pz*scale;
-    }
-    //cout << "render" << gx << ' ' << gy << ' ' << gz << ' '<< scale << endl;
-    GLfloat x = gx;
-    GLfloat y = gy;
-    GLfloat z = gz;
-    render_flag = false;
-    
-    if (value == 0 or depth < 0) {
-      if (render_index.start > -1) {
-        if (render_transparent) {
-          transvecs->del(render_index);
-        } else {
-          allvecs->del(render_index);
-        }
-        render_index = RenderIndex::npos;
-      }
+  // render_smooth(allvecs, transvecs, collider, vec3(0,0,0));
+  // return;
+  if (!render_flag) {
       return;
-    } else {
-      
-      if (yield) {
-        std::this_thread::yield();
+  }
+  
+  MemVecs vecs;
+  
+  int newscale = scale;
+  if (scale < depth) {
+    newscale = depth;
+  } else {
+    gx += px*scale;
+    gy += py*scale;
+    gz += pz*scale;
+  }
+  //cout << "render" << gx << ' ' << gy << ' ' << gz << ' '<< scale << endl;
+  GLfloat x = gx;
+  GLfloat y = gy;
+  GLfloat z = gz;
+  render_flag = false;
+  
+  if (value == 0 or depth < 0) {
+    if (render_index.start > -1) {
+      if (render_transparent) {
+        transvecs->del(render_index);
+      } else {
+        allvecs->del(render_index);
       }
-      
-      BlockData* blockdata = blocks->blocks[value];
-      
-      //cout << x << ' ' << y << ' ' << z << "rendering call" << endl;
-      GLfloat uv_start = 0.0f;// + (1/32.0f*(int)value);
-      GLfloat uv_end = uv_start + 1.0f;///32.0f;
-      int mat[6];
-      for (int i = 0; i < 6; i ++) {
-        mat[i] = blockdata->texture[i];
+      render_index = RenderIndex::npos;
+    }
+    return;
+  } else {
+    
+    if (yield) {
+      std::this_thread::yield();
+    }
+    
+    BlockData* blockdata = blocks->blocks[value];
+    
+    GLfloat uv_start = 0.0f;
+    GLfloat uv_end = uv_start + 1.0f;
+    int mat[6];
+    for (int i = 0; i < 6; i ++) {
+      mat[i] = blockdata->texture[i];
+    }
+    int dirs[6] {0,0,0,0,0,0};
+    // if (physicsgroup != nullptr) {
+    //   physicsgroup->custom_textures(mat, dirs, ivec3(gx, gy, gz));
+    // }
+    
+    if (direction != blockdata->default_direction) {
+      rotate_to_origin(mat, dirs, blockdata->default_direction);
+      rotate_from_origin(mat, dirs, direction);
+    }
+     
+    int minscale = blockdata->minscale;
+    
+    const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
+    
+    int i = 0;
+    for (ivec3 dir : dir_array) {
+      Block* block = collider->get_global(gx+newscale*dir.x, gy+newscale*dir.y, gz+newscale*dir.z, newscale);
+      if (faces[i]) {
+        render_face(&vecs, x, y, z, block, dir, dirs[i], minscale, mat[i], render_null);
       }
-      int dirs[6] {0,0,0,0,0,0};
-      if (physicsgroup != nullptr) {
-        physicsgroup->custom_textures(mat, dirs, ivec3(gx, gy, gz));
+      i ++;
+    }
+    
+    if (!render_index.isnull()) {
+      if (render_transparent) {
+        transvecs->del(render_index);
+      } else {
+        allvecs->del(render_index);
       }
-      
-      if (direction != blockdata->default_direction) {
-        rotate_to_origin(mat, dirs, blockdata->default_direction);
-        rotate_from_origin(mat, dirs, direction);
-      }
-       
-      int minscale = blockdata->minscale;
-      
-      const GLfloat uvmax = 1.0f;//scale;
-      // /char mat = tex_index;
-      /*GLfloat new_uvs[] = {
-          0.0f, 1.0f * newscale/minscale,
-          1.0f * newscale/minscale, 1.0f * newscale/minscale,
-          1.0f * newscale/minscale, 0.0f,
-          1.0f * newscale/minscale, 0.0f,
-          0.0f, 0.0f,
-          0.0f, 1.0f * newscale/minscale
-      };*/
-      // GLfloat new_uvs[] = {
-      //     0.0f, 1.0f,
-      //     1.0f, 1.0f,
-      //     1.0f, 0.0f,
-      //     1.0f, 0.0f,
-      //     0.0f, 0.0f,
-      //     0.0f, 1.0f
-      // };
-      //cout << 85 << endl;
-      Block* block;
-      //cout << 87 << endl;
-      
-      
-      
-      
-      block = collider->get_global(gx, gy, gz-newscale, newscale);
-      if (faces[5] and ((block != nullptr and block->is_air(0, 0, 1, value)) or (block == nullptr and render_null))) {
-          GLfloat new_uvs[] = {
-              0.0f, uvmax,
-              uvmax, uvmax,
-              uvmax, 0.0f,
-              uvmax, 0.0f,
-              0.0f, 0.0f,
-              0.0f, uvmax
-          };
-          rotate_uv(new_uvs,dirs[5]);
-          GLfloat face[] = {
-              x + newscale, y, z,
-              x, y, z,
-              x, y + newscale, z,
-              x, y + newscale, z,
-              x + newscale, y + newscale, z,
-              x + newscale, y, z
-          };
-          float faceblocklight = 0, facesunlight = 1;
-          if (block != nullptr) {
-            faceblocklight = block->get_blocklight(0,0,1) / lightmax;
-            facesunlight = block->get_sunlight(0,0,1) / lightmax;
-          }
-          vecs.add_face(face, new_uvs, 0.7f * facesunlight, faceblocklight, minscale, mat[5]);//0.4f
-      }
-      
-      block = collider->get_global(gx, gy-newscale, gz, newscale);
-      if (faces[4] and ((block != nullptr and block->is_air(0, 1, 0, value)) or (block == nullptr and render_null))) {
-          GLfloat new_uvs[] = {
-              0.0f, uvmax,
-              uvmax, uvmax,
-              uvmax, 0.0f,
-              uvmax, 0.0f,
-              0.0f, 0.0f,
-              0.0f, uvmax
-          };
-          rotate_uv(new_uvs,dirs[4]);
-          GLfloat face[] = {
-              x, y, z + newscale,
-              x, y, z,
-              x + newscale, y, z,
-              x + newscale, y, z,
-              x + newscale, y, z + newscale,
-              x, y, z + newscale,
-          };
-          float faceblocklight = 0, facesunlight = 1;
-          if (block != nullptr) {
-            faceblocklight = block->get_blocklight(0, 1, 0) / lightmax;
-            facesunlight = block->get_sunlight(0, 1, 0) / lightmax;
-          }
-          vecs.add_face(face, new_uvs, 0.5f * facesunlight, faceblocklight, minscale, mat[4]);
-      }
-      
-      block = collider->get_global(gx-newscale, gy, gz, newscale);
-      if (faces[3] and ((block != nullptr and block->is_air(1, 0, 0, value)) or (block == nullptr and render_null))) {
-          GLfloat new_uvs[] = {
-              0.0f, uvmax,
-              uvmax, uvmax,
-              uvmax, 0.0f,
-              uvmax, 0.0f,
-              0.0f, 0.0f,
-              0.0f, uvmax
-          };
-          rotate_uv(new_uvs,dirs[3]);
-          GLfloat face[] = {
-              x, y, z,
-              x, y, z + newscale,
-              x, y + newscale, z + newscale,
-              x, y + newscale, z + newscale,
-              x, y + newscale, z,
-              x, y, z
-          };
-          float faceblocklight = 0, facesunlight = 1;
-          if (block != nullptr) {
-            faceblocklight = block->get_blocklight(1, 0, 0) / lightmax;
-            facesunlight = block->get_sunlight(1, 0, 0) / lightmax;
-          }
-          vecs.add_face(face, new_uvs, 0.7f * facesunlight, faceblocklight, minscale, mat[3]);
-      }
-      
-      block = collider->get_global(gx, gy, gz+newscale, newscale);
-      if (faces[2] and ((block != nullptr and block->is_air(0, 0, -1, value)) or (block == nullptr and render_null))) {
-          GLfloat new_uvs[] = {
-              0.0f, uvmax,
-              uvmax, uvmax,
-              uvmax, 0.0f,
-              uvmax, 0.0f,
-              0.0f, 0.0f,
-              0.0f, uvmax
-          };
-          rotate_uv(new_uvs,dirs[2]);
-          GLfloat face[] = {
-              x, y, z + newscale,
-              x + newscale, y, z + newscale,
-              x + newscale, y + newscale, z + newscale,
-              x + newscale, y + newscale, z + newscale,
-              x, y + newscale, z + newscale,
-              x, y, z + newscale
-          };
-          float faceblocklight = 0, facesunlight = 1;
-          if (block != nullptr) {
-            faceblocklight = block->get_blocklight(0, 0, -1) / lightmax;
-            facesunlight = block->get_sunlight(0, 0, -1) / lightmax;
-          }
-          vecs.add_face(face, new_uvs, 0.7f * facesunlight, faceblocklight, minscale, mat[2]);
-      }
-      
-      block = collider->get_global(gx, gy+newscale, gz, newscale);
-      if (faces[1] and ((block != nullptr and block->is_air(0, -1, 0, value)) or (block == nullptr and render_null))) {
-          GLfloat new_uvs[] = {
-              0.0f, uvmax,
-              uvmax, uvmax,
-              uvmax, 0.0f,
-              uvmax, 0.0f,
-              0.0f, 0.0f,
-              0.0f, uvmax
-          };
-          rotate_uv(new_uvs,dirs[1]);
-          GLfloat face[] = {
-            
-              x, y + newscale, z,
-              x, y + newscale, z + newscale,
-              x + newscale, y + newscale, z + newscale,
-              x + newscale, y + newscale, z + newscale,
-              x + newscale, y + newscale, z,
-              x, y + newscale, z,
-          };
-          float faceblocklight = 0, facesunlight = 1;
-          if (block != nullptr) {
-            faceblocklight = block->get_blocklight(0, -1, 0) / lightmax;
-            facesunlight = block->get_sunlight(0, -1, 0) / lightmax;
-          }
-          vecs.add_face(face, new_uvs, 0.9f * facesunlight, faceblocklight, minscale, mat[1]);//top
-      }
-      
-      block = collider->get_global(gx+newscale, gy, gz, newscale);
-      if (faces[0] and ((block != nullptr and block->is_air(-1, 0, 0, value)) or (block == nullptr and render_null))) {
-          GLfloat new_uvs[] = {
-              0.0f, uvmax,
-              uvmax, uvmax,
-              uvmax, 0.0f,
-              uvmax, 0.0f,
-              0.0f, 0.0f,
-              0.0f, uvmax
-          };
-          rotate_uv(new_uvs,dirs[0]);
-          GLfloat face[] = {
-              x + newscale, y, z + newscale,
-              x + newscale, y, z,
-              x + newscale, y + newscale, z,
-              x + newscale, y + newscale, z,
-              x + newscale, y + newscale, z + newscale,
-              x + newscale, y, z + newscale
-          };
-          float faceblocklight = 0, facesunlight = 1;
-          if (block != nullptr) {
-            faceblocklight = block->get_blocklight(-1, 0, 0) / lightmax;
-            facesunlight = block->get_sunlight(-1, 0, 0) / lightmax;
-          }
-          vecs.add_face(face, new_uvs, 0.7f * facesunlight, faceblocklight, minscale, mat[0]); //0.4f
-      }
-      
-      if (!render_index.isnull()) {
-        if (render_transparent) {
-          transvecs->del(render_index);
-          //cout << "transparent delete " << endl;
-        } else {
-          allvecs->del(render_index);
-          //cout << "normal delete " << endl;
-        }
-        render_index = RenderIndex::npos;
-      }
-      if (vecs.num_verts != 0) {
-        if (blockdata->transparent) {
-          render_index = transvecs->add(&vecs);
-          render_transparent = true;
-        } else {
-          render_index = allvecs->add(&vecs);
-          render_transparent = false;
-        }
+      render_index = RenderIndex::npos;
+    }
+    if (vecs.num_verts != 0) {
+      if (blockdata->transparent) {
+        render_index = transvecs->add(&vecs);
+        render_transparent = true;
+      } else {
+        render_index = allvecs->add(&vecs);
+        render_transparent = false;
       }
     }
-    //cout << render_index << endl;
-    //cout << "done rendering" << endl;
-    //cout << *num_verts << endl;
-    //game->crash(1);
+  }
 }
 
 
@@ -1531,7 +1429,7 @@ void Pixel::render_smooth(RenderVecs* allvecs, RenderVecs* transvecs, Collider* 
 
 
 
-Chunk* Pixel::subdivide() {
+Chunk* Pixel::subdivide() { ////// ERR: this somehow causes black blocks when subdividing? only sometimes tho
   if (render_index.start != -1 and tile != nullptr) {
     if (render_transparent) {
       tile->world->transparent_glvecs.del(render_index);

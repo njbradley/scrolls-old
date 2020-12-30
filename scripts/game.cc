@@ -15,7 +15,7 @@
 #include "crafting.h"
 #include "cross-platform.h"
 #include "ui.h"
-#include "blockphysics.h"
+#include "blockgroups.h"
 
 
 
@@ -514,11 +514,11 @@ void Game::print_debug() {
 		debugstream << " type:" << name << " char:" << int(game->debugblock->value) << " scale:" << game->debugblock->scale << endl;
 		debugstream << " direction:" << int(game->debugblock->direction) << " render_index:" << game->debugblock->render_index.start << ',' << game->debugblock->render_index.size << endl;
 		debugstream << " parent coords:" << game->debugblock->px << ',' << game->debugblock->py << ',' << game->debugblock->pz << endl;
-		debugstream << " physics_group:" << game->debugblock->physicsgroup << ' ' << "light " << debugblock->blocklight << ' ' << debugblock->sunlight << endl;
+		debugstream << " physics_group:" << game->debugblock->group << ' ' << "light " << debugblock->blocklight << ' ' << debugblock->sunlight << endl;
 		
-		// if (game->debugblock->group != nullptr) {
-		// 	//game->debugblock->physicsgroup->to_file(debugstream);
-		// }
+		if (game->debugblock->group != nullptr) {
+			debugstream << " group: size " << debugblock->group->size << endl;
+		}
 	}
 }
 

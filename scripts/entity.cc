@@ -6,7 +6,7 @@
 #include "items.h"
 #include "world.h"
 #include "tiles.h"
-#include "blockphysics.h"
+#include "blockgroups.h"
 #include "materials.h"
 #include "blockdata.h"
 #include "cross-platform.h"
@@ -942,15 +942,14 @@ void NamedEntity::on_timestep(double deltatime) {
 
 
 
-FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup): DisplayEntity(nworld, newgroup->position, vec3(0,0,0),
-vec3(1,1,1), newgroup->block, vec3(0,0,0)), group(newgroup) {
+FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup): DisplayEntity(nworld, ivec3(0,0,0), vec3(0,0,0),
+vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup) {
   box2 = vec3(block.block->scale, block.block->scale, block.block->scale);
   immune = true;
 }
 
 FallingBlockEntity::FallingBlockEntity(World* nworld, istream& ifile): DisplayEntity(nworld, ifile) {
-  group = BlockGroup::from_file(nworld, ifile);
-  block = group->block;
+  
   // string buff;
   // int scale;
   // ifile >> scale;
@@ -960,14 +959,11 @@ FallingBlockEntity::FallingBlockEntity(World* nworld, istream& ifile): DisplayEn
 
 void FallingBlockEntity::to_file(ostream& ofile) {
   DisplayEntity::to_file(ofile);
-  group->to_file(ofile);
 }
 
 void FallingBlockEntity::on_timestep(double deltatime) {
   DisplayEntity::on_timestep(deltatime);
   if (consts[4]) {
-    group->copy_to_world(position);
-    delete group;
     block.block = nullptr;
     alive = false;
   }

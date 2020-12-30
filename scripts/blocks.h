@@ -90,7 +90,7 @@ public:
     int entitylight;
     int lightsource = -1;
     Tile* tile;
-    BlockGroup* physicsgroup = nullptr;
+    BlockGroup* group = nullptr;
     //int num;
     //ItemContainer* container;
     
@@ -117,6 +117,7 @@ public:
     virtual void lighting_update();
     virtual Block* get_global(int x, int y, int z, int scale);
     virtual Block* set_global(ivec4 pos, char val, int direction = -1);
+    void render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* block, ivec3 dir, int uv_dir, int minscale, int mat, bool render_null);
     virtual void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
     void render_smooth(RenderVecs* vecs, RenderVecs* transvecs, Collider* collider, vec3 view_normal);
     Chunk* subdivide();

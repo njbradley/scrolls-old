@@ -15,7 +15,7 @@
 #include "tiles.h"
 #include "multithreading.h"
 #include "entity.h"
-#include "blockphysics.h"
+#include "blockgroups.h"
 #include "commands.h"
 #include "game.h"
 
@@ -185,44 +185,44 @@ void World::startup() {
 }
 
 void World::load_groups() {
-  vector<string> group_paths;
-  get_files_folder("saves/" + name + "/groups", &group_paths);
-  for (string path : group_paths) {
-    string fullpath = "saves/" + name + "/groups/" + path;
-    //cout << "loading group from " << fullpath << endl;
-    ifstream ifile(fullpath);
-    BlockGroup* group = BlockGroup::from_file(this, ifile);
-    ifile.close();
-    //remove(fullpath.c_str());
-    group->set_pix_pointers();
-    physicsgroups.emplace(group);
-  }
-  cout << "loaded " << group_paths.size() << " groups from file" << endl;
-  for (BlockGroup* group : physicsgroups) {
-    group->link();
-  }
-  cout << "linked groups sucessfully" << endl;
+  // vector<string> group_paths;
+  // get_files_folder("saves/" + name + "/groups", &group_paths);
+  // for (string path : group_paths) {
+  //   string fullpath = "saves/" + name + "/groups/" + path;
+  //   //cout << "loading group from " << fullpath << endl;
+  //   ifstream ifile(fullpath);
+  //   BlockGroup* group = BlockGroup::from_file(this, ifile);
+  //   ifile.close();
+  //   //remove(fullpath.c_str());
+  //   group->set_pix_pointers();
+  //   physicsgroups.emplace(group);
+  // }
+  // cout << "loaded " << group_paths.size() << " groups from file" << endl;
+  // for (BlockGroup* group : physicsgroups) {
+  //   group->link();
+  // }
+  // cout << "linked groups sucessfully" << endl;
 }
 
 void World::save_groups() {
-  vector<string> group_paths;
-  get_files_folder("saves/" + name + "/groups", &group_paths);
-  for (string path : group_paths) {
-    string fullpath = "saves/" + name + "/groups/" + path;
-    remove(fullpath.c_str());
-  }
-  for (BlockGroup* group : physicsgroups) {
-    ivec3 pos = group->position;
-    std::stringstream path;
-    path << "saves/" + name + "/groups/" << pos.x << 'x' << pos.y << 'y' << pos.z << "z.txt";
-    ofstream ofile(path.str());
-    //cout << "saving group to " << path.str() << endl;
-    group->to_file(ofile);
-    group->block_poses.clear();
-    delete group;
-  }
-  cout << "saved " << physicsgroups.size() << " groups to file" << endl;
-  physicsgroups.clear();
+  // vector<string> group_paths;
+  // get_files_folder("saves/" + name + "/groups", &group_paths);
+  // for (string path : group_paths) {
+  //   string fullpath = "saves/" + name + "/groups/" + path;
+  //   remove(fullpath.c_str());
+  // }
+  // for (BlockGroup* group : physicsgroups) {
+  //   ivec3 pos = group->position;
+  //   std::stringstream path;
+  //   path << "saves/" + name + "/groups/" << pos.x << 'x' << pos.y << 'y' << pos.z << "z.txt";
+  //   ofstream ofile(path.str());
+  //   //cout << "saving group to " << path.str() << endl;
+  //   group->to_file(ofile);
+  //   group->block_poses.clear();
+  //   delete group;
+  // }
+  // cout << "saved " << physicsgroups.size() << " groups to file" << endl;
+  // physicsgroups.clear();
 }
 
 void World::spawn_player() {
@@ -362,19 +362,19 @@ void World::add_tile(Tile* tile) {
       break;
     }
   }
-  for (BlockGroup* group : physicsgroups) {
-    ivec3 gpos = group->position;
-    ivec3 cpos = gpos/chunksize - ivec3(gpos.x<0, gpos.y<0, gpos.z<0);
-    if (cpos == pos) {
-      group->set_pix_pointers();
-    }
-  }
+  // for (BlockGroup* group : physicsgroups) {
+  //   ivec3 gpos = group->position;
+  //   ivec3 cpos = gpos/chunksize - ivec3(gpos.x<0, gpos.y<0, gpos.z<0);
+  //   if (cpos == pos) {
+  //     group->set_pix_pointers();
+  //   }
+  // }
   for (Pixel* pix : tile->chunk->iter()) {
-    if (BlockGroup::is_persistant(pix->value)) {
-      int gx, gy, gz;
-      pix->global_position(&gx, &gy, &gz);
-      pix->tile->world->block_update(gx, gy, gz);
-    }
+    // if (BlockGroup::is_persistant(pix->value)) {
+    //   int gx, gy, gz;
+    //   pix->global_position(&gx, &gy, &gz);
+    //   pix->tile->world->block_update(gx, gy, gz);
+    // }
   }
 }
 
@@ -424,14 +424,15 @@ void World::timestep() {
 }
 
 void World::tick() {
-  // for (ivec3 pos : block_updates) {
-  //   //cout << pos.x << endl;
-  //   Block* block = get_global(pos.x, pos.y, pos.z, 1);
-  //   if (block != nullptr and block->get_pix() != nullptr) {
-  //     block->get_pix()->tick();
-  //   }
-  // }
-  // block_updates.clear();
+  for (ivec3 pos : block_updates) {
+    //cout << pos.x << endl;
+    Block* block = get_global(pos.x, pos.y, pos.z, 1);
+    if (block != nullptr and block->get_pix() != nullptr) {
+      block->get_pix()->tick();
+    }
+  }
+  block_updates.clear();
+  /*
   //cout << "world tick" << endl;
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {
   
@@ -500,7 +501,7 @@ void World::tick() {
     }
   //  writelock.unlock();
   //}
-  //cout << "end world tick" << endl;
+  //cout << "end world tick" << endl;*/
 }
 
 void World::drop_ticks() {

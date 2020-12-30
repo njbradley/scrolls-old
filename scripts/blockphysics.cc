@@ -1,7 +1,7 @@
 #ifndef BLOCKPHYSICS
 #define BLOCKPHYSICS
 
-#include "blockphysics.h"
+#include "blockgroups.h"
 
 #include "blocks.h"
 #include "world.h"
