@@ -220,6 +220,7 @@ void RenderingThread::operator()() {
 			times = 0;
 		}
 	}
+	
 	cout << "rendering thread exited" << endl;
 }
 

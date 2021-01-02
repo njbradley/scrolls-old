@@ -31,6 +31,19 @@ class Block: public Collider { public:
     Chunk * parent; //the parent of this block. if this block is the root block, then the parent should be set to nullptr.
     bool render_flag = true;
     bool light_flag = true;
+    std::shared_mutex setlock;
+    
+    class write_lock { public:
+      Block* block;
+      write_lock(Block* newblock);
+      ~write_lock();
+    };
+    class read_lock { public:
+      Block* block;
+      read_lock(Block* newblock);
+      ~read_lock();
+    };
+    
     void set_render_flag();
     void set_light_flag();
     virtual bool continues() const = 0; // whether the block is a chunk or a pixel. a hacky way of telling, but nessicary because pixels can be at different depths
@@ -167,6 +180,7 @@ class BlockContainer: public Collider { public:
 	BlockContainer(Block* b);
 	vec3 get_position() const;
 	Block* get_global(int x, int y, int z, int size);
+  void set(ivec4 pos, char val, int direction);
 };
 
 class BlockIter { public:

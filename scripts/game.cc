@@ -351,6 +351,11 @@ void Game::gametick() {
 		} else if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) {
 			cout << "njbradley is king" << endl;
 		} else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+			if (debugblock != nullptr) {
+				debugblock->set_light_flag();
+			}
+			// ivec3 ppos(world->player->position);
+			// world->set(ppos.x, ppos.y, ppos.z, -1);
 			// world->glvecs.clean_flag = true;
 			// world->transparent_glvecs.clean_flag = true;
 			// double s = glfwGetTime();
@@ -366,6 +371,20 @@ void Game::gametick() {
 			debug_visible = true;
 		} else if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
 			debug_visible = false;
+		} else if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) {
+			if (debugblock != nullptr) {
+				Block* block = debugblock;
+				while (block != nullptr) {
+					cout << "Block " << block << endl;
+					ivec3 pos;
+					block->global_position(&pos.x, &pos.y, &pos.z);
+					cout << " position " << pos << " local " << ivec3(block->px, block->py, block->pz) << endl;
+					cout << " flags light " << block->light_flag << " render " << block->render_flag << endl;
+					cout << " scale " << block->scale << endl;
+					cout << endl;
+					block = block->parent;
+				}
+			}
 		} else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS) {
 			double begin = glfwGetTime();
 			ivec3 pos(world->player->position);
@@ -514,11 +533,16 @@ void Game::print_debug() {
 		debugstream << "tracking block " << debugblock << " at " << gx << "x " << gy << "y " << gz << "z " << endl;
 		debugstream << " type:" << name << " char:" << int(debugblock->value) << " scale:" << debugblock->scale << endl;
 		debugstream << " direction:" << int(debugblock->direction) << " render_index:" << debugblock->render_index.start << ',' << debugblock->render_index.size << endl;
+		debugstream << " flags: light " << debugblock->light_flag << " render " << debugblock->render_flag << endl;
 		debugstream << " parent coords:" << debugblock->px << ',' << debugblock->py << ',' << debugblock->pz << endl;
 		debugstream << " physics_group:" << debugblock->group << ' ' << "light " << debugblock->blocklight << ' ' << debugblock->sunlight << endl;
 		
 		if (debugblock->group != nullptr) {
-			debugstream << " group: size " << debugblock->group->size << endl;
+			debugstream << " group: size " << debugblock->group->size << endl << "consts ";
+			for (bool con : debugblock->group->consts) {
+				debugstream << (con ? "true " : "false ");
+			}
+			debugstream << endl;
 		}
 	}
 }

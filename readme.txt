@@ -19,6 +19,7 @@ On windows, msys2 can be used to install the libraries:
 	mingw-w64-x86_64-glfw
 	mingw-w64-x86_64-glew
 	mingw-w64-x86_64-boost
+	mingw-w64-x86_64-dwarfstack
 On linux, apt can be used:
 	libglfw3-dev
 	libglew-dev

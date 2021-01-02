@@ -942,11 +942,74 @@ void NamedEntity::on_timestep(double deltatime) {
 
 
 
-FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup): DisplayEntity(nworld, ivec3(0,0,0), vec3(0,0,0),
+FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup, Pixel* start_pix): DisplayEntity(nworld, vec3(0,0,0), vec3(0,0,0),
 vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup) {
-  box2 = vec3(block.block->scale, block.block->scale, block.block->scale);
   immune = true;
+  
+  unordered_set<Pixel*> pixels;
+  unordered_set<Pixel*> last_pixels;
+  unordered_set<Pixel*> new_pixels;
+  
+  const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
+  last_pixels.emplace(start_pix);
+  
+  ivec3 start_pos;
+  start_pix->global_position(&start_pos.x, &start_pos.y, &start_pos.z);
+  
+  ivec3 lower_bound = start_pos;
+  ivec3 upper_bound = start_pos;
+  
+  while (last_pixels.size() > 0) {
+    for (Pixel* pix : last_pixels) {
+      pixels.emplace(pix);
+    }
+    
+    for (Pixel* pix : last_pixels) {
+      ivec3 pos;
+      pix->global_position(&pos.x, &pos.y, &pos.z);
+      
+      for (ivec3 dir : dir_array) {
+        ivec3 sidepos = pos + pix->scale * dir;
+        Block* block = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
+        if (block != nullptr) {
+          for (Pixel* sidepix : block->iter_side(-dir)) {
+            if (sidepix->group == group and pixels.count(sidepix) == 0) {
+              if (sidepos.x < lower_bound.x) lower_bound.x = sidepos.x;
+              if (sidepos.y < lower_bound.y) lower_bound.y = sidepos.y;
+              if (sidepos.z < lower_bound.z) lower_bound.z = sidepos.z;
+              if (sidepos.x > upper_bound.x) upper_bound.x = sidepos.x;
+              if (sidepos.y > upper_bound.y) upper_bound.y = sidepos.y;
+              if (sidepos.z > upper_bound.z) upper_bound.z = sidepos.z;
+              new_pixels.emplace(sidepix);
+            }
+          }
+        }
+      }
+    }
+    
+    last_pixels.swap(new_pixels);
+    new_pixels.clear();
+  }
+  
+  position = lower_bound;
+  box2 = upper_bound - lower_bound;
+  
+  int scale = 1;
+  while (box2.x >= scale or box2.y >= scale or box2.z >= scale) {
+    scale *= 2;
+  }
+  
+  block.block = new Pixel(0,0,0, 0,scale, nullptr, nullptr);
+  
+  for (Pixel* pix : pixels) {
+    ivec3 pos;
+    pix->global_position(&pos.x, &pos.y, &pos.z);
+    ivec3 localpos = pos - lower_bound;
+    block.set(ivec4(localpos.x, localpos.y, localpos.z, pix->scale), pix->value, pix->direction);
+    world->set(ivec4(pos.x, pos.y, pos.z, pix->scale), 0, 0);
+  }
 }
+
 
 FallingBlockEntity::FallingBlockEntity(World* nworld, istream& ifile): DisplayEntity(nworld, ifile) {
   
@@ -964,7 +1027,14 @@ void FallingBlockEntity::to_file(ostream& ofile) {
 void FallingBlockEntity::on_timestep(double deltatime) {
   DisplayEntity::on_timestep(deltatime);
   if (consts[4]) {
-    block.block = nullptr;
+    for (Pixel* pix : block.block->iter()) {
+      if (pix->value != 0) {
+        ivec3 pos;
+        pix->global_position(&pos.x, &pos.y, &pos.z);
+        ivec3 globalpos = ivec3(position) + pos;
+        world->set(ivec4(globalpos.x, globalpos.y, globalpos.z, pix->scale), pix->value, pix->direction);
+      }
+    }
     alive = false;
   }
 }

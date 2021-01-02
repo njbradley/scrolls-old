@@ -3,7 +3,11 @@ CXX := g++
 CXXFLAGS := -std=c++17 -DGLEW_STATIC
 LIBS := -lglew32s -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32
 LDFLAGS :=
+ifeq ($(BUILD),RELEASE)
 OPT := -O3
+else
+OPT := -g -DSCROLLS_DEBUG -fno-omit-frame-pointer
+endif
 
 
 ifeq ($(PLAT),MAC)
@@ -12,7 +16,7 @@ else
 ifeq ($(PLAT),LINUX)
 LIBS := -lGLEW -lGL -pthread -lglfw
 else
-LIBS := -lglew32 -lopenal -lalut -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32 -lboost_system-mt -lWs2_32
+LIBS := -lglew32 -lopenal -lalut -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32 -lboost_system-mt -lWs2_32 -ldwarfstack
 EXESUFFIX :=.exe
 endif
 endif

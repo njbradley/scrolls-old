@@ -677,104 +677,27 @@ void World::summon(DisplayEntity* entity) {
   // }
 }
 
-void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras) {
-  int px = x/chunksize;
-  int py = y/chunksize;
-  int pz = z/chunksize;
-  if (x < 0 and -x%chunksize != 0) {
+void World::set(ivec4 pos, char val, int direction) {
+  int px = pos.x/chunksize;
+  int py = pos.y/chunksize;
+  int pz = pos.z/chunksize;
+  if (pos.x < 0 and -pos.x%chunksize != 0) {
       px --;
-  } if (y < 0 and -y%chunksize != 0) {
+  } if (pos.y < 0 and -pos.y%chunksize != 0) {
       py --;
-  } if (z < 0 and -z%chunksize != 0) {
+  } if (pos.z < 0 and -pos.z%chunksize != 0) {
       pz --;
   }
   Tile* tile = tileat(ivec3(px, py, pz));
   //cout << "tile " << ivec3(px, py, pz) << endl;
-  int lx = x - px*chunksize;
-  int ly = y - py*chunksize;
-  int lz = z - pz*chunksize;
-  tile->chunk = tile->chunk->set_global(ivec4(lx, ly, lz, 1), val, direction);
-  return;
-    // cout << x << ' ' << y << ' ' << z << ' ' << int(val) << ' ' << direction << ' ' << extras << endl;
-    int before = clock();
-    Block* newblock = get_global(x,y,z, 1);
-    // cout << newblock << endl;
-    // cout << int(newblock->get_pix()->value) << endl;
-    int minscale = 1;
-    if (newblock == nullptr) {
-        return;
-    }
-    if (newblock->get() != 0) {
-        minscale = blocks->blocks[newblock->get()]->minscale;
-    }
-    if (val != 0) {
-        int place_block_minscale = blocks->blocks[val]->minscale;
-        if (place_block_minscale > minscale) {
-            minscale = place_block_minscale;
-        }
-    }
-    // cout << newblock << ' ' << 681 << endl;
-    while (newblock->scale > minscale) {
-      //cout << newblock->scale << endl;
-      char val = newblock->get();
-      if (newblock->parent == nullptr) {
-        ivec3 pos(newblock->px, newblock->py, newblock->pz);
-        Block* result = newblock->get_pix()->subdivide();
-        //cout << "ksdjflakjsd" << result->px << ' ' << result->py << ' ' << result->pz << endl;
-        // cout << "splitting tile" << endl;
-        tileat(pos)->chunk = result;
-      } else {
-        // cout << "splitting " << endl;
-        newblock->get_pix()->subdivide();
-      }
-      delete newblock;
-      newblock = get_global((int)x, (int)y, (int)z, 1);
-    }
-    // cout << newblock << endl;
-    while (newblock->scale < minscale) {
-        // cout << "building " << endl;
-        Chunk* parent = newblock->parent;
-        parent->del(true);
-        Pixel* newpix = new Pixel(parent->px, parent->py, parent->pz, 0, parent->scale, parent->parent, newblock->get_pix()->tile);
-        parent->parent->blocks[parent->px][parent->py][parent->pz] = newpix;
-        delete parent;
-        newblock = get_global((int)x, (int)y, (int)z, 1);
-    }
-    newblock->get_pix()->set(val, direction, extras);
-    bool same = true;
-    Block* parentblock = newblock;
-    ivec3 pcoords;
-    while (same and parentblock->parent != nullptr) {
-      pcoords = ivec3(parentblock->px, parentblock->py, parentblock->pz);
-      parentblock = parentblock->parent;
-      //cout << parentblock << ' ' << parentblock->px;
-      for (Pixel* pix : parentblock->iter()) {
-        same = same and pix->value == val;
-      }
-    }
-    // cout << parentblock->scale << ' ' << pcoords.x << ' ' << pcoords.y << ' ' << pcoords.z << endl;
-    if (parentblock->parent == nullptr) {
-      // cout << "joining tile" << endl;
-      pcoords = ivec3(parentblock->px, parentblock->py, parentblock->pz);
-      Tile* tile = tileat(pcoords);
-      Pixel* new_big_pix = new Pixel(pcoords.x, pcoords.y, pcoords.z, 0, parentblock->scale, nullptr, tile);
-      tile->chunk->del(true);
-      delete tile->chunk;
-      tile->chunk = new_big_pix;
-      new_big_pix->set(val, direction, extras);
-    } else if (parentblock != newblock->parent) {
-      Block* oldblock = parentblock->get_chunk()->blocks[pcoords.x][pcoords.y][pcoords.z];
-      Pixel* new_big_pix = new Pixel(pcoords.x, pcoords.y, pcoords.z, 0, parentblock->scale/csize, parentblock->get_chunk(), newblock->get_pix()->tile);
-      parentblock->get_chunk()->blocks[pcoords.x][pcoords.y][pcoords.z] = new_big_pix;
-      new_big_pix->set(val, direction, extras);
-      oldblock->del(true);
-      delete oldblock;
-    }
-      
-    //if (val != 0 and blocks->blocks[val]->rotation_enabled) {
-    //  newblock->get_pix()->direction = direction;
-    //}
-    //cout << "done with setting! time: " << clock() - before << endl;
+  int lx = pos.x - px*chunksize;
+  int ly = pos.y - py*chunksize;
+  int lz = pos.z - pz*chunksize;
+  tile->chunk = tile->chunk->set_global(ivec4(lx, ly, lz, pos.w), val, direction);
+}
+
+void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras) {
+  set(ivec4(x,y,z,1), val, direction);
 }
 
 char World::get(int x, int y, int z) {

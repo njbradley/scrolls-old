@@ -134,7 +134,7 @@ class FallingBlockEntity: public DisplayEntity, public Collider {
 public:
   BlockGroup* group;
   vector<ivec3> lit_blocks;
-  FallingBlockEntity(World* nworld, BlockGroup* newgroup);
+  FallingBlockEntity(World* nworld, BlockGroup* newgroup, Pixel* start_pix);
   FallingBlockEntity(World* nworld, istream& ifile);
   void calc_constraints();
   Block * get_global(int,int,int,int);

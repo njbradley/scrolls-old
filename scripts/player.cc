@@ -107,7 +107,8 @@ void Player::set_block_breaking_vecs(Pixel* pixref, ivec3 hitpos, int level) {
 	}
 	level --;
 	int gx, gy, gz;
-	Pixel pix = *pixref;
+	//Pixel pix = *pixref;
+	Pixel pix(pixref->px, pixref->py, pixref->pz, pixref->value, pixref->scale, pixref->parent, pixref->tile);
 	pix.render_index = RenderIndex::npos;
 	pix.render_flag = true;
 	pix.global_position(&gx, &gy, &gz);

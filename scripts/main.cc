@@ -46,16 +46,16 @@ using namespace glm;
 
 
 #include "cross-platform.h"
-
+#include "dwarfstack.h"
 
 
 #include <future>
 
 
-
-
 int main( void )
 {
+	
+	setup_backtrace();
 	
 	game = new Game();
 	

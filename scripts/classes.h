@@ -55,6 +55,21 @@ struct ivec4_hash {
 	size_t operator() (const ivec4& pos) const;
 };
 
+template <class Friend, typename T>
+class readonly {
+	friend Friend;
+	T data;
+	T operator=(const T& arg) {
+		data = arg;
+		return data;
+	}
+public:
+  readonly(T newval): data(newval) {}
+	operator const T&() const {
+		return data;
+	}
+};
+
 ostream& operator<<(ostream& out, ivec3 pos);
 ostream& operator<<(ostream& out, vec3 pos);
 

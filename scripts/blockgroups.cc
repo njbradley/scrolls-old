@@ -52,24 +52,24 @@ void BlockGroup::spread(Pixel* pix, int depth) {
 			ivec3 sidepos = dir*pix->scale + pos;
 			Block* sideblock = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
 			if (sideblock != nullptr) {
-				for (Pixel* sidepix : sideblock->iter()) {
+				for (Pixel* sidepix : sideblock->iter_side(-dir)) {
 					spread(sidepix, depth-1);
 					if (!contains(sidepix)) {
-						if (sidepix->group != nullptr) {
-							if (sidepix->group->can_take(pix)) {
-								cout << "blocktypes " << int(blocktype) << ' ' << int(sidepix->group->blocktype) << endl;
-								cout << "would let take over " << this << '.' << size << ' '  << ' ' << pix << ' ' << ' ' << sidepix->group << '.' << sidepix->group->size << endl;
-								del(pix);
-								sidepix->group->spread(pix);
-								return;
-							}
-						}
+						// if (sidepix->group != nullptr) {
+						// 	if (sidepix->group->can_take(pix)) {
+						// 		cout << "blocktypes " << int(blocktype) << ' ' << int(sidepix->group->blocktype) << endl;
+						// 		cout << "would let take over " << this << '.' << size << ' '  << ' ' << pix << ' ' << ' ' << sidepix->group << '.' << sidepix->group->size << endl;
+						// 		del(pix);
+						// 		sidepix->group->spread(pix);
+						// 		return;
+						// 	}
+						// }
 						if (sidepix->value != 0) {
 							consts[i] = true;
 						}
 					}
 					if (!contains(pix)) {
-						cout << "ive been taken over " << endl;
+						//cout << "ive been taken over " << endl;
 						return;
 					}
 				}
@@ -89,9 +89,14 @@ bool BlockGroup::del(Pixel* pix) {
 }
 
 bool BlockGroup::can_take(Pixel* pix) {
+	// way that merges groups the smart way
+	// return !final and pix->group != nullptr and pix->group != this
+	// and !pix->group->final and pix->group->blocktype == blocktype
+	// and pix->group->size <= size;
+	
+	// way that works with deleting
 	return !final and pix->group != nullptr and pix->group != this
-	and !pix->group->final and pix->group->blocktype == blocktype
-	and pix->group->size <= size;
+	and !pix->group->final and pix->group->blocktype == blocktype;
 }
 
 bool BlockGroup::contains(Pixel* pix) {

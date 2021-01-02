@@ -109,6 +109,7 @@ class World: public Collider {
         Block* get_global(int x, int y, int z, int scale);
         void summon(DisplayEntity* entity);
         void set(int x, int y, int z, char val, int direction = 0, BlockExtra* extras = nullptr);
+        void set(ivec4 pos, char val, int direction);
         char get(int x, int y, int z);
         Block* raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time);
         void save_chunk(ivec3 pos);
