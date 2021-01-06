@@ -343,6 +343,12 @@ void Game::gametick() {
 				delete menu;
 				menu = nullptr;
 			});
+		} else if (glfwGetKey(window, GLFW_KEY_X ) == GLFW_PRESS) {
+			cout << "Hard termination, no logging" << endl;
+			exit(2);
+		} else if (glfwGetKey(window, GLFW_KEY_C ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
+			cout << "Hard termination, with error logging" << endl;
+			std::terminate();
 		} else if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
 			menu = new CraftingMenu(1, [&]() {
 				delete menu;

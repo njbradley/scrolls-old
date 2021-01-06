@@ -16,7 +16,7 @@ else
 ifeq ($(PLAT),LINUX)
 LIBS := -lGLEW -lGL -pthread -lglfw
 else
-LIBS := -lglew32 -lopenal -lalut -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32 -lboost_system-mt -lWs2_32 -ldwarfstack
+LIBS := -lglew32 -lopenal -lalut -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32 -lboost_system-mt -lWs2_32 -ldwarfstack -ldbghelp
 EXESUFFIX :=.exe
 endif
 endif

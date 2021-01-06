@@ -28,19 +28,27 @@ const float lightmax = 20.0f;
 //////////////////////////// class Block /////////////////////////////////////
 
 Block::read_lock::read_lock(Block* newblock): block(newblock) {
-  block->setlock.lock_shared();
+  //block->setlock.lock_shared();
+  //block->setlock.lock();
+  while (block->writing);
+  block->reading ++;
 }
 
 Block::read_lock::~read_lock() {
-  block->setlock.unlock_shared();
+  //block->setlock.unlock_shared();
+  //block->setlock.unlock();
+  block->reading --;
 }
 
 Block::write_lock::write_lock(Block* newblock): block(newblock) {
-  block->setlock.lock();
+  //block->setlock.lock();
+  block->writing = true;
+  while (block->reading);
 }
 
 Block::write_lock::~write_lock() {
-  block->setlock.unlock();
+  //block->setlock.unlock();
+  block->writing = false;
 }
 
 Block::Block(int x, int y, int z, int newscale, Chunk* newparent) :
@@ -370,7 +378,7 @@ const Chunk* Pixel::get_chunk() const {
 
 Block* Pixel::get_global(int x, int y, int z, int scale) {
     //cout << "get global at pixel retunring self\n\n";
-    // read_lock lock(this);
+    read_lock lock(this);
     return this;
 }
 
@@ -397,7 +405,7 @@ Block* Pixel::set_global(ivec4 pos, char val, int direction) {
 }
 
 void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) {
-    // write_lock lock(this);
+    write_lock lock(this);
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);
     //cout << "render_indes: " << render_index << " val:" << (int)value <<  ' '<< (int)val << endl;
@@ -633,7 +641,7 @@ void Pixel::set_all_render_flags() {
 }
 
 void Pixel::del(bool remove_faces) {
-    // write_lock lock(this);
+    write_lock lock(this);
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);
     if (remove_faces and tile != nullptr and render_index.start != -1) {
@@ -652,7 +660,7 @@ void Pixel::del(bool remove_faces) {
 }
 
 void Pixel::lighting_update() {
-  // read_lock lock(this);
+  read_lock lock(this);
   if (light_flag) {
     light_flag = false;
     unordered_set<ivec3,ivec3_hash> poses;
@@ -818,7 +826,7 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
 }
 
 void Pixel::rotate(int axis, int dir) {
-  // write_lock lock(this);
+  write_lock lock(this);
   const int positive[18] {
     0, 2, 4, 3, 5, 1,
     5, 1, 0, 2, 4, 3,
@@ -994,7 +1002,7 @@ void Pixel::render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* b
 }
 
 void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collider, int gx, int gy, int gz, int depth, bool faces[6], bool render_null, bool yield) {
-  // read_lock lock(this);
+  read_lock lock(this);
   // render_smooth(allvecs, transvecs, collider, vec3(0,0,0));
   // return;
   if (!render_flag) {
@@ -1483,7 +1491,7 @@ void Pixel::render_smooth(RenderVecs* allvecs, RenderVecs* transvecs, Collider* 
 
 
 Chunk* Pixel::subdivide() { ////// ERR: this somehow causes black blocks when subdividing? only sometimes tho
-  // write_lock lock(this);
+  write_lock lock(this);
   if (render_index.start != -1 and tile != nullptr) {
     if (render_transparent) {
       tile->world->transparent_glvecs.del(render_index);
@@ -1649,7 +1657,7 @@ char Chunk::get() const {
 }
 
 void Chunk::lighting_update() {
-  // read_lock lock(this);
+  read_lock lock(this);
   if (light_flag) {
     light_flag = false;
     for (int x = 0; x < csize; x ++) {
@@ -1663,7 +1671,7 @@ void Chunk::lighting_update() {
 }
 
 void Chunk::rotate(int axis, int dir) {
-  // write_lock lock(this);
+  write_lock lock(this);
   // order 0,0 0,1 1,0 1,1
   const ivec2 positive[csize*csize] {{1,0},{0,0},{1,1},{0,1}};
   const ivec2 negative[csize*csize] {{0,1},{1,1},{0,0},{1,0}};
@@ -1716,7 +1724,7 @@ void Chunk::rotate(int axis, int dir) {
 
 
 void Chunk::render(RenderVecs* vecs, RenderVecs* transvecs, Collider* collider, int gx, int gy, int gz, int depth, bool faces[6], bool render_null, bool yield) {
-  // read_lock lock(this);
+  read_lock lock(this);
   
   if (render_flag) {
     render_flag = false;
@@ -1762,7 +1770,7 @@ void Chunk::render(RenderVecs* vecs, RenderVecs* transvecs, Collider* collider, 
 }
 
 void Chunk::del(bool remove_faces) {
-    // write_lock lock(this);
+    write_lock lock(this);
     for (int x = 0; x < csize; x ++) {
         for (int y = 0; y < csize; y ++) {
             for (int z = 0; z < csize; z ++) {
@@ -1774,7 +1782,7 @@ void Chunk::del(bool remove_faces) {
 }
 
 void Chunk::set_all_render_flags() {
-    // read_lock lock(this);
+    read_lock lock(this);
     
     render_flag = true;
     for (int x = 0; x < csize; x ++) {
@@ -1787,7 +1795,7 @@ void Chunk::set_all_render_flags() {
 }
 
 Block* Chunk::get_global(int x, int y, int z, int nscale) {
-    // read_lock lock(this);
+    read_lock lock(this);
     
     if (nscale == scale) {
         return this;
@@ -1825,7 +1833,7 @@ Block* Chunk::set_global(ivec4 pos, char val, int direction) {
     ivec3 nlpos = lpos / (scale / csize);
     Block* newblock = blocks[nlpos.x][nlpos.y][nlpos.z]->set_global(ivec4(lpos.x, lpos.y, lpos.z, pos.w), val, direction);
     {
-      // write_lock lock(this);
+      write_lock lock(this);
       blocks[nlpos.x][nlpos.y][nlpos.z] = newblock;
     }
     if (!blocks[nlpos.x][nlpos.y][nlpos.z]->continues()) {
@@ -1851,7 +1859,7 @@ Block* Chunk::set_global(ivec4 pos, char val, int direction) {
     
 
 void Chunk::save_to_file(ostream& of, bool yield) {
-    // read_lock lock(this);
+    read_lock lock(this);
     of << char(0b11000000);
     for (int x = 0; x < csize; x ++) {
         for (int y = 0; y < csize; y ++) {

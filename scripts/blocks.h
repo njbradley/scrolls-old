@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <thread>
+#include <atomic>
 
 #include "collider.h"
 #include "rendervec.h"
@@ -31,7 +32,9 @@ class Block: public Collider { public:
     Chunk * parent; //the parent of this block. if this block is the root block, then the parent should be set to nullptr.
     bool render_flag = true;
     bool light_flag = true;
-    std::shared_mutex setlock;
+    //std::mutex setlock;
+    std::atomic<int> reading = 0;
+    std::atomic<bool> writing = false;
     
     class write_lock { public:
       Block* block;
