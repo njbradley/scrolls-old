@@ -322,8 +322,8 @@ static LONG WINAPI exceptionHandler( LPEXCEPTION_POINTERS ep ) {
   
   LONG result = exceptionPrinter(sigtrace_str, ep);
   
-  std::cerr << sigtrace_str.rdbuf();
-  ofile << sigtrace_str.rdbuf();
+  std::cerr << sigtrace_str.str();
+  ofile << sigtrace_str.str();
   
   ofile << endl << "ALL THREADS:" << endl;
   get_all_threads_trace(ofile);

@@ -102,13 +102,25 @@ RenderIndex RenderIndex::add(RenderIndex other) {
 const RenderIndex RenderIndex::npos(-1,0);
 
 
-void MemVecs::add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat sunlight, GLfloat blocklight, GLint minscale, GLint mat) {
+void MemVecs::add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat sunlight,
+GLfloat blocklight, GLint minscale, GLint breaking, GLint overlay, GLint edges[4], GLint mat) {
     verts.insert(verts.end(), newverts, newverts+6*3);
     uvs.insert(uvs.end(), newuvs, newuvs+6*2);
+    int matx = edges[3];
+    matx *= 32;
+    matx += edges[2];
+    matx *= 32;
+    matx += edges[1];
+    matx *= 32;
+    matx += edges[0];
+    matx *= 64;
+    matx += breaking;
+    matx *= 64;
+    matx += minscale;
     for (int i = 0; i < 6; i ++) {
         light.push_back(sunlight);
         light.push_back(blocklight);
-        mats.push_back(minscale);
+        mats.push_back(matx);
         mats.push_back(mat);
     }
     num_verts += 6;

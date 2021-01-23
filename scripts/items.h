@@ -16,7 +16,7 @@ class CharArray { public:
     ~CharArray();
     char get(int x, int y, int z);
     void set(char val, int x, int y, int z);
-    void place(World* world, int x, int y, int z, int dx, int dy, int dz);
+    void place(World* world, Item* item, int x, int y, int z, int dx, int dy, int dz);
 };
 
 class Item {
@@ -70,6 +70,8 @@ class ItemData {
         bool sharpenable;
         Material* material;
         int lightlevel;
+        bool isgroup;
+        ConnectorData* glue;
             
         ItemData(ifstream & ifile);
         ~ItemData();

@@ -13,7 +13,7 @@
 #include "entity.h"
 #include "mobs.h"
 #include "game.h"
-
+#include "glue.h"
 #include "generative.h"
 
 
@@ -30,25 +30,29 @@ const float lightmax = 20.0f;
 Block::read_lock::read_lock(Block* newblock): block(newblock) {
   //block->setlock.lock_shared();
   //block->setlock.lock();
-  while (block->writing);
-  block->reading ++;
+  
+  // while (block->writing);
+  // block->reading ++;
 }
 
 Block::read_lock::~read_lock() {
   //block->setlock.unlock_shared();
   //block->setlock.unlock();
-  block->reading --;
+  
+  // block->reading --;
 }
 
 Block::write_lock::write_lock(Block* newblock): block(newblock) {
   //block->setlock.lock();
-  block->writing = true;
-  while (block->reading);
+  
+  // block->writing = true;
+  // while (block->reading);
 }
 
 Block::write_lock::~write_lock() {
   //block->setlock.unlock();
-  block->writing = false;
+  
+  // block->writing = false;
 }
 
 Block::Block(int x, int y, int z, int newscale, Chunk* newparent) :
@@ -215,7 +219,11 @@ ConstBlockIter Block::const_iter_side(ivec3 dir) const {
   return const_iter(startpos, endpos);
 }
 
-Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent, Tile* tile) {
+BlockTouchIter Block::iter_touching(Collider* world) {
+  return BlockTouchIter {this, world};
+}
+
+Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent, Tile* tile, vector<BlockGroup*>* groups) {
     if (ifile.eof()) {
       cout << "ERR: Unexpected eof when reading block data file" << endl;
       return nullptr;
@@ -229,7 +237,7 @@ Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk
         for (int x = 0; x < csize; x ++) {
             for (int y = 0; y < csize; y ++) {
                 for (int z = 0; z < csize; z ++) {
-                    chunk->blocks[x][y][z] = Block::from_file(ifile, x, y, z, scale/csize, chunk, tile);
+                    chunk->blocks[x][y][z] = Block::from_file(ifile, x, y, z, scale/csize, chunk, tile, groups);
                 }
             }
         }
@@ -241,6 +249,7 @@ Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk
     } else {
         bool value_set = false;
         char type;
+        BlockGroup* group = nullptr;
         unsigned int data;
         int direction = -1;
         while (!value_set and !ifile.eof()) {
@@ -250,11 +259,16 @@ Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk
             value_set = true;
           } else if (type == 0b01) {
             direction = data;
+          } else if (type == 0b10) {
+            if (groups != nullptr) {
+              group = (*groups)[data];
+            }
           } else {
             cout << "ERR: unknown type tag in block data file '" << (type & 0b10) << (type & 0b1) << "'" << endl;
           }
         }
         Pixel* p = new Pixel(px, py, pz, c, scale, parent, tile);
+        p->group = group;
         if (direction != -1) {
           p->direction = direction;
         }
@@ -418,6 +432,8 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
       }
     }
     
+    bool become_air = value != 0 and val == 0;
+    bool become_solid = value == 0 and val != 0;
     value = val;
     
     direction = newdirection;
@@ -453,6 +469,7 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
         Block* block;
         const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
         Pixel* lastpix = nullptr;
+        int i = 0;
         for (ivec3 unit_dir : dir_array) {
           ivec3 dir = unit_dir * scale;
           block = tile->world->get_global(gx+dir.x, gy+dir.y, gz+dir.z, scale);
@@ -463,9 +480,13 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
               pix->global_position(&bx, &by, &bz);
               tile->world->block_update(bx, by, bz);
               
-              if (dir.y == 1) {
-                if (val == 0) {
-                  pix->group = nullptr;
+              if (pix->group != nullptr) {
+                int inverse_index = (i > 2) ? i-3 : i+3;
+                int num_touching = std::min(pix->scale, scale);
+                if (become_air) {
+                  pix->group->consts[inverse_index] -= num_touching * num_touching;
+                } else if (become_solid) {
+                  pix->group->consts[inverse_index] += num_touching * num_touching;
                 }
               }
               
@@ -477,6 +498,7 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
               }
             }
           }
+          i++;
         }
         if (lastpix != nullptr) {
           oldgroup->del(lastpix);
@@ -525,12 +547,13 @@ void Pixel::tick() { // ERR: race condition, render and tick threads race, rende
     BlockGroup* newgroup = new BlockGroup(tile->world);
     newgroup->spread(this, 100);
     //cout << newgroup << ' ' << group << endl;
-    if (group != nullptr) {
-      //cout << group->size << endl;
-      if (!group->consts[4]) {
-        tile->block_entities.push_back(new FallingBlockEntity(tile->world, group, this));
-      }
-    }
+  }
+  if (group != nullptr and group->recalculate_flag) {
+    group->recalculate_all(this);
+    group->recalculate_flag = false;
+  }
+  if (group != nullptr and !group->constrained(4)) {
+    tile->block_entities.push_back(new FallingBlockEntity(tile->world, group, this));
   }
   
   /*if (group != nullptr and group->blockval != value) {
@@ -935,9 +958,46 @@ void Pixel::rotate_to_origin(int* mats, int* dirs, int rotation) {
   }
 }
 
-void Pixel::render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* block, ivec3 dir, int uv_dir, int minscale, int mat, bool render_null) {
+void Pixel::render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* blocks[6], int index, ivec3 dir, int uv_dir, int minscale, int mat, bool render_null) {
   GLfloat uvmax = 1.0f;
+  Block* block = blocks[index];
+  
+  
+  
   if ((block != nullptr and block->is_air(-dir.x, -dir.y, -dir.z, value)) or (block == nullptr and render_null)) {
+    int edges[4] = {0,0,0,0};
+    int overlay = 0;
+    if (group != nullptr and group->final and scale == 1) {
+      int indexes[6][4] = {
+        {5, 1, 2, 4},
+        {2, 0, 5, 3},
+        {0, 1, 3, 4},
+        {2, 1, 5, 4},
+        {5, 0, 2, 3},
+        {3, 1, 0, 4}
+      };
+      
+      int multiplier = 1;
+      for (int i = 0; i < 4; i ++) {
+        int rot_i = (64 + i - uv_dir) % 4;
+        // cout << rot_i << endl;
+        if (blocks[indexes[index][rot_i]] != nullptr) {
+          Pixel* pix = blocks[indexes[index][rot_i]]->get_pix();
+          if (pix->group != group and pix->value != 0) {
+            edges[i] = 1;
+            if (group->get_connection(pix->group) != nullptr) {
+              edges[i] = group->get_connection(pix->group)->data->tex_index + 1;
+            }
+          }
+        }
+        multiplier *= 2;
+      }
+    }
+    
+    if (edges != 0) {
+      overlay = 1;
+    }
+    
     GLfloat face[] = {x,y,z, x,y,z, x,y,z, x,y,z, x,y,z, x,y,z};
     
     GLfloat new_uvs[] = {
@@ -997,7 +1057,7 @@ void Pixel::render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* b
       facesunlight *= 0.7f;
     }
     
-    vecs->add_face(face, new_uvs, facesunlight, faceblocklight, minscale, mat);
+    vecs->add_face(face, new_uvs, facesunlight, faceblocklight, minscale, 0, overlay, edges, mat);
   }
 }
 
@@ -1064,10 +1124,17 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collide
     const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
     
     int i = 0;
+    
+    Block* blocks[6];
+    
     for (ivec3 dir : dir_array) {
-      Block* block = collider->get_global(gx+newscale*dir.x, gy+newscale*dir.y, gz+newscale*dir.z, newscale);
+      blocks[i] = collider->get_global(gx+newscale*dir.x, gy+newscale*dir.y, gz+newscale*dir.z, newscale);
+      i ++;
+    }
+    i = 0;
+    for (ivec3 dir : dir_array) {
       if (faces[i]) {
-        render_face(&vecs, x, y, z, block, dir, dirs[i], minscale, mat[i], render_null);
+        render_face(&vecs, x, y, z, blocks, i, dir, dirs[i], minscale, mat[i], render_null);
       }
       i ++;
     }
@@ -1092,7 +1159,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collide
   }
 }
 
-
+/*
 void Pixel::render_smooth(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collider, vec3 view_normal) {
   if (!render_flag) {
     return;
@@ -1483,14 +1550,41 @@ void Pixel::render_smooth(RenderVecs* allvecs, RenderVecs* transvecs, Collider* 
   }
   
 }
-  
-      
+*/
+
+BlockGroupIter Pixel::iter_group() {
+  if (group == nullptr) {
+    return {this, tile->world, [] (Pixel* base, Pixel* pix) {
+      return pix->value == base->value;
+    }};
+  } else {
+    return {this, tile->world, [] (Pixel* base, Pixel* pix) {
+      return pix->group == base->group;
+    }};
+  }
+}
+
+BlockGroupIter Pixel::iter_group(bool (*func)(Pixel*,Pixel*)) {
+  return {this, tile->world, func};
+}
+
+BlockGroupIter Pixel::iter_group(Collider* world, bool (*func)(Pixel*,Pixel*)) {
+  if (func == nullptr) {
+    if (group == nullptr) {
+      func = [] (Pixel* base, Pixel* pix) {
+        return pix->value == base->value;
+      };
+    } else {
+      func = [] (Pixel* base, Pixel* pix) {
+        return pix->group == base->group;
+      };
+    }
+  }
+  return {this, world, func};
+}
 
 
-
-
-
-Chunk* Pixel::subdivide() { ////// ERR: this somehow causes black blocks when subdividing? only sometimes tho
+Chunk* Pixel::subdivide() {
   write_lock lock(this);
   if (render_index.start != -1 and tile != nullptr) {
     if (render_transparent) {
@@ -1608,9 +1702,20 @@ Chunk* Pixel::resolve(bool yield) {
   }
 }
 
-void Pixel::save_to_file(ostream& of, bool yield) {
+void Pixel::save_to_file(ostream& of, vector<BlockGroup*>* groups, bool yield) {
   if (yield) {
     std::this_thread::yield();
+  }
+  if (groups != nullptr and group != nullptr and group->final) {
+    int groupcode;
+    vector<BlockGroup*>::iterator iter = std::find(groups->begin(), groups->end(), group);
+    if (iter == groups->end()) {
+      groupcode = groups->size();
+      groups->push_back(group);
+    } else {
+      groupcode = iter - groups->begin();
+    }
+    write_pix_val(of, 0b10, groupcode);
   }
   if (value != 0 and direction != blocks->blocks[value]->default_direction) {
     write_pix_val(of, 0b01, direction);
@@ -1837,8 +1942,12 @@ Block* Chunk::set_global(ivec4 pos, char val, int direction) {
       blocks[nlpos.x][nlpos.y][nlpos.z] = newblock;
     }
     if (!blocks[nlpos.x][nlpos.y][nlpos.z]->continues()) {
+      BlockGroup* samegroup = nullptr;
       for (Pixel* pix : iter()) {
-        if (pix->value != val) {
+        if (samegroup == nullptr and pix->group != nullptr and pix->group->final) {
+          samegroup = pix->group;
+        }
+        if (pix->value != val or (samegroup != nullptr and pix->group != samegroup)) {
           return this;
         }
       }
@@ -1858,13 +1967,13 @@ Block* Chunk::set_global(ivec4 pos, char val, int direction) {
 }
     
 
-void Chunk::save_to_file(ostream& of, bool yield) {
+void Chunk::save_to_file(ostream& of, vector<BlockGroup*>* groups, bool yield) {
     read_lock lock(this);
     of << char(0b11000000);
     for (int x = 0; x < csize; x ++) {
         for (int y = 0; y < csize; y ++) {
             for (int z = 0; z < csize; z ++) {
-                blocks[x][y][z]->save_to_file(of, yield);
+                blocks[x][y][z]->save_to_file(of, groups, yield);
             }
         }
     }
@@ -1922,8 +2031,10 @@ Pixel* BlockIter::iterator::operator*() {
   return pix;
 }
 
+
 BlockIter::iterator BlockIter::iterator::operator++() {
   Block* block = pix;
+  // cout << block << ' ' << parent << ' ' << parent->base << " fsdfsdfsfd" << endl;
   while (block->parent != parent->base->parent and block->px == parent->end_pos.x and block->py == parent->end_pos.y and block->pz == parent->end_pos.z) {
     block = block->parent;
   }
@@ -1961,6 +2072,110 @@ bool operator!=(const BlockIter::iterator& iter1, const BlockIter::iterator& ite
 
 
 
+Pixel* BlockTouchIter::iterator::operator*() {
+  return *iter;
+}
+
+BlockTouchIter::iterator BlockTouchIter::iterator::operator++() {
+  // cout << "block base " << parent->blockiter.base << ' ' << iter.parent->base << endl;
+  ++iter;
+  // cout << "iterating blocktouch " << endl;
+  while (!(iter != parent->blockiter.end())) {
+    dir_index ++;
+    if (dir_index >= 6) {
+      dir_index = -1;
+      // cout << "endinf " << endl;
+      return *this;
+    }
+    ivec3 pos;
+    parent->base->global_position(&pos.x, &pos.y, &pos.z);
+    int scale = parent->base->scale;
+    ivec3 dir = dir_array[dir_index];
+    Block* block = parent->world->get_global(pos.x+dir.x*scale, pos.y+dir.y*scale, pos.z+dir.z*scale, scale);
+    // cout << block << endl;
+    if (block != nullptr) {
+      parent->blockiter = block->iter_side(-dir);
+      iter = parent->blockiter.begin();
+      // cout << block << endl;
+      // cout << dir << endl;
+    }
+  }
+  return *this;
+}
+
+BlockTouchIter::iterator BlockTouchIter::begin() {
+  int dir_index = -1;
+  Block* block;
+  ivec3 dir;
+  ivec3 pos;
+  base->global_position(&pos.x, &pos.y, &pos.z);
+  int scale = base->scale;
+  do {
+    dir_index ++;
+    if (dir_index >= 6) {
+      return end();
+    }
+    dir = dir_array[dir_index];
+    block = world->get_global(pos.x+dir.x*scale, pos.y+dir.y*scale, pos.z+dir.z*scale, scale);
+  } while (block == nullptr);
+  blockiter = block->iter_side(-dir);
+  return {this, dir_index, blockiter.begin()};
+}
+
+BlockTouchIter::iterator BlockTouchIter::end() {
+  BlockTouchIter::iterator iter;
+  iter.parent = this;
+  iter.dir_index = -1;
+  return iter;
+}
+
+bool operator!=(const BlockTouchIter::iterator& iter1, const BlockTouchIter::iterator& iter2) {
+  if (iter1.parent == iter2.parent and iter1.dir_index == -1 and iter2.dir_index == -1) {
+    return false;
+  }
+  return iter1.parent != iter2.parent or iter1.iter != iter2.iter;
+}
+
+
+
+BlockGroupIter::BlockGroupIter(Pixel* newbase, Collider* nworld, bool (*func)(Pixel* base, Pixel* pix)):
+base(newbase), world(nworld), includefunc(func) {
+  unordered_set<Pixel*> new_pixels;
+  unordered_set<Pixel*> last_pixels;
+  
+  last_pixels.emplace(base);
+  
+  while (last_pixels.size() > 0) {
+    for (Pixel* pix : last_pixels) {
+      pixels.emplace(pix);
+    }
+    
+    for (Pixel* pix : last_pixels) {
+      for (Pixel* sidepix : pix->iter_touching(world)) {
+        if (includefunc(base, sidepix) and pixels.count(sidepix) == 0 and new_pixels.count(sidepix) == 0) {
+          new_pixels.emplace(sidepix);
+        }
+      }
+    }
+    
+    last_pixels.swap(new_pixels);
+    new_pixels.clear();
+  }
+}
+
+
+
+unordered_set<Pixel*>::iterator BlockGroupIter::begin() {
+  return pixels.begin();
+}
+
+unordered_set<Pixel*>::iterator BlockGroupIter::end() {
+  return pixels.end();
+}
+
+void BlockGroupIter::swap(unordered_set<Pixel*>& other) {
+  pixels.swap(other);
+}
 
 
 

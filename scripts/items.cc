@@ -11,6 +11,10 @@
 #include "blocks.h"
 #include "entity.h"
 #include "text.h"
+#include "blockgroups.h"
+#include "glue.h"
+
+
 
 ItemStorage* itemstorage;
 
@@ -43,11 +47,12 @@ void CharArray::set(char val, int x, int y, int z) {
     arr[x*sy*sz + y*sz + z] = val;
 }
 
-void CharArray::place(World* world, int x, int y, int z, int dx, int dy, int dz) {
+void CharArray::place(World* world, Item* item, int x, int y, int z, int dx, int dy, int dz) {
     int direction = dy+dz*2;
     if (dx < 0 or dy < 0 or dz < 0) {
       direction = direction*-1+3;
     }
+    vector<Pixel*> pixels;
     for (int i = 0; i < sx; i ++) {
         for (int j = 0; j < sy; j ++) {
             for (int k = 0; k < sz; k ++) {
@@ -55,8 +60,13 @@ void CharArray::place(World* world, int x, int y, int z, int dx, int dy, int dz)
                 int py = j - (sy/2);
                 int pz = k - (sz/2);
                 world->set(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy), get(i,j,k), direction);
+                pixels.push_back(world->get_global(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy), 1)->get_pix());
             }
         }
+    }
+    if (item->data->isgroup) {
+      BlockGroup* group = new BlockGroup(world, pixels);
+      group->item = *item;
     }
 }
 
@@ -403,7 +413,8 @@ void Item::render(MemVecs* vecs, float x, float y, float scale) {
 
 ItemData::ItemData(ifstream & ifile):
 stackable(true), onplace(nullptr), rcaction("null"), starting_weight(0),
-starting_sharpness(0), starting_reach(0), sharpenable(false), lightlevel(0) {
+starting_sharpness(0), starting_reach(0), sharpenable(false), lightlevel(0),
+isgroup(true), glue(nullptr) {
   
   string buff;
   ifile >> buff;
@@ -435,6 +446,12 @@ starting_sharpness(0), starting_reach(0), sharpenable(false), lightlevel(0) {
         ifile >> rcaction;
       } else if (varname == "toughness") {
         ifile >> toughness;
+      } else if (varname == "gluetype") {
+        string gluetype;
+        ifile >> gluetype;
+        glue = connstorage->connectors[gluetype];
+      } else if (varname == "notgroup") {
+        isgroup = false;
       } else if (varname == "lightlevel") {
         ifile >> lightlevel;
       } else if (varname == "weight") {

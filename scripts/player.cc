@@ -15,6 +15,7 @@
 #include "game.h"
 #include "audio.h"
 #include "materials.h"
+#include "tiles.h"
 
 
 
@@ -305,11 +306,56 @@ void Player::right_mouse(double deltatime) {
 			if (!item->isnull) {
 				CharArray* arr = item->data->onplace;
 				if (arr != nullptr) {
-					arr->place(world, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
+					arr->place(world, item, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0), dx, dy, dz);
 					game->audio.play_sound("place", vec3(x, y, z));
 				}
 			}
 			inven.use(selitem);
+		} else if (!inhand->isnull and inhand->data->glue != nullptr) {
+			if (pix->group != nullptr and pix->group->final) {
+				ivec3 dir (dx, dy, dz);
+				int closest_side = -1;
+				vec3 inblock = hitpos - glm::floor(hitpos);
+				vec3 absinblock = glm::abs(inblock - 0.5f);
+				for (int i = 0; i < 3; i ++) {
+					if (dir[i] == 0 and (closest_side == -1 or absinblock[i] > absinblock[closest_side])) {
+						closest_side = i;
+					}
+				}
+				ivec3 close_dir (0,0,0);
+				if (inblock[closest_side] - 0.5f < 0) {
+					close_dir[closest_side] = -1;
+				} else {
+					close_dir[closest_side] = 1;
+				}
+				
+				ivec3 globalpos;
+				pix->global_position(&globalpos.x, &globalpos.y, &globalpos.z);
+				ivec3 sidepos = globalpos + close_dir * pix->scale;
+				Block* sideblock = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
+				if (sideblock != nullptr) {
+					for (Pixel* sidepix : sideblock->iter_side(-close_dir)) {
+						if (sidepix->group != nullptr and sidepix->group->final and sidepix->group != pix->group) {
+							pix->group->connect_to(GroupConnection(sidepix->group, inhand->data->glue));
+							for (Pixel* iterpix : pix->iter_group([] (Pixel* base, Pixel* pix) {
+								if (pix->group != nullptr and pix->group != base->group and pix->group->get_connection(base->group) != nullptr) {
+									for (Pixel* sidepix : pix->iter_touching(pix->tile->world)) {
+										if (sidepix->group == base->group) {
+											sidepix->render_update();
+											return true;
+										}
+									}
+								}
+								return false;
+							})) {
+								iterpix->render_update();
+							}
+							cout << "connection made " << endl;
+							break;
+						}
+					}
+				}
+			}
 		} else {
 			game->debugblock = pix;
 			game->debugentity = target_entity;
@@ -341,7 +387,7 @@ void Player::left_mouse(double deltatime) {
 	// 	return;
 	// }
 	
-	
+	bool shifting = glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS;
 	//cout << "skdfls " << int(pix->value) << endl;
 	
 	if (attack_recharge <= 0) {
@@ -352,54 +398,156 @@ void Player::left_mouse(double deltatime) {
 			double x = hitpos.x;
 			double y = hitpos.y;
 			double z = hitpos.z;
-			
-			//ivec3 blockpos = ivec3((int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
-			
-			//cout << hitpos.x << ' ' << hitpos.y << ' ' << hitpos.z << endl;
-			int gx,gy,gz;
-			pix->global_position(&gx, &gy, &gz);
-			//cout << gx << ' ' << gy << ' ' << gz << endl;
-			
 			ivec3 blockpos = ivec3(x, y, z) - ivec3(x<0, y<0, z<0);
 			
-			//cout << blockpos.x << ' ' << blockpos.y << ' ' << blockpos.z << endl;
-			//cout << ':' << x << ' ' << y << ' ' << z << endl;
-			if (blockpos != block_breaking) {
-				break_progress = 0;
-				block_breaking = blockpos;
-			}
+			int ox = (int)x - (x<0);
+			int oy = (int)y - (y<0);
+			int oz = (int)z - (z<0);
+			x -= pointing.x*0.002;
+			y -= pointing.y*0.002;
+			z -= pointing.z*0.002;
+			int dx = (int)x - (x<0) - ox;
+			int dy = (int)y - (y<0) - oy;
+			int dz = (int)z - (z<0) - oz;
 			
-			if (!item->isnull and item->data->sharpenable) {
-				item = inven.items[selitem].get_unique();
-			}
-			break_progress += item->collision(pix);
-			inven.items[selitem].trim();
-			BlockData* data = blocks->blocks[pix->value];
-			game->audio.play_sound(data->material->hitsound, vec3(blockpos), 0.1);
-			//cout << break_progress << endl;
-			
-			
-			if (true and break_progress >= 1) {
-				
-				set_block_breaking_vecs(pix, blockpos, 0);
-				
-				game->audio.play_sound(data->material->breaksound, vec3(blockpos));
-				// double time_needed = item->dig_time(pix->get());
-				// double damage_per_sec = 1/time_needed;
-				//
-				// item->damage(this, blocks->blocks[pix->get()], deltatime);
-				char newitem;
-				if (item->isnull) {
-					newitem = Item::ondig_null(world, blockpos.x, blockpos.y, blockpos.z);
+			Pixel* edgepix = nullptr;
+			if (pix->group != nullptr and pix->group->final) {
+				ivec3 dir (dx, dy, dz);
+				int closest_side = -1;
+				vec3 inblock = hitpos - glm::floor(hitpos);
+				vec3 absinblock = glm::abs(inblock - 0.5f);
+				for (int i = 0; i < 3; i ++) {
+					if (dir[i] == 0 and (closest_side == -1 or absinblock[i] > absinblock[closest_side])) {
+						closest_side = i;
+					}
+				}
+				ivec3 close_dir (0,0,0);
+				if (inblock[closest_side] - 0.5f < 0) {
+					close_dir[closest_side] = -1;
 				} else {
-					newitem = item->ondig(world, blockpos.x, blockpos.y, blockpos.z);
+					close_dir[closest_side] = 1;
 				}
-				if (newitem != 0) {
-					blocks->blocks[newitem]->droptable.drop(&inven, this, item);
+				
+				ivec3 globalpos;
+				pix->global_position(&globalpos.x, &globalpos.y, &globalpos.z);
+				ivec3 sidepos = globalpos + close_dir * pix->scale;
+				Block* sideblock = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
+				if (sideblock != nullptr) {
+					for (Pixel* sidepix : sideblock->iter_side(-close_dir)) {
+						if (pix->group->get_connection(sidepix->group) != nullptr) {
+							edgepix = sidepix;
+							break;
+						}
+					}
 				}
-				break_progress = 0;
+			}/*
+							pix->group->connect_to(GroupConnection(sidepix->group, inhand->data->glue));
+							for (Pixel* iterpix : pix->iter_group([] (Pixel* base, Pixel* pix) {
+								if (pix->group != nullptr and pix->group != base->group and pix->group->get_connection(base->group) != nullptr) {
+									for (Pixel* sidepix : pix->iter_touching(pix->tile->world)) {
+										if (sidepix->group == base->group) {
+											sidepix->render_update();
+											return true;
+										}
+									}
+								}
+								return false;
+							})) {
+								iterpix->render_update();
+							}
+							cout << "connection made " << endl;
+							break;
+						}
+					}
+				}
+			}*/
+			if (edgepix != nullptr) {
+				GroupConnection* connection = pix->group->get_connection(edgepix->group);
+				if (connection != connection_breaking) {
+					connection_breaking = connection;
+					break_progress = 0;
+				}
+				break_progress += 0.5;
+				if (break_progress >= 1) {
+					for (Pixel* iterpix : pix->iter_group([] (Pixel* base, Pixel* pix) {
+						if (pix->group != nullptr and pix->group != base->group and pix->group->get_connection(base->group) != nullptr) {
+							for (Pixel* sidepix : pix->iter_touching(pix->tile->world)) {
+								if (sidepix->group == base->group) {
+									sidepix->render_update();
+									ivec3 pos;
+									sidepix->global_position(&pos.x, &pos.y, &pos.z);
+									sidepix->tile->world->block_update(pos.x, pos.y, pos.z);
+									return true;
+								}
+							}
+						}
+						return false;
+					})) {
+						iterpix->render_update();
+						ivec3 pos;
+						iterpix->global_position(&pos.x, &pos.y, &pos.z);
+						iterpix->tile->world->block_update(pos.x, pos.y, pos.z);
+					}
+					
+					pix->group->del_connection(connection_breaking->group);
+					connection_breaking = nullptr;
+					break_progress = 0;
+				}
+			} else if (shifting and pix->group != nullptr and pix->group->final and pix->group->connections.size() == 0) {
+				inven.add(ItemStack(pix->group->item,1));
+				for (Pixel* pix : pix->iter_group()) {
+					pix->set(0);
+				}
 			} else {
-				set_block_breaking_vecs(pix, blockpos, int(break_progress*7));
+				
+				
+				//ivec3 blockpos = ivec3((int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+				
+				//cout << hitpos.x << ' ' << hitpos.y << ' ' << hitpos.z << endl;
+				int gx,gy,gz;
+				pix->global_position(&gx, &gy, &gz);
+				//cout << gx << ' ' << gy << ' ' << gz << endl;
+				
+				
+				//cout << blockpos.x << ' ' << blockpos.y << ' ' << blockpos.z << endl;
+				//cout << ':' << x << ' ' << y << ' ' << z << endl;
+				if (blockpos != block_breaking) {
+					break_progress = 0;
+					block_breaking = blockpos;
+				}
+				
+				if (!item->isnull and item->data->sharpenable) {
+					item = inven.items[selitem].get_unique();
+				}
+				break_progress += item->collision(pix);
+				inven.items[selitem].trim();
+				BlockData* data = blocks->blocks[pix->value];
+				game->audio.play_sound(data->material->hitsound, vec3(blockpos), 0.1);
+				//cout << break_progress << endl;
+				
+				
+				if (true and break_progress >= 1) {
+					
+					set_block_breaking_vecs(pix, blockpos, 0);
+					
+					game->audio.play_sound(data->material->breaksound, vec3(blockpos));
+					// double time_needed = item->dig_time(pix->get());
+					// double damage_per_sec = 1/time_needed;
+					//
+					// item->damage(this, blocks->blocks[pix->get()], deltatime);
+					char newitem;
+					if (item->isnull) {
+						newitem = Item::ondig_null(world, blockpos.x, blockpos.y, blockpos.z);
+					} else {
+						newitem = item->ondig(world, blockpos.x, blockpos.y, blockpos.z);
+					}
+					if (newitem != 0) {
+						blocks->blocks[newitem]->droptable.drop(&inven, this, item);
+					}
+					break_progress = 0;
+				} else {
+					set_block_breaking_vecs(pix, blockpos, int(break_progress*7));
+				}
 			}
 		}
 		attack_recharge = item->get_recharge_time();

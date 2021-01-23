@@ -108,6 +108,9 @@ void GraphicsContext::init_glfw() {
 	clearcolorID = glGetUniformLocation(programID, "clear_color");
 	player_positionID = glGetUniformLocation(programID, "player_position");
 	sunlightID = glGetUniformLocation(programID, "sunlight");
+	breakingTexID = glGetUniformLocation(programID, "breakingTex");
+	overlayTexID = glGetUniformLocation(programID, "overlayTex");
+	edgesTexID = glGetUniformLocation(programID, "edgesTex");
 	
 	glBindVertexArray(uiVertexArrayID);
 	
@@ -168,6 +171,11 @@ void GraphicsContext::load_textures() {
 		const char* data = ui.c_str();
 		ui_textures[i] = loadBMP_custom(data, true);
 	}
+	
+	breaking_textures = loadBMP_array_folder("resources/textures/blocks/breaking", true);
+	overlay_textures = loadBMP_array_folder("resources/textures/blocks/overlay", true);
+	int num_edges;
+	edges_textures = loadBMP_array_folder("resources/textures/blocks/edges", true);
 	
 	ui_textures[num_uis-1] = loadBMP_image_folder("resources/textures/items", true);
 	ui_names["items.bmp"] = num_uis-1;
@@ -258,6 +266,19 @@ void GraphicsContext::block_draw_call(Player* player, float sunlight, AsyncGLVec
 	);
 	//cout << num_tris << endl;
 	// Draw the triangle !
+	
+	int breakingTex = num_blocks;
+	glActiveTexture(GL_TEXTURE0+breakingTex);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, breaking_textures);
+	glUniform1i(breakingTexID, breakingTex);
+	int overlayTex = num_blocks+1;
+	glActiveTexture(GL_TEXTURE0+overlayTex);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, overlay_textures);
+	glUniform1i(overlayTexID, overlayTex);
+	int edgesTex = num_blocks+2;
+	glActiveTexture(GL_TEXTURE0+edgesTex);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, edges_textures);
+	glUniform1i(edgesTexID, edgesTex);
 	
 	int ids[num_blocks];
 	for (int i = 0; i < num_blocks; i ++) {

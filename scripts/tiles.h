@@ -18,6 +18,7 @@ class Tile {
 		bool render_faces[6] = {true,true,true,true,true,true};
 		bool optimized_render = false;
 		std::shared_timed_mutex deletelock;
+		std::mutex changelock;
 		bool deleting;
 		bool lightflag = true;
 		bool fully_loaded = false;

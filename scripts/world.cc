@@ -428,10 +428,12 @@ void World::tick() {
   local_updates.swap(block_updates);
   for (ivec3 pos : local_updates) {
     //cout << pos.x << endl;
+    tileat_global(pos)->changelock.lock();
     Block* block = get_global(pos.x, pos.y, pos.z, 1);
     if (block != nullptr and block->get_pix() != nullptr) {
       block->get_pix()->tick();
     }
+    tileat_global(pos)->changelock.unlock();
   }
   /*
   //cout << "world tick" << endl;
@@ -602,6 +604,16 @@ Tile* World::tileat(ivec3 pos) {
     }
   }
   return nullptr;
+}
+
+Tile* World::tileat_global(ivec3 pos) {
+  ivec3 divpos = pos / chunksize;
+  divpos -= ivec3(
+    pos.x < 0 and -pos.x%chunksize != 0,
+    pos.y < 0 and -pos.y%chunksize != 0,
+    pos.z < 0 and -pos.z%chunksize != 0
+  );
+  return tileat(divpos);
 }
 
 Block* World::get_global(int x, int y, int z, int scale) {

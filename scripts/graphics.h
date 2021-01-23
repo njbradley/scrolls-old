@@ -23,6 +23,9 @@ class GraphicsContext { public:
 	
 	vector<GLuint> block_textures;
 	vector<GLuint> transparent_block_textures;
+	GLuint breaking_textures;
+	GLuint overlay_textures;
+	GLuint edges_textures;
 	vector<GLuint> ui_textures;
 	
 	GLuint vertexbuffer;
@@ -40,6 +43,9 @@ class GraphicsContext { public:
 	GLuint clearcolorID;
 	GLuint player_positionID;
 	GLuint sunlightID;
+	GLuint breakingTexID;
+	GLuint overlayTexID;
+	GLuint edgesTexID;
 	
 	GraphicsContext(Settings* newsettings);
 	void set_world_buffers(World* world, int mem);

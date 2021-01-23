@@ -71,17 +71,18 @@ class Block: public Collider { public:
     virtual Block * get_global(int,int,int,int) = 0;
     virtual Block* set_global(ivec4 pos, char val, int direction = -1) = 0;
     virtual void set_all_render_flags() = 0;
-    virtual void save_to_file(ostream&, bool yield = false) = 0;
+    virtual void save_to_file(ostream& of, vector<BlockGroup*>* groups = nullptr, bool yield = false) = 0;
     virtual void lighting_update() = 0;
     Block* raycast(Collider* world, double* x, double* y, double* z, double dx, double dy, double dz, double time);
     Block* get_world();
     BlockIter iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(csize-1,csize-1,csize-1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr);
     BlockIter iter_side(ivec3 dir);
+    BlockTouchIter iter_touching(Collider* world = nullptr);
     ConstBlockIter const_iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(csize-1,csize-1,csize-1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr) const;
     ConstBlockIter const_iter_side(ivec3 dir) const;
     vec3 get_position() const;
     
-    static Block* from_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent, Tile* tile);
+    static Block* from_file(istream& ifile, int px, int py, int pz, int scale, Chunk* parent, Tile* tile, vector<BlockGroup*>* groups = nullptr);
     static void write_pix_val(ostream& ofile, char type, unsigned int val);
     static void read_pix_val(istream& ifile, char* type, unsigned int* val);
 };
@@ -133,9 +134,12 @@ public:
     virtual void lighting_update();
     virtual Block* get_global(int x, int y, int z, int scale);
     virtual Block* set_global(ivec4 pos, char val, int direction = -1);
-    void render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* block, ivec3 dir, int uv_dir, int minscale, int mat, bool render_null);
+    void render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* blocks[6], int index, ivec3 dir, int uv_dir, int minscale, int mat, bool render_null);
     virtual void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
     void render_smooth(RenderVecs* vecs, RenderVecs* transvecs, Collider* collider, vec3 view_normal);
+    BlockGroupIter iter_group();
+    BlockGroupIter iter_group(bool (*func)(Pixel* base, Pixel* pix));
+    BlockGroupIter iter_group(Collider* world, bool (*func)(Pixel* base, Pixel* pix) = nullptr);
     Chunk* subdivide();
     // splits the pixel into a chunk with 8 pixels of the
     // same value in it
@@ -152,7 +156,7 @@ public:
     // if the pixel is divided a chunk will be returned and
     // the parent will be altered. if the pixel is not divided,
     // a nullptr is returned
-    virtual void save_to_file(ostream& of, bool yield = false);
+    virtual void save_to_file(ostream& of, vector<BlockGroup*>* groups = nullptr, bool yield = false);
 };
 
 class Chunk: public Block { public:
@@ -173,7 +177,7 @@ class Chunk: public Block { public:
     virtual void rotate(int axis, int dir);
     virtual Block* get_global(int x, int y, int z, int nscale);
     virtual Block* set_global(ivec4 pos, char val, int direction = -1);
-    virtual void save_to_file(ostream& of, bool yield = false);
+    virtual void save_to_file(ostream& of, vector<BlockGroup*>* groups = nullptr, bool yield = false);
 };
 
 
@@ -201,6 +205,36 @@ class BlockIter { public:
   iterator begin();
   iterator end();
 };
+
+class BlockTouchIter { public:
+  Block* base;
+  Collider* world;
+  BlockIter blockiter;
+  class iterator { public:
+    BlockTouchIter* parent;
+    int dir_index;
+    BlockIter::iterator iter;
+    Pixel* operator*();
+    iterator operator++();
+    friend bool operator != (const iterator& iter1, const iterator& iter2);
+  };
+  iterator begin();
+  iterator end();
+	static constexpr ivec3 dir_array[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
+};
+
+class BlockGroupIter { public:
+  Pixel* base;
+  Collider* world;
+  bool (*includefunc)(Pixel* base, Pixel* pix);
+  unordered_set<Pixel*> pixels;
+  BlockGroupIter(Pixel* newbase, Collider* nworld, bool (*func)(Pixel* base, Pixel* pix));
+  unordered_set<Pixel*>::iterator begin();
+  unordered_set<Pixel*>::iterator end();
+  void swap(unordered_set<Pixel*>& other);
+	static constexpr ivec3 dir_array[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
+};
+    
 
 class ConstBlockIter { public:
   const Block* base;

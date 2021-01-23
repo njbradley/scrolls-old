@@ -90,6 +90,7 @@ class Player: public DisplayEntity {
 	int selitem;
 	double break_progress = 0;
   ivec3 block_breaking;
+  GroupConnection* connection_breaking = nullptr;
   double attack_recharge = 0;
   double total_attack_recharge = 0.2;
   RenderIndex block_breaking_render_index;
@@ -134,6 +135,8 @@ class FallingBlockEntity: public DisplayEntity, public Collider {
 public:
   BlockGroup* group;
   vector<ivec3> lit_blocks;
+  bool final = false;
+  Item item;
   FallingBlockEntity(World* nworld, BlockGroup* newgroup, Pixel* start_pix);
   FallingBlockEntity(World* nworld, istream& ifile);
   void calc_constraints();

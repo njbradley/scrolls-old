@@ -5,6 +5,7 @@
 
 #include "blocks.h"
 #include "blockdata.h"
+#include "blockgroups.h"
 #include "mobs.h"
 #include "world.h"
 
@@ -59,6 +60,7 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {
   
   if (deletelock.try_lock_shared()) {
+    changelock.lock();
     if (lightflag) {
         //update_lighting();
         const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
@@ -132,6 +134,7 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
       chunk->lighting_update();
       chunk->render(glvecs, transvecs, world, 0, 0, 0, render_depth, render_faces, false, true);
     }
+    changelock.unlock();
     deletelock.unlock_shared();
   }
   fully_loaded = true;
@@ -148,7 +151,9 @@ void Tile::save() {
     }
   }
   ofstream ofile(path.str(), std::ios::binary);
-  chunk->save_to_file(ofile, true);
+  vector<BlockGroup*> groups;
+  
+  chunk->save_to_file(ofile, &groups, true);
   ofile << endl << entities.size() << endl;
   for (DisplayEntity* e : entities) {
     //cout << "entity " << e << " saving pos:";
@@ -158,6 +163,21 @@ void Tile::save() {
   ofile << block_entities.size() << endl;
   for (FallingBlockEntity* e : block_entities) {
     e->to_file(ofile);
+  }
+  
+  
+  path.str("");
+  path << "saves/" << world->name << "/groups/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
+  ofstream groupfile(path.str());
+  if (groups.size() > 0) {
+    for (BlockGroup* group : groups) {
+      group->to_file(groupfile, &groups);
+    }
+  } else {
+    if (groupfile.good()) {
+      groupfile.close();
+      remove(path.str().c_str());
+    }
   }
 }
 
@@ -245,8 +265,23 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
   			//return load_chunk(pos);
   			//chunk = generate(pos);
   	}
+    path.str("");
+  	path << "saves/" << world->name << "/groups/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
+    ifstream groupfile(path.str());
+    vector<BlockGroup*> groups;
+    if (groupfile.good()) {
+      while (!groupfile.eof()) {
+        groups.push_back(new BlockGroup(world, groupfile));
+        while (!groupfile.eof() and (groupfile.peek() == ' ' or groupfile.peek() == '\n')) {
+          groupfile.get();
+        }
+      }
+    }
+    for (BlockGroup* group : groups) {
+      group->link(&groups);
+    }
     
-    chunk = Block::from_file(ifile, pos.x, pos.y, pos.z, chunksize, nullptr, this);
+    chunk = Block::from_file(ifile, pos.x, pos.y, pos.z, chunksize, nullptr, this, &groups);
     int size;
     ifile >> size;
     for (int i = 0; i < size; i ++) {

@@ -50,7 +50,7 @@ void Entity::timestep() {
     }
     
     step_distance -= glm::length(vec3(vel.x, int(vel.y), vel.z))*deltaTime;
-  	if (consts[4] and step_distance < 0) {
+  	if (consts[4] and step_distance < 0 and !immune) {
   		step_distance = 4;
   		game->audio.play_sound("step", position - vec3(0, 4, 0), 0.5);
   	}
@@ -943,9 +943,13 @@ void NamedEntity::on_timestep(double deltatime) {
 
 
 FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup, Pixel* start_pix): DisplayEntity(nworld, vec3(0,0,0), vec3(0,0,0),
-vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup) {
+vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup), item(nullptr) {
   immune = true;
-  
+  final = group->final;
+  if (final) {
+    item = group->item;
+  }
+  cout << "fälling " << endl;
   unordered_set<Pixel*> pixels;
   unordered_set<Pixel*> last_pixels;
   unordered_set<Pixel*> new_pixels;
@@ -973,7 +977,7 @@ vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup) {
         Block* block = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
         if (block != nullptr) {
           for (Pixel* sidepix : block->iter_side(-dir)) {
-            if (sidepix->group == group and pixels.count(sidepix) == 0) {
+            if ((sidepix->group == pix->group or pix->group->get_connection(sidepix->group) != nullptr) and pixels.count(sidepix) == 0) {
               if (sidepos.x < lower_bound.x) lower_bound.x = sidepos.x;
               if (sidepos.y < lower_bound.y) lower_bound.y = sidepos.y;
               if (sidepos.z < lower_bound.z) lower_bound.z = sidepos.z;
@@ -1006,13 +1010,19 @@ vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup) {
     pix->global_position(&pos.x, &pos.y, &pos.z);
     ivec3 localpos = pos - lower_bound;
     block.set(ivec4(localpos.x, localpos.y, localpos.z, pix->scale), pix->value, pix->direction);
+    block.get_global(localpos.x, localpos.y, localpos.z, pix->scale)->get_pix()->group = pix->group;
+    pix->group = nullptr;
     world->set(ivec4(pos.x, pos.y, pos.z, pix->scale), 0, 0);
   }
 }
 
 
-FallingBlockEntity::FallingBlockEntity(World* nworld, istream& ifile): DisplayEntity(nworld, ifile) {
-  
+FallingBlockEntity::FallingBlockEntity(World* nworld, istream& ifile): DisplayEntity(nworld, ifile), item(ifile) {
+  int scale;
+  ifile >> final >> scale;
+  string str;
+  getline(ifile, str, ':');
+  block.block = Block::from_file(ifile, 0, 0, 0, scale, nullptr, nullptr);
   // string buff;
   // int scale;
   // ifile >> scale;
@@ -1022,19 +1032,42 @@ FallingBlockEntity::FallingBlockEntity(World* nworld, istream& ifile): DisplayEn
 
 void FallingBlockEntity::to_file(ostream& ofile) {
   DisplayEntity::to_file(ofile);
+  item.to_file(ofile);
+  ofile << final << ' ' << block.block->scale << endl << ':';
+  block.block->save_to_file(ofile);
 }
 
 void FallingBlockEntity::on_timestep(double deltatime) {
   DisplayEntity::on_timestep(deltatime);
   if (consts[4]) {
+    //map<BlockGroup*,vector<Pixel*>> pixels;
+    //vector<Pixel*> pixels
+    // map<BlockGroup*,Pixel*> groups;
     for (Pixel* pix : block.block->iter()) {
       if (pix->value != 0) {
         ivec3 pos;
         pix->global_position(&pos.x, &pos.y, &pos.z);
         ivec3 globalpos = ivec3(position) + pos;
         world->set(ivec4(globalpos.x, globalpos.y, globalpos.z, pix->scale), pix->value, pix->direction);
+        Pixel* worldpix = world->get_global(globalpos.x, globalpos.y, globalpos.z, pix->scale)->get_pix();
+        worldpix->group = pix->group;
+        pix->group->recalculate_flag = true;
+        // groups[pix->group] = worldpix;
+        pix->group = nullptr;
+        //if (final) pixels[pix->group].push_back(world->get_global(globalpos.x, globalpos.y, globalpos.z, pix->scale)->get_pix());
       }
     }
+    
+    // for (pair<BlockGroup*,Pixel*> kvpair : groups) {
+    //   cout << "recalcualting "<< endl;
+    //   kvpair.first->recalculate_all(kvpair.second);
+    // }
+    // if (final) {
+    //   for (map<BlockGroup*,vector<Pixel*>>::iterator kvpair = pixels.begin(); kvpair != pixels.end(); kvpair ++) {
+    //     BlockGroup* group = new BlockGroup(world, kvpair->second);
+    //     group->item = kvpair->first->item;
+    //   }
+    // }
     alive = false;
   }
 }

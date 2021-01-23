@@ -16,6 +16,7 @@
 #include "cross-platform.h"
 #include "ui.h"
 #include "blockgroups.h"
+#include "glue.h"
 
 
 
@@ -90,6 +91,7 @@ Game::Game(): graphics(&settings) {
 	
 	matstorage = new MaterialStorage();
 	blocks = new BlockStorage();
+	connstorage = new ConnectorStorage();
 	itemstorage = new ItemStorage();
 	recipestorage = new RecipeStorage();
 	entitystorage = new EntityStorage();
@@ -544,9 +546,9 @@ void Game::print_debug() {
 		debugstream << " physics_group:" << debugblock->group << ' ' << "light " << debugblock->blocklight << ' ' << debugblock->sunlight << endl;
 		
 		if (debugblock->group != nullptr) {
-			debugstream << " group: size " << debugblock->group->size << endl << "consts ";
-			for (bool con : debugblock->group->consts) {
-				debugstream << (con ? "true " : "false ");
+			debugstream << " group: size " << debugblock->group->size << " conn " << debugblock->group->connections.size() << endl << "consts ";
+			for (int con : debugblock->group->consts) {
+				debugstream << con << ' ';
 			}
 			debugstream << endl;
 		}

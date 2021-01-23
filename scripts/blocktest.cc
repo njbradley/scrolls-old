@@ -1,9 +1,11 @@
 #include "blocks.h"
 #include "materials.h"
 #include "blockdata.h"
+#include "cross-platform.h"
 #include <bitset>
 
 int main() {
+	setup_backtrace();
 	
 	matstorage = new MaterialStorage();
 	blocks = new BlockStorage();
@@ -87,23 +89,100 @@ int main() {
 		cout << gx << ' ' << gy << ' ' << gz << ' ' << pix->scale << endl;
 	}
 	
+	BlockContainer container(block);
+	ivec3 chosen_block(1,1,1);
+	Block* subblock = container.get_global(chosen_block.x, chosen_block.y, chosen_block.z,1);
+	
+	cout << endl << "Example touching " << endl;
+	
+	const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
+	for (ivec3 unit_dir : dir_array) {
+		ivec3 dir = unit_dir * subblock->scale;
+		Block* tmpblock = container.get_global(chosen_block.x+dir.x, chosen_block.y+dir.y, chosen_block.z+dir.z, subblock->scale);
+		if (tmpblock != nullptr) {
+			for (Pixel* pix : tmpblock->iter_side(-unit_dir)) {
+				int gx, gy, gz;
+				pix->global_position(&gx, &gy, &gz);
+				cout << gx << ' ' << gy << ' ' << gz << ' ' << pix->scale << endl;
+			}
+		}
+	}
+	
+	cout << endl << "Touching iter test "<< endl;
+	
+	for (Pixel* pix : subblock->iter_touching(&container)) {
+		int gx, gy, gz;
+		pix->global_position(&gx, &gy, &gz);
+		cout << gx << ' ' << gy << ' ' << gz << ' ' << pix->scale << endl;
+	}
+	
+	cout << endl << "Group iter test " << endl;
+	
+	Pixel* startpix = block->get_global(0,0,0,1)->get_pix();
+	for (Pixel* pix : startpix->iter_group(&container)) {
+		int gx, gy, gz;
+		pix->global_position(&gx, &gy, &gz);
+		cout << gx << ' ' << gy << ' ' << gz << ' ' << pix->scale << endl;
+	}
+		
+	
+	cout << endl;
+	
 	ifstream ifile("saves/Starting-World/chunks/0x0y-2z.dat", std::ios::binary);
 	Block* bigblock = Block::from_file(ifile, 0, 0, 0, 64, nullptr, nullptr);
+	BlockContainer bigcontainer(bigblock);
 	
 	int num_pix = 0;
 	int start = clock();
 	for (Pixel* pix : bigblock->iter()) {
 		num_pix ++;
-		for (int i = 0; i < 100000; i ++) {
-			num_pix += i;
-		}
 	}
 	int end = clock();
 	cout << "num pix " << num_pix << endl;
 	cout << "iter time: " << end - start << endl;
 	
+	cout << endl << "Big group iter: " << endl;
+	num_pix = 0;
+	startpix = bigblock->get_global(0, 63, 0, 1)->get_pix();
+	start = clock();
+	for (Pixel* pix : startpix->iter_group(&bigcontainer)) {
+		num_pix ++;
+	}
+	end = clock();
+	cout << "Num pix in group : " << num_pix << endl << endl;
+	cout << "Time : " << end - start << endl << endl;
 	
-	cout << "all time : " << end - start << endl;
+	cout << endl << "Custom test "<< endl;
+	startpix = bigblock->get_global(0, 63, 0, 1)->get_pix();
+	start = clock();
+	BlockGroupIter iter = startpix->iter_group(&bigcontainer);
+	// for (vector<Pixel*>::iterator i = iter.begin(); i != iter.end(); i ++) {
+	// 	num_pix ++;
+	// }
+	end = clock();
+	cout << "other time : " << end - start << endl;
+	
+	cout << "mem overhead " << sizeof(vector<Pixel*>) << ' ' << sizeof(unordered_set<Pixel*>) << endl;
+	
+	start = clock();
+	for (int i = 0; i < 1000000; i ++) {
+		unordered_set<Pixel*> pset;
+		pset.emplace(nullptr);
+		pset.emplace(startpix);
+	}
+	end = clock();
+	cout << "computation overhead : set " << end - start << endl;
+	
+	start = clock();
+	for (int i = 0; i < 1000000; i ++) {
+		vector<Pixel*> pset;
+		pset.push_back(nullptr);
+		pset.push_back(startpix);
+	}
+	end = clock();
+	cout << "computation overhead : vector " << end - start << endl;
+	
+	
 	
 	cout << endl << "completed without errors" << endl;
 	

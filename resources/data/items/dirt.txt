@@ -1,3 +1,4 @@
 item dirt {
 	:block: dirt
+	:notgroup:
 }

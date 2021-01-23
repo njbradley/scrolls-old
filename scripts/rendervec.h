@@ -64,7 +64,8 @@ class MemVecs: public RenderVecs {/*
     	vector<GLint> mats;
       int num_verts = 0;
       
-      void add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat sunlight, GLfloat blocklight, GLint minscale, GLint mat);/*
+      void add_face(GLfloat* newverts, GLfloat* newuvs, GLfloat sunlight,
+      GLfloat blocklight, GLint minscale, GLint breaking, GLint overlay, GLint edges[4], GLint mat);/*
         adds a face to the vectors, newverts and newuvs are arrays, 3*6 and 2*6 length respectivly
       */
       RenderIndex add(MemVecs* newvecs);
