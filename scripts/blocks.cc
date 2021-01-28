@@ -261,7 +261,12 @@ Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk
             direction = data;
           } else if (type == 0b10) {
             if (groups != nullptr) {
-              group = (*groups)[data];
+              for (BlockGroup* othergroup : *groups) {
+                if (data == othergroup->id) {
+                  group = othergroup;
+                  break;
+                }
+              }
             }
           } else {
             cout << "ERR: unknown type tag in block data file '" << (type & 0b10) << (type & 0b1) << "'" << endl;
@@ -1706,16 +1711,14 @@ void Pixel::save_to_file(ostream& of, vector<BlockGroup*>* groups, bool yield) {
   if (yield) {
     std::this_thread::yield();
   }
-  if (groups != nullptr and group != nullptr and group->final) {
-    int groupcode;
-    vector<BlockGroup*>::iterator iter = std::find(groups->begin(), groups->end(), group);
-    if (iter == groups->end()) {
-      groupcode = groups->size();
-      groups->push_back(group);
-    } else {
-      groupcode = iter - groups->begin();
+  if (group != nullptr and group->final) {
+    if (groups != nullptr) {
+      vector<BlockGroup*>::iterator iter = std::find(groups->begin(), groups->end(), group);
+      if (iter == groups->end()) {
+        groups->push_back(group);
+      }
     }
-    write_pix_val(of, 0b10, groupcode);
+    write_pix_val(of, 0b10, group->id);
   }
   if (value != 0 and direction != blocks->blocks[value]->default_direction) {
     write_pix_val(of, 0b01, direction);
@@ -1941,24 +1944,24 @@ Block* Chunk::set_global(ivec4 pos, char val, int direction) {
       write_lock lock(this);
       blocks[nlpos.x][nlpos.y][nlpos.z] = newblock;
     }
-    if (!blocks[nlpos.x][nlpos.y][nlpos.z]->continues()) {
-      BlockGroup* samegroup = nullptr;
-      for (Pixel* pix : iter()) {
-        if (samegroup == nullptr and pix->group != nullptr and pix->group->final) {
-          samegroup = pix->group;
-        }
-        if (pix->value != val or (samegroup != nullptr and pix->group != samegroup)) {
-          return this;
-        }
-      }
-      //cout << "merging " << endl;
-      Tile* tile = get_global(pos.x, pos.y, pos.z, 1)->get_pix()->tile;
-      Pixel* pix = new Pixel(px, py, pz, 0, scale, parent, tile);
-      pix->set(val, direction, nullptr, true);
-      del(true);
-      delete this;
-      return pix;
-    }
+    // if (!blocks[nlpos.x][nlpos.y][nlpos.z]->continues()) {
+    //   BlockGroup* samegroup = nullptr;
+    //   for (Pixel* pix : iter()) {
+    //     if (samegroup == nullptr and pix->group != nullptr and pix->group->final) {
+    //       samegroup = pix->group;
+    //     }
+    //     if (pix->value != val or (samegroup != nullptr and pix->group != samegroup)) {
+    //       return this;
+    //     }
+    //   }
+    //   //cout << "merging " << endl;
+    //   Tile* tile = get_global(pos.x, pos.y, pos.z, 1)->get_pix()->tile;
+    //   Pixel* pix = new Pixel(px, py, pz, 0, scale, parent, tile);
+    //   pix->set(val, direction, nullptr, true);
+    //   del(true);
+    //   delete this;
+    //   return pix;
+    // }
     return this;
   } else {
     cout << "ERR: blocks.cc 1866 " << endl;

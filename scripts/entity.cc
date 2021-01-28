@@ -949,7 +949,6 @@ vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup), item(nullptr) {
   if (final) {
     item = group->item;
   }
-  cout << "fälling " << endl;
   unordered_set<Pixel*> pixels;
   unordered_set<Pixel*> last_pixels;
   unordered_set<Pixel*> new_pixels;

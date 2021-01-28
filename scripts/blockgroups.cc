@@ -20,10 +20,11 @@ GroupConnection::GroupConnection(int index, ConnectorData* mat): globalindex(ind
 
 
 BlockGroup::BlockGroup(World* nworld): world(nworld), item(nullptr) {
-	
+	id = rand();
 }
 
 BlockGroup::BlockGroup(World* nworld, vector<Pixel*> pixels): world(nworld), item(nullptr), uniform_type(false) {
+	id = rand();
 	for (Pixel* pix : pixels) {
 		add(pix);
 		ivec3 pos;
@@ -48,7 +49,7 @@ BlockGroup::BlockGroup(World* nworld, vector<Pixel*> pixels): world(nworld), ite
 
 BlockGroup::BlockGroup(World* nworld, istream& ifile): world(nworld), item(ifile) {
 	int intblocktype, numconnect;
-	ifile >> numconnect;
+	ifile >> id >> numconnect;
 	for (int i = 0; i < numconnect; i ++) {
 		int index;
 		string matname;
@@ -64,10 +65,9 @@ BlockGroup::BlockGroup(World* nworld, istream& ifile): world(nworld), item(ifile
 
 void BlockGroup::to_file(ostream& ofile, vector<BlockGroup*>* allgroups) {
 	item.to_file(ofile);
-	ofile << connections.size() << ' ';
+	ofile << id << ' ' << connections.size() << ' ';
 	for (int i = 0; i < connections.size(); i ++) {
-		int index = std::find(allgroups->begin(), allgroups->end(), connections[i].group) - allgroups->begin();
-		ofile << index << ' ' << connections[i].data->name << ' ';
+		ofile << connections[i].group->id << ' ' << connections[i].data->name << ' ';
 	}
 	ofile << endl;
 	ofile << size << ' ' << final << ' ' << uniform_type << ' ' << int(blocktype) << ' ';
@@ -85,7 +85,25 @@ BlockGroup::~BlockGroup() {
 
 void BlockGroup::link(vector<BlockGroup*>* allgroups) {
 	for (int i = 0; i < connections.size(); i ++) {
-		connections[i].group = (*allgroups)[connections[i].globalindex];
+		for (BlockGroup* group : *allgroups) {
+			if (group->id == connections[i].globalindex) {
+				connections[i].group = group;
+			}
+		}
+	}
+}
+
+void BlockGroup::merge_copy(BlockGroup* other) {
+	for (int i = 0; i < connections.size(); i ++) {
+		for (int j = 0; j < other->connections.size(); j ++) {
+			if (connections[i].globalindex == other->connections[j].globalindex) {
+				if (connections[i].group == nullptr) {
+					connections[i].group = other->connections[j].group;
+				} else if (other->connections[j].group == nullptr) {
+					other->connections[j].group = connections[i].group;
+				}
+			}
+		}
 	}
 }
 

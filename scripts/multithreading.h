@@ -29,7 +29,7 @@ class JobQueue {
 	std::mutex getlock;
 public:
 	void push_back(T newitem);
-	T pop_front();
+	T pop_front(bool* sucess);
 	bool empty();
 };
 

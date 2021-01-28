@@ -345,9 +345,6 @@ void Game::gametick() {
 				delete menu;
 				menu = nullptr;
 			});
-		} else if (glfwGetKey(window, GLFW_KEY_X ) == GLFW_PRESS) {
-			cout << "Hard termination, no logging" << endl;
-			exit(2);
 		} else if (glfwGetKey(window, GLFW_KEY_C ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
 			cout << "Hard termination, with error logging" << endl;
 			std::terminate();
@@ -448,6 +445,9 @@ void Game::gametick() {
 	} else if (glfwWindowShouldClose(window)) {
 		//world->closing_world = true;
 		playing = false;
+	} else if (glfwGetKey(window, GLFW_KEY_X ) == GLFW_PRESS) {
+		cout << "Hard termination, no logging" << endl;
+		exit(2);
 	}
 }
 

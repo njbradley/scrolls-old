@@ -22,10 +22,15 @@ void JobQueue<T>::push_back(T newitem) {
 }
 
 template <typename T>
-T JobQueue<T>::pop_front() {
+T JobQueue<T>::pop_front(bool* sucess) {
+	*sucess = false;
 	getlock.lock();
-	T item = queue.front();
-	queue.pop_front();
+	T item;
+	if (!empty()) {
+		item = queue.front();
+		*sucess = true;
+		queue.pop_front();
+	}
 	getlock.unlock();
 	return item;
 }
@@ -149,10 +154,13 @@ void LoadingThread::operator()() {
 	while (parent->load_running[index]) {
 		//cout << parent->loading[index] << endl;
 		if (game != nullptr and game->world != nullptr and !parent->load_queue.empty()) {
-			ivec3 pos = parent->load_queue.pop_front();
-			Tile* tile = new Tile(pos, game->world);
-			game->world->add_tile(tile);
-			tile->lighting_update();
+			bool sucess;
+			ivec3 pos = parent->load_queue.pop_front(&sucess);
+			if (sucess) {
+				Tile* tile = new Tile(pos, game->world);
+				game->world->add_tile(tile);
+				tile->lighting_update();
+			}
 		} else {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
@@ -184,7 +192,11 @@ void DeletingThread::operator()() {
 	//glfwMakeContextCurrent(window);
 	while (parent->del_running[index]) {
 		if (!parent->del_queue.empty()) {
-			game->world->del_chunk(parent->del_queue.pop_front(), true);
+			bool sucess;
+			ivec3 pos = parent->del_queue.pop_front(&sucess);
+			if (sucess) {
+				game->world->del_chunk(pos, true);
+			}
 		} else {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}

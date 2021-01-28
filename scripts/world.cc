@@ -754,9 +754,9 @@ void World::del_chunk(ivec3 pos, bool remove_faces) {
         break;
       }
     }
-    if (saving) {
-      tile->save();
-    }
+    // if (saving) {
+    //   tile->save();
+    // }
     tile->del(remove_faces);
     delete tile;
     // save_chunk(pos);
@@ -806,6 +806,9 @@ void World::close_world() {
     //} else {
     //  hard_game->crash(923400304);
     //}
+    for (ivec3 pos : poses) {
+        tileat(pos)->save();
+    }
     for (ivec3 pos : poses) {
         del_chunk(pos, false);
     }

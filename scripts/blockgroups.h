@@ -19,6 +19,7 @@ class BlockGroup { public:
 	int size = 0;
 	World* world;
 	int consts[6] = {false, false, false, false, false, false};
+	int id;
 	bool final = false;
 	bool uniform_type = true;
 	Item item;
@@ -32,6 +33,7 @@ class BlockGroup { public:
 	BlockGroup(World* nworld, istream& ifile);
 	virtual ~BlockGroup();
 	void link(vector<BlockGroup*>* allgroups);
+	void merge_copy(BlockGroup* other);
 	virtual bool add(Pixel* pix);
 	void spread(Pixel* pix, int depth = 10);
 	virtual bool del(Pixel* pix);
