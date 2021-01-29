@@ -138,9 +138,9 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
     changelock.unlock();
     deletelock.unlock_shared();
   }
-  if (!fully_loaded) {
-    std::terminate();
-  }
+  // if (!fully_loaded) {
+  //   std::terminate();
+  // }
   fully_loaded = true;
 }
 
