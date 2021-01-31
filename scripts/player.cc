@@ -526,7 +526,7 @@ void Player::left_mouse(double deltatime) {
 				//cout << break_progress << endl;
 				
 				
-				if (true and break_progress >= 1) {
+				if (true) {
 					
 					set_block_breaking_vecs(pix, blockpos, 0);
 					

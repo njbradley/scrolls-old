@@ -371,15 +371,51 @@ void Item::to_file(ostream& ofile) {
 }
 
 char Item::ondig(World* world, int x, int y, int z) {
-    char type = world->get(x,y,z);
-    world->set(x,y,z,0);
-    return type;
+  return ondig_null(world, x, y, z);
 }
 
 char Item::ondig_null(World* world, int x, int y, int z) {
-    char type = world->get(x,y,z);
-    world->set(x,y,z,0);
-    return type;
+  Pixel* pix = world->get_global(x, y, z, 1)->get_pix();
+  while (pix->scale != 1) {
+    pix->subdivide();
+    pix = world->get_global(x, y, z, 1)->get_pix();
+  }
+  if (pix->group != nullptr) {
+    if (pix->group->final) {
+      for (int i = 0; i < pix->group->connections.size(); i ++) {
+        if (pix->group->connections[i].data == nullptr) {
+          pix->group->connections[i].damage ++;
+          if (pix->group->connections[i].damage > 6) {
+            pix->group->del_connection(i);
+            ivec3 gpos;
+            pix->global_position(&gpos.x, &gpos.y, &gpos.z);
+            world->block_update(gpos.x, gpos.y, gpos.z);
+          }
+          for (Pixel* grouppix : pix->iter_group()) {
+            grouppix->render_update();
+          }
+          return 0;
+        }
+      }
+      return 0;
+    }
+  }
+  BlockGroup* oldgroup = pix->group;
+  BlockGroup* group = new BlockGroup(world);
+  if (pix->group != nullptr) {
+    pix->group->del(pix);
+  }
+  group->spread(pix, 2, -1, 0.5f);
+  cout << group << ' ' << pix->group << endl;
+  group->final = true;
+  for (Pixel* grouppix : pix->iter_group()) {
+    grouppix->render_update();
+  }
+  if (oldgroup != nullptr) {
+    group->connect_to(GroupConnection(oldgroup, nullptr));
+    group->get_connection(oldgroup)->damage = 1;
+  }
+  return 0;
 }
 
 void Item::sharpen(double speed, double force) {

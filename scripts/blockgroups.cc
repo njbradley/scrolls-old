@@ -128,17 +128,17 @@ bool BlockGroup::add(Pixel* pix) {
 	return false;
 }
 
-void BlockGroup::spread(Pixel* pix, int depth) {
-	if (depth > 0 and add(pix)) {
+void BlockGroup::spread(Pixel* pix, int depth, int max_size, float randlevel) {
+	if (depth > 0 and max_size != 0 and add(pix)) {
 		ivec3 pos;
 		pix->global_position(&pos.x, &pos.y, &pos.z);
 		int i = 0;
 		for (ivec3 dir : dir_array) {
 			ivec3 sidepos = dir*pix->scale + pos;
 			Block* sideblock = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
-			if (sideblock != nullptr) {
+			if (sideblock != nullptr and (randlevel == 1 or rand()%1000 / 1000.0f < randlevel)) {
 				for (Pixel* sidepix : sideblock->iter_side(-dir)) {
-					spread(sidepix, depth-1);
+					spread(sidepix, depth-1, max_size - 1, randlevel);
 					if (!contains(sidepix)) {
 						if (sidepix->value != 0) {
 							int num_touching = std::min(pix->scale, sidepix->scale);
@@ -261,6 +261,9 @@ void BlockGroup::connect_to(GroupConnection connection) {
 	if (!replaced) {
 		connections.push_back(connection);
 	}
+	if (connection.group == nullptr) {
+		cout << "Warning group null connect " << endl;
+	}
 	GroupConnection otherconnection = connection;
 	otherconnection.group = this;
 	replaced = false;
@@ -291,6 +294,17 @@ void BlockGroup::del_connection(BlockGroup* othergroup) {
 			connections.erase(connections.begin() + i);
 		}
 	}
+	
+	for (int j = 0; j < othergroup->connections.size(); j ++) {
+		if (othergroup->connections[j].group == this) {
+			othergroup->connections.erase(othergroup->connections.begin() + j);
+		}
+	}
+}
+
+void BlockGroup::del_connection(int index) {
+	BlockGroup* othergroup = connections[index].group;
+	connections.erase(connections.begin() + index);
 	
 	for (int j = 0; j < othergroup->connections.size(); j ++) {
 		if (othergroup->connections[j].group == this) {

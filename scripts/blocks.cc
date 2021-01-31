@@ -990,9 +990,18 @@ void Pixel::render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* b
           Pixel* pix = blocks[indexes[index][rot_i]]->get_pix();
           if (pix->group != group and pix->value != 0) {
             edges[i] = 1;
-            if (group->get_connection(pix->group) != nullptr) {
-              edges[i] = group->get_connection(pix->group)->data->tex_index + 1;
+            GroupConnection* connection = group->get_connection(pix->group);
+            for (int j = 0; j < group->connections.size(); j ++) {
+              if (group->connections[j].damage != 0) {
+                edges[i] = group->connections[j].damage + 1;
+                break;
+              }
             }
+            if (connection != nullptr and connection->data != nullptr) {
+              edges[i] = connection->data->tex_index + 1;
+            }// else if (connection != nullptr and connection->damage != 0) {
+            //   edges[i] = connection->damage + 1;
+            // }
           }
         }
         multiplier *= 2;
