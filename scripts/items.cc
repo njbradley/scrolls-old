@@ -60,10 +60,13 @@ void CharArray::place(World* world, Item* item, int x, int y, int z, int dx, int
                 int py = j - (sy/2);
                 int pz = k - (sz/2);
                 world->set(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy), get(i,j,k), direction);
+                
                 pixels.push_back(world->get_global(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy), 1)->get_pix());
             }
         }
     }
+    
+    
     if (item->data->isgroup) {
       BlockGroup* group = new BlockGroup(world, pixels);
       group->item = *item;
@@ -375,6 +378,10 @@ char Item::ondig(World* world, int x, int y, int z) {
 }
 
 char Item::ondig_null(World* world, int x, int y, int z) {
+  char val = world->get(x, y, z);
+  world->set(x, y, z, 0);
+  return val;
+  /*
   Pixel* pix = world->get_global(x, y, z, 1)->get_pix();
   while (pix->scale != 1) {
     pix->subdivide();
@@ -415,7 +422,7 @@ char Item::ondig_null(World* world, int x, int y, int z) {
     group->connect_to(GroupConnection(oldgroup, nullptr));
     group->get_connection(oldgroup)->damage = 1;
   }
-  return 0;
+  return 0;*/
 }
 
 void Item::sharpen(double speed, double force) {
@@ -689,6 +696,69 @@ ItemStorage::~ItemStorage() {
   for (pair<string,ItemData*> kv : items) {
     delete kv.second;
   }
+}
+
+Item ItemStorage::from_group(Pixel* startpix) {
+  BlockGroupIter iter = startpix->iter_group();
+  
+  bool first_pix = true;
+  ivec3 position(0,0,0);
+  ivec3 dims(1,1,1);
+  
+  for (Pixel* pix : iter) {
+    ivec3 pos;
+    pix->global_position(&pos.x, &pos.y, &pos.z);
+    if (first_pix) {
+      position = pos;
+      first_pix = false;
+    } else {
+      if (pos.x < position.x) {
+        dims.x += position.x - pos.x;
+        position.x = pos.x;
+      }
+      if (pos.y < position.y) {
+        dims.y += position.y - pos.y;
+        position.y = pos.y;
+      }
+      if (pos.z < position.z) {
+        dims.z += position.z - pos.z;
+        position.z = pos.z;
+      }
+      if (pos.x >= position.x + dims.x) dims.x = pos.x - position.x + 1;
+      if (pos.y >= position.y + dims.y) dims.y = pos.y - position.y + 1;
+      if (pos.z >= position.z + dims.z) dims.z = pos.z - position.z + 1;
+    }
+  }
+  
+  cout << dims << endl;
+  
+  char* data = new char[dims.x * dims.y * dims.z];
+  for (int i = 0; i < dims.x * dims.y * dims.z; i ++) {
+    data[i] = 0;
+  }
+  
+  for (Pixel* pix : iter) {
+    ivec3 pos;
+    pix->global_position(&pos.x, &pos.y, &pos.z);
+    ivec3 lpos = pos - position;
+    data[lpos.x*dims.y*dims.z + lpos.y*dims.z + lpos.z] = pix->value;
+  }
+  
+  for (pair<string,ItemData*> kv : items) {
+    CharArray* carray = kv.second->onplace;
+    if (carray != nullptr and carray->sx == dims.x and carray->sy == dims.y and carray->sz == dims.z) {
+      bool matching = true;
+      for (int i = 0; i < dims.x*dims.y*dims.z and matching; i ++) {
+        if (carray->arr[i] != data[i]) {
+          matching = false;
+        }
+      }
+      if (matching) {
+        return Item(kv.second);
+      }
+    }
+  }
+  return Item(nullptr);
 }
 
 

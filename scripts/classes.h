@@ -148,4 +148,7 @@ extern GLFWwindow* window;
 extern Game* game;
 extern Menu* menu;
 
+
+extern const ivec3 dir_array[6];
+
 #endif

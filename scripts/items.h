@@ -101,6 +101,7 @@ class ItemStorage { public:
     int total_images;
     ItemStorage();
     ~ItemStorage();
+    Item from_group(Pixel* pix);
 };
 
 extern ItemStorage* itemstorage;

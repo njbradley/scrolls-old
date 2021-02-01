@@ -23,6 +23,7 @@ class BlockGroup { public:
 	int id;
 	bool final = false;
 	bool uniform_type = true;
+	bool isolated = true;
 	Item item;
 	char blocktype;
 	vector<GroupConnection> connections;

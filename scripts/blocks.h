@@ -108,6 +108,7 @@ public:
     int lightsource = -1;
     Tile* tile;
     BlockGroup* group = nullptr;
+    int joints[6] = {0,0,0,0,0,0};
     //int num;
     //ItemContainer* container;
     

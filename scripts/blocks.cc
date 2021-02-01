@@ -252,6 +252,7 @@ Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk
         BlockGroup* group = nullptr;
         unsigned int data;
         int direction = -1;
+        int joints[6] = {0,0,0,0,0,0};
         while (!value_set and !ifile.eof()) {
           read_pix_val(ifile, &type, &data);
           if (type == 0b00) {
@@ -260,13 +261,12 @@ Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk
           } else if (type == 0b01) {
             direction = data;
           } else if (type == 0b10) {
-            if (groups != nullptr) {
-              for (BlockGroup* othergroup : *groups) {
-                if (data == othergroup->id) {
-                  group = othergroup;
-                  break;
-                }
+            for (int i = 5; i >= 0; i --) {
+              joints[i] = data % 32;
+              if (joints[i] > 0) {
+                joints[i] += 6;
               }
+              data /= 32;
             }
           } else {
             cout << "ERR: unknown type tag in block data file '" << (type & 0b10) << (type & 0b1) << "'" << endl;
@@ -276,6 +276,9 @@ Block* Block::from_file(istream& ifile, int px, int py, int pz, int scale, Chunk
         p->group = group;
         if (direction != -1) {
           p->direction = direction;
+        }
+        for (int i = 0; i < 6; i ++) {
+          p->joints[i] = joints[i];
         }
         return (Block*) p;
     }
@@ -476,6 +479,7 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
         Pixel* lastpix = nullptr;
         int i = 0;
         for (ivec3 unit_dir : dir_array) {
+          int inverse_index = (i > 2) ? i-3 : i+3;
           ivec3 dir = unit_dir * scale;
           block = tile->world->get_global(gx+dir.x, gy+dir.y, gz+dir.z, scale);
           if (block != nullptr) {
@@ -485,8 +489,11 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
               pix->global_position(&bx, &by, &bz);
               tile->world->block_update(bx, by, bz);
               
+              if (become_air) {
+                pix->joints[inverse_index] = 0;
+              }
+              
               if (pix->group != nullptr) {
-                int inverse_index = (i > 2) ? i-3 : i+3;
                 int num_touching = std::min(pix->scale, scale);
                 if (become_air) {
                   pix->group->consts[inverse_index] -= num_touching * num_touching;
@@ -972,15 +979,24 @@ void Pixel::render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* b
   if ((block != nullptr and block->is_air(-dir.x, -dir.y, -dir.z, value)) or (block == nullptr and render_null)) {
     int edges[4] = {0,0,0,0};
     int overlay = 0;
+    
+    int indexes[6][4] = {
+      {5, 1, 2, 4},
+      {2, 0, 5, 3},
+      {0, 1, 3, 4},
+      {2, 1, 5, 4},
+      {5, 0, 2, 3},
+      {3, 1, 0, 4}
+    };
+    
+    for (int i = 0; i < 4; i ++) {
+      int rot_i = (64 + i - uv_dir) % 4;
+      if (joints[indexes[index][rot_i]] != 0) {
+        edges[i] = joints[indexes[index][rot_i]];
+      }
+    }
+    
     if (group != nullptr and group->final and scale == 1) {
-      int indexes[6][4] = {
-        {5, 1, 2, 4},
-        {2, 0, 5, 3},
-        {0, 1, 3, 4},
-        {2, 1, 5, 4},
-        {5, 0, 2, 3},
-        {3, 1, 0, 4}
-      };
       
       int multiplier = 1;
       for (int i = 0; i < 4; i ++) {
@@ -989,7 +1005,7 @@ void Pixel::render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* b
         if (blocks[indexes[index][rot_i]] != nullptr) {
           Pixel* pix = blocks[indexes[index][rot_i]]->get_pix();
           if (pix->group != group and pix->value != 0) {
-            edges[i] = 1;
+            edges[i] = 7;
             GroupConnection* connection = group->get_connection(pix->group);
             for (int j = 0; j < group->connections.size(); j ++) {
               if (group->connections[j].damage != 0) {
@@ -1720,15 +1736,25 @@ void Pixel::save_to_file(ostream& of, vector<BlockGroup*>* groups, bool yield) {
   if (yield) {
     std::this_thread::yield();
   }
-  if (group != nullptr and group->final) {
-    if (groups != nullptr) {
-      vector<BlockGroup*>::iterator iter = std::find(groups->begin(), groups->end(), group);
-      if (iter == groups->end()) {
-        groups->push_back(group);
-      }
+  int jointval = 0;
+  for (int i = 0; i < 6; i ++) {
+    jointval *= 32;
+    if (joints[i] > 6) {
+      jointval += joints[i] - 6;
     }
-    write_pix_val(of, 0b10, group->id);
   }
+  if (jointval != 0) {
+    write_pix_val(of, 0b10, jointval);
+  }
+  // if (group != nullptr and group->final) {
+  //   if (groups != nullptr) {
+  //     vector<BlockGroup*>::iterator iter = std::find(groups->begin(), groups->end(), group);
+  //     if (iter == groups->end()) {
+  //       groups->push_back(group);
+  //     }
+  //   }
+  //   write_pix_val(of, 0b10, group->id);
+  // }
   if (value != 0 and direction != blocks->blocks[value]->default_direction) {
     write_pix_val(of, 0b01, direction);
   }

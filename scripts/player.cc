@@ -411,34 +411,38 @@ void Player::left_mouse(double deltatime) {
 			int dz = (int)z - (z<0) - oz;
 			
 			Pixel* edgepix = nullptr;
-			if (pix->group != nullptr and pix->group->final) {
-				ivec3 dir (dx, dy, dz);
-				int closest_side = -1;
-				vec3 inblock = hitpos - glm::floor(hitpos);
-				vec3 absinblock = glm::abs(inblock - 0.5f);
-				for (int i = 0; i < 3; i ++) {
-					if (dir[i] == 0 and (closest_side == -1 or absinblock[i] > absinblock[closest_side])) {
-						closest_side = i;
-					}
+			int edgeindex = -1;
+			
+			
+			ivec3 dir (dx, dy, dz);
+			int closest_side = -1;
+			vec3 inblock = hitpos - glm::floor(hitpos);
+			vec3 absinblock = glm::abs(inblock - 0.5f);
+			for (int i = 0; i < 3; i ++) {
+				if (dir[i] == 0 and (closest_side == -1 or absinblock[i] > absinblock[closest_side])) {
+					closest_side = i;
 				}
-				ivec3 close_dir (0,0,0);
-				if (inblock[closest_side] - 0.5f < 0) {
-					close_dir[closest_side] = -1;
-				} else {
-					close_dir[closest_side] = 1;
-				}
-				
-				ivec3 globalpos;
-				pix->global_position(&globalpos.x, &globalpos.y, &globalpos.z);
-				ivec3 sidepos = globalpos + close_dir * pix->scale;
-				Block* sideblock = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
-				if (sideblock != nullptr) {
-					for (Pixel* sidepix : sideblock->iter_side(-close_dir)) {
-						if (pix->group->get_connection(sidepix->group) != nullptr) {
-							edgepix = sidepix;
-							break;
+			}
+			ivec3 close_dir (0,0,0);
+			if (inblock[closest_side] - 0.5f < 0) {
+				close_dir[closest_side] = -1;
+			} else {
+				close_dir[closest_side] = 1;
+			}
+			
+			ivec3 globalpos;
+			pix->global_position(&globalpos.x, &globalpos.y, &globalpos.z);
+			ivec3 sidepos = globalpos + close_dir * pix->scale;
+			Block* sideblock = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
+			if (sideblock != nullptr) {
+				for (Pixel* sidepix : sideblock->iter_side(-close_dir)) {
+					edgepix = sidepix;
+					for (int i = 0; i < 6; i ++) {
+						if (close_dir == dir_array[i]) {
+							edgeindex = i;
 						}
 					}
+					break;
 				}
 			}/*
 							pix->group->connect_to(GroupConnection(sidepix->group, inhand->data->glue));
@@ -461,7 +465,46 @@ void Player::left_mouse(double deltatime) {
 					}
 				}
 			}*/
-			if (edgepix != nullptr) {
+			if (shifting and pix->group != nullptr and pix->group->isolated and pix->group->connections.size() == 0) {
+				//inven.add(ItemStack(pix->group->item,1));
+				inven.add(ItemStack(itemstorage->from_group(pix), 1));
+				for (Pixel* pix : pix->iter_group()) {
+					pix->set(0);
+				}
+			} else if (shifting and pix->group == nullptr) {
+				world->block_update(blockpos.x, blockpos.y, blockpos.z);
+				world->aftertick([&, pix] (World* world) {
+					if (pix->group != nullptr and pix->group->isolated and pix->group->connections.size() == 0) {
+						for (Pixel* pix : pix->iter_group()) {
+							pix->set(0);
+						}
+					}
+				});
+			} else if (edgepix != nullptr) {
+				if (edgepix->value != 0) {
+					int inverse_index = (edgeindex + 3) % 6;
+					if (pix->scale <= edgepix->scale and pix->joints[edgeindex] < 7) {
+						pix->joints[edgeindex] ++;
+						pix->render_update();
+						if (pix->joints[edgeindex] == 7) {
+							ivec3 pos;
+							if (pix->group != nullptr) pix->group->del(pix);
+							pix->global_position(&pos.x, &pos.y, &pos.z);
+							pix->tile->world->block_update(pos.x, pos.y, pos.z);
+						}
+					}
+					if (edgepix->scale <= pix->scale and edgepix->joints[inverse_index] < 7) {
+						edgepix->joints[inverse_index] ++;
+						edgepix->render_update();
+						if (edgepix->joints[inverse_index] == 7) {
+							ivec3 pos;
+							if (edgepix->group != nullptr) edgepix->group->del(pix);
+							edgepix->global_position(&pos.x, &pos.y, &pos.z);
+							edgepix->tile->world->block_update(pos.x, pos.y, pos.z);
+						}
+					}
+				}
+				/*
 				GroupConnection* connection = pix->group->get_connection(edgepix->group);
 				if (connection != connection_breaking) {
 					connection_breaking = connection;
@@ -492,12 +535,7 @@ void Player::left_mouse(double deltatime) {
 					pix->group->del_connection(connection_breaking->group);
 					connection_breaking = nullptr;
 					break_progress = 0;
-				}
-			} else if (shifting and pix->group != nullptr and pix->group->final and pix->group->connections.size() == 0) {
-				inven.add(ItemStack(pix->group->item,1));
-				for (Pixel* pix : pix->iter_group()) {
-					pix->set(0);
-				}
+				}*/
 			} else {
 				
 				
@@ -526,7 +564,7 @@ void Player::left_mouse(double deltatime) {
 				//cout << break_progress << endl;
 				
 				
-				if (true) {
+				if (true and break_progress >= 1) {
 					
 					set_block_breaking_vecs(pix, blockpos, 0);
 					

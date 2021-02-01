@@ -36,6 +36,7 @@ using std::ostream;
 Game* game;
 GLFWwindow* window;
 Menu* menu;
+const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
 
 
 void wait() {

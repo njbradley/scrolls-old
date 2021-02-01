@@ -435,6 +435,12 @@ void World::tick() {
     }
     tileat_global(pos)->changelock.unlock();
   }
+  
+  for (int i = 0; i < aftertick_funcs.size(); i ++) {
+    aftertick_funcs[i](this);
+  }
+  aftertick_funcs.clear();
+  
   /*
   //cout << "world tick" << endl;
   //if (writelock.try_lock_for(std::chrono::seconds(1))) {
@@ -526,6 +532,10 @@ void World::block_update(int x, int y, int z) {
     //cout << "Recording Block Update at the global world position " << x << ' ' << y << ' ' << z << endl;
     block_updates.emplace(ivec3(x,y,z));
   
+}
+
+void World::aftertick(std::function<void(World*)> func) {
+  aftertick_funcs.push_back(func);
 }
 
 void World::light_update(int x, int y, int z) {

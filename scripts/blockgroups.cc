@@ -24,6 +24,7 @@ BlockGroup::BlockGroup(World* nworld): world(nworld), item(nullptr) {
 }
 
 BlockGroup::BlockGroup(World* nworld, vector<Pixel*> pixels): world(nworld), item(nullptr), uniform_type(false) {
+	
 	id = rand();
 	for (Pixel* pix : pixels) {
 		add(pix);
@@ -31,20 +32,37 @@ BlockGroup::BlockGroup(World* nworld, vector<Pixel*> pixels): world(nworld), ite
 		pix->global_position(&pos.x, &pos.y, &pos.z);
 		int i = 0;
 		for (ivec3 dir : dir_array) {
-			ivec3 sidepos = pos + pix->scale * dir;
+			ivec3 sidepos = pos + dir * pix->scale;
 			Block* block = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
 			if (block != nullptr) {
-				for (Pixel* sidepix : block->iter_side(-dir)) {
+				if (block->get_pix() != nullptr) {
+					Pixel* sidepix = block->get_pix();
 					if (sidepix->value != 0 and std::find(pixels.begin(), pixels.end(), sidepix) == pixels.end()) {
-						int num_touching = std::min(pix->scale, sidepix->scale);
-						consts[i] += num_touching * num_touching;
+						consts[i] += pix->scale * pix->scale;
+						if (sidepix->scale == pix->scale) {
+							sidepix->joints[(i+3)%6] = 7;
+						}
+						pix->joints[i] = 7;
+						pix->render_update();
+						sidepix->render_update();
+					}
+				} else {
+					for (Pixel* sidepix : block->iter_side(-dir)) {
+						if (sidepix->value != 0 and std::find(pixels.begin(), pixels.end(), sidepix) == pixels.end()) {
+							int num_touching = std::min(pix->scale, sidepix->scale);
+							consts[i] += num_touching * num_touching;
+							
+							sidepix->joints[(i+3)%6] = 7;
+							pix->render_update();
+							sidepix->render_update();
+						}
 					}
 				}
 			}
 			i ++;
 		}
 	}
-	final = true;
+	
 }
 
 BlockGroup::BlockGroup(World* nworld, istream& ifile): world(nworld), item(ifile) {
@@ -138,9 +156,14 @@ void BlockGroup::spread(Pixel* pix, int depth, int max_size, float randlevel) {
 			Block* sideblock = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
 			if (sideblock != nullptr and (randlevel == 1 or rand()%1000 / 1000.0f < randlevel)) {
 				for (Pixel* sidepix : sideblock->iter_side(-dir)) {
-					spread(sidepix, depth-1, max_size - 1, randlevel);
+					if (pix->joints[i] < 7) {
+						spread(sidepix, depth-1, max_size - 1, randlevel);
+					}
 					if (!contains(sidepix)) {
 						if (sidepix->value != 0) {
+							if (pix->joints[i] < 7) {
+								isolated = false;
+							}
 							int num_touching = std::min(pix->scale, sidepix->scale);
 							consts[i] += num_touching * num_touching;
 						}
@@ -149,6 +172,8 @@ void BlockGroup::spread(Pixel* pix, int depth, int max_size, float randlevel) {
 						return;
 					}
 				}
+			} else {
+				consts[i] += pix->scale * pix->scale;
 			}
 			i ++;
 		}

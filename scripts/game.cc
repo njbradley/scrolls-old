@@ -546,7 +546,8 @@ void Game::print_debug() {
 		debugstream << " physics_group:" << debugblock->group << ' ' << "light " << debugblock->blocklight << ' ' << debugblock->sunlight << endl;
 		
 		if (debugblock->group != nullptr) {
-			debugstream << " group: size " << debugblock->group->size << " conn " << debugblock->group->connections.size() << endl << "consts ";
+			debugstream << " group: size " << debugblock->group->size << " conn ";
+			debugstream << debugblock->group->connections.size() << " isol " << debugblock->group->isolated << endl << "consts ";
 			for (int con : debugblock->group->consts) {
 				debugstream << con << ' ';
 			}
