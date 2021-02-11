@@ -63,6 +63,8 @@ int main() {
 	}
 	
 	
+	
+	
 	cout << endl << "New output (alliter from 1,0,0 to 1,1,1):" << endl;
 	BlockIter blockiter_side {block, ivec3(1,0,0), ivec3(1,1,1), [] (ivec3 pos, ivec3 startpos, ivec3 endpos) {
 		pos.z++;
@@ -87,6 +89,12 @@ int main() {
 		int gx, gy, gz;
 		pix->global_position(&gx, &gy, &gz);
 		cout << gx << ' ' << gy << ' ' << gz << ' ' << pix->scale << endl;
+	}
+	
+	cout << endl << "Test empty iter object" << endl;
+	BlockIter emptyiter {.base = nullptr};
+	for (Pixel* pix : emptyiter) {
+		cout << "BBBADAADAD" << endl;
 	}
 	
 	BlockContainer container(block);

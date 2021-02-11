@@ -699,7 +699,7 @@ void World::summon(DisplayEntity* entity) {
   // }
 }
 
-void World::set(ivec4 pos, char val, int direction) {
+void World::set(ivec4 pos, char val, int direction, int joints[6]) {
   int px = pos.x/chunksize;
   int py = pos.y/chunksize;
   int pz = pos.z/chunksize;
@@ -715,7 +715,7 @@ void World::set(ivec4 pos, char val, int direction) {
   int lx = pos.x - px*chunksize;
   int ly = pos.y - py*chunksize;
   int lz = pos.z - pz*chunksize;
-  tile->chunk = tile->chunk->set_global(ivec4(lx, ly, lz, pos.w), val, direction);
+  tile->chunk = tile->chunk->set_global(ivec4(lx, ly, lz, pos.w), val, direction, joints);
 }
 
 void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras) {

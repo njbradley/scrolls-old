@@ -211,6 +211,18 @@ BlockIter Block::iter_side(ivec3 dir) {
   return iter(startpos, endpos);
 }
 
+BlockIter Block::iter_touching_side(ivec3 dir, Collider* world) {
+  ivec3 pos;
+  global_position(&pos.x, &pos.y, &pos.z);
+  pos += dir * scale;
+  Block* block = world->get_global(pos.x, pos.y, pos.z, scale);
+  if (block != nullptr) {
+    return block->iter_side(-dir);
+  } else {
+    return BlockIter{.base = nullptr};
+  }
+}
+
 ConstBlockIter Block::const_iter_side(ivec3 dir) const {
   ivec3 startpos (0,0,0);
   ivec3 endpos (csize-1, csize-1, csize-1);
@@ -404,19 +416,22 @@ Block* Pixel::get_global(int x, int y, int z, int scale) {
     return this;
 }
 
-Block* Pixel::set_global(ivec4 pos, char val, int direction) {
+Block* Pixel::set_global(ivec4 pos, char val, int direction, int newjoints[6]) {
   //cout << pos.x << ' ' << pos.y << ' ' << pos.z << ' ' << pos.w << ' ' << int(val) << ' ' << direction << endl;
-  if (val == value) {
-    //cout << "set_global pix same val" << endl;
-    return this;
-  } else if (pos.w == scale) {
+  // if (val == value) {
+  //   //cout << "set_global pix same val" << endl;
+  //   return this;
+  // } else
+  if (pos.w == scale) {
     //cout << "set_global pix diff val" << endl;
-    set(val, direction, nullptr, true);
+    if (val != -1) {
+      set(val, direction, newjoints, true);
+    }
     return this;
   } else if (pos.w < scale) {
     //cout << "subdividing" << endl;
     Chunk* newchunk = subdivide();
-    newchunk->set_global(pos, val, direction);
+    newchunk->set_global(pos, val, direction, newjoints);
     //del(true);
     delete this;
     return newchunk;
@@ -426,7 +441,7 @@ Block* Pixel::set_global(ivec4 pos, char val, int direction) {
   }
 }
 
-void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) {
+void Pixel::set(char val, int newdirection, int newjoints[6], bool update) {
     write_lock lock(this);
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);
@@ -443,6 +458,12 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
     bool become_air = value != 0 and val == 0;
     bool become_solid = value == 0 and val != 0;
     value = val;
+    
+    if (become_air) {
+      for (int i = 0; i < 6; i ++) {
+        joints[i] = 0;
+      }
+    }
     
     direction = newdirection;
     
@@ -491,6 +512,13 @@ void Pixel::set(char val, int newdirection, BlockExtra* newextras, bool update) 
               
               if (become_air) {
                 pix->joints[inverse_index] = 0;
+              } else {
+                if (pix->value != 0 and newjoints != nullptr) {
+                  pix->joints[inverse_index] = newjoints[i];
+                  joints[i] = newjoints[i];
+                } else {
+                  joints[i] = 0;
+                }
               }
               
               if (pix->group != nullptr) {
@@ -1955,13 +1983,13 @@ Block* Chunk::get_global(int x, int y, int z, int nscale) {
     }
 }
 
-Block* Chunk::set_global(ivec4 pos, char val, int direction) {
+Block* Chunk::set_global(ivec4 pos, char val, int direction, int newjoints[6]) {
   //cout << pos.x << ' ' << pos.y << ' ' << pos.z << ' ' << pos.w << ' ' << int(val) << ' ' << direction << endl;
   if (pos.w == scale) {
     //cout << "set_global chunk unsubdividing " << endl;
     Tile* tile = get_global(pos.x, pos.y, pos.z, 1)->get_pix()->tile;
     Pixel* pix = new Pixel(px, py, pz, 0, scale, parent, tile);
-    pix->set(val, direction, nullptr, true);
+    pix->set(val, direction, newjoints, true);
     del(true);
     delete this;
     return pix;
@@ -1974,7 +2002,7 @@ Block* Chunk::set_global(ivec4 pos, char val, int direction) {
       return this;
     }
     ivec3 nlpos = lpos / (scale / csize);
-    Block* newblock = blocks[nlpos.x][nlpos.y][nlpos.z]->set_global(ivec4(lpos.x, lpos.y, lpos.z, pos.w), val, direction);
+    Block* newblock = blocks[nlpos.x][nlpos.y][nlpos.z]->set_global(ivec4(lpos.x, lpos.y, lpos.z, pos.w), val, direction, newjoints);
     {
       write_lock lock(this);
       blocks[nlpos.x][nlpos.y][nlpos.z] = newblock;
@@ -2045,7 +2073,7 @@ Block* BlockContainer::get_global(int x, int y, int z, int size) {
 	}
 }
 
-void BlockContainer::set(ivec4 pos, char val, int direction) {
+void BlockContainer::set(ivec4 pos, char val, int direction, int newjoints[6]) {
   Block* testblock;
   while ((testblock = get_global(pos.x, pos.y, pos.z, pos.w)) == nullptr) {
     Pixel* pix = new Pixel(0, 0, 0, 0, block->scale * csize, nullptr, nullptr);
@@ -2057,7 +2085,7 @@ void BlockContainer::set(ivec4 pos, char val, int direction) {
     delete pix;
   }
   
-  block = block->set_global(pos, val, direction);
+  block = block->set_global(pos, val, direction, newjoints);
 }
 
 
@@ -2091,6 +2119,9 @@ BlockIter::iterator BlockIter::iterator::operator++() {
 }
 
 BlockIter::iterator BlockIter::begin() {
+  if (base == nullptr) {
+    return end();
+  }
   Block* block = base;
   while (block->continues()) {
     block = block->get_chunk()->blocks[start_pos.x][start_pos.y][start_pos.z];

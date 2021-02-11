@@ -365,6 +365,151 @@ void Player::right_mouse(double deltatime) {
 }
 
 void Player::left_mouse(double deltatime) {
+	vec3 hitpos;
+	Pixel* pix;
+	DisplayEntity* target_entity;
+	raycast(&pix, &hitpos, &target_entity);
+	
+	if (attack_recharge <= 0) {
+		Item* item = inven.get(selitem);
+		bool shifting = glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS;
+		
+		if (target_entity != nullptr) {
+			if (!target_entity->immune) {
+				target_entity->vel += pointing * 1.0f + vec3(0,5,0) + vel;
+				if (item->isnull) {
+					target_entity->damage(1);
+				} else {
+					target_entity->damage(item->get_sharpness());
+				}
+			}
+		} else {
+			ivec3 blockpos = ivec3(hitpos) - ivec3(hitpos.x<0, hitpos.y<0, hitpos.z<0);
+			if (shifting and pix->group != nullptr and pix->group->isolated and pix->group->connections.size() == 0) {
+				Item newitem = itemstorage->from_group(pix);
+				if (!newitem.isnull) {
+					inven.add(ItemStack(newitem, 1));
+					for (Pixel* pix : pix->iter_group()) {
+						pix->set(0);
+					}
+				}
+			} else if (shifting and pix->group == nullptr) {
+				world->block_update(blockpos.x, blockpos.y, blockpos.z);
+				world->aftertick([&, pix] (World* world) {
+					if (pix->group != nullptr and pix->group->isolated and pix->group->connections.size() == 0) {
+						Item newitem = itemstorage->from_group(pix);
+						if (!newitem.isnull) {
+							inven.add(ItemStack(newitem, 1));
+							for (Pixel* pix : pix->iter_group()) {
+								pix->set(0);
+							}
+						}
+					}
+				});
+			} else {
+				
+				vec3 shifted_hitpos = hitpos - pointing * 0.002f;
+				ivec3 main_dir = ivec3(shifted_hitpos) - ivec3(shifted_hitpos.x<0, shifted_hitpos.y<0, shifted_hitpos.z<0) - blockpos;
+				
+				int closest_side = -1;
+				vec3 inblock = hitpos - glm::floor(hitpos);
+				vec3 absinblock = glm::abs(inblock - 0.5f);
+				for (int i = 0; i < 3; i ++) {
+					if (main_dir[i] == 0 and (closest_side == -1 or absinblock[i] > absinblock[closest_side])) {
+						closest_side = i;
+					}
+				}
+				ivec3 close_dir (0,0,0);
+				if (inblock[closest_side] - 0.5f < 0) {
+					close_dir[closest_side] = -1;
+				} else {
+					close_dir[closest_side] = 1;
+				}
+				
+				ivec3 cross_dir = ivec3(glm::cross(vec3(main_dir), vec3(close_dir)));
+				
+				ivec3 chosen_pos = blockpos;
+				ivec3 chosen_dir = close_dir;
+				int chosen_dir_index = -1;
+				
+				
+				ivec3 options[][2] = {
+					{blockpos, close_dir},
+					{blockpos, cross_dir},
+					{blockpos + cross_dir + main_dir, close_dir},
+					{blockpos - cross_dir + main_dir, close_dir},
+					{blockpos + cross_dir, close_dir},
+					{blockpos - cross_dir, close_dir},
+					{blockpos, -cross_dir},
+					{blockpos, -close_dir},
+					{blockpos, -main_dir}
+				};
+				
+				for (int i = 0; i < 9; i ++) {
+					ivec3 pos = options[i][0];
+					ivec3 dir = options[i][1];
+					int dir_index;
+					for (int i = 0; i < 6; i ++) {
+						if (dir_array[i] == dir) dir_index = i;
+					}
+					
+					Pixel* pix = world->get_global(pos.x, pos.y, pos.z, 1)->get_pix();
+					if (pix->value != 0) {
+						Pixel* otherpix = world->get_global(pos.x+dir.x, pos.y+dir.y, pos.z+dir.z, 1)->get_pix();
+						if (otherpix->value != 0) {
+							if (pix->scale != 1 or otherpix->scale != 1) {
+								world->set(ivec4(pos.x, pos.y, pos.z, 1), -1, 0);
+								world->set(ivec4(pos.x+dir.x, pos.y+dir.y, pos.z+dir.z, 1), -1, 0);
+								chosen_pos = pos;
+								chosen_dir = dir;
+								chosen_dir_index = dir_index;
+								break;
+							} else if (pix->joints[dir_index] != 7) {
+								chosen_pos = pos;
+								chosen_dir = dir;
+								chosen_dir_index = dir_index;
+								break;
+							}
+						}
+					}
+				}
+				
+				if (chosen_dir_index != -1) {
+					ivec3 chosen_opos = chosen_pos + chosen_dir;
+					Pixel* pix = world->get_global(chosen_pos.x, chosen_pos.y, chosen_pos.z, 1)->get_pix();
+					Pixel* otherpix = world->get_global(chosen_opos.x, chosen_opos.y, chosen_opos.z, 1)->get_pix();
+					
+					pix->joints[chosen_dir_index] = 7;
+					otherpix->joints[(chosen_dir_index+3)%6] = 7;
+					pix->render_update();
+					otherpix->render_update();
+					
+					if (pix->joints[chosen_dir_index] == 7) {
+						ivec3 pos;
+						if (pix->group != nullptr) pix->group->del(pix);
+						pix->global_position(&pos.x, &pos.y, &pos.z);
+						pix->tile->world->block_update(pos.x, pos.y, pos.z);
+					}
+					if (otherpix->joints[(chosen_dir_index+3)%6] == 7) {
+						ivec3 pos;
+						if (otherpix->group != nullptr) otherpix->group->del(otherpix);
+						otherpix->global_position(&pos.x, &pos.y, &pos.z);
+						otherpix->tile->world->block_update(pos.x, pos.y, pos.z);
+					}
+				}
+			}
+		}
+		
+		attack_recharge = item->get_recharge_time();
+		total_attack_recharge = item->get_recharge_time();
+		if (total_attack_recharge <= 0) {
+			total_attack_recharge = 0.2;
+		}
+	}
+}
+	
+/*
+void Player::left_mouse(double deltatime) {
 	//cout << "lefftt" << endl;
 	vec3 hitpos;
 	Pixel* pix;
@@ -464,7 +609,7 @@ void Player::left_mouse(double deltatime) {
 						}
 					}
 				}
-			}*/
+			}
 			if (shifting and pix->group != nullptr and pix->group->isolated and pix->group->connections.size() == 0) {
 				//inven.add(ItemStack(pix->group->item,1));
 				inven.add(ItemStack(itemstorage->from_group(pix), 1));
@@ -482,7 +627,36 @@ void Player::left_mouse(double deltatime) {
 				});
 			} else if (edgepix != nullptr) {
 				if (edgepix->value != 0) {
+					
+					ivec3 otherdir = ivec3(glm::cross(vec3(dir), vec3(close_dir)));
+					cout << dir << ' ' << close_dir << ' ' << otherdir << endl;
+					ivec3 dir_order[] = {close_dir, otherdir, -otherdir, -dir};
+					for (ivec3 dir : dir_order) {
+						bool notair = false;
+						for (Pixel* pix : pix->iter_touching_side(dir, world)) {
+							if (pix->value != 0) {
+								notair = true;
+								break;
+							}
+						}
+						if (notair) {
+							int index;
+							for (int i = 0; i < 6; i ++) {
+								if (dir == dir_array[i]) {
+									index = i;
+									break;
+								}
+							}
+							if (pix->joints[index] < 7) {
+								edgeindex = index;
+								edgepix = *pix->iter_touching_side(dir, world).begin();
+								break;
+							}
+						}
+					}
+					
 					int inverse_index = (edgeindex + 3) % 6;
+					
 					if (pix->scale <= edgepix->scale and pix->joints[edgeindex] < 7) {
 						pix->joints[edgeindex] ++;
 						pix->render_update();
@@ -535,7 +709,7 @@ void Player::left_mouse(double deltatime) {
 					pix->group->del_connection(connection_breaking->group);
 					connection_breaking = nullptr;
 					break_progress = 0;
-				}*/
+				}
 			} else {
 				
 				
@@ -596,6 +770,7 @@ void Player::left_mouse(double deltatime) {
 	}
 	//world->mark_render_update(pair<int,int>((int)position.x/world->chunksize - (position.x<0), (int)position.z/world->chunksize - (position.z<0)));
 }
+*/
 
 void Player::die() {
 	if (game->audio.listener == this) {

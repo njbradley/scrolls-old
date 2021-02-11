@@ -69,7 +69,7 @@ class Block: public Collider { public:
     virtual void rotate(int axis, int direction) = 0;
     bool is_air(int, int, int, char otherval = -1) const;
     virtual Block * get_global(int,int,int,int) = 0;
-    virtual Block* set_global(ivec4 pos, char val, int direction = -1) = 0;
+    virtual Block* set_global(ivec4 pos, char val, int direction = -1, int newjoints[6] = nullptr) = 0;
     virtual void set_all_render_flags() = 0;
     virtual void save_to_file(ostream& of, vector<BlockGroup*>* groups = nullptr, bool yield = false) = 0;
     virtual void lighting_update() = 0;
@@ -77,6 +77,7 @@ class Block: public Collider { public:
     Block* get_world();
     BlockIter iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(csize-1,csize-1,csize-1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr);
     BlockIter iter_side(ivec3 dir);
+    BlockIter iter_touching_side(ivec3 dir, Collider* world);
     BlockTouchIter iter_touching(Collider* world = nullptr);
     ConstBlockIter const_iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(csize-1,csize-1,csize-1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr) const;
     ConstBlockIter const_iter_side(ivec3 dir) const;
@@ -121,7 +122,7 @@ public:
     virtual Chunk* get_chunk();
     virtual const Pixel* get_pix() const;
     virtual const Chunk* get_chunk() const;
-    void set(char val, int direction = -1, BlockExtra* extras = nullptr, bool update = true);
+    void set(char val, int direction = -1, int joints[6] = nullptr, bool update = true);
     // sets the value, direction, and BlockExtra of the pixel
     void render_update();
     virtual void set_all_render_flags();
@@ -134,7 +135,7 @@ public:
     virtual void rotate(int axis, int dir);
     virtual void lighting_update();
     virtual Block* get_global(int x, int y, int z, int scale);
-    virtual Block* set_global(ivec4 pos, char val, int direction = -1);
+    virtual Block* set_global(ivec4 pos, char val, int direction = -1, int newjoints[6] = nullptr);
     void render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* blocks[6], int index, ivec3 dir, int uv_dir, int minscale, int mat, bool render_null);
     virtual void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
     void render_smooth(RenderVecs* vecs, RenderVecs* transvecs, Collider* collider, vec3 view_normal);
@@ -177,7 +178,7 @@ class Chunk: public Block { public:
     virtual void del(bool remove_faces);
     virtual void rotate(int axis, int dir);
     virtual Block* get_global(int x, int y, int z, int nscale);
-    virtual Block* set_global(ivec4 pos, char val, int direction = -1);
+    virtual Block* set_global(ivec4 pos, char val, int direction = -1, int newjoints[6] = nullptr);
     virtual void save_to_file(ostream& of, vector<BlockGroup*>* groups = nullptr, bool yield = false);
 };
 
@@ -188,7 +189,7 @@ class BlockContainer: public Collider { public:
 	BlockContainer(Block* b);
 	vec3 get_position() const;
 	Block* get_global(int x, int y, int z, int size);
-  void set(ivec4 pos, char val, int direction);
+  void set(ivec4 pos, char val, int direction, int joints[6] = nullptr);
 };
 
 class BlockIter { public:

@@ -544,7 +544,11 @@ void Game::print_debug() {
 		debugstream << " flags: light " << debugblock->light_flag << " render " << debugblock->render_flag << endl;
 		debugstream << " parent coords:" << debugblock->px << ',' << debugblock->py << ',' << debugblock->pz << endl;
 		debugstream << " physics_group:" << debugblock->group << ' ' << "light " << debugblock->blocklight << ' ' << debugblock->sunlight << endl;
-		
+		debugstream << " joints ";
+		for (int joint : debugblock->joints) {
+			debugstream << joint << ' ';
+		}
+		debugstream << endl;
 		if (debugblock->group != nullptr) {
 			debugstream << " group: size " << debugblock->group->size << " conn ";
 			debugstream << debugblock->group->connections.size() << " isol " << debugblock->group->isolated << endl << "consts ";

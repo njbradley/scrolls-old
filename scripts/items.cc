@@ -454,6 +454,14 @@ void Item::render(MemVecs* vecs, float x, float y, float scale) {
 
 /////////////////////////////////////// ITEMdada ////////////////////////////////
 
+ItemData::ItemData(string newname, CharArray* arr): name(newname),
+stackable(true), onplace(arr), rcaction("null"), starting_weight(0),
+starting_sharpness(0), starting_reach(0), sharpenable(false), lightlevel(0),
+isgroup(true), glue(nullptr), texture(0) {
+  
+}
+
+
 ItemData::ItemData(ifstream & ifile):
 stackable(true), onplace(nullptr), rcaction("null"), starting_weight(0),
 starting_sharpness(0), starting_reach(0), sharpenable(false), lightlevel(0),
@@ -730,7 +738,6 @@ Item ItemStorage::from_group(Pixel* startpix) {
     }
   }
   
-  cout << dims << endl;
   
   char* data = new char[dims.x * dims.y * dims.z];
   for (int i = 0; i < dims.x * dims.y * dims.z; i ++) {
@@ -744,20 +751,77 @@ Item ItemStorage::from_group(Pixel* startpix) {
     data[lpos.x*dims.y*dims.z + lpos.y*dims.z + lpos.z] = pix->value;
   }
   
-  for (pair<string,ItemData*> kv : items) {
-    CharArray* carray = kv.second->onplace;
-    if (carray != nullptr and carray->sx == dims.x and carray->sy == dims.y and carray->sz == dims.z) {
-      bool matching = true;
-      for (int i = 0; i < dims.x*dims.y*dims.z and matching; i ++) {
-        if (carray->arr[i] != data[i]) {
-          matching = false;
+  for (int dirindex = 0; dirindex < 6; dirindex ++) {
+    for (pair<string,ItemData*> kv : items) {
+      CharArray* carray = kv.second->onplace;
+      if (carray != nullptr and carray->sx == dims[(0+dirindex)%3] and carray->sy == dims[(1+dirindex)%3] and carray->sz == dims[(2+dirindex)%3]) {
+        bool matching = true;
+        for (int x = 0; x < carray->sx and matching; x ++) {
+          for (int y = 0; y < carray->sy and matching; y ++) {
+            for (int z = 0; z < carray->sz and matching; z ++) {
+              ivec3 pos (x,y,z);
+              ivec3 npos (
+                (dirindex < 3) ? pos[(0+dirindex)%3] : carray->sx - pos[(0+dirindex)%3] - 1,
+                (dirindex < 3) ? pos[(1+dirindex)%3] : carray->sy - pos[(1+dirindex)%3] - 1,
+                (dirindex < 3) ? pos[(2+dirindex)%3] : carray->sz - pos[(2+dirindex)%3] - 1
+              );
+              if (carray->get(pos.x, pos.y, pos.z) != data[npos.x*carray->sy*carray->sz + npos.y*carray->sz + npos.z]) {
+                matching = false;
+              }
+            }
+          }
         }
-      }
-      if (matching) {
-        return Item(kv.second);
+        
+        if (matching) {
+          delete[] data;
+          return Item(kv.second);
+        }
       }
     }
   }
+  
+  return Item(nullptr);
+  
+  int dirindex = 0;
+  if (dims.y > dims.z and dims.y > dims.x) {
+    dirindex = 1;
+  } else if (dims.z > dims.y and dims.z > dims.x) {
+    dirindex = 2;
+  }
+  
+  string name = std::to_string(rand());
+  
+  CharArray* newarr;
+  if (dirindex == 0) {
+    newarr = new CharArray(data, dims.x, dims.y, dims.z);
+    items[name] = new ItemData(name, newarr);
+    return Item(items[name]);
+  } else {
+    ivec3 newdims(dims[dirindex%3], dims[(dirindex+1)%3], dims[(dirindex+2)%3]);
+    char* rot_data = new char[newdims.x * newdims.y * newdims.z];
+    
+    for (int x = 0; x < newdims.x; x ++) {
+      for (int y = 0; y < newdims.y; y ++) {
+        for (int z = 0; z < newdims.z; z ++) {
+          ivec3 pos (x,y,z);
+          ivec3 npos (
+            (dirindex < 3) ? pos[(0+dirindex)%3] : newdims.x - pos[(0+dirindex)%3] - 1,
+            (dirindex < 3) ? pos[(1+dirindex)%3] : newdims.y - pos[(1+dirindex)%3] - 1,
+            (dirindex < 3) ? pos[(2+dirindex)%3] : newdims.z - pos[(2+dirindex)%3] - 1
+          );
+          char val = data[npos.x*newdims.y*newdims.z + npos.y*newdims.z + npos.z];
+          rot_data[pos.x*newdims.y*newdims.z + pos.y*newdims.z + pos.z] = val;
+        }
+      }
+    }
+    
+    newarr = new CharArray(rot_data, newdims.x, newdims.y, newdims.z);
+    items[name] = new ItemData(name, newarr);
+    delete[] data;
+    return Item(items[name]);
+  }
+  
+  delete[] data;
   return Item(nullptr);
 }
 

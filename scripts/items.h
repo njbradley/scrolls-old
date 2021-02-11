@@ -74,6 +74,7 @@ class ItemData {
         ConnectorData* glue;
             
         ItemData(ifstream & ifile);
+        ItemData(string newname, CharArray* arr);
         ~ItemData();
 };
 

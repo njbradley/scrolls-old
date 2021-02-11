@@ -1008,8 +1008,14 @@ vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup), item(nullptr) {
     ivec3 pos;
     pix->global_position(&pos.x, &pos.y, &pos.z);
     ivec3 localpos = pos - lower_bound;
-    block.set(ivec4(localpos.x, localpos.y, localpos.z, pix->scale), pix->value, pix->direction);
-    block.get_global(localpos.x, localpos.y, localpos.z, pix->scale)->get_pix()->group = pix->group;
+    
+    block.set(ivec4(localpos.x, localpos.y, localpos.z, pix->scale), pix->value, pix->direction, pix->joints);
+    Pixel* blockpix = block.get_global(localpos.x, localpos.y, localpos.z, pix->scale)->get_pix();
+    blockpix->group = pix->group;
+    for (int i = 0; i < 6; i ++) {
+      blockpix->joints[i] = pix->joints[i];
+      pix->joints[i] = 0;
+    }
     pix->group = nullptr;
     world->set(ivec4(pos.x, pos.y, pos.z, pix->scale), 0, 0);
   }
@@ -1050,6 +1056,9 @@ void FallingBlockEntity::on_timestep(double deltatime) {
         world->set(ivec4(globalpos.x, globalpos.y, globalpos.z, pix->scale), pix->value, pix->direction);
         Pixel* worldpix = world->get_global(globalpos.x, globalpos.y, globalpos.z, pix->scale)->get_pix();
         worldpix->group = pix->group;
+        for (int i = 0; i < 6; i ++) {
+          worldpix->joints[i] = pix->joints[i];
+        }
         pix->group->recalculate_flag = true;
         // groups[pix->group] = worldpix;
         pix->group = nullptr;
