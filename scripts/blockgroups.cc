@@ -130,6 +130,7 @@ bool BlockGroup::add(Pixel* pix) {
 		return false;
 	}
 	if (pix->group != nullptr and !can_take(pix)) {
+		cout << "cannot take " << size << ' ' << pix->group->size << ' ' << int(blocktype) << ' ' << int(pix->group->blocktype) << endl;
 		return false;
 	}
 	if (size == 0 and uniform_type) {
@@ -156,12 +157,18 @@ void BlockGroup::spread(Pixel* pix, int depth, int max_size, float randlevel) {
 			Block* sideblock = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
 			if (sideblock != nullptr and (randlevel == 1 or rand()%1000 / 1000.0f < randlevel)) {
 				for (Pixel* sidepix : sideblock->iter_side(-dir)) {
-					if (pix->joints[i] < 7) {
-						spread(sidepix, depth-1, max_size - 1, randlevel);
+					if (pix->joints[i] != 7) {
+						if (pix->joints[i] > 7 and sidepix->value != pix->value and sidepix->value != 0) {
+							blocktype = sidepix->value;
+							spread(sidepix, depth-1, max_size-1, randlevel);
+						} else {
+							blocktype = pix->value;
+							spread(sidepix, depth-1, max_size - 1, randlevel);
+						}
 					}
 					if (!contains(sidepix)) {
 						if (sidepix->value != 0) {
-							if (pix->joints[i] < 7) {
+							if (pix->joints[i] != 7 and pix->value == sidepix->value) {
 								isolated = false;
 							}
 							int num_touching = std::min(pix->scale, sidepix->scale);

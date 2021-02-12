@@ -1011,14 +1011,22 @@ vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup), item(nullptr) {
     
     block.set(ivec4(localpos.x, localpos.y, localpos.z, pix->scale), pix->value, pix->direction, pix->joints);
     Pixel* blockpix = block.get_global(localpos.x, localpos.y, localpos.z, pix->scale)->get_pix();
-    blockpix->group = pix->group;
+    //blockpix->group = pix->group;
     for (int i = 0; i < 6; i ++) {
       blockpix->joints[i] = pix->joints[i];
       pix->joints[i] = 0;
     }
-    pix->group = nullptr;
+  }
+  
+  for (Pixel* pix : pixels) {
+    ivec3 pos;
+    pix->global_position(&pos.x, &pos.y, &pos.z);
+    ivec3 localpos = pos - lower_bound;
+    
     world->set(ivec4(pos.x, pos.y, pos.z, pix->scale), 0, 0);
   }
+  
+  
 }
 
 
@@ -1046,23 +1054,23 @@ void FallingBlockEntity::on_timestep(double deltatime) {
   DisplayEntity::on_timestep(deltatime);
   if (consts[4]) {
     //map<BlockGroup*,vector<Pixel*>> pixels;
-    //vector<Pixel*> pixels
+    vector<Pixel*> pixels;
     // map<BlockGroup*,Pixel*> groups;
     for (Pixel* pix : block.block->iter()) {
       if (pix->value != 0) {
         ivec3 pos;
         pix->global_position(&pos.x, &pos.y, &pos.z);
         ivec3 globalpos = ivec3(position) + pos;
-        world->set(ivec4(globalpos.x, globalpos.y, globalpos.z, pix->scale), pix->value, pix->direction);
+        world->set(ivec4(globalpos.x, globalpos.y, globalpos.z, pix->scale), pix->value, pix->direction, pix->joints);
         Pixel* worldpix = world->get_global(globalpos.x, globalpos.y, globalpos.z, pix->scale)->get_pix();
-        worldpix->group = pix->group;
-        for (int i = 0; i < 6; i ++) {
-          worldpix->joints[i] = pix->joints[i];
-        }
-        pix->group->recalculate_flag = true;
+        //worldpix->group = pix->group;
+        // for (int i = 0; i < 6; i ++) {
+        //   worldpix->joints[i] = pix->joints[i];
+        // }
+        //pix->group->recalculate_flag = true;
         // groups[pix->group] = worldpix;
-        pix->group = nullptr;
-        //if (final) pixels[pix->group].push_back(world->get_global(globalpos.x, globalpos.y, globalpos.z, pix->scale)->get_pix());
+        //pix->group = nullptr;
+        pixels.push_back(world->get_global(globalpos.x, globalpos.y, globalpos.z, pix->scale)->get_pix());
       }
     }
     
@@ -1076,6 +1084,7 @@ void FallingBlockEntity::on_timestep(double deltatime) {
     //     group->item = kvpair->first->item;
     //   }
     // }
+    BlockGroup* group = new BlockGroup(world, pixels);
     alive = false;
   }
 }

@@ -16,6 +16,7 @@
 #include "audio.h"
 #include "materials.h"
 #include "tiles.h"
+#include "glue.h"
 
 
 
@@ -297,7 +298,10 @@ void Player::right_mouse(double deltatime) {
 	int dz = (int)z - (z<0) - oz;
 	//cout << dx << ' ' << dy << ' ' << dz << endl;
 	//world->set(item, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
+	
 	//Pixel* pix = target->get_pix();
+	ivec3 blockpos = ivec3(hitpos) - ivec3(hitpos.x<0, hitpos.y<0, hitpos.z<0);
+	
 	if (blocks->blocks[pix->value]->rcaction != "null" and !shifting) {
 		blocks->blocks[pix->value]->do_rcaction(pix);
 	} else {
@@ -312,27 +316,49 @@ void Player::right_mouse(double deltatime) {
 			}
 			inven.use(selitem);
 		} else if (!inhand->isnull and inhand->data->glue != nullptr) {
-			if (pix->group != nullptr and pix->group->final) {
-				ivec3 dir (dx, dy, dz);
-				int closest_side = -1;
-				vec3 inblock = hitpos - glm::floor(hitpos);
-				vec3 absinblock = glm::abs(inblock - 0.5f);
-				for (int i = 0; i < 3; i ++) {
-					if (dir[i] == 0 and (closest_side == -1 or absinblock[i] > absinblock[closest_side])) {
-						closest_side = i;
-					}
+			ivec3 dir (dx, dy, dz);
+			int closest_side = -1;
+			vec3 inblock = hitpos - glm::floor(hitpos);
+			vec3 absinblock = glm::abs(inblock - 0.5f);
+			for (int i = 0; i < 3; i ++) {
+				if (dir[i] == 0 and (closest_side == -1 or absinblock[i] > absinblock[closest_side])) {
+					closest_side = i;
 				}
-				ivec3 close_dir (0,0,0);
-				if (inblock[closest_side] - 0.5f < 0) {
-					close_dir[closest_side] = -1;
-				} else {
-					close_dir[closest_side] = 1;
+			}
+			ivec3 close_dir (0,0,0);
+			if (inblock[closest_side] - 0.5f < 0) {
+				close_dir[closest_side] = -1;
+			} else {
+				close_dir[closest_side] = 1;
+			}
+			
+			int close_index = -1;
+			for (int i = 0; i < 6; i ++) {
+				if (close_dir == dir_array[i]) {
+					close_index = i;
 				}
+			}
+			
+			// cout << close_dir << ' '<< close_index << endl;
+			if (close_index != -1 and pix->joints[close_index] == 7) {
+				pix->joints[close_index] = inhand->data->glue->tex_index;
+				ivec3 sidepos = blockpos + close_dir;
+				Pixel* sidepix = world->get_global(sidepos.x, sidepos.y, sidepos.z, 1)->get_pix();
+				sidepix->joints[(close_index+3)%6] = inhand->data->glue->tex_index;
+				pix->render_update();
+				sidepix->render_update();
+				if (pix->group != nullptr) pix->group->del(pix);
+				if (sidepix->group != nullptr) sidepix->group->del(pix);
+				world->block_update(blockpos.x, blockpos.y, blockpos.z);
+				world->block_update(sidepos.x, sidepos.y, sidepos.z);
+			}
 				
+			
+			if (false) {
 				ivec3 globalpos;
 				pix->global_position(&globalpos.x, &globalpos.y, &globalpos.z);
-				ivec3 sidepos = globalpos + close_dir * pix->scale;
-				Block* sideblock = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
+				ivec3 sidepos = blockpos + close_dir;
+				Block* sideblock = world->get_global(sidepos.x, sidepos.y, sidepos.z, 1);
 				if (sideblock != nullptr) {
 					for (Pixel* sidepix : sideblock->iter_side(-close_dir)) {
 						if (sidepix->group != nullptr and sidepix->group->final and sidepix->group != pix->group) {
@@ -383,7 +409,7 @@ void Player::left_mouse(double deltatime) {
 					target_entity->damage(item->get_sharpness());
 				}
 			}
-		} else {
+		} else if (pix != nullptr) {
 			ivec3 blockpos = ivec3(hitpos) - ivec3(hitpos.x<0, hitpos.y<0, hitpos.z<0);
 			if (shifting and pix->group != nullptr and pix->group->isolated and pix->group->connections.size() == 0) {
 				Item newitem = itemstorage->from_group(pix);
