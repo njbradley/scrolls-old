@@ -81,4 +81,13 @@ ostream& operator<<(ostream& out, vec3 pos) {
 	return out;
 }
 
+int dir_to_index(ivec3 dir) {
+	for (int i = 0; i < 6; i ++) {
+		if (dir_array[i] == dir) {
+			return i;
+		}
+	}
+	return -1;
+}
+
 #endif

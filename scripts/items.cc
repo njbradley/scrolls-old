@@ -69,7 +69,7 @@ void CharArray::place(World* world, Item* item, int x, int y, int z, int dx, int
     
     if (item->data->isgroup) {
       BlockGroup* group = new BlockGroup(world, pixels);
-      group->item = *item;
+      //group->item = *item;
     }
 }
 

@@ -945,10 +945,6 @@ void NamedEntity::on_timestep(double deltatime) {
 FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup, Pixel* start_pix): DisplayEntity(nworld, vec3(0,0,0), vec3(0,0,0),
 vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup), item(nullptr) {
   immune = true;
-  final = group->final;
-  if (final) {
-    item = group->item;
-  }
   unordered_set<Pixel*> pixels;
   unordered_set<Pixel*> last_pixels;
   unordered_set<Pixel*> new_pixels;
@@ -976,7 +972,7 @@ vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup), item(nullptr) {
         Block* block = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
         if (block != nullptr) {
           for (Pixel* sidepix : block->iter_side(-dir)) {
-            if ((sidepix->group == pix->group or pix->group->get_connection(sidepix->group) != nullptr) and pixels.count(sidepix) == 0) {
+            if ((sidepix->group == pix->group) and pixels.count(sidepix) == 0) {
               if (sidepos.x < lower_bound.x) lower_bound.x = sidepos.x;
               if (sidepos.y < lower_bound.y) lower_bound.y = sidepos.y;
               if (sidepos.z < lower_bound.z) lower_bound.z = sidepos.z;

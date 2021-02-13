@@ -469,7 +469,7 @@ void Pixel::set(char val, int newdirection, int newjoints[6], bool update) {
     
     BlockGroup* oldgroup = nullptr;
     
-    if (group != nullptr and !group->final) {
+    if (group != nullptr) {
       //cout << "del pix " << endl;
       oldgroup = group;
       group->del(this);
@@ -585,14 +585,15 @@ void Pixel::tick() { // ERR: race condition, render and tick threads race, rende
   } else if (group == nullptr) {
     //cout << "type block " << blocks->blocks[value]->name << endl;
     BlockGroup* newgroup = new BlockGroup(tile->world);
-    newgroup->spread(this, 100);
+    newgroup->spread(this, nullptr, ivec3(0,0,0), 1000);
     //cout << newgroup << ' ' << group << endl;
+    // for (int val : newgroup->consts) {
+    //   cout << val << ' ';
+    // }
+    // cout << "  " << newgroup->size << endl;
+    // exit(6);
   }
-  if (group != nullptr and group->recalculate_flag) {
-    group->recalculate_all(this);
-    group->recalculate_flag = false;
-  }
-  if (group != nullptr and !group->constrained(4)) {
+  if (group != nullptr and !group->consts[4]) {
     tile->block_entities.push_back(new FallingBlockEntity(tile->world, group, this));
   }
   
@@ -1022,38 +1023,6 @@ void Pixel::render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* b
       if (joints[indexes[index][rot_i]] != 0) {
         edges[i] = joints[indexes[index][rot_i]];
       }
-    }
-    
-    if (group != nullptr and group->final and scale == 1) {
-      
-      int multiplier = 1;
-      for (int i = 0; i < 4; i ++) {
-        int rot_i = (64 + i - uv_dir) % 4;
-        // cout << rot_i << endl;
-        if (blocks[indexes[index][rot_i]] != nullptr) {
-          Pixel* pix = blocks[indexes[index][rot_i]]->get_pix();
-          if (pix->group != group and pix->value != 0) {
-            edges[i] = 7;
-            GroupConnection* connection = group->get_connection(pix->group);
-            for (int j = 0; j < group->connections.size(); j ++) {
-              if (group->connections[j].damage != 0) {
-                edges[i] = group->connections[j].damage + 1;
-                break;
-              }
-            }
-            if (connection != nullptr and connection->data != nullptr) {
-              edges[i] = connection->data->tex_index + 1;
-            }// else if (connection != nullptr and connection->damage != 0) {
-            //   edges[i] = connection->damage + 1;
-            // }
-          }
-        }
-        multiplier *= 2;
-      }
-    }
-    
-    if (edges != 0) {
-      overlay = 1;
     }
     
     GLfloat face[] = {x,y,z, x,y,z, x,y,z, x,y,z, x,y,z, x,y,z};

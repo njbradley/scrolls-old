@@ -352,36 +352,6 @@ void Player::right_mouse(double deltatime) {
 				world->block_update(blockpos.x, blockpos.y, blockpos.z);
 				world->block_update(sidepos.x, sidepos.y, sidepos.z);
 			}
-				
-			
-			if (false) {
-				ivec3 globalpos;
-				pix->global_position(&globalpos.x, &globalpos.y, &globalpos.z);
-				ivec3 sidepos = blockpos + close_dir;
-				Block* sideblock = world->get_global(sidepos.x, sidepos.y, sidepos.z, 1);
-				if (sideblock != nullptr) {
-					for (Pixel* sidepix : sideblock->iter_side(-close_dir)) {
-						if (sidepix->group != nullptr and sidepix->group->final and sidepix->group != pix->group) {
-							pix->group->connect_to(GroupConnection(sidepix->group, inhand->data->glue));
-							for (Pixel* iterpix : pix->iter_group([] (Pixel* base, Pixel* pix) {
-								if (pix->group != nullptr and pix->group != base->group and pix->group->get_connection(base->group) != nullptr) {
-									for (Pixel* sidepix : pix->iter_touching(pix->tile->world)) {
-										if (sidepix->group == base->group) {
-											sidepix->render_update();
-											return true;
-										}
-									}
-								}
-								return false;
-							})) {
-								iterpix->render_update();
-							}
-							cout << "connection made " << endl;
-							break;
-						}
-					}
-				}
-			}
 		} else {
 			game->debugblock = pix;
 			game->debugentity = target_entity;
@@ -411,7 +381,7 @@ void Player::left_mouse(double deltatime) {
 			}
 		} else if (pix != nullptr) {
 			ivec3 blockpos = ivec3(hitpos) - ivec3(hitpos.x<0, hitpos.y<0, hitpos.z<0);
-			if (shifting and pix->group != nullptr and pix->group->isolated and pix->group->connections.size() == 0) {
+			if (shifting and pix->group != nullptr and pix->group->isolated and pix->group->size < 20) {
 				Item newitem = itemstorage->from_group(pix);
 				if (!newitem.isnull) {
 					inven.add(ItemStack(newitem, 1));
@@ -422,7 +392,7 @@ void Player::left_mouse(double deltatime) {
 			} else if (shifting and pix->group == nullptr) {
 				world->block_update(blockpos.x, blockpos.y, blockpos.z);
 				world->aftertick([&, pix] (World* world) {
-					if (pix->group != nullptr and pix->group->isolated and pix->group->connections.size() == 0) {
+					if (pix->group != nullptr and pix->group->isolated and pix->group->size < 20) {
 						Item newitem = itemstorage->from_group(pix);
 						if (!newitem.isnull) {
 							inven.add(ItemStack(newitem, 1));
@@ -432,7 +402,7 @@ void Player::left_mouse(double deltatime) {
 						}
 					}
 				});
-			} else {
+			} else if (!shifting) {
 				
 				vec3 shifted_hitpos = hitpos - pointing * 0.002f;
 				ivec3 main_dir = ivec3(shifted_hitpos) - ivec3(shifted_hitpos.x<0, shifted_hitpos.y<0, shifted_hitpos.z<0) - blockpos;
@@ -533,311 +503,22 @@ void Player::left_mouse(double deltatime) {
 		}
 	}
 }
-	
-/*
-void Player::left_mouse(double deltatime) {
-	//cout << "lefftt" << endl;
-	vec3 hitpos;
-	Pixel* pix;
-	DisplayEntity* target_entity;
-	raycast(&pix, &hitpos, &target_entity);
-	if (target_entity != nullptr) {
-		if (timeout < 0) {
-			return;
-		}
-		timeout = -0.8;
-		//cout << "hit" << endl;
-		if (!target_entity->immune) {
-			target_entity->vel += pointing * 1.0f + vec3(0,5,0) + vel;
-			target_entity->health -= 1;
-		}
-		//target_entity->alive = false;
-		return;
-	}
-	// if (pix == nullptr) {
-	// 	return;
-	// }
-	
-	bool shifting = glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS;
-	//cout << "skdfls " << int(pix->value) << endl;
-	
-	if (attack_recharge <= 0) {
-		Item* item = inven.get(selitem);
-		
-		if (pix != nullptr) {
-			
-			double x = hitpos.x;
-			double y = hitpos.y;
-			double z = hitpos.z;
-			ivec3 blockpos = ivec3(x, y, z) - ivec3(x<0, y<0, z<0);
-			
-			int ox = (int)x - (x<0);
-			int oy = (int)y - (y<0);
-			int oz = (int)z - (z<0);
-			x -= pointing.x*0.002;
-			y -= pointing.y*0.002;
-			z -= pointing.z*0.002;
-			int dx = (int)x - (x<0) - ox;
-			int dy = (int)y - (y<0) - oy;
-			int dz = (int)z - (z<0) - oz;
-			
-			Pixel* edgepix = nullptr;
-			int edgeindex = -1;
-			
-			
-			ivec3 dir (dx, dy, dz);
-			int closest_side = -1;
-			vec3 inblock = hitpos - glm::floor(hitpos);
-			vec3 absinblock = glm::abs(inblock - 0.5f);
-			for (int i = 0; i < 3; i ++) {
-				if (dir[i] == 0 and (closest_side == -1 or absinblock[i] > absinblock[closest_side])) {
-					closest_side = i;
-				}
-			}
-			ivec3 close_dir (0,0,0);
-			if (inblock[closest_side] - 0.5f < 0) {
-				close_dir[closest_side] = -1;
-			} else {
-				close_dir[closest_side] = 1;
-			}
-			
-			ivec3 globalpos;
-			pix->global_position(&globalpos.x, &globalpos.y, &globalpos.z);
-			ivec3 sidepos = globalpos + close_dir * pix->scale;
-			Block* sideblock = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
-			if (sideblock != nullptr) {
-				for (Pixel* sidepix : sideblock->iter_side(-close_dir)) {
-					edgepix = sidepix;
-					for (int i = 0; i < 6; i ++) {
-						if (close_dir == dir_array[i]) {
-							edgeindex = i;
-						}
-					}
-					break;
-				}
-			}/*
-							pix->group->connect_to(GroupConnection(sidepix->group, inhand->data->glue));
-							for (Pixel* iterpix : pix->iter_group([] (Pixel* base, Pixel* pix) {
-								if (pix->group != nullptr and pix->group != base->group and pix->group->get_connection(base->group) != nullptr) {
-									for (Pixel* sidepix : pix->iter_touching(pix->tile->world)) {
-										if (sidepix->group == base->group) {
-											sidepix->render_update();
-											return true;
-										}
-									}
-								}
-								return false;
-							})) {
-								iterpix->render_update();
-							}
-							cout << "connection made " << endl;
-							break;
-						}
-					}
-				}
-			}
-			if (shifting and pix->group != nullptr and pix->group->isolated and pix->group->connections.size() == 0) {
-				//inven.add(ItemStack(pix->group->item,1));
-				inven.add(ItemStack(itemstorage->from_group(pix), 1));
-				for (Pixel* pix : pix->iter_group()) {
-					pix->set(0);
-				}
-			} else if (shifting and pix->group == nullptr) {
-				world->block_update(blockpos.x, blockpos.y, blockpos.z);
-				world->aftertick([&, pix] (World* world) {
-					if (pix->group != nullptr and pix->group->isolated and pix->group->connections.size() == 0) {
-						for (Pixel* pix : pix->iter_group()) {
-							pix->set(0);
-						}
-					}
-				});
-			} else if (edgepix != nullptr) {
-				if (edgepix->value != 0) {
-					
-					ivec3 otherdir = ivec3(glm::cross(vec3(dir), vec3(close_dir)));
-					cout << dir << ' ' << close_dir << ' ' << otherdir << endl;
-					ivec3 dir_order[] = {close_dir, otherdir, -otherdir, -dir};
-					for (ivec3 dir : dir_order) {
-						bool notair = false;
-						for (Pixel* pix : pix->iter_touching_side(dir, world)) {
-							if (pix->value != 0) {
-								notair = true;
-								break;
-							}
-						}
-						if (notair) {
-							int index;
-							for (int i = 0; i < 6; i ++) {
-								if (dir == dir_array[i]) {
-									index = i;
-									break;
-								}
-							}
-							if (pix->joints[index] < 7) {
-								edgeindex = index;
-								edgepix = *pix->iter_touching_side(dir, world).begin();
-								break;
-							}
-						}
-					}
-					
-					int inverse_index = (edgeindex + 3) % 6;
-					
-					if (pix->scale <= edgepix->scale and pix->joints[edgeindex] < 7) {
-						pix->joints[edgeindex] ++;
-						pix->render_update();
-						if (pix->joints[edgeindex] == 7) {
-							ivec3 pos;
-							if (pix->group != nullptr) pix->group->del(pix);
-							pix->global_position(&pos.x, &pos.y, &pos.z);
-							pix->tile->world->block_update(pos.x, pos.y, pos.z);
-						}
-					}
-					if (edgepix->scale <= pix->scale and edgepix->joints[inverse_index] < 7) {
-						edgepix->joints[inverse_index] ++;
-						edgepix->render_update();
-						if (edgepix->joints[inverse_index] == 7) {
-							ivec3 pos;
-							if (edgepix->group != nullptr) edgepix->group->del(pix);
-							edgepix->global_position(&pos.x, &pos.y, &pos.z);
-							edgepix->tile->world->block_update(pos.x, pos.y, pos.z);
-						}
-					}
-				}
-				/*
-				GroupConnection* connection = pix->group->get_connection(edgepix->group);
-				if (connection != connection_breaking) {
-					connection_breaking = connection;
-					break_progress = 0;
-				}
-				break_progress += 0.5;
-				if (break_progress >= 1) {
-					for (Pixel* iterpix : pix->iter_group([] (Pixel* base, Pixel* pix) {
-						if (pix->group != nullptr and pix->group != base->group and pix->group->get_connection(base->group) != nullptr) {
-							for (Pixel* sidepix : pix->iter_touching(pix->tile->world)) {
-								if (sidepix->group == base->group) {
-									sidepix->render_update();
-									ivec3 pos;
-									sidepix->global_position(&pos.x, &pos.y, &pos.z);
-									sidepix->tile->world->block_update(pos.x, pos.y, pos.z);
-									return true;
-								}
-							}
-						}
-						return false;
-					})) {
-						iterpix->render_update();
-						ivec3 pos;
-						iterpix->global_position(&pos.x, &pos.y, &pos.z);
-						iterpix->tile->world->block_update(pos.x, pos.y, pos.z);
-					}
-					
-					pix->group->del_connection(connection_breaking->group);
-					connection_breaking = nullptr;
-					break_progress = 0;
-				}
-			} else {
-				
-				
-				//ivec3 blockpos = ivec3((int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
-				
-				//cout << hitpos.x << ' ' << hitpos.y << ' ' << hitpos.z << endl;
-				int gx,gy,gz;
-				pix->global_position(&gx, &gy, &gz);
-				//cout << gx << ' ' << gy << ' ' << gz << endl;
-				
-				
-				//cout << blockpos.x << ' ' << blockpos.y << ' ' << blockpos.z << endl;
-				//cout << ':' << x << ' ' << y << ' ' << z << endl;
-				if (blockpos != block_breaking) {
-					break_progress = 0;
-					block_breaking = blockpos;
-				}
-				
-				if (!item->isnull and item->data->sharpenable) {
-					item = inven.items[selitem].get_unique();
-				}
-				break_progress += item->collision(pix);
-				inven.items[selitem].trim();
-				BlockData* data = blocks->blocks[pix->value];
-				game->audio.play_sound(data->material->hitsound, vec3(blockpos), 0.1);
-				//cout << break_progress << endl;
-				
-				
-				if (true and break_progress >= 1) {
-					
-					set_block_breaking_vecs(pix, blockpos, 0);
-					
-					game->audio.play_sound(data->material->breaksound, vec3(blockpos));
-					// double time_needed = item->dig_time(pix->get());
-					// double damage_per_sec = 1/time_needed;
-					//
-					// item->damage(this, blocks->blocks[pix->get()], deltatime);
-					char newitem;
-					if (item->isnull) {
-						newitem = Item::ondig_null(world, blockpos.x, blockpos.y, blockpos.z);
-					} else {
-						newitem = item->ondig(world, blockpos.x, blockpos.y, blockpos.z);
-					}
-					if (newitem != 0) {
-						blocks->blocks[newitem]->droptable.drop(&inven, this, item);
-					}
-					break_progress = 0;
-				} else {
-					set_block_breaking_vecs(pix, blockpos, int(break_progress*7));
-				}
-			}
-		}
-		attack_recharge = item->get_recharge_time();
-		total_attack_recharge = item->get_recharge_time();
-		if (total_attack_recharge <= 0) {
-			total_attack_recharge = 0.2;
-		}
-	}
-	//world->mark_render_update(pair<int,int>((int)position.x/world->chunksize - (position.x<0), (int)position.z/world->chunksize - (position.z<0)));
-}
-*/
 
 void Player::die() {
 	if (game->audio.listener == this) {
 		game->audio.listener = nullptr;
 	}
-	const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
-	vector<ItemStack> items;
-	for (ItemStack stack : inven.items) {
-		if (!stack.item.isnull) {
-			items.push_back(stack);
-		}
-	}
-	ivec3 pos(position);
-	while (world->get(pos.x, pos.y, pos.z) == 0) {
-		pos.y --;
-	}
-	pos.y ++;
-	for (int i = 0; i < items.size(); i ++) {
-		ivec3 off;
-		do {
-			off = dir_array[rand()%6];
-		} while (world->get(pos.x+off.x, pos.y+off.y, pos.z+off.z) != 0);
-		pos += off;
-		world->set(pos.x, pos.y, pos.z, blocks->names["backpack"]);
-	}
 	
 	if (menu == nullptr) {
 		vector<string> options = {"Respawn"};
-		menu = new SelectMenu("You Died", options, [&, pos, items] (string result) {
-			Pixel* chest = world->get_global(pos.x, pos.y, pos.z, 1)->get_pix();
-			// if (chest->physicsgroup != nullptr) {
-			// 	for (ItemStack stack : items) {
-			// 		chest->physicsgroup->add_item(stack); ////todo
-			// 	}
-			// }
+		menu = new SelectMenu("You Died", options, [&] (string result) {
 			if (result == "Respawn") {
 				World* w = world;
 				delete world->player;
 				w->spawn_player();
 			} else if (result == "Quit") {
 				cout << "you dead" << endl;
+				game->playing = false;
 			}
 			delete menu;
 			menu = nullptr;

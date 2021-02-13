@@ -551,7 +551,7 @@ void Game::print_debug() {
 		debugstream << endl;
 		if (debugblock->group != nullptr) {
 			debugstream << " group: size " << debugblock->group->size << " conn ";
-			debugstream << debugblock->group->connections.size() << " isol " << debugblock->group->isolated << endl << "consts ";
+			debugstream << " isol " << debugblock->group->isolated << endl << "consts ";
 			for (int con : debugblock->group->consts) {
 				debugstream << con << ' ';
 			}

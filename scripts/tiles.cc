@@ -168,21 +168,6 @@ void Tile::save() {
   for (FallingBlockEntity* e : block_entities) {
     e->to_file(ofile);
   }
-  
-  
-  path.str("");
-  path << "saves/" << world->name << "/groups/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
-  ofstream groupfile(path.str());
-  if (groups.size() > 0) {
-    for (BlockGroup* group : groups) {
-      group->to_file(groupfile, &groups);
-    }
-  } else {
-    if (groupfile.good()) {
-      groupfile.close();
-      remove(path.str().c_str());
-    }
-  }
 }
 
 void Tile::timestep() {
@@ -249,52 +234,6 @@ void Tile::drop_ticks() {
   }
 }
 
-void Tile::get_side_groups(unordered_map<int,BlockGroup*>& sidegroups, Tile* tile, ivec3 dir) {
-  for (Pixel* tilepix : tile->chunk->iter_side(dir)) {
-    if (tilepix->group != nullptr and tilepix->group->final) {
-      //cout << "encontra un bloque con grupo"<< endl;
-      sidegroups[tilepix->group->id] = tilepix->group;
-    }
-  }
-}
-
-void Tile::fix_side_groups(unordered_map<int,BlockGroup*>& sidegroups) {
-  unordered_set<BlockGroup*> to_del;
-  for (Pixel* pix : chunk->iter()) {
-    if (pix->group != nullptr and pix->group->final) {
-      if (sidegroups.find(pix->group->id) != sidegroups.end()) {
-        if (to_del.count(pix->group) == 0) {
-          sidegroups[pix->group->id]->merge_copy(pix->group);
-        }
-        to_del.emplace(pix->group);
-        pix->group = sidegroups[pix->group->id];
-      } else {
-        for (int i = 0; i < pix->group->connections.size(); i ++) {
-          if (sidegroups.find(pix->group->connections[i].globalindex) != sidegroups.end()) {
-            //cout << "reparando los conneciones del grupo"<< endl;
-            BlockGroup* connected_group = sidegroups[pix->group->connections[i].globalindex];
-            //cout << "nuevo grupo "<< connected_group << endl;
-            //cout << "old group" << pix->group->connections[i].group << endl;
-            pix->group->connections[i].group = connected_group;
-            
-            for (int j = 0; j < connected_group->connections.size(); j ++) {
-              if (connected_group->connections[j].globalindex == pix->group->id) {
-                connected_group->connections[j].group = pix->group;
-                break;
-              }
-            }
-            break;
-          }
-        }
-      }
-    }
-  }
-  
-  for (BlockGroup* delgroup : to_del) {
-    delete delgroup;
-  }
-}
-
 
 Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize), deleting(false) {
 	//if (writelock.try_lock_for(std::chrono::seconds(1))) {
@@ -316,93 +255,11 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
   			//return load_chunk(pos);
   			//chunk = generate(pos);
   	}
-    path.str("");
-  	path << "saves/" << world->name << "/groups/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
-    ifstream groupfile(path.str());
     vector<BlockGroup*> groups;
-    if (groupfile.good()) {
-      while (!groupfile.eof()) {
-        groups.push_back(new BlockGroup(world, groupfile));
-        while (!groupfile.eof() and (groupfile.peek() == ' ' or groupfile.peek() == '\n')) {
-          groupfile.get();
-        }
-      }
-    }
-    for (BlockGroup* group : groups) {
-      group->link(&groups);
-    }
     
     chunk = Block::from_file(ifile, pos.x, pos.y, pos.z, chunksize, nullptr, this, &groups);
     
     const ivec3 dir_array[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
-    // Este busca para grupos duplicados, y lo repara con el grupo de otro tile.
-    if (groups.size() > 0) {
-      unordered_map<int,BlockGroup*> sidegroups;
-      cout << "start loop "<< endl;
-      for (ivec3 dir : dir_array) {
-        Tile* tile = world->tileat(pos + dir);
-        if (tile != nullptr) {
-          size_t myhash = hash4(23489239, pos.x, pos.y, pos.z, 82943);
-          ivec3 dirpos = dir + pos;
-          size_t otherhash = hash4(23489239, dirpos.x, dirpos.y, dirpos.z, 82943);
-          cout << pos << ' ' << pos + dir << ' ' << myhash << ' ' << otherhash << endl;
-          // get_side_groups(sidegroups, tile, -dir);
-          if (myhash > otherhash) {
-            cout << "myhash is greater" << endl;
-            get_side_groups(sidegroups, tile, -dir);
-          } else if (otherhash > myhash and tile->done_reading) {
-            cout << "otherhash is greater " << endl;
-            unordered_map<int,BlockGroup*> othersidegroups;
-            get_side_groups(othersidegroups, this, dir);
-            if (othersidegroups.size() > 0) {
-              tile->fix_side_groups(othersidegroups);
-            }
-          } else {
-            cout << "mismo tiempo o mismo hash"<< endl;
-          }
-        }
-      }
-      cout << "end loop" << endl;
-      
-      if (sidegroups.size() > 0) {
-        fix_side_groups(sidegroups);
-      }
-    }
-    
-    /*
-            for (Pixel* mypix : tilepix->iter_touching(world)) {
-              cout << "bloque "<< endl;
-              if (mypix->tile == this and mypix->group != nullptr) {
-                cout << "bloque de mi"<< endl;
-                if (mypix->group->id == tilepix->group->id) {
-                  cout << "Esta reparando el grupo"<< endl;
-                  BlockGroup* oldgroup = mypix->group;
-                  for (Pixel* pix : mypix->iter_group()) {
-                    pix->group = tilepix->group;
-                  }
-                  delete oldgroup;
-                } else {
-                  for (int i = 0; i < mypix->group->connections.size(); i ++) {
-                    if (mypix->group->connections[i].globalindex == tilepix->group->id) {
-                      cout << "Esta reparando los conneciones del grupo"<< endl;
-                      mypix->group->connections[i].group = tilepix->group;
-                      
-                      for (int j = 0; j < tilepix->group->connections.size(); j ++) {
-                        if (tilepix->group->connections[j].globalindex == mypix->group->id) {
-                          tilepix->group->connections[j].group = mypix->group;
-                          break;
-                        }
-                      }
-                      break;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }*/
     
     int size;
     ifile >> size;

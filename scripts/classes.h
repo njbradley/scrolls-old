@@ -73,6 +73,8 @@ public:
 ostream& operator<<(ostream& out, ivec3 pos);
 ostream& operator<<(ostream& out, vec3 pos);
 
+int dir_to_index(ivec3 dir);
+
 //ofstream dfile("debug.txt");
 extern int dloc;
 
