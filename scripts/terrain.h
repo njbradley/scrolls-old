@@ -64,7 +64,7 @@ class TerrainLoader { public:
 	template <typename Elev, typename Land>
 	BiomeBase* get_biome(ivec3 pos, ClimateParams params);
 	int get_height(ivec2 pos);
-	char gen_func(ivec3 pos);
+	int gen_func(ivec4 pos);
 };
 
 template <int sx, int sy, int sz, int radius, int pos_offset>

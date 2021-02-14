@@ -192,9 +192,26 @@ int TerrainLoader::get_height(ivec2 pos) {
 	return height;*/
 }
 
-char TerrainLoader::gen_func(ivec3 pos) {
+int TerrainLoader::gen_func(ivec4 pos) {
 	//return get_height(ivec2(pos.x, pos.z)) < pos.y;
-	return Biome<Shallow,Plains,TallTree,Tree<0> >().gen_func(this, pos);
+	if (pos.w == 1) {
+		return Shallow().get_height(this, ivec2(pos.x, pos.z)) > pos.y;//Biome<Shallow,Plains,TallTree,Tree<0>,BigTree>().gen_func(this, pos);
+	}
+	bool below = Shallow().get_height(this, ivec2(pos.x, pos.z)) > pos.y;
+	for (int x = 0; x < pos.w; x ++) {
+		for (int z = 0; z < pos.w; z ++) {
+			if (below) {
+				if (Shallow().get_height(this, ivec2(pos.x+x, pos.z+z)) <= pos.y+pos.w-1) {
+					return -1;
+				}
+			} else {
+				if (Shallow().get_height(this, ivec2(pos.x+x, pos.z+z)) > pos.y) {
+					return -1;
+				}
+			}
+		}
+	}
+	return below;
 	/*
 	BiomeBase* biome = get_biome(pos);
 	char val = biome->gen_func(this,pos);
@@ -346,7 +363,7 @@ char BigTree::gen_func(TerrainLoader* loader, ivec3 offset, ivec3 pos) {
 }
 
 ivec3 BigTree::get_nearest(TerrainLoader* loader, ivec3 pos) {
-	return get_nearest_2d(loader, pos, ivec3(50,100,50), 1000) - ivec3(0,20,0);
+	return get_nearest_2d(loader, pos, ivec3(50,100,50), 100) - ivec3(0,20,0);
 }
 
 

@@ -591,9 +591,9 @@ void Pixel::tick() { // ERR: race condition, render and tick threads race, rende
     //   cout << val << ' ';
     // }
     // cout << "  " << newgroup->size << endl;
-    // exit(6);
   }
   if (group != nullptr and !group->consts[4]) {
+    // exit(1);
     tile->block_entities.push_back(new FallingBlockEntity(tile->world, group, this));
   }
   
@@ -763,8 +763,8 @@ void Pixel::lighting_update() {
       next_poses.reserve(poses.size());
       total += poses.size();
     }
-    if (total > 100) {
-      //cout << total << ' ' << max_size << endl;
+    if (total > 100 and tile->pos == ivec3(-1,2,-1)) {
+      //cout << "----------------" << total << ' ' << max_size << endl;
     }
   }
 }
@@ -1692,7 +1692,8 @@ Chunk* Pixel::resolve(bool yield) {
   global_position(&gx, &gy, &gz);
   ivec3 gpos(gx, gy, gz);
   bool solid = true;
-  char val = tile->world->loader.gen_func(gpos);
+  std::terminate();
+  char val = 0;//tile->world->loader.gen_func(gpos);
   Chunk* chunk = new Chunk(px, py, pz, scale, parent);
   int newscale = scale/csize;
   if (yield) {
@@ -1702,7 +1703,7 @@ Chunk* Pixel::resolve(bool yield) {
     for (int y = 0; y < csize; y ++) {
       for (int z = 0; z < csize; z ++) {
         ivec3 pos(x,y,z);
-        char newval = tile->world->loader.gen_func(gpos+pos*newscale);
+        char newval = 0;//tile->world->loader.gen_func(gpos+pos*newscale);
         Pixel* pix = new Pixel(x, y, z, newval, newscale, chunk, tile);
         solid = solid and val == newval;
         if (newscale > 1) {

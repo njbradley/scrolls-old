@@ -135,7 +135,10 @@ void BlockGroup::spread(Pixel* start_pix, Pixel* source, ivec3 pastdir, int dept
 	
   last_pixels.emplace(start_pix);
   
-  while (last_pixels.size() > 0 and size < max_size) {
+	bool over_limit = false;
+	
+  while (last_pixels.size() > 0 and !over_limit) {
+		over_limit = size > max_size;
     for (Pixel* pix : last_pixels) {
 			int i = 0;
       for (ivec3 dir : dir_array) {
@@ -143,7 +146,13 @@ void BlockGroup::spread(Pixel* start_pix, Pixel* source, ivec3 pastdir, int dept
 				
 				if (iter.begin() != iter.end()) {
 					for (Pixel* sidepix : iter) {
-						if (!contains(sidepix) and add(sidepix, pix, dir)) {
+						if (over_limit) {
+							if (!contains(sidepix) and sidepix->value != 0) {
+								isolated = false;
+								int num_touching = std::min(pix->scale, sidepix->scale);
+								consts[i] += num_touching * num_touching;
+							}
+						} else if (!contains(sidepix) and add(sidepix, pix, dir)) {
 							new_pixels.emplace(sidepix);
 						}
 					}

@@ -228,7 +228,7 @@ void World::save_groups() {
 void World::spawn_player() {
   ivec3 spawnpos(10,loader.get_height(ivec2(10,10))+4,10);
   int i = 0;
-  while (loader.gen_func(spawnpos) != 0 and i < 100) {
+  while (loader.gen_func(ivec4(spawnpos.x, spawnpos.y, spawnpos.z, 1)) != 0 and i < 100) {
     i ++;
     spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
   }
@@ -280,8 +280,8 @@ void World::load_nearby_chunks() {
     
     if (!closing_world) {
       for (int range = 0; range < maxrange; range ++) {
-        //for (int y = py-range; y < py+range+1; y ++) {
-        for (int y = py+range; y >= py-range; y --) {
+        for (int y = py-range; y < py+range+1; y ++) {
+        //for (int y = py+range; y >= py-range; y --) {
           for (int x = px-range; x < px+range+1; x ++) {
             for (int z = pz-range; z < pz+range+1; z ++) {
               if (x == px-range or x == px+range or y == py-range or y == py+range or z == pz-range or z == pz+range) {
@@ -555,7 +555,7 @@ bool World::render() {
     
     player->render(&glvecs);
     
-    if (playertile != nullptr and playertile->chunk->render_flag) {
+    if (playertile != nullptr and playertile->chunk->render_flag and !playertile->lightflag) {
       playertile->render(&glvecs, &transparent_glvecs);
       changed = true;
     } else {
@@ -570,10 +570,12 @@ bool World::render() {
       if (!changed) {
         loop = TileLoop(this);
         for (Tile* tile : loop) {
-          changed = changed or tile->chunk->render_flag;
-          tile->render(&glvecs, &transparent_glvecs);
-          if (changed) {
-            break;
+          if (!tile->lightflag) {
+            changed = changed or (tile->chunk->render_flag);
+            tile->render(&glvecs, &transparent_glvecs);
+            if (changed) {
+              break;
+            }
           }
         }
       }

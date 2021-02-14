@@ -63,6 +63,7 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
   if (deletelock.try_lock_shared()) {
     changelock.lock();
     if (lightflag) {
+      std::terminate();
         //update_lighting();
         const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
         for (ivec3 dir : dirs) {
@@ -138,9 +139,9 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
     changelock.unlock();
     deletelock.unlock_shared();
   }
-  // if (!fully_loaded) {
-  //   std::terminate();
-  // }
+  if (!fully_loaded) {
+    //cout << 142 << ' ' << pos << endl;
+  }
   fully_loaded = true;
 }
 
@@ -308,8 +309,8 @@ void Tile::generate_chunk(ivec3 pos) {
 }
 
 char Tile::gen_block(ostream& ofile, int gx, int gy, int gz, int scale) {
-  if (scale == 1) {
-    char val = world->loader.gen_func(ivec3(gx, gy, gz));
+  char val = world->loader.gen_func(ivec4(gx, gy, gz, scale));
+  if (scale == 1 or val != -1) {
     Block::write_pix_val(ofile, 0b00, val);
     return val;
   } else {
