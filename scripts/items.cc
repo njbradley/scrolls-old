@@ -47,12 +47,32 @@ void CharArray::set(char val, int x, int y, int z) {
     arr[x*sy*sz + y*sz + z] = val;
 }
 
-void CharArray::place(World* world, Item* item, int x, int y, int z, int dx, int dy, int dz) {
+bool CharArray::place(World* world, Item* item, ivec3 pos, ivec3 dir) {
+    int x = pos.x;
+    int y = pos.y;
+    int z = pos.z;
+    int dx = dir.x;
+    int dy = dir.y;
+    int dz = dir.z;
     int direction = dy+dz*2;
     if (dx < 0 or dy < 0 or dz < 0) {
       direction = direction*-1+3;
     }
     vector<Pixel*> pixels;
+    
+    for (int i = 0; i < sx; i ++) {
+        for (int j = 0; j < sy; j ++) {
+            for (int k = 0; k < sz; k ++) {
+              int px = i;
+              int py = j - (sy/2);
+              int pz = k - (sz/2);
+              char worldval = world->get(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy));
+              if (worldval != 0 and worldval != 7) {
+                return false;
+              }
+            }
+        }
+    }
     for (int i = 0; i < sx; i ++) {
         for (int j = 0; j < sy; j ++) {
             for (int k = 0; k < sz; k ++) {
@@ -69,8 +89,10 @@ void CharArray::place(World* world, Item* item, int x, int y, int z, int dx, int
     
     if (item->data->isgroup) {
       BlockGroup* group = new BlockGroup(world, pixels);
+      delete group;
       //group->item = *item;
     }
+    return true;
 }
 
 ///

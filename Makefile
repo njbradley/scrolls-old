@@ -6,7 +6,7 @@ LDFLAGS :=
 ifeq ($(BUILD),RELEASE)
 OPT := -O3
 else
-OPT := -g -DSCROLLS_DEBUG -fno-omit-frame-pointer
+OPT := -g -DSCROLLS_DEBUG
 endif
 
 

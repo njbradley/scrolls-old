@@ -81,7 +81,11 @@ void Entity::timestep() {
         vel.y = 0;
     }
     if (!spectator and !flying) {
+      if (in_water) {
+        vel += vec3(0, -40 * density, 0) * deltaTime;
+      } else {
         vel += vec3(0,-40,0) * deltaTime;
+      }
     }
     //for (bool b : consts) {
     //    cout << b << ' ';
@@ -999,11 +1003,14 @@ vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup), item(nullptr) {
   }
   
   block.block = new Pixel(0,0,0, 0,scale, nullptr, nullptr);
+  density = 0;
   
   for (Pixel* pix : pixels) {
     ivec3 pos;
     pix->global_position(&pos.x, &pos.y, &pos.z);
     ivec3 localpos = pos - lower_bound;
+    
+    density += blocks->blocks[pix->value]->material->density;
     
     block.set(ivec4(localpos.x, localpos.y, localpos.z, pix->scale), pix->value, pix->direction, pix->joints);
     Pixel* blockpix = block.get_global(localpos.x, localpos.y, localpos.z, pix->scale)->get_pix();
@@ -1014,10 +1021,14 @@ vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup), item(nullptr) {
     }
   }
   
+  density /= group->size;
+  density = -1;
+  
   for (Pixel* pix : pixels) {
     ivec3 pos;
     pix->global_position(&pos.x, &pos.y, &pos.z);
     ivec3 localpos = pos - lower_bound;
+    
     
     world->set(ivec4(pos.x, pos.y, pos.z, pix->scale), 0, 0);
   }
@@ -1123,10 +1134,19 @@ void FallingBlockEntity::calc_constraints() {
     if (block.block == nullptr) {
       return;
     }
+    
+    in_water = false;
+    
     for (Pixel* pix : block.block->iter()) {
       if (!pix->is_air(0,0,0)) {
         int bx, by, bz;
         pix->global_position(&bx, &by, &bz);
+        
+        Block* inblock = world->get_global(position.x+bx, position.y+by, position.z+bz, 1);
+        if (inblock != nullptr and inblock->get_pix()->value == 7) {
+          in_water = true;
+        }
+        
         vec3 block_box1(bx+axis_gap, by+axis_gap, bz+axis_gap);
         vec3 block_box2(bx+pix->scale-axis_gap-1, by+pix->scale-axis_gap-1, bz+pix->scale-axis_gap-1);
         for (int axis = 0; axis < 3; axis ++) {
@@ -1160,9 +1180,15 @@ void FallingBlockEntity::calc_constraints() {
             for (int x = (int)pos2.x; x < pos.x+1; x ++) {
               for (int y = (int)pos2.y; y < pos.y+1; y ++) {
                 for (int z = (int)pos2.z; z < pos.z+1; z ++) {
-                  //game->crash(1);
                   Block* pix = world->get_global(x,y,z,1);
-                  constraint = constraint or (pix != NULL and pix->get() != 0);
+                  bool new_const = is_solid_block(pix);
+                  if (new_const) {
+                    Material* mat = blocks->blocks[pix->get_pix()->value]->material;
+                    if (mat_consts[axis] == nullptr or mat_consts[axis]->toughness < mat->toughness) {
+                      mat_consts[axis] = mat;
+                    }
+                  }
+                  constraint = constraint or new_const;
                 }
               }
             }
@@ -1188,7 +1214,14 @@ void FallingBlockEntity::calc_constraints() {
               for (int y = (int)neg.y; y < neg2.y+1; y ++) {
                 for (int z = (int)neg.z; z < neg2.z+1; z ++) {
                   Block* pix = world->get_global(x,y,z,1);
-                  constraint = constraint or (pix != NULL and pix->get() != 0);
+                  bool new_const = is_solid_block(pix);
+                  if (new_const) {
+                    Material* mat = blocks->blocks[pix->get_pix()->value]->material;
+                    if (mat_consts[axis] == nullptr or mat_consts[axis]->toughness < mat->toughness) {
+                      mat_consts[axis] = mat;
+                    }
+                  }
+                  constraint = constraint or new_const;
                 }
               }
             }

@@ -57,12 +57,12 @@ class ClimateParams { public:
 class TerrainLoader { public:
 	int seed;
 	TerrainLoader(int newseed);
-	BiomeBase* get_biome(ivec3 pos);
-	BiomeBase* get_biome(ivec3 pos, ClimateParams params);
+ 	char get_biome(ivec3 pos);
+	char get_biome(ivec3 pos, ClimateParams params);
 	template <typename Elev>
-	BiomeBase* get_biome(ivec3 pos, ClimateParams params);
+	char get_biome(ivec3 pos, ClimateParams params);
 	template <typename Elev, typename Land>
-	BiomeBase* get_biome(ivec3 pos, ClimateParams params);
+	char get_biome(ivec3 pos, ClimateParams params);
 	int get_height(ivec2 pos);
 	int gen_func(ivec4 pos);
 };

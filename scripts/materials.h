@@ -10,6 +10,7 @@ class Material { public:
 	double elastic;
 	string breaksound;
 	string hitsound;
+	float density;
 	
 	Material(istream& ifile);
 	// calculates a score based on the outlined impact. The score will be

@@ -50,7 +50,7 @@ class BlockData { public:
     int lightlevel;
     DropTable droptable;
     double clumpyness;
-    string clumpy_group;
+    unsigned int clumpy_group;
     bool transparent;
     BlockExtra* extras = nullptr;
     
@@ -67,6 +67,7 @@ class BlockStorage { public:
     
     BlockStorage();
     ~BlockStorage();
+    bool clumpy(char first, char second);
 };
 
 extern BlockStorage* blocks;

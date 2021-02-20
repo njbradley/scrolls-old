@@ -12,6 +12,8 @@
 #include "crafting.h"
 #include "terrain.h"
 #include "materials.h"
+#include "glue.h"
+#include "mobs.h"
 
 
 float initialFoV = 110.0f;
@@ -32,9 +34,11 @@ int main() {
 	
 	matstorage = new MaterialStorage();
 	blocks = new BlockStorage();
+	connstorage = new ConnectorStorage();
 	itemstorage = new ItemStorage();
 	recipestorage = new RecipeStorage();
 	entitystorage = new EntityStorage();
+	mobstorage = new MobStorage();
 	
 	World world("name", nullptr, 12345);
 	
@@ -43,7 +47,7 @@ int main() {
 	for (int i = 0; i < 64; i ++) {
 		for (int j = 0; j < 64; j ++) {
 			for (int k = 0; k < 64; k ++) {
-				world.loader.gen_func(ivec3(i,j+128,k));
+				world.loader.gen_func(ivec4(i,j+128,k,1));
 			}
 		}
 	}

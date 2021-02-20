@@ -1,3 +1,4 @@
 item chips {
 	:block: bark
+	:density: -0.3
 }

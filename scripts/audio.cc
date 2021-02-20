@@ -150,19 +150,20 @@ AudioContext::AudioContext() {
 void AudioContext::init_context() {
 	
 	device = alcOpenDevice(NULL);
-	
+	if (device != nullptr) {
 	context = alcCreateContext(device, NULL);
-	if (!alcMakeContextCurrent(context)) {
-		cout << "ERR: openal context not made current" << endl;
-	}
-	
-	alutInitWithoutContext(nullptr, nullptr);
-	
-	ALfloat listenerOri[] = { 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f };
+		if (!alcMakeContextCurrent(context)) {
+			cout << "ERR: openal context not made current" << endl;
+		}
+		
+		alutInitWithoutContext(nullptr, nullptr);
+		
+		ALfloat listenerOri[] = { 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f };
 
-	alListener3f(AL_POSITION, 0, 0, 1.0f);
-	alListener3f(AL_VELOCITY, 0, 0, 0);
-	alListenerfv(AL_ORIENTATION, listenerOri);
+		alListener3f(AL_POSITION, 0, 0, 1.0f);
+		alListener3f(AL_VELOCITY, 0, 0, 0);
+		alListenerfv(AL_ORIENTATION, listenerOri);
+	}
 }
 
 void AudioContext::load_sounds() {
@@ -178,7 +179,7 @@ void AudioContext::load_sounds() {
 }
 
 PlayingSound* AudioContext::play_sound(string name, vec3 pos, float gain, float pitch) {
-	if (name != "null" and listener != nullptr and glm::length(pos - listener->position) < library[name]->range) {
+	if (device != nullptr and name != "null" and listener != nullptr and glm::length(pos - listener->position) < library[name]->range) {
 		PlayingSound* newsound = new PlayingSound(library[name], pos);
 		newsound->gain(gain);
 		newsound->pitch(pitch);
@@ -189,43 +190,51 @@ PlayingSound* AudioContext::play_sound(string name, vec3 pos, float gain, float 
 }
 
 void AudioContext::play_onetime(PlayingSound* sound) {
-	sound->play();
-	onetime_sounds.push_back(sound);
+	if (device != nullptr) {
+		sound->play();
+		onetime_sounds.push_back(sound);
+	}
 }
 
 void AudioContext::play_repeat(PlayingSound* sound) {
-	sound->play();
-	repeat_sounds.push_back(sound);
+	if (device != nullptr) {
+		sound->play();
+		repeat_sounds.push_back(sound);
+	}
 }
 
 void AudioContext::tick() {
-	check_sounds();
-	if (listener != nullptr) {
-		vec3 direction (
-			cos(listener->angle.y) * sin(listener->angle.x),
-			sin(listener->angle.y),
-			cos(listener->angle.y) * cos(listener->angle.x)
-		);
-		vec3 right (
-			sin(listener->angle.x - 3.14f/2.0f),
-			0,
-			cos(listener->angle.x - 3.14f/2.0f)
-		);
-		vec3 up = glm::cross(right, direction);
-		ALfloat listenerOri[] = { direction.x, direction.y, direction.z, up.x, up.y, up.z };
-		alListener3f(AL_POSITION, listener->position.x, listener->position.y, listener->position.z); geterr();
-		alListener3f(AL_VELOCITY, listener->vel.x, listener->vel.y, listener->vel.z); geterr();
-		alListenerfv(AL_ORIENTATION, listenerOri); geterr();
+	if (device != nullptr) {
+		check_sounds();
+		if (listener != nullptr) {
+			vec3 direction (
+				cos(listener->angle.y) * sin(listener->angle.x),
+				sin(listener->angle.y),
+				cos(listener->angle.y) * cos(listener->angle.x)
+			);
+			vec3 right (
+				sin(listener->angle.x - 3.14f/2.0f),
+				0,
+				cos(listener->angle.x - 3.14f/2.0f)
+			);
+			vec3 up = glm::cross(right, direction);
+			ALfloat listenerOri[] = { direction.x, direction.y, direction.z, up.x, up.y, up.z };
+			alListener3f(AL_POSITION, listener->position.x, listener->position.y, listener->position.z); geterr();
+			alListener3f(AL_VELOCITY, listener->vel.x, listener->vel.y, listener->vel.z); geterr();
+			alListenerfv(AL_ORIENTATION, listenerOri); geterr();
+		}
 	}
 }
 
 void AudioContext::check_sounds() {
-	double time = glfwGetTime();
-	for (int i = onetime_sounds.size() - 1; i >= 0; i --) {
-		PlayingSound* sound = onetime_sounds[i];
-		if (sound->start_time + sound->sound->duration < time) {
-			delete sound;
-			onetime_sounds.erase(onetime_sounds.begin() + i);
+	if (device != nullptr) {
+		double time = glfwGetTime();
+		for (int i = onetime_sounds.size() - 1; i >= 0; i --) {
+			PlayingSound* sound = onetime_sounds[i];
+			if (sound->start_time + sound->sound->duration < time) {
+				delete sound;
+				onetime_sounds.erase(onetime_sounds.begin() + i);
+			}
 		}
 	}
 }
@@ -255,11 +264,12 @@ AudioContext::~AudioContext() {
 	for (pair<string,Sound*> kv : library) {
 		delete kv.second;
 	}
-	
-	device = alcGetContextsDevice(context);
-	alcMakeContextCurrent(NULL);
-	alcDestroyContext(context);
-	alcCloseDevice(device);
+	if (device != nullptr) {
+		device = alcGetContextsDevice(context);
+		alcMakeContextCurrent(NULL);
+		alcDestroyContext(context);
+		alcCloseDevice(device);
+	}
 }
 
 #endif

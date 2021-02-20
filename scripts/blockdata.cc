@@ -102,7 +102,7 @@ void DropTable::drop(ItemContainer* result, Player* player, Item* break_item) {
 
 BlockData::BlockData(ifstream & ifile):
 default_direction(0), rotation_enabled(false), minscale(1), rcaction("null"), lightlevel(0),
-clumpyness(0.9), clumpy_group(""), transparent(false) {
+clumpyness(0.9), clumpy_group(0), transparent(false) {
   string buff;
   ifile >> buff;
   if (buff != "block") {
@@ -138,15 +138,17 @@ clumpyness(0.9), clumpy_group(""), transparent(false) {
       } else if (varname == "clumpyness") {
         ifile >> clumpyness;
       } else if (varname == "clumpy_group") {
-        ifile >> clumpy_group;
+        string str_group;
+        ifile >> str_group;
+        clumpy_group = std::hash<string>()(str_group);
+        if (clumpy_group == 0) {
+          clumpy_group ++;
+        }
       } else if (varname == "transparent") {
         transparent = true;
       }
       getline(ifile, buff, ':');
       getline(ifile, varname, ':');
-    }
-    if (clumpy_group == "") {
-      clumpy_group = name + "-group";
     }
     if (tex_str != "") {
       stringstream ss(tex_str);
@@ -217,6 +219,21 @@ BlockStorage::~BlockStorage() {
   for (pair<char,BlockData*> kv : blocks) {
     delete kv.second;
   }
+}
+
+bool BlockStorage::clumpy(char first, char second) {
+  if (first != 0 and second != 0) {
+    if (first == second) {
+      return true;
+    }
+    unsigned int fgroup = blocks[first]->clumpy_group;
+    unsigned int sgroup = blocks[second]->clumpy_group;
+    if (fgroup == 0 or sgroup == 0) {
+      return false;
+    }
+    return fgroup == sgroup;
+  }
+  return false;
 }
 
 

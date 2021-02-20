@@ -146,7 +146,9 @@ TerrainLoader::TerrainLoader(int newseed): seed(newseed) {
 	
 }
 
-BiomeBase* TerrainLoader::get_biome(ivec3 pos) {
+
+
+char TerrainLoader::get_biome(ivec3 pos) {
 	return get_biome(pos, ClimateParams(this, pos));
 }
 
@@ -156,7 +158,7 @@ double ratiofunc(TerrainLoader* loader, ivec2 pos) {
 }
 	
 
-BiomeBase* TerrainLoader::get_biome(ivec3 pos, ClimateParams params) {
+char TerrainLoader::get_biome(ivec3 pos, ClimateParams params) {
 	if (params.temp > 0.6) {
 		return get_biome<Shallow>(pos, params);
 	} else if (params.temp > 0.4) {
@@ -167,16 +169,16 @@ BiomeBase* TerrainLoader::get_biome(ivec3 pos, ClimateParams params) {
 }
 
 template <typename Elev>
-BiomeBase* TerrainLoader::get_biome(ivec3 pos, ClimateParams params) {
+char TerrainLoader::get_biome(ivec3 pos, ClimateParams params) {
 	return get_biome<Elev,Plains>(pos, params);
 }
 
 template <typename Elev, typename Land>
-BiomeBase* TerrainLoader::get_biome(ivec3 pos, ClimateParams params) {
+char TerrainLoader::get_biome(ivec3 pos, ClimateParams params) {
 	if (params.wetness > 0.5) {
-		return new Biome<Elev,Land,TallTree,Tree<0>>();
+		return Biome<Elev,Land,TallTree,Tree<0>,BigTree>().gen_func(this, pos);
 	} else {
-		return new Biome<Elev,Land,Tree<0>>();
+		return Biome<Elev,Land,TallTree,Tree<0>,BigTree>().gen_func(this, pos);
 	}
 }
 
@@ -194,24 +196,33 @@ int TerrainLoader::get_height(ivec2 pos) {
 
 int TerrainLoader::gen_func(ivec4 pos) {
 	//return get_height(ivec2(pos.x, pos.z)) < pos.y;
+	// if (pos.w == 1) {
+	// 	return Shallow().get_height(this, ivec2(pos.x, pos.z)) > pos.y;//Biome<Shallow,Plains,TallTree,Tree<0>,BigTree>().gen_func(this, pos);
+	// }
+	// bool below = Shallow().get_height(this, ivec2(pos.x, pos.z)) > pos.y;
+	// for (int x = 0; x < pos.w; x ++) {
+	// 	for (int z = 0; z < pos.w; z ++) {
+	// 		if (below) {
+	// 			if (Shallow().get_height(this, ivec2(pos.x+x, pos.z+z)) <= pos.y+pos.w-1) {
+	// 				return -1;
+	// 			}
+	// 		} else {
+	// 			if (Shallow().get_height(this, ivec2(pos.x+x, pos.z+z)) > pos.y) {
+	// 				return -1;
+	// 			}
+	// 		}
+	// 	}
+	// }
+	// return below;
 	if (pos.w == 1) {
-		return Shallow().get_height(this, ivec2(pos.x, pos.z)) > pos.y;//Biome<Shallow,Plains,TallTree,Tree<0>,BigTree>().gen_func(this, pos);
-	}
-	bool below = Shallow().get_height(this, ivec2(pos.x, pos.z)) > pos.y;
-	for (int x = 0; x < pos.w; x ++) {
-		for (int z = 0; z < pos.w; z ++) {
-			if (below) {
-				if (Shallow().get_height(this, ivec2(pos.x+x, pos.z+z)) <= pos.y+pos.w-1) {
-					return -1;
-				}
-			} else {
-				if (Shallow().get_height(this, ivec2(pos.x+x, pos.z+z)) > pos.y) {
-					return -1;
-				}
-			}
+		char val = get_biome(ivec3(pos.x, pos.y, pos.z));
+		//Biome<Shallow,Plains,TallTree,Tree<0>,BigTree>().gen_func(this, ivec3(pos.x, pos.y, pos.z));
+		if (val == 0 and pos.y < 96) {
+			return 7;
 		}
+		return val;
 	}
-	return below;
+	return -1;
 	/*
 	BiomeBase* biome = get_biome(pos);
 	char val = biome->gen_func(this,pos);

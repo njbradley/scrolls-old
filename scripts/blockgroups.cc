@@ -27,7 +27,7 @@ BlockGroup::BlockGroup(World* nworld, vector<Pixel*> pixels): world(nworld) {
 	
 	id = rand();
 	for (Pixel* pix : pixels) {
-		add(pix, nullptr, ivec3(0,0,0));
+		//add(pix, nullptr, ivec3(0,0,0));
 		ivec3 pos;
 		pix->global_position(&pos.x, &pos.y, &pos.z);
 		int i = 0;
@@ -39,12 +39,15 @@ BlockGroup::BlockGroup(World* nworld, vector<Pixel*> pixels): world(nworld) {
 					Pixel* sidepix = block->get_pix();
 					if (sidepix->value != 0 and std::find(pixels.begin(), pixels.end(), sidepix) == pixels.end()) {
 						consts[i] += pix->scale * pix->scale;
-						if (sidepix->scale == pix->scale) {
-							sidepix->joints[(i+3)%6] = 7;
+						
+						if (blocks->clumpy(sidepix->value, pix->value)) {
+							if (sidepix->scale == pix->scale) {
+								sidepix->joints[(i+3)%6] = 7;
+							}
+							pix->joints[i] = 7;
+							pix->render_update();
+							sidepix->render_update();
 						}
-						pix->joints[i] = 7;
-						pix->render_update();
-						sidepix->render_update();
 					}
 				} else {
 					for (Pixel* sidepix : block->iter_side(-dir)) {
@@ -52,9 +55,11 @@ BlockGroup::BlockGroup(World* nworld, vector<Pixel*> pixels): world(nworld) {
 							int num_touching = std::min(pix->scale, sidepix->scale);
 							consts[i] += num_touching * num_touching;
 							
-							sidepix->joints[(i+3)%6] = 7;
-							pix->render_update();
-							sidepix->render_update();
+							if (blocks->clumpy(sidepix->value, pix->value)) {
+								sidepix->joints[(i+3)%6] = 7;
+								pix->render_update();
+								sidepix->render_update();
+							}
 						}
 					}
 				}
@@ -96,7 +101,7 @@ bool BlockGroup::add(Pixel* pix, Pixel* source, ivec3 dir) {
 	
 	if (source != nullptr) {
 		if (source->joints[index] < 7) {
-			if (pix->value == source->value or blocks->blocks[pix->value]->clumpy_group == blocks->blocks[source->value]->clumpy_group) {
+			if (pix->value == source->value or blocks->clumpy(pix->value, source->value)) {
 				do_add = true;
 			}
 		} else if (source->joints[index] > 7) {

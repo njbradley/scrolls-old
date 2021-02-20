@@ -19,6 +19,7 @@ class Entity { public:
     vec3 box2;
     float lastTime;
     float deltaTime;
+    float density = 1.0f;
     bool flying;
     vec3 dirs[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
     bool old_consts[7] = {false, false, false, false, false, false};

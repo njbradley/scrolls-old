@@ -16,7 +16,7 @@ class CharArray { public:
     ~CharArray();
     char get(int x, int y, int z);
     void set(char val, int x, int y, int z);
-    void place(World* world, Item* item, int x, int y, int z, int dx, int dy, int dz);
+    bool place(World* world, Item* item, ivec3 pos, ivec3 dir);
 };
 
 class Item {
