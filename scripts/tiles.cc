@@ -281,6 +281,23 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
   // }
 }
 
+Tile::Tile(ivec3 position, World* nworld, istream& ifile): pos(position), world(nworld), chunksize(nworld->chunksize), deleting(false) {
+  chunk = Block::from_file(ifile, pos.x, pos.y, pos.z, chunksize, nullptr, this);
+  
+  const ivec3 dir_array[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
+  
+  int size;
+  ifile >> size;
+  for (int i = 0; i < size; i ++) {
+    entities.push_back(Mob::from_file(world, ifile));
+  }
+  ifile >> size;
+  for (int i = 0; i < size; i ++) {
+    block_entities.push_back(new FallingBlockEntity(world, ifile));
+  }
+  done_reading = true;
+}
+
 
 void Tile::del(bool remove_faces) {
   //cout << "start of deleting tile ";

@@ -3,13 +3,11 @@
 
 #include "classes.h"
 #include "multiplayer.h"
+#include "game.h"
 
-class ServerGame { public:
+class ServerGame : public Game { public:
 	ServerSocketManager socketmanager;
 	std::thread iothread;
-	bool playing = true;
-	
-	World* world;
 	
 	class IOthread { public:
 		ServerGame* game;
@@ -22,8 +20,17 @@ class ServerGame { public:
 	
 	void command(string command);
 	
-	void setup_gameloop();
-	void gametick();
+	virtual void setup_gameloop();
+	virtual void gametick();
+	
+	virtual void inven_menu() {}
+	virtual void level_select_menu() {}
+	virtual void new_world_menu() {}
+	virtual void main_menu() {}
+	
+	virtual void set_display_env(vec3 new_clear_color, int new_view_dist) {}
+	virtual void dump_buffers() {}
+	virtual void dump_emptys() {}
 };
 
 #endif

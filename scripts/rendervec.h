@@ -74,29 +74,6 @@ class MemVecs: public RenderVecs {/*
       void clear();
 };
 
-/*
-class GLVecs: public RenderVecs {
-    public:
-        GLuint vertexbuffer;
-        GLuint uvbuffer;
-        GLuint lightbuffer;
-        GLuint matbuffer;
-        vector<pair<int,int>> empty;
-        int size_alloc;
-        int offset = 0;
-        int num_verts = 0;
-        std::timed_mutex writelock;
-        bool clean_flag = false;
-        
-        void set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size);
-        void set_buffers_prealloc(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size, int newoffset);
-        RenderIndex add(MemVecs* newvecs);
-        void del(pair<int,int> index);
-        void clean();
-        void edit( pair<int,int> index, MemVecs* newvecs);
-        void status(std::stringstream & message);
-};*/
-
 class AsyncGLVecs: public RenderVecs { public:
   class Change { public:
     RenderIndex index;

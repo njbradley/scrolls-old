@@ -352,7 +352,7 @@ void Player::right_mouse(double deltatime) {
 					for (ivec3 newdir : dirs) {
 						bool placed = arr->place(world, item, blockpos+dir, newdir);
 						if (placed) {
-							game->audio.play_sound("place", vec3(x, y, z));
+							audio->play_sound("place", vec3(x, y, z));
 							inven.use(selitem);
 							break;
 						}
@@ -539,8 +539,8 @@ void Player::left_mouse(double deltatime) {
 }
 
 void Player::die() {
-	if (game->audio.listener == this) {
-		game->audio.listener = nullptr;
+	if (audio->listener == this) {
+		audio->listener = nullptr;
 	}
 	
 	if (menu == nullptr) {
@@ -760,7 +760,7 @@ void Player::computeMatricesFromInputs(){
 	}
 	
 	
-	float FoV = game->settings.initialFoV;// - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a callback for this. It's a bit too complicated for this beginner's tutorial, so it's disabled instead.
+	float FoV = settings->initialFoV;// - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a callback for this. It's a bit too complicated for this beginner's tutorial, so it's disabled instead.
 	
 	
 	// Projection matrix : 45 Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units

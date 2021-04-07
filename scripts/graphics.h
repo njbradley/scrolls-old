@@ -47,15 +47,37 @@ class GraphicsContext { public:
 	GLuint overlayTexID;
 	GLuint edgesTexID;
 	
-	GraphicsContext(Settings* newsettings);
-	void set_world_buffers(World* world, int mem);
-	void init_glfw();
-	void load_textures();
-	void block_draw_call(Player* player, float sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs);
-	void make_ui_buffer(Player* player, string debugstream);
-	void ui_draw_call(Player* player, std::stringstream* debugstream);
-	void swap();
-	~GraphicsContext();
+	virtual void set_world_buffers(World* world, int mem) = 0;
+	virtual void init_glfw() = 0;
+	virtual void load_textures() = 0;
+	virtual void block_draw_call(Player* player, float sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) = 0;
+	virtual void make_ui_buffer(Player* player, string debugstream) = 0;
+	virtual void ui_draw_call(Player* player, std::stringstream* debugstream) = 0;
+	virtual void swap() = 0;
+	virtual ~GraphicsContext() {}
+};
+
+class GraphicsMainContext : public GraphicsContext { public:
+	GraphicsMainContext(Settings* newsettings);
+	virtual void set_world_buffers(World* world, int mem);
+	virtual void init_glfw();
+	virtual void load_textures();
+	virtual void block_draw_call(Player* player, float sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs);
+	virtual void make_ui_buffer(Player* player, string debugstream);
+	virtual void ui_draw_call(Player* player, std::stringstream* debugstream);
+	virtual void swap();
+	virtual ~GraphicsMainContext();
+};
+
+class GraphicsNullContext : public GraphicsContext { public:
+	virtual void set_world_buffers(World* world, int mem) {}
+	virtual void init_glfw() {}
+	virtual void load_textures() {}
+	virtual void block_draw_call(Player* player, float sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) {}
+	virtual void make_ui_buffer(Player* player, string debugstream) {}
+	virtual void ui_draw_call(Player* player, std::stringstream* debugstream) {}
+	virtual void swap() {}
+	virtual ~GraphicsNullContext() {}
 };
 
 #endif

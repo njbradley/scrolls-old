@@ -52,7 +52,6 @@ class World: public Collider {
     unordered_set<ivec3,ivec3_hash> block_updates;
     unordered_set<ivec3,ivec3_hash> light_updates;
     vector<std::function<void(World*)>> aftertick_funcs;
-    ThreadManager* threadmanager;
     //mutable std::shared_timed_mutex tiles_lock;
     char* tmparr;
     public:
@@ -83,15 +82,16 @@ class World: public Collider {
 				
         static const int chunksize = 64;
         
-        World(string newname, ThreadManager* manager, int newseed);
-        World(string oldname, ThreadManager* manager);
+        World(string newname, int newseed);
+        World(string oldname);
+        World(string newname, istream& datafile);
         void set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size);
         vec3 get_position() const;
         void unzip();
         void load_groups();
         void save_groups();
-        void load_data_file();
-        void save_data_file();
+        void load_data_file(istream& ifile);
+        void save_data_file(ostream& ofile);
         void setup_files();
         void startup();
         void spawn_player();

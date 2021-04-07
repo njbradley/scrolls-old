@@ -84,18 +84,25 @@ TileLoop::iterator TileLoop::end() {
 
 
 
-World::World(string newname, ThreadManager* manager, int newseed): loader(seed), seed(newseed), name(newname), closing_world(false), sunlight(1),
-commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * 2, nullptr), threadmanager(manager) {
+World::World(string newname, int newseed): loader(seed), seed(newseed), name(newname), closing_world(false), sunlight(1),
+commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * 2, nullptr) {
     setup_files();
     startup();
 }
 
-World::World(string oldname, ThreadManager* manager): loader(seed), name(oldname), closing_world(false), sunlight(1),
-commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * 2, nullptr), threadmanager(manager) {
+World::World(string oldname): loader(seed), name(oldname), closing_world(false), sunlight(1),
+commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * 2, nullptr) {
     //unzip();
-    load_data_file();
+    string path = "saves/" + name + "/worlddata.txt";
+    ifstream ifile(path);
+    load_data_file(ifile);
     loader.seed = seed;
     startup();
+}
+
+World::World(string newname, istream& datafile): loader(seed), name(newname), closing_world(false), sunlight(1),
+commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * 2, nullptr) {
+  load_data_file(datafile);
 }
 
 void World::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size) {
@@ -116,13 +123,11 @@ void World::unzip() {
   cout << "uncompressed files from zip" << endl;
 }
 
-void World::load_data_file() {
-    string path = "saves/" + name + "/worlddata.txt";
-    ifstream ifile(path);
+void World::load_data_file(istream& ifile) {
     string buff;
     getline(ifile, buff);
-    while ( !ifile.eof() ) {
-        getline(ifile,buff,':');
+    getline(ifile,buff,':');
+    while ( !ifile.eof() and buff != "end" ) {
         if (buff == "seed") {
             ifile >> seed;
         }
@@ -143,19 +148,18 @@ void World::load_data_file() {
           saving = sav == "on";
         }
         getline(ifile, buff);
+        getline(ifile,buff,':');
     }
 }
 
-void World::save_data_file() {
-    string path = "saves/" + name + "/worlddata.txt";
-    ofstream ofile(path);
+void World::save_data_file(ostream& ofile) {
     ofile << "Scrolls data file of world '" + name + "'\n";
     ofile << "seed:" << seed << endl;
     ofile << "difficulty:" << difficulty << endl;
     ofile << "daytime:" << daytime << endl;
     ofile << "generation:" << (generation ? "on" : "off") << endl;
     ofile << "saving:" << (saving ? "on" : "off") << endl;
-    ofile.close();
+    ofile << "end:" << endl;
 }
 
 void World::setup_files() {
@@ -248,7 +252,7 @@ void World::set_player_vars() {
   commandprogram.doublevars["me.health"] = CommandVar<double>(&player->health);
   
   if (game != nullptr) {
-    game->audio.listener = player;
+    audio->listener = player;
   }
 }
 
@@ -826,7 +830,9 @@ void World::close_world() {
     }
     cout << "all tiles saved sucessfully" << endl;
     save_groups();
-    save_data_file();
+    string path = "saves/" + name + "/worlddata.txt";
+    ofstream datafile(path);
+    save_data_file(datafile);
     //zip();
     ofstream ofile2("saves/latest.txt");
     ofile2 << name;

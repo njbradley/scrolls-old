@@ -287,8 +287,8 @@ void ToolMenu::close(World* world) {
 CraftingMenu::CraftingMenu(int newlevel, function<void()> after_func): level(newlevel), after(after_func), page(0), button(1),
 inputs {0,0,0,0,0,0}, outputs {0,0,0,0,0,0} {
   start();
-  get_recipes(game->world);
-  render_page(game->world);
+  get_recipes(world);
+  render_page(world);
 }
 
 void CraftingMenu::get_recipes(World* world) {
@@ -544,10 +544,10 @@ CommandMenu::CommandMenu(Program* newprogram, function<void()> after_func): Text
     if (str != "" and str[str.length()-1] == '\n') {
       str.erase(str.length()-1);
       stringstream ss(str);
-      game->world->commandprogram.lines.clear();
-      game->world->commandprogram.parse_lines(ss);
-      game->world->commandprogram.run();
-      game->world->commandprogram.history.push_back(str);
+      world->commandprogram.lines.clear();
+      world->commandprogram.parse_lines(ss);
+      world->commandprogram.run();
+      world->commandprogram.history.push_back(str);
       after_func();
     }
   }), program(newprogram) {

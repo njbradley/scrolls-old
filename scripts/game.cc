@@ -86,8 +86,13 @@ void Settings::load_settings() {
 
 
 
-Game::Game(): graphics(&settings) {
-	min_ms_per_frame = 1000.0/settings.max_fps;
+MainGame::MainGame() {
+	settings = new Settings();
+	graphics = new GraphicsMainContext(settings);
+	audio = new AudioMainContext();
+	threadmanager = new ThreadManager();
+	
+	min_ms_per_frame = 1000.0/settings->max_fps;
 	
 	matstorage = new MaterialStorage();
 	blocks = new BlockStorage();
@@ -103,38 +108,38 @@ Game::Game(): graphics(&settings) {
 		create_dir("saves");
 		ofstream ofile("saves/saves.txt");
 		ofile << "";
-		world = new World("Starting-World", &threadmanager, 12345);
-		graphics.set_world_buffers(world, settings.allocated_memory);
+		world = new World("Starting-World", 12345);
+		graphics->set_world_buffers(world, settings->allocated_memory);
 	} else {
 		string latest;
 		ifile >> latest;
 		if (latest != "") {
-			world = new World(latest, &threadmanager);
-			graphics.set_world_buffers(world, settings.allocated_memory);
+			world = new World(latest);
+			graphics->set_world_buffers(world, settings->allocated_memory);
 		} else {
 			ifstream ifile2("saves/saves.txt");
 			ifile2 >> latest;
 			if (latest != "") {
-				world = new World(latest, &threadmanager);
-				graphics.set_world_buffers(world, settings.allocated_memory);
+				world = new World(latest);
+				graphics->set_world_buffers(world, settings->allocated_memory);
 			} else {
-				world = new World("Starting-World", &threadmanager, 12345);
-				graphics.set_world_buffers(world, settings.allocated_memory);
+				world = new World("Starting-World", 12345);
+				graphics->set_world_buffers(world, settings->allocated_memory);
 			}
 		}
 	}
 	
-	graphics.view_distance = view_dist * World::chunksize * 10;
+	graphics->view_distance = view_dist * World::chunksize * 10;
 	
-	if (settings.framerate_sync) {
+	if (settings->framerate_sync) {
 		glfwSwapInterval(1);
 	} else {
 		glfwSwapInterval(0);
 	}
 }
 
-Game::~Game() {
-	threadmanager.close();
+MainGame::~MainGame() {
+	threadmanager->close();
 	
 	if (world != nullptr) {
 		cout << "deleting world" << endl;
@@ -149,6 +154,11 @@ Game::~Game() {
 	delete mobstorage;
 	delete matstorage;
 	
+	delete threadmanager;
+	delete audio;
+	delete graphics;
+	delete settings;
+	
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
 	if (errors) {
@@ -160,7 +170,7 @@ Game::~Game() {
 
 
 
-void Game::setup_gameloop() {
+void MainGame::setup_gameloop() {
 	lastTime = glfwGetTime();
 	currentTime = lastTime;
 	lastFrameTime = lastTime;
@@ -168,16 +178,16 @@ void Game::setup_gameloop() {
 	reaching_max_fps = true;
 	slow_frame = 0;
 	slow_tick = 0;
-	graphics.view_distance = view_dist * World::chunksize * 10;
+	graphics->view_distance = view_dist * World::chunksize * 10;
 	
 	afterswap_time = lastTime;
 	
-	threadmanager.rendering = true;
-	audio.listener = world->player;
+	threadmanager->rendering = true;
+	audio->listener = world->player;
 }
 
 
-void Game::gametick() {
+void MainGame::gametick() {
 	
 	double begin = glfwGetTime();
 	if (menu == nullptr) {
@@ -229,7 +239,7 @@ void Game::gametick() {
 		debugstream << "ms: " << preswap_time*1000 << endl;
 		debugstream << "ms(goal):" << min_ms_per_frame << endl;
 		debugstream << "reaching max fps: " << reaching_max_fps << " (" << slow_frame << ")" << endl;
-		debugstream << "tick thread ms: " << threadmanager.tick_ms << endl;
+		debugstream << "tick thread ms: " << threadmanager->tick_ms << endl;
 		debugstream << "slow tick: " << slow_tick << endl;
 		/// block and entity debug
 		
@@ -241,8 +251,8 @@ void Game::gametick() {
 	if (ms > slow_frame) {
 		slow_frame = ms;
 	}
-	if (threadmanager.tick_ms > slow_tick) {
-		slow_tick = threadmanager.tick_ms;
+	if (threadmanager->tick_ms > slow_tick) {
+		slow_tick = threadmanager->tick_ms;
 	}
 	
 	nbFrames++;
@@ -264,7 +274,7 @@ void Game::gametick() {
 	
 	////////////// sleep to max fps
 	double sleep_needed = min_ms_per_frame-ms;
-	if (!settings.framerate_sync and sleep_needed > 0) {
+	if (!settings->framerate_sync and sleep_needed > 0) {
 		
 		double time = lastFrameTime + min_ms_per_frame/1000.0;
 		double newtime = glfwGetTime();
@@ -295,7 +305,7 @@ void Game::gametick() {
 	start = glfwGetTime();
 	
 	
-	graphics.block_draw_call(world->player, world->sunlight, &world->glvecs, &world->transparent_glvecs);
+	graphics->block_draw_call(world->player, world->sunlight, &world->glvecs, &world->transparent_glvecs);
 	
 	
 	
@@ -311,7 +321,7 @@ void Game::gametick() {
 	//-----------------------------------------------------SECOND DRAW CALL------------------------------------------------------------------------------------------------------------------------//
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
-	graphics.ui_draw_call(world->player, &debugstream);
+	graphics->ui_draw_call(world->player, &debugstream);
 	// Swap buffers
 	
 	time = glfwGetTime() - begin;
@@ -325,7 +335,7 @@ void Game::gametick() {
 	
 	preswap_time = glfwGetTime() - afterswap_time;
 	// cout << glfwGetTime() - begin << endl;
-	graphics.swap();
+	graphics->swap();
 	time = glfwGetTime() - begin;
 	if (dologtime and time > 0.001) {
 		cout << "swap " << time << endl;
@@ -333,7 +343,7 @@ void Game::gametick() {
 	
 	afterswap_time = glfwGetTime();
 	
-	audio.tick();
+	audio->tick();
 	
 	if (menu == nullptr) {
 		if (glfwGetKey(window, GLFW_KEY_M ) == GLFW_PRESS) {
@@ -451,7 +461,7 @@ void Game::gametick() {
 	}
 }
 
-void Game::print_debug() {
+void MainGame::print_debug() {
 	debugstream.str("");
 	debugstream << std::fixed;
 	debugstream.precision(3);
@@ -489,21 +499,21 @@ void Game::print_debug() {
 	debugstream << endl;
 	world->glvecs.status(debugstream);
 	world->transparent_glvecs.status(debugstream);
-	audio.status(debugstream);
+	audio->status(debugstream);
 	debugstream << "------threads-------" << endl;
 	debugstream << "load ";
-	for (int i = 0; i < threadmanager.num_threads; i ++) {
+	for (int i = 0; i < threadmanager->num_threads; i ++) {
 		//debugstream << "load" << i;
-		if (threadmanager.loading[i] != nullptr) {
-			ivec3 pos = threadmanager.loading[i]->pos;
+		if (threadmanager->loading[i] != nullptr) {
+			ivec3 pos = threadmanager->loading[i]->pos;
 			debugstream << pos.x << ',' << pos.y << ',' << pos.z << " ";
 		}
 	}
 	debugstream << endl << "del ";
-	for (int i = 0; i < threadmanager.num_threads; i ++) {
+	for (int i = 0; i < threadmanager->num_threads; i ++) {
 		//debugstream << "del " << i;
-		if (threadmanager.deleting[i] != nullptr) {
-			ivec3 pos = *threadmanager.deleting[i];
+		if (threadmanager->deleting[i] != nullptr) {
+			ivec3 pos = *threadmanager->deleting[i];
 			debugstream << pos.x << ',' << pos.y << ',' << pos.z << " ";
 		}
 	}
@@ -561,14 +571,14 @@ void Game::print_debug() {
 }
 
 
-void Game::inven_menu() {
+void MainGame::inven_menu() {
 	menu = new ToolMenu( [&] () {
 		delete menu;
 		menu = nullptr;
 	});
 }
 
-void Game::level_select_menu() {
+void MainGame::level_select_menu() {
 	vector<string> worlds;
 	ifstream ifile("saves/saves.txt");
 	string name;
@@ -579,13 +589,13 @@ void Game::level_select_menu() {
 	menu = new SelectMenu("Level Select:", worlds, [&] (string result) {
 		if (result != "") {
 			World* w = world;
-			threadmanager.rendering = false;
+			threadmanager->rendering = false;
 			world = nullptr;
 			w->close_world();
 			delete w;
-			world = new World(result, &threadmanager);
-			graphics.set_world_buffers(world, settings.allocated_memory);
-			threadmanager.rendering = true;
+			world = new World(result);
+			graphics->set_world_buffers(world, settings->allocated_memory);
+			threadmanager->rendering = true;
 			//debug_visible = true;
 		}
 		delete menu;
@@ -593,24 +603,24 @@ void Game::level_select_menu() {
 	});
 }
 
-void Game::new_world_menu() {
+void MainGame::new_world_menu() {
 	menu = new TextInputMenu("Enter your new name:", true, [&] (string result) {
 		if (result != "") {
 			World* w = world;
-			threadmanager.rendering = false;
+			threadmanager->rendering = false;
 			world = nullptr;
 			w->close_world();
 			delete w;
-			world = new World(result, &threadmanager, time(NULL));
-			graphics.set_world_buffers(world, settings.allocated_memory);
-			threadmanager.rendering = true;
+			world = new World(result, time(NULL));
+			graphics->set_world_buffers(world, settings->allocated_memory);
+			threadmanager->rendering = true;
 		}
 		delete menu;
 		menu = nullptr;
 	});
 }
 
-void Game::main_menu() {
+void MainGame::main_menu() {
 	vector<string> options = {"Level Select", "New World"};
 	menu = new SelectMenu("Scrolls: an adventure game", options, [&] (string result) {
 		if (result == "Level Select") {
@@ -645,25 +655,24 @@ void Game::hard_crash(long long err_code) {
 	//dump_buffers();
 	//dump_emptys();
 	errors = true;
-	wait();
-	exit(1);
+	std::terminate();
 }
 
 
 
 
-void Game::set_display_env(vec3 new_clear_color, int new_view_dist) {
-	graphics.clearcolor = new_clear_color;
-	graphics.view_distance = new_view_dist;
+void MainGame::set_display_env(vec3 new_clear_color, int new_view_dist) {
+	graphics->clearcolor = new_clear_color;
+	graphics->view_distance = new_view_dist;
 }
 
-void Game::dump_buffers() {
+void MainGame::dump_buffers() {
 	cout << "dumping out contents of memory vectors" << endl;
 	cout << "dumping vertex data" << endl;
 	float* data = (float*)glMapNamedBuffer( world->vecs_dest.vertexbuffer, GL_READ_ONLY);
-	int len = settings.allocated_memory*3;
+	int len = settings->allocated_memory*3;
 	ofstream ofile("dump_buffers_verts.txt");
-	for (int i = 0; i < settings.allocated_memory*3; i ++) {
+	for (int i = 0; i < settings->allocated_memory*3; i ++) {
 		ofile << i/6/3 << ' ' << data[i] << endl;
 		// if (data[i] > 100000 or i%(len/100) == 0 or i < 1000) {
 		//
@@ -677,9 +686,9 @@ void Game::dump_buffers() {
 	
 	cout << "dumping material data" << endl;
 	int* matdata = (int*)glMapNamedBuffer( world->vecs_dest.matbuffer, GL_READ_ONLY);
-	len = settings.allocated_memory*2;
+	len = settings->allocated_memory*2;
 	ofstream mofile("dump_buffers_mat.txt");
-	for (int i = 0; i < settings.allocated_memory*2; i ++) {
+	for (int i = 0; i < settings->allocated_memory*2; i ++) {
 		//if (matdata[i] > 100000 or i%(len/100) == 0 or i < 1000) {
 			mofile << i/6/2 << ' ' << matdata[i] << endl;
 		//}
@@ -692,9 +701,9 @@ void Game::dump_buffers() {
 	
 	cout << "dumping light data" << endl;
 	data = (float*)glMapNamedBuffer( world->vecs_dest.lightbuffer, GL_READ_ONLY);
-	len = settings.allocated_memory;
+	len = settings->allocated_memory;
 	ofstream fofile("dump_buffers_light.txt");
-	for (int i = 0; i < settings.allocated_memory*2; i ++) {
+	for (int i = 0; i < settings->allocated_memory*2; i ++) {
 		//if (data[i] > 100000 or i%(len/100) == 0 or i < 1000) {
 			fofile << i/6 << ' ' << data[i] << endl;
 		//}
@@ -707,11 +716,8 @@ void Game::dump_buffers() {
 	
 }
 
-void Game::dump_emptys() {
-	// ofstream ofile("dump_emptys.txt");
-	// for (RenderIndex index : world->glvecs.emptys) {
-	// 	ofile << index.start << ' ' << index.size << endl;
-	// }
+void MainGame::dump_emptys() {
+	
 }
 
 
@@ -720,6 +726,11 @@ void Game::dump_emptys() {
 
 
 
+World* world = nullptr;
+Settings* settings = nullptr;
+GraphicsContext* graphics = nullptr;
+AudioContext* audio = nullptr;
+ThreadManager* threadmanager = nullptr;
 
 
 

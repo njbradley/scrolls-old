@@ -26,6 +26,7 @@ class Tile {
 		bool done_reading = false;
 		vector<DisplayEntity*> entities;
 		vector<FallingBlockEntity*> block_entities;
+		Tile(ivec3 position, World* world, istream& ifile);
 		Tile(ivec3 position, World* world);
 		void timestep();
 		void drop_ticks();

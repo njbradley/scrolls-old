@@ -15,16 +15,17 @@
 #include "game.h"
 
 
-GraphicsContext::GraphicsContext(Settings* newsettings): settings(newsettings) {
+GraphicsMainContext::GraphicsMainContext(Settings* newsettings) {
+	settings = newsettings;
 	init_glfw();
 	load_textures();
 }
 
-void GraphicsContext::set_world_buffers(World* world, int allocated_memory) {
+void GraphicsMainContext::set_world_buffers(World* world, int allocated_memory) {
 	world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
 }
 
-void GraphicsContext::init_glfw() {
+void GraphicsMainContext::init_glfw() {
 	
 	// Initialise GLFW
 	if( !glfwInit() )
@@ -136,7 +137,7 @@ void GraphicsContext::init_glfw() {
 	
 }
 
-void GraphicsContext::load_textures() {
+void GraphicsMainContext::load_textures() {
 	////// get mats from folders
 	//vector<string> block_tex;
 	vector<string> uis;
@@ -183,7 +184,7 @@ void GraphicsContext::load_textures() {
 
 
 
-void GraphicsContext::block_draw_call(Player* player, float sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) {
+void GraphicsMainContext::block_draw_call(Player* player, float sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) {
 	
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
@@ -313,7 +314,7 @@ void GraphicsContext::block_draw_call(Player* player, float sunlight, AsyncGLVec
 	glDisableVertexAttribArray(3);
 }
 
-void GraphicsContext::make_ui_buffer(Player* player, string debugstream) {
+void GraphicsMainContext::make_ui_buffer(Player* player, string debugstream) {
 	MemVecs vecs;
 	if (last_num_ui_verts != 0) {
 		vecs.verts.reserve(last_num_ui_verts*3);
@@ -327,7 +328,7 @@ void GraphicsContext::make_ui_buffer(Player* player, string debugstream) {
 	//}
 	player->render_ui(&vecs);
 	if (menu != nullptr) {
-		menu->render(window, game->world, player, &vecs);
+		menu->render(window, world, player, &vecs);
 	}
 	int num_verts = vecs.num_verts;
 	last_num_ui_verts = num_verts;
@@ -347,7 +348,7 @@ void GraphicsContext::make_ui_buffer(Player* player, string debugstream) {
 	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &vecs.mats.front(), GL_STATIC_DRAW);
 }
 
-void GraphicsContext::ui_draw_call(Player* player, std::stringstream* debugstream) {
+void GraphicsMainContext::ui_draw_call(Player* player, std::stringstream* debugstream) {
 	
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
@@ -419,12 +420,12 @@ void GraphicsContext::ui_draw_call(Player* player, std::stringstream* debugstrea
 	// Swap buffers
 }
 
-void GraphicsContext::swap() {
+void GraphicsMainContext::swap() {
 	glfwSwapBuffers(window);
 	glfwPollEvents();
 }
 
-GraphicsContext::~GraphicsContext() {
+GraphicsMainContext::~GraphicsMainContext() {
 	
 	glDeleteBuffers(1, &vertexbuffer);
 	glDeleteBuffers(1, &uvbuffer);

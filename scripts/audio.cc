@@ -141,13 +141,13 @@ void PlayingSound::repeat(bool newval) {
 
 
 
-AudioContext::AudioContext() {
+AudioMainContext::AudioMainContext() {
 	init_context();
 	load_sounds();
 	cout << AL_REFERENCE_DISTANCE << ' ' << AL_MAX_DISTANCE << ' ' << AL_ROLLOFF_FACTOR << endl;
 }
 
-void AudioContext::init_context() {
+void AudioMainContext::init_context() {
 	
 	device = alcOpenDevice(NULL);
 	if (device != nullptr) {
@@ -166,7 +166,7 @@ void AudioContext::init_context() {
 	}
 }
 
-void AudioContext::load_sounds() {
+void AudioMainContext::load_sounds() {
 	vector<string> paths;
 	get_files_folder("resources/sounds", &paths);
 	for (string path : paths) {
@@ -178,7 +178,7 @@ void AudioContext::load_sounds() {
 	cout << "loaded in " << paths.size() << " sound files " << endl;
 }
 
-PlayingSound* AudioContext::play_sound(string name, vec3 pos, float gain, float pitch) {
+PlayingSound* AudioMainContext::play_sound(string name, vec3 pos, float gain, float pitch) {
 	if (device != nullptr and name != "null" and listener != nullptr and glm::length(pos - listener->position) < library[name]->range) {
 		PlayingSound* newsound = new PlayingSound(library[name], pos);
 		newsound->gain(gain);
@@ -189,21 +189,21 @@ PlayingSound* AudioContext::play_sound(string name, vec3 pos, float gain, float 
 	return nullptr;
 }
 
-void AudioContext::play_onetime(PlayingSound* sound) {
+void AudioMainContext::play_onetime(PlayingSound* sound) {
 	if (device != nullptr) {
 		sound->play();
 		onetime_sounds.push_back(sound);
 	}
 }
 
-void AudioContext::play_repeat(PlayingSound* sound) {
+void AudioMainContext::play_repeat(PlayingSound* sound) {
 	if (device != nullptr) {
 		sound->play();
 		repeat_sounds.push_back(sound);
 	}
 }
 
-void AudioContext::tick() {
+void AudioMainContext::tick() {
 	if (device != nullptr) {
 		check_sounds();
 		if (listener != nullptr) {
@@ -226,7 +226,7 @@ void AudioContext::tick() {
 	}
 }
 
-void AudioContext::check_sounds() {
+void AudioMainContext::check_sounds() {
 	if (device != nullptr) {
 		double time = glfwGetTime();
 		for (int i = onetime_sounds.size() - 1; i >= 0; i --) {
@@ -239,7 +239,7 @@ void AudioContext::check_sounds() {
 	}
 }
 
-void AudioContext::status(stringstream& debugstream) {
+void AudioMainContext::status(stringstream& debugstream) {
 	debugstream << "----- audio status --------" << endl;
 	for (PlayingSound* sound : onetime_sounds) {
 		debugstream << sound->sound->name << ' ';
@@ -257,7 +257,7 @@ void AudioContext::geterr() {
 }
 
 
-AudioContext::~AudioContext() {
+AudioMainContext::~AudioMainContext() {
 	for (PlayingSound* sound : onetime_sounds) {
 		delete sound;
 	}

@@ -2,6 +2,29 @@
 #define MULTIPLAYER
 
 #include "multiplayer.h"
+#include "world.h"
+#include "tiles.h"
+#include "game.h"
+#include "entity.h"
+
+BufOut::BufOut(char* ndata, int* nwritten): data(ndata), written(nwritten) {
+	
+}
+
+std::streambuf::int_type BufOut::overflow(std::streambuf::int_type val) {
+	data[*written] = val;
+	*written ++;
+	return val;
+}
+
+BufIn::BufIn(char* ndata, int* nread): data(ndata), read(nread) {
+	
+}
+
+std::streambuf::int_type BufIn::underflow() {
+	return data[*read ++];
+}
+
 
 Packet::Packet(char newtype): type(newtype), sent(time(NULL)) {
 	
@@ -78,22 +101,33 @@ void ClientPacket::pack(char* data, int* written) {
 }
 
 
-NewIdPacket::NewIdPacket(int newid): ServerPacket('n'), newclientid(newid) {
+NewIdPacket::NewIdPacket(int newid): ServerPacket('n'),
+newclientid(newid) {
 	cout << "clientid " << newid << endl;
 }
 
 NewIdPacket::NewIdPacket(char* data, int* read): ServerPacket(data, read), newclientid(getval<int>(data, read)) {
 	cout << "clientid " << newclientid << endl;
+	// BufIn buf(data, read);
+	// istream ifile(&buf);
+	// newworld = new World("client", ifile);
+	// newplayer = new Player(newworld, ifile);
 }
 
 void NewIdPacket::pack(char* data, int* written) {
 	ServerPacket::pack(data, written);
 	packval<int>(data, written, newclientid);
+	// BufOut buf(data, written);
+	// ostream ofile(&buf);
+	// newworld->save_data_file(ofile);
+	// newplayer->save_to_file(ofile);
 }
 
 void NewIdPacket::run(ClientSocketManager* manager, udp::endpoint from) {
 	cout << "Id recieved " << newclientid << endl;
 	manager->id = newclientid;
+	// world = newworld;
+	// world->player = newplayer;
 }
 
 
@@ -119,6 +153,29 @@ void JoinPacket::run(ServerSocketManager* manager, udp::endpoint from) {
 	manager->send(new NewIdPacket(manager->idcounter), manager->idcounter);
 }
 
+
+TilePacket::TilePacket(Tile* ntile): ServerPacket('T'), tile(ntile) {
+	
+}
+
+TilePacket::TilePacket(char* data, int* read): ServerPacket(data, read) {
+	ivec3 pos = getval<ivec3>(data, read);
+	BufIn buf(data, read);
+	istream ifile(&buf);
+	//tile = new Tile(pos, world, ifile);
+}
+
+void TilePacket::pack(char* data, int* written) {
+	ServerPacket::pack(data, written);
+	packval<ivec3>(data, written, tile->pos);
+	BufOut buf(data, written);
+	ostream ofile(&buf);
+	//tile->save_to_file(ofile);
+}
+
+void TilePacket::run(ClientSocketManager* manager, udp::endpoint from) {
+	world->add_tile(tile);
+}
 
 
 

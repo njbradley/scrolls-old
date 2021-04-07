@@ -20,23 +20,40 @@ class Settings { public:
 	void load_settings();
 };
 
+extern World* world;
+extern Settings* settings;
+extern GraphicsContext* graphics;
+extern AudioContext* audio;
+extern ThreadManager* threadmanager;
+
 class Game { public:
-	World* world;
-	
-	Settings settings;
 	bool playing = true;
 	bool errors = false;
-	double min_ms_per_frame;
-	bool debug_visible = true;
-	
-	GraphicsContext graphics;
-	AudioContext audio;
-	ThreadManager threadmanager;
-	
 	DisplayEntity* debugentity = nullptr;
 	Pixel* debugblock = nullptr;
-	
 	stringstream debugstream;
+	
+	virtual ~Game() {};
+	
+	virtual void setup_gameloop() = 0;
+	virtual void gametick() = 0;
+	
+	virtual void inven_menu() = 0;
+	virtual void level_select_menu() = 0;
+	virtual void new_world_menu() = 0;
+	virtual void main_menu() = 0;
+	
+	void crash(long long err_code);
+	void hard_crash(long long err_code);
+	
+	virtual void set_display_env(vec3 new_clear_color, int new_view_dist) = 0;
+	virtual void dump_buffers() = 0;
+	virtual void dump_emptys() = 0;
+};
+
+class MainGame : public Game { public:
+	double min_ms_per_frame;
+	bool debug_visible = true;
 	
 	double lastTime;
 	double currentTime;
@@ -50,24 +67,21 @@ class Game { public:
 	int slow_tick;
 	bool dologtime = false;
 	
-	Game();
-	~Game();
+	MainGame();
+	virtual ~MainGame();
 	
-	void setup_gameloop();
-	void gametick();
+	virtual void setup_gameloop();
+	virtual void gametick();
 	void print_debug();
 	
-	void inven_menu();
-	void level_select_menu();
-	void new_world_menu();
-	void main_menu();
+	virtual void inven_menu();
+	virtual void level_select_menu();
+	virtual void new_world_menu();
+	virtual void main_menu();
 	
-	void crash(long long err_code);
-	void hard_crash(long long err_code);
-	
-	void set_display_env(vec3 new_clear_color, int new_view_dist);
-	void dump_buffers();
-	void dump_emptys();
+	virtual void set_display_env(vec3 new_clear_color, int new_view_dist);
+	virtual void dump_buffers();
+	virtual void dump_emptys();
 	
 };
 

@@ -52,7 +52,7 @@ void Entity::timestep() {
     step_distance -= glm::length(vec3(vel.x, int(vel.y), vel.z))*deltaTime;
   	if (consts[4] and step_distance < 0 and !immune) {
   		step_distance = 4;
-  		game->audio.play_sound("step", position - vec3(0, 4, 0), 0.5);
+  		audio->play_sound("step", position - vec3(0, 4, 0), 0.5);
   	}
     
     if (damage_health > 0.01) {

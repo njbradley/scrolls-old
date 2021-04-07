@@ -52,31 +52,20 @@ using namespace glm;
 #include <future>
 
 
-int main( void )
+int main()
 {
 	
 	setup_backtrace();
 	
-	game = new MainGame();
+	matstorage = new MaterialStorage();
+	blocks = new BlockStorage();
+	connstorage = new ConnectorStorage();
+	itemstorage = new ItemStorage();
+	recipestorage = new RecipeStorage();
+	entitystorage = new EntityStorage();
+	mobstorage = new MobStorage();
 	
-	game->setup_gameloop();
-	while (game->playing) {
-		game->gametick();
-	}
 	
 	
 	delete game;
 }
-
-
-/*
-All other scripts in this folder are considered part of the
-game and are under this same license
-
-Copyright 2020 Nicholas Bradley. All rights reserved.
-
-I grant the right to download and modify the game for your own personal use.
-Please do not distribute or sell original or modified copies of this game without express permission.
-
-This software is provided 'as is' with no expressed or implied warranties.
-*/

@@ -50,21 +50,54 @@ class AudioContext { public:
 	ALuint source;
 	ALuint buffer;
 	
-	AudioContext();
-	~AudioContext();
+	virtual ~AudioContext() {};
 	
-	void init_context();
-	void load_sounds();
+	virtual void init_context() = 0;
+	virtual void load_sounds() = 0;
 	
-	PlayingSound* play_sound(string name, vec3 pos, float gain = 1, float pitch = 1);
-	void play_onetime(PlayingSound* sound);
-	void play_repeat(PlayingSound* sound);
+	virtual PlayingSound* play_sound(string name, vec3 pos, float gain = 1, float pitch = 1) = 0;
+	virtual void play_onetime(PlayingSound* sound) = 0;
+	virtual void play_repeat(PlayingSound* sound) = 0;
 	
-	void tick();
-	void check_sounds();
+	virtual void tick() = 0;
+	virtual void check_sounds() = 0;
 	
-	void status(stringstream& debugstream);
+	virtual void status(stringstream& debugstream) = 0;
 	void geterr();
+};
+
+class AudioMainContext : public AudioContext { public:
+	AudioMainContext();
+	virtual ~AudioMainContext();
+	
+	virtual void init_context();
+	virtual void load_sounds();
+	
+	virtual PlayingSound* play_sound(string name, vec3 pos, float gain = 1, float pitch = 1);
+	virtual void play_onetime(PlayingSound* sound);
+	virtual void play_repeat(PlayingSound* sound);
+	
+	virtual void tick();
+	virtual void check_sounds();
+	
+	virtual void status(stringstream& debugstream);
+};
+
+class AudioNullContext : public AudioContext { public:
+	AudioNullContext() {}
+	virtual ~AudioNullContext() {}
+	
+	virtual void init_context() {}
+	virtual void load_sounds() {}
+	
+	virtual PlayingSound* play_sound(string name, vec3 pos, float gain = 1, float pitch = 1) {return nullptr;}
+	virtual void play_onetime(PlayingSound* sound) {}
+	virtual void play_repeat(PlayingSound* sound) {}
+	
+	virtual void tick() {}
+	virtual void check_sounds() {}
+	
+	virtual void status(stringstream& debugstream) {}
 };
 
 

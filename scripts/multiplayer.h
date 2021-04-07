@@ -10,6 +10,20 @@
 using boost::asio::ip::udp;
 using boost::asio::ip::address;
 
+class BufOut : public std::streambuf { public:
+	char* data;
+	int* written;
+	BufOut(char* ndata, int* nwritten);
+	virtual std::streambuf::int_type overflow(std::streambuf::int_type val);
+};
+
+class BufIn : public std::streambuf { public:
+	char* data;
+	int* read;
+	BufIn(char* ndata, int* nread);
+	virtual std::streambuf::int_type underflow();
+};
+
 struct Packet {
 	static const int packetsize = 1024;
 	char type;
@@ -49,8 +63,18 @@ struct JoinPacket : ClientPacket {
 
 struct NewIdPacket : ServerPacket {
 	int newclientid;
+	World* newworld;
+	Player* newplayer;
 	NewIdPacket(int newid);
 	NewIdPacket(char* data, int* read);
+	virtual void pack(char* data, int* written);
+	virtual void run(ClientSocketManager* game, udp::endpoint from);
+};
+
+struct TilePacket : ServerPacket {
+	Tile* tile;
+	TilePacket(Tile* newtile);
+	TilePacket(char* data, int* read);
 	virtual void pack(char* data, int* written);
 	virtual void run(ClientSocketManager* game, udp::endpoint from);
 };

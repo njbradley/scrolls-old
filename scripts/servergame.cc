@@ -8,6 +8,7 @@
 #include "materials.h"
 #include "items.h"
 #include "crafting.h"
+#include "glue.h"
 
 ServerGame::IOthread::IOthread(ServerGame* newgame): game(newgame) {
 	
@@ -23,7 +24,17 @@ void ServerGame::IOthread::operator()() {
 	
 
 ServerGame::ServerGame(int port): socketmanager(port), iothread(IOthread(this)) {
+	settings = new Settings();
+	graphics = new GraphicsNullContext();
+	audio = new AudioNullContext();
 	
+	matstorage = new MaterialStorage();
+	connstorage = new ConnectorStorage();
+	blocks = new BlockStorage();
+	itemstorage = new ItemStorage();
+	recipestorage = new RecipeStorage();
+	entitystorage = new EntityStorage();
+	mobstorage = new MobStorage();
 }
 
 ServerGame::~ServerGame() {

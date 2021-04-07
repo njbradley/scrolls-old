@@ -1,19 +1,18 @@
-
 #include "multiplayer.h"
 #include "clientgame.h"
+#include "cross-platform.h"
 
 void client(string destip, int destport, string username) {
-	ClientGame game(destip, destport, username);
-	int i = 0;
-	while (game.playing) {
-		cout << i << endl;
-		game.gametick();
-		std::this_thread::sleep_for(std::chrono::milliseconds(500));
-		i++;
-		if (i > 15) {
-			game.playing = false;
-		}
+	game = new ClientGame(destip, destport, username);
+	
+	game->setup_gameloop();
+	while (game->playing) {
+		cout << "loop " << endl;
+		game->gametick();
+		std::this_thread::sleep_for(std::chrono::milliseconds(20));
 	}
+	
+	delete game;
 }
 
 int main(int numargs, char** args) {
@@ -21,6 +20,8 @@ int main(int numargs, char** args) {
 		cout << "usage: client.exe ip port username" << endl;
 		return 0;
 	}
+	
+	setup_backtrace();
 	
 	int destport = atoi(args[2]);
 	string destip = args[1];

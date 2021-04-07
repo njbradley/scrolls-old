@@ -7,21 +7,25 @@
 #include "graphics.h"
 #include "audio.h"
 
-class ClientGame { public:
+class ClientGame : public Game { public:
 	ClientSocketManager socketmanager;
-	bool playing = true;
-	
-	GraphicsContext graphics;
-	AudioContext audio;
-	Settings settings;
 	
 	Player* player;
 	
 	ClientGame(string ip, int port, string username);
-	~ClientGame();
+	virtual ~ClientGame();
 	
-	void setup_gameloop();
-	void gametick();
+	virtual void setup_gameloop();
+	virtual void gametick();
+	
+	virtual void inven_menu() {}
+	virtual void level_select_menu() {}
+	virtual void new_world_menu() {}
+	virtual void main_menu() {}
+	
+	virtual void set_display_env(vec3 new_clear_color, int new_view_dist) {}
+	virtual void dump_buffers() {}
+	virtual void dump_emptys() {}
 };
 
 #endif
