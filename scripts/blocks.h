@@ -56,7 +56,7 @@ class Block: public Collider { public:
     virtual ~Block();
     void world_to_local(int x, int y, int z, int* lx, int* ly, int* lz) const;
     void global_position(int*, int*, int*) const;
-    virtual void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield) = 0;
+    virtual void render(RenderVecs* vecs, RenderVecs* transvecs, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield) = 0;
     virtual void rotate(int axis, int direction) = 0;
     bool is_air(int, int, int, char otherval = -1) const;
     virtual Block * get_global(int,int,int,int) = 0;
