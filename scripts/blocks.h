@@ -24,7 +24,6 @@ extern const float lightmax;
  */
 
 class Block: public Collider { public:
-    
     int px; // parent coordinates, bool because only need to go up to 1
     int py;
     int pz;
@@ -33,19 +32,8 @@ class Block: public Collider { public:
     bool render_flag = true;
     bool light_flag = true;
     //std::mutex setlock;
-    std::atomic<int> reading = 0;
-    std::atomic<bool> writing = false;
-    
-    class write_lock { public:
-      Block* block;
-      write_lock(Block* newblock);
-      ~write_lock();
-    };
-    class read_lock { public:
-      Block* block;
-      read_lock(Block* newblock);
-      ~read_lock();
-    };
+    // std::atomic<int> reading = 0;
+    // std::atomic<bool> writing = false;
     
     void set_render_flag();
     void set_light_flag();
