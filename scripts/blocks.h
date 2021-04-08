@@ -23,12 +23,15 @@ extern const float lightmax;
  *
  */
 
+
+
 class Block: public Collider { public:
     int px; // parent coordinates, bool because only need to go up to 1
     int py;
     int pz;
     int scale; //scale of the block, number of units on one side length.
     Chunk * parent; //the parent of this block. if this block is the root block, then the parent should be set to nullptr.
+		Collider* world;
     bool render_flag = true;
     bool light_flag = true;
     //std::mutex setlock;
@@ -49,7 +52,7 @@ class Block: public Collider { public:
     // otherwise returns nullptr
     int get_sunlight(int dx, int dy, int dz) const;
     int get_blocklight(int dx, int dy, int dz) const;
-    Block(int x, int y, int z, int newscale, Chunk* newparent);
+    Block(int x, int y, int z, int newscale, Chunk* newparent, Collider* nworld);
     virtual ~Block();
     void world_to_local(int x, int y, int z, int* lx, int* ly, int* lz) const;
     void global_position(int*, int*, int*) const;
@@ -65,8 +68,8 @@ class Block: public Collider { public:
     Block* get_world();
     BlockIter iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(csize-1,csize-1,csize-1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr);
     BlockIter iter_side(ivec3 dir);
-    BlockIter iter_touching_side(ivec3 dir, Collider* world);
-    BlockTouchIter iter_touching(Collider* world = nullptr);
+    BlockIter iter_touching_side(ivec3 dir);
+    BlockTouchIter iter_touching();
     ConstBlockIter const_iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(csize-1,csize-1,csize-1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr) const;
     ConstBlockIter const_iter_side(ivec3 dir) const;
     vec3 get_position() const;
@@ -125,7 +128,7 @@ public:
     virtual Block* get_global(int x, int y, int z, int scale);
     virtual Block* set_global(ivec4 pos, char val, int direction = -1, int newjoints[6] = nullptr);
     void render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* blocks[6], int index, ivec3 dir, int uv_dir, int minscale, int mat, bool render_null);
-    virtual void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
+    virtual void render(RenderVecs* vecs, RenderVecs* transvecs, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
     void render_smooth(RenderVecs* vecs, RenderVecs* transvecs, Collider* collider, vec3 view_normal);
     BlockGroupIter iter_group();
     BlockGroupIter iter_group(bool (*func)(Pixel* base, Pixel* pix));
@@ -152,7 +155,7 @@ public:
 class Chunk: public Block { public:
     Block * blocks[csize][csize][csize];
     
-    Chunk(int x, int y, int z, int nscale, Chunk* nparent);
+    Chunk(int x, int y, int z, int nscale, Chunk* nparent, Collider* nworld);
     virtual bool continues() const;
     Block * get(int x, int y, int z) const;
     virtual Pixel* get_pix();
@@ -162,7 +165,7 @@ class Chunk: public Block { public:
     virtual char get() const;
     virtual void set_all_render_flags();
     virtual void lighting_update();
-    virtual void render(RenderVecs* vecs, RenderVecs* transvecs, Collider* world, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
+    virtual void render(RenderVecs* vecs, RenderVecs* transvecs, int x, int y, int z, int depth, bool faces[6], bool render_null, bool yield);
     virtual void del(bool remove_faces);
     virtual void rotate(int axis, int dir);
     virtual Block* get_global(int x, int y, int z, int nscale);

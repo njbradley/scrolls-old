@@ -29,8 +29,8 @@ const float lightmax = 20.0f;
 #define READ_LOCK ;
 #define WRITE_LOCK ;
 
-Block::Block(int x, int y, int z, int newscale, Chunk* newparent) :
-    px(x), py(y), pz(z), scale(newscale), parent(newparent) {
+Block::Block(int x, int y, int z, int newscale, Chunk* newparent, Collider* nworld):
+    px(x), py(y), pz(z), scale(newscale), parent(newparent), world(nworld) {
     set_render_flag();
 }
 
@@ -185,7 +185,7 @@ BlockIter Block::iter_side(ivec3 dir) {
   return iter(startpos, endpos);
 }
 
-BlockIter Block::iter_touching_side(ivec3 dir, Collider* world) {
+BlockIter Block::iter_touching_side(ivec3 dir) {
   ivec3 pos;
   global_position(&pos.x, &pos.y, &pos.z);
   pos += dir * scale;
@@ -205,7 +205,7 @@ ConstBlockIter Block::const_iter_side(ivec3 dir) const {
   return const_iter(startpos, endpos);
 }
 
-BlockTouchIter Block::iter_touching(Collider* world) {
+BlockTouchIter Block::iter_touching() {
   return BlockTouchIter {this, world};
 }
 
@@ -347,7 +347,7 @@ void Block::read_pix_val(istream& ifile, char* type, unsigned int* value) {
 ///////////////////////////////// CLASS PIXEL /////////////////////////////////////
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile):
-  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), tile(ntile), direction(0) {
+  Block(x, y, z, nscale, nparent, tile->world), render_index(-1,0), value(new_val), tile(ntile), direction(0) {
     if (value != 0) {
       if (blocks->blocks.find(value) == blocks->blocks.end()) {
         cout << "ERR: unknown char code " << int(value) << " (corrupted file?)" << endl;
@@ -1738,8 +1738,8 @@ void Pixel::save_to_file(ostream& of, vector<BlockGroup*>* groups, bool yield) {
 
 
 
-Chunk::Chunk(int x, int y, int z, int nscale, Chunk* nparent):
-    Block(x, y, z, nscale, nparent) {}
+Chunk::Chunk(int x, int y, int z, int nscale, Chunk* nparent, Collider* nworld):
+    Block(x, y, z, nscale, nparent, nworld) {}
 
 bool Chunk::continues() const {
     return true;
