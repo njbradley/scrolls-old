@@ -25,38 +25,168 @@ const float lightmax = 20.0f;
  *
  */
 
-//////////////////////////// class Block /////////////////////////////////////
 
-Block::read_lock::read_lock(Block* newblock): block(newblock) {
-  //block->setlock.lock_shared();
-  //block->setlock.lock();
-  
-  // while (block->writing);
-  // block->reading ++;
+#define READ_LOCK ;
+#define WRITE_LOCK ;
+
+#define SCROLLS_BLOCK_CHECKS
+
+#ifdef SCROLLS_BLOCK_CHECKS
+#define ASSERTPIXEL if (continues) { \
+  ERR("ERR: invalid operation on chunk-type block: expected pixel-type") \
+} else if (pixel == nullptr) { \
+  ERR("ERR: invalid operation on undef-type block: expected pixel-type") \
 }
 
-Block::read_lock::~read_lock() {
-  //block->setlock.unlock_shared();
-  //block->setlock.unlock();
-  
-  // block->reading --;
+#define ASSERTCHUNK if (!continues) { \
+  if (pixel == nullptr) { \
+    ERR("ERR: invalid operation on undef-type block: expected chunk-type") \
+  } else { \
+    ERR("ERR: invalid operation on pixel-type block: expected chunk-type") \
+  } \
 }
 
-Block::write_lock::write_lock(Block* newblock): block(newblock) {
-  //block->setlock.lock();
+#define ASSERTUNDEF if (continues) { \
+  ERR("ERR: invalid operation on chunk-type block: expected undef-type") \
+} else if (pixel != nullptr) { \
+  ERR("ERR: invalid operation on pixel-type block: expected undef-type") \
+}
+#else
+#define ASSERTPIXEL ;
+#define ASSERTCHUNK ;
+#endif
+
+Block::Block(): continues(false), pixel(nullptr) {
   
-  // block->writing = true;
-  // while (block->reading);
 }
 
-Block::write_lock::~write_lock() {
-  //block->setlock.unlock();
+Block::Block(Pixel* pix): continues(false), pixel(pix) {
   
-  // block->writing = false;
 }
 
-Block::Block(int x, int y, int z, int newscale, Chunk* newparent) :
-    px(x), py(y), pz(z), scale(newscale), parent(newparent) {
+Block::Block(Block* childs): continues(true), children(childs) {
+  
+}
+
+~Block::Block() {
+  if (continues) {
+    delete[] children;
+  } else if (pixel != nullptr) {
+    delete pixel;
+  }
+}
+
+void Block::set_parent(Block* nparent, Collider* nworld, ivec3 ppos, int nscale) {
+  parent = nparent;
+  world = nworld;
+  parentpos = ppos;
+  scale = nscale;
+  
+  if (parent != nullptr) {
+    globalpos = parent->globalpos + parentpos * scale;
+  } else {
+    globalpos = parentpos * scale;
+  }
+  
+  if (continues) {
+    for (int i = 0; i < 8; i ++) {
+      children[i].set_parent(this, world, ivec3(i/4, i/2%2, i%2), scale / 2);
+    }
+  }
+}
+
+void Block::set_child(ivec3 pos, Block* block) { ASSERTCHUNK
+  *get(pos) = std::move(*block);
+  get(pos)->set_parent(this, world, pos, scale / 2);
+}
+
+Block* Block::get(ivec3 pos) {
+  return children + (pos.x*4 + pos.y * 2 + pos.z);
+}
+
+Block* Block::get(int x, int y, int z) {
+  return children + (x*4 + y*2 + z);
+}
+
+Block* Block::get_global(int x, int y, int z, int w) {
+  return get_global(ivec3(x,y,z), w);
+}
+  
+Block* Block::get_global(ivec3 pos, int w) {
+  Block* curblock = this;
+  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale)) {
+    if (curblock->parent == nullptr) {
+      return world->get_global(pos.x, pos.y, pos.z, w);
+    }
+    curblock = curblock->parent;
+  }
+  
+  while (curblock->scale > w and curblock->continues) {
+    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / 2);
+    curblock = curblock->get(rem);
+  }
+  return curblock;
+}
+
+void Block::divide() {
+  if (pixel != nullptr) {
+    delete pixel;
+  }
+  children = new Block[8];
+  continues = true;
+  for (int i = 0; i < 8; i ++) {
+    children[i].set_parent(this, world, ivec3(i/4, i/2%2, i%2), scale / 2);
+  }
+}
+
+void Block::to_file(ostream& ofile) const {
+  if (continues) {
+    ofile << char(0b11000000);
+    for (int i = 0; i < 8; i ++) {
+      children[i].to_file(ofile);
+    }
+  } else {
+    pixel->to_file(ofile);
+  }
+}
+
+void Block::from_file(istream& ifile) {
+  if (ifile.peek() == char(0b11000000)) {
+    divide();
+    for (int i = 0; i < 8; i ++) {
+      children[i].from_file(ifile);
+    }
+  } else {
+    pixel = new Pixel(file);
+  }
+}
+
+void Block::set_render_flag() {
+  render_flag = true;
+  Block* curblock = parent;
+  while (curblock != nullptr) {
+    curblock->render_flag = true;
+  }
+}
+
+void Block::set_light_flag() {
+  light_flag = true;
+  Block* curblock = parent;
+  while (curblock != nullptr) {
+    curblock->light_flag = true;
+  }
+}
+
+
+
+
+
+
+
+
+
+Block::Block(int x, int y, int z, int newscale, Chunk* newparent, Collider* nworld):
+    px(x), py(y), pz(z), scale(newscale), parent(newparent), world(nworld) {
     set_render_flag();
 }
 
@@ -211,7 +341,7 @@ BlockIter Block::iter_side(ivec3 dir) {
   return iter(startpos, endpos);
 }
 
-BlockIter Block::iter_touching_side(ivec3 dir, Collider* world) {
+BlockIter Block::iter_touching_side(ivec3 dir) {
   ivec3 pos;
   global_position(&pos.x, &pos.y, &pos.z);
   pos += dir * scale;
@@ -231,7 +361,7 @@ ConstBlockIter Block::const_iter_side(ivec3 dir) const {
   return const_iter(startpos, endpos);
 }
 
-BlockTouchIter Block::iter_touching(Collider* world) {
+BlockTouchIter Block::iter_touching() {
   return BlockTouchIter {this, world};
 }
 
@@ -373,7 +503,7 @@ void Block::read_pix_val(istream& ifile, char* type, unsigned int* value) {
 ///////////////////////////////// CLASS PIXEL /////////////////////////////////////
 
 Pixel::Pixel(int x, int y, int z, char new_val, int nscale, Chunk* nparent, Tile* ntile):
-  Block(x, y, z, nscale, nparent), render_index(-1,0), value(new_val), tile(ntile), direction(0) {
+  Block(x, y, z, nscale, nparent, tile->world), render_index(-1,0), value(new_val), tile(ntile), direction(0) {
     if (value != 0) {
       if (blocks->blocks.find(value) == blocks->blocks.end()) {
         cout << "ERR: unknown char code " << int(value) << " (corrupted file?)" << endl;
@@ -412,7 +542,7 @@ const Chunk* Pixel::get_chunk() const {
 
 Block* Pixel::get_global(int x, int y, int z, int scale) {
     //cout << "get global at pixel retunring self\n\n";
-    read_lock lock(this);
+    READ_LOCK;
     return this;
 }
 
@@ -442,7 +572,7 @@ Block* Pixel::set_global(ivec4 pos, char val, int direction, int newjoints[6]) {
 }
 
 void Pixel::set(char val, int newdirection, int newjoints[6], bool update) {
-    write_lock lock(this);
+    WRITE_LOCK;
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);
     //cout << "render_indes: " << render_index << " val:" << (int)value <<  ' '<< (int)val << endl;
@@ -572,7 +702,7 @@ void Pixel::random_tick() {
 }
 
 void Pixel::tick() { // ERR: race condition, render and tick threads race, render renders, tick causes falling
-  //read_lock lock(this);
+  READ_LOCK;
   const ivec3 dir_array[6] = {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
   int gx, gy, gz;
   global_position(&gx, &gy, &gz);
@@ -705,7 +835,7 @@ void Pixel::set_all_render_flags() {
 }
 
 void Pixel::del(bool remove_faces) {
-    write_lock lock(this);
+    WRITE_LOCK;
     int gx, gy, gz;
     global_position(&gx, &gy, &gz);
     if (remove_faces and tile != nullptr and render_index.start != -1) {
@@ -724,7 +854,7 @@ void Pixel::del(bool remove_faces) {
 }
 
 void Pixel::lighting_update() {
-  read_lock lock(this);
+  READ_LOCK;
   if (light_flag) {
     light_flag = false;
     unordered_set<ivec3,ivec3_hash> poses;
@@ -890,7 +1020,7 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
 }
 
 void Pixel::rotate(int axis, int dir) {
-  write_lock lock(this);
+  WRITE_LOCK;
   const int positive[18] {
     0, 2, 4, 3, 5, 1,
     5, 1, 0, 2, 4, 3,
@@ -1089,7 +1219,7 @@ void Pixel::render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* b
 }
 
 void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, Collider* collider, int gx, int gy, int gz, int depth, bool faces[6], bool render_null, bool yield) {
-  read_lock lock(this);
+  READ_LOCK;
   // render_smooth(allvecs, transvecs, collider, vec3(0,0,0));
   // return;
   if (!render_flag) {
@@ -1612,7 +1742,7 @@ BlockGroupIter Pixel::iter_group(Collider* world, bool (*func)(Pixel*,Pixel*)) {
 
 
 Chunk* Pixel::subdivide() {
-  write_lock lock(this);
+  WRITE_LOCK;
   if (render_index.start != -1 and tile != nullptr) {
     if (render_transparent) {
       tile->world->transparent_glvecs.del(render_index);
@@ -1764,8 +1894,8 @@ void Pixel::save_to_file(ostream& of, vector<BlockGroup*>* groups, bool yield) {
 
 
 
-Chunk::Chunk(int x, int y, int z, int nscale, Chunk* nparent):
-    Block(x, y, z, nscale, nparent) {}
+Chunk::Chunk(int x, int y, int z, int nscale, Chunk* nparent, Collider* nworld):
+    Block(x, y, z, nscale, nparent, nworld) {}
 
 bool Chunk::continues() const {
     return true;
@@ -1798,7 +1928,7 @@ char Chunk::get() const {
 }
 
 void Chunk::lighting_update() {
-  read_lock lock(this);
+  READ_LOCK;
   if (light_flag) {
     light_flag = false;
     for (int x = 0; x < csize; x ++) {
@@ -1812,7 +1942,7 @@ void Chunk::lighting_update() {
 }
 
 void Chunk::rotate(int axis, int dir) {
-  write_lock lock(this);
+  WRITE_LOCK;
   // order 0,0 0,1 1,0 1,1
   const ivec2 positive[csize*csize] {{1,0},{0,0},{1,1},{0,1}};
   const ivec2 negative[csize*csize] {{0,1},{1,1},{0,0},{1,0}};
@@ -1865,7 +1995,7 @@ void Chunk::rotate(int axis, int dir) {
 
 
 void Chunk::render(RenderVecs* vecs, RenderVecs* transvecs, Collider* collider, int gx, int gy, int gz, int depth, bool faces[6], bool render_null, bool yield) {
-  read_lock lock(this);
+  READ_LOCK;
   
   if (render_flag) {
     render_flag = false;
@@ -1911,7 +2041,7 @@ void Chunk::render(RenderVecs* vecs, RenderVecs* transvecs, Collider* collider, 
 }
 
 void Chunk::del(bool remove_faces) {
-    write_lock lock(this);
+    WRITE_LOCK;
     for (int x = 0; x < csize; x ++) {
         for (int y = 0; y < csize; y ++) {
             for (int z = 0; z < csize; z ++) {
@@ -1923,7 +2053,7 @@ void Chunk::del(bool remove_faces) {
 }
 
 void Chunk::set_all_render_flags() {
-    read_lock lock(this);
+    READ_LOCK;
     
     render_flag = true;
     for (int x = 0; x < csize; x ++) {
@@ -1936,7 +2066,7 @@ void Chunk::set_all_render_flags() {
 }
 
 Block* Chunk::get_global(int x, int y, int z, int nscale) {
-    read_lock lock(this);
+    READ_LOCK;
     
     if (nscale == scale) {
         return this;
@@ -1974,7 +2104,7 @@ Block* Chunk::set_global(ivec4 pos, char val, int direction, int newjoints[6]) {
     ivec3 nlpos = lpos / (scale / csize);
     Block* newblock = blocks[nlpos.x][nlpos.y][nlpos.z]->set_global(ivec4(lpos.x, lpos.y, lpos.z, pos.w), val, direction, newjoints);
     {
-      write_lock lock(this);
+      WRITE_LOCK;
       blocks[nlpos.x][nlpos.y][nlpos.z] = newblock;
     }
     // if (!blocks[nlpos.x][nlpos.y][nlpos.z]->continues()) {
@@ -2004,7 +2134,7 @@ Block* Chunk::set_global(ivec4 pos, char val, int direction, int newjoints[6]) {
     
 
 void Chunk::save_to_file(ostream& of, vector<BlockGroup*>* groups, bool yield) {
-    read_lock lock(this);
+    READ_LOCK;
     of << char(0b11000000);
     for (int x = 0; x < csize; x ++) {
         for (int y = 0; y < csize; y ++) {

@@ -22,6 +22,7 @@ using glm::ivec2;
 using glm::vec4;
 using glm::ivec4;
 using glm::mat4;
+typedef glm::vec<3,glm::detail::uint8> ui8vec3;
 using std::cout;
 using std::endl;
 using std::string;
@@ -34,6 +35,14 @@ using std::istream;
 using std::ostream;
 using std::vector;
 using std::pair;
+
+typedef uint8_t uint8;
+typedef unsigned int uint;
+
+#define SAFEMOD(a,b) (b + (a%b)) % b
+#define SAFEDIV(a,b) a / b + ((a % b) >> 31)
+
+#define ERR(msg) throw std::runtime_error(string(msg) + "\n" + __PRETTY_FUNCTION__ + ": " + __FILE__ + " Line " + std::to_string(__LINE__));
 
 void wait();
 void print(vec3 v);
