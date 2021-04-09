@@ -46,8 +46,6 @@ using namespace glm;
 
 
 #include "cross-platform.h"
-#include "dwarfstack.h"
-
 
 #include <future>
 

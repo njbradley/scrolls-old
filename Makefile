@@ -14,7 +14,7 @@ ifeq ($(PLAT),MAC)
 LIBS := -lglfw -framework CoreVideo -framework OpenGL -framework IOKit -lGLEW -lopenal -lalut
 else
 ifeq ($(PLAT),LINUX)
-LIBS := -lGLEW -lGL -pthread -lglfw
+LIBS := -lGLEW -lGL -pthread -lglfw -lopenal -lalut -lboost_system
 else
 LIBS := -lglew32 -lopenal -lalut -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32 -lboost_system-mt -lWs2_32 -ldwarfstack -ldbghelp
 EXESUFFIX :=.exe
