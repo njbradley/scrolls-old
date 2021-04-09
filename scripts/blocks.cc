@@ -29,6 +29,162 @@ const float lightmax = 20.0f;
 #define READ_LOCK ;
 #define WRITE_LOCK ;
 
+#define SCROLLS_BLOCK_CHECKS
+
+#ifdef SCROLLS_BLOCK_CHECKS
+#define ASSERTPIXEL if (continues) { \
+  ERR("ERR: invalid operation on chunk-type block: expected pixel-type") \
+} else if (pixel == nullptr) { \
+  ERR("ERR: invalid operation on undef-type block: expected pixel-type") \
+}
+
+#define ASSERTCHUNK if (!continues) { \
+  if (pixel == nullptr) { \
+    ERR("ERR: invalid operation on undef-type block: expected chunk-type") \
+  } else { \
+    ERR("ERR: invalid operation on pixel-type block: expected chunk-type") \
+  } \
+}
+
+#define ASSERTUNDEF if (continues) { \
+  ERR("ERR: invalid operation on chunk-type block: expected undef-type") \
+} else if (pixel != nullptr) { \
+  ERR("ERR: invalid operation on pixel-type block: expected undef-type") \
+}
+#else
+#define ASSERTPIXEL ;
+#define ASSERTCHUNK ;
+#endif
+
+Block::Block(): continues(false), pixel(nullptr) {
+  
+}
+
+Block::Block(Pixel* pix): continues(false), pixel(pix) {
+  
+}
+
+Block::Block(Block* childs): continues(true), children(childs) {
+  
+}
+
+~Block::Block() {
+  if (continues) {
+    delete[] children;
+  } else if (pixel != nullptr) {
+    delete pixel;
+  }
+}
+
+void Block::set_parent(Block* nparent, Collider* nworld, ivec3 ppos, int nscale) {
+  parent = nparent;
+  world = nworld;
+  parentpos = ppos;
+  scale = nscale;
+  
+  if (parent != nullptr) {
+    globalpos = parent->globalpos + parentpos * scale;
+  } else {
+    globalpos = parentpos * scale;
+  }
+  
+  if (continues) {
+    for (int i = 0; i < 8; i ++) {
+      children[i].set_parent(this, world, ivec3(i/4, i/2%2, i%2), scale / 2);
+    }
+  }
+}
+
+void Block::set_child(ivec3 pos, Block* block) { ASSERTCHUNK
+  *get(pos) = std::move(*block);
+  get(pos)->set_parent(this, world, pos, scale / 2);
+}
+
+Block* Block::get(ivec3 pos) {
+  return children + (pos.x*4 + pos.y * 2 + pos.z);
+}
+
+Block* Block::get(int x, int y, int z) {
+  return children + (x*4 + y*2 + z);
+}
+
+Block* Block::get_global(int x, int y, int z, int w) {
+  return get_global(ivec3(x,y,z), w);
+}
+  
+Block* Block::get_global(ivec3 pos, int w) {
+  Block* curblock = this;
+  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale)) {
+    if (curblock->parent == nullptr) {
+      return world->get_global(pos.x, pos.y, pos.z, w);
+    }
+    curblock = curblock->parent;
+  }
+  
+  while (curblock->scale > w and curblock->continues) {
+    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / 2);
+    curblock = curblock->get(rem);
+  }
+  return curblock;
+}
+
+void Block::divide() {
+  if (pixel != nullptr) {
+    delete pixel;
+  }
+  children = new Block[8];
+  continues = true;
+  for (int i = 0; i < 8; i ++) {
+    children[i].set_parent(this, world, ivec3(i/4, i/2%2, i%2), scale / 2);
+  }
+}
+
+void Block::to_file(ostream& ofile) const {
+  if (continues) {
+    ofile << char(0b11000000);
+    for (int i = 0; i < 8; i ++) {
+      children[i].to_file(ofile);
+    }
+  } else {
+    pixel->to_file(ofile);
+  }
+}
+
+void Block::from_file(istream& ifile) {
+  if (ifile.peek() == char(0b11000000)) {
+    divide();
+    for (int i = 0; i < 8; i ++) {
+      children[i].from_file(ifile);
+    }
+  } else {
+    pixel = new Pixel(file);
+  }
+}
+
+void Block::set_render_flag() {
+  render_flag = true;
+  Block* curblock = parent;
+  while (curblock != nullptr) {
+    curblock->render_flag = true;
+  }
+}
+
+void Block::set_light_flag() {
+  light_flag = true;
+  Block* curblock = parent;
+  while (curblock != nullptr) {
+    curblock->light_flag = true;
+  }
+}
+
+
+
+
+
+
+
+
+
 Block::Block(int x, int y, int z, int newscale, Chunk* newparent, Collider* nworld):
     px(x), py(y), pz(z), scale(newscale), parent(newparent), world(nworld) {
     set_render_flag();
