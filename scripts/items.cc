@@ -81,7 +81,7 @@ bool CharArray::place(World* world, Item* item, ivec3 pos, ivec3 dir) {
                 int pz = k - (sz/2);
                 world->set(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy), get(i,j,k), direction);
                 
-                pixels.push_back(world->get_global(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy), 1)->get_pix());
+                pixels.push_back(world->get_global(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy), 1)->pixel);
             }
         }
     }
@@ -736,8 +736,7 @@ Item ItemStorage::from_group(Pixel* startpix) {
   ivec3 dims(1,1,1);
   
   for (Pixel* pix : iter) {
-    ivec3 pos;
-    pix->global_position(&pos.x, &pos.y, &pos.z);
+    ivec3 pos = pix->parbl->globalpos;
     if (first_pix) {
       position = pos;
       first_pix = false;
@@ -767,8 +766,7 @@ Item ItemStorage::from_group(Pixel* startpix) {
   }
   
   for (Pixel* pix : iter) {
-    ivec3 pos;
-    pix->global_position(&pos.x, &pos.y, &pos.z);
+    ivec3 pos = pix->parbl->globalpos;
     ivec3 lpos = pos - position;
     data[lpos.x*dims.y*dims.z + lpos.y*dims.z + lpos.z] = pix->value;
   }

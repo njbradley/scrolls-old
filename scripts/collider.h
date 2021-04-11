@@ -15,4 +15,10 @@ struct Collider {
   virtual vec3 get_position() const = 0;
 };
 
+
+class Container : public Collider { public:
+	virtual void block_update(ivec3 pos) = 0;
+};
+
+
 #endif

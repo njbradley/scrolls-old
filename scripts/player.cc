@@ -58,7 +58,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 
 Player::Player(World* newworld, vec3 pos):
-DisplayEntity(newworld, pos, vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7), new Pixel(0,0,0, 0, 1, nullptr, nullptr), vec3(0,0,0)),
+DisplayEntity(newworld, pos, vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7), new Block(new Pixel(0)), vec3(0,0,0)),
 inven(10), backpack(10) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
 	glfwSetMouseButtonCallback(window, mouse_button_call);
 	glfwSetScrollCallback(window, scroll_callback);
@@ -74,7 +74,7 @@ inven(10), backpack(10) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
 }
 
 Player::Player(World* newworld, istream& ifile):
-DisplayEntity(newworld, vec3(0,0,0), vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7), new Pixel(0,0,0, 0, 1, nullptr, nullptr), vec3(0,0,0)),
+DisplayEntity(newworld, vec3(0,0,0), vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7), new Block(new Pixel(0)), vec3(0,0,0)),
 inven(ifile), backpack(ifile) {
 	ifile >> selitem;
 	ifile >> position.x >> position.y >> position.z;
@@ -99,7 +99,7 @@ void Player::init_block_breaking_vecs() {
 	block_breaking_render_index = RenderIndex::npos;
 }
 
-void Player::set_block_breaking_vecs(Pixel* pixref, ivec3 hitpos, int level) {
+void Player::set_block_breaking_vecs(Pixel* pixref, ivec3 hitpos, int level) {/*
 	if (level == 0) {
 		if (!block_breaking_render_index.isnull()) {
 			world->transparent_glvecs.del(block_breaking_render_index);
@@ -108,17 +108,15 @@ void Player::set_block_breaking_vecs(Pixel* pixref, ivec3 hitpos, int level) {
 		return;
 	}
 	level --;
-	int gx, gy, gz;
 	//Pixel pix = *pixref;
-	Pixel pix(pixref->px, pixref->py, pixref->pz, pixref->value, pixref->scale, pixref->parent, pixref->tile);
+	Pixel pix(*pixref);
 	pix.render_index = RenderIndex::npos;
 	pix.render_flag = true;
-	pix.global_position(&gx, &gy, &gz);
-	int pgx, pgy, pgz;
-	pix.parent->global_position(&pgx, &pgy, &pgz);
+	ivec3 gpos = pix.block->globalpos;
+	ivec3 pgpos = pix.block->parent->globalpos;
 	bool faces[] = {true,true,true,true,true,true};
 	MemVecs vecs;
-	pix.render(&vecs, &vecs, world, pgx, pgy, pgz, 1, faces, false, false);
+	pix.render(&vecs, &vecs, 0xff, true);
 	for (int i = 0; i < vecs.num_verts; i ++) {
 		if (vecs.verts[i*3+0] > gx) {
 			vecs.verts[i*3+0] = hitpos.x + 1.01;
@@ -151,7 +149,7 @@ void Player::set_block_breaking_vecs(Pixel* pixref, ivec3 hitpos, int level) {
 	if (!block_breaking_render_index.isnull()) {
 		world->transparent_glvecs.del(block_breaking_render_index);
 	}
-	block_breaking_render_index = world->transparent_glvecs.add(&vecs);
+	block_breaking_render_index = world->transparent_glvecs.add(&vecs);*/
 }
 
 void Player::save_to_file(ostream& ofile) {
@@ -186,7 +184,7 @@ void Player::raycast(Pixel** hit, vec3* hitpos, DisplayEntity** target_entity) {
 	float dist;
 	if (target != nullptr) {
 		dist = glm::length(position-vec3(x,y,z));
-		*hit = target->get_pix();
+		*hit = target->pixel;
 		*hitpos = vec3(x,y,z);
 	} else {
 		dist = -1;
@@ -365,7 +363,7 @@ void Player::right_mouse(double deltatime) {
 			if (close_index != -1 and pix->joints[close_index] == 7) {
 				pix->joints[close_index] = inhand->data->glue->tex_index;
 				ivec3 sidepos = blockpos + close_dir;
-				Pixel* sidepix = world->get_global(sidepos.x, sidepos.y, sidepos.z, 1)->get_pix();
+				Pixel* sidepix = world->get_global(sidepos.x, sidepos.y, sidepos.z, 1)->pixel;
 				sidepix->joints[(close_index+3)%6] = inhand->data->glue->tex_index;
 				pix->render_update();
 				sidepix->render_update();
@@ -483,11 +481,11 @@ void Player::left_mouse(double deltatime) {
 						if (dir_array[i] == dir) dir_index = i;
 					}
 					
-					Pixel* pix = world->get_global(pos.x, pos.y, pos.z, 1)->get_pix();
+					Pixel* pix = world->get_global(pos.x, pos.y, pos.z, 1)->pixel;
 					if (pix->value != 0) {
-						Pixel* otherpix = world->get_global(pos.x+dir.x, pos.y+dir.y, pos.z+dir.z, 1)->get_pix();
+						Pixel* otherpix = world->get_global(pos.x+dir.x, pos.y+dir.y, pos.z+dir.z, 1)->pixel;
 						if (blocks->clumpy(otherpix->value, pix->value)) {
-							if (pix->scale != 1 or otherpix->scale != 1) {
+							if (pix->parbl->scale != 1 or otherpix->parbl->scale != 1) {
 								world->set(ivec4(pos.x, pos.y, pos.z, 1), -1, 0);
 								world->set(ivec4(pos.x+dir.x, pos.y+dir.y, pos.z+dir.z, 1), -1, 0);
 								chosen_pos = pos;
@@ -506,8 +504,8 @@ void Player::left_mouse(double deltatime) {
 				
 				if (chosen_dir_index != -1) {
 					ivec3 chosen_opos = chosen_pos + chosen_dir;
-					Pixel* pix = world->get_global(chosen_pos.x, chosen_pos.y, chosen_pos.z, 1)->get_pix();
-					Pixel* otherpix = world->get_global(chosen_opos.x, chosen_opos.y, chosen_opos.z, 1)->get_pix();
+					Pixel* pix = world->get_global(chosen_pos.x, chosen_pos.y, chosen_pos.z, 1)->pixel;
+					Pixel* otherpix = world->get_global(chosen_opos.x, chosen_opos.y, chosen_opos.z, 1)->pixel;
 					
 					pix->joints[chosen_dir_index] = 7;
 					otherpix->joints[(chosen_dir_index+3)%6] = 7;
@@ -515,16 +513,14 @@ void Player::left_mouse(double deltatime) {
 					otherpix->render_update();
 					
 					if (pix->joints[chosen_dir_index] == 7) {
-						ivec3 pos;
+						ivec3 pos = pix->parbl->globalpos;
 						if (pix->group != nullptr) pix->group->del(pix);
-						pix->global_position(&pos.x, &pos.y, &pos.z);
-						pix->tile->world->block_update(pos.x, pos.y, pos.z);
+						pix->parbl->world->block_update(pos);
 					}
 					if (otherpix->joints[(chosen_dir_index+3)%6] == 7) {
-						ivec3 pos;
+						ivec3 pos = otherpix->parbl->globalpos;
 						if (otherpix->group != nullptr) otherpix->group->del(otherpix);
-						otherpix->global_position(&pos.x, &pos.y, &pos.z);
-						otherpix->tile->world->block_update(pos.x, pos.y, pos.z);
+						otherpix->parbl->world->block_update(pos);
 					}
 				}
 			}
@@ -578,7 +574,7 @@ void Player::computeMatricesFromInputs(){
 	
 	Block* camerablock = world->get_global(int(position.x), int(position.y), int(position.z), 1);
 	if (camerablock != 0) {
-		if (camerablock->get() == 7) {
+		if (camerablock->pixel->value == 7) {
 			game->set_display_env(vec3(0.2,0.2,0.6), 10);
 		} else {
 			game->set_display_env(vec3(0.4,0.7,1.0), 2000000);

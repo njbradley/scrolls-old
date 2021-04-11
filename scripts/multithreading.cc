@@ -163,13 +163,6 @@ void LoadingThread::operator()() {
 				double mid = glfwGetTime();
 				world->add_tile(tile);
 				tile->lighting_update();
-				int top_val = tile->chunk->get_global(32, 63, 32, 1)->get_pix()->sunlight;
-				if (tile->fully_loaded) {
-					//cout << pos << endl;
-				}
-				if (mid - start > 0.0001) {
-					//cout << glfwGetTime() - mid << "l " << mid - start << "g --- " << pos << ' ' << top_val << endl;
-				}
 			}
 		} else {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));

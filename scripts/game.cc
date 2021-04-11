@@ -367,7 +367,7 @@ void MainGame::gametick() {
 			cout << "njbradley is king" << endl;
 		} else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 			if (debugblock != nullptr) {
-				debugblock->set_light_flag();
+				debugblock->parbl->set_light_flag();
 			}
 			// ivec3 ppos(world->player->position);
 			// world->set(ppos.x, ppos.y, ppos.z, -1);
@@ -388,12 +388,11 @@ void MainGame::gametick() {
 			debug_visible = false;
 		} else if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) {
 			if (debugblock != nullptr) {
-				Block* block = debugblock;
+				Block* block = debugblock->parbl;
 				while (block != nullptr) {
 					cout << "Block " << block << endl;
 					ivec3 pos;
-					block->global_position(&pos.x, &pos.y, &pos.z);
-					cout << " position " << pos << " local " << ivec3(block->px, block->py, block->pz) << endl;
+					cout << " position " << block->globalpos << " local " << block->parentpos << endl;
 					cout << " flags light " << block->light_flag << " render " << block->render_flag << endl;
 					cout << " scale " << block->scale << endl;
 					cout << endl;
@@ -433,10 +432,10 @@ void MainGame::gametick() {
 					stringstream name;
 					name << itemstack.item.get_name() << " s" << itemstack.item.get_sharpness() << " w" << itemstack.item.get_weight();
 					ofile << std::setw(30) << name.str();
-					for (char c : blockchars) {
-						Pixel pix(0,0,0,c,1,nullptr,nullptr);
-						ofile << std::setw(15) << 1.0/itemstack.item.collision(&pix);
-					}
+					// for (char c : blockchars) {
+					// 	Pixel pix(0,0,0,c,1,nullptr,nullptr);
+					// 	ofile << std::setw(15) << 1.0/itemstack.item.collision(&pix);
+					// }
 					ofile << endl;
 				}
 			}
@@ -538,21 +537,19 @@ void MainGame::print_debug() {
 		debugstream << endl;
 	}
 	if (debugblock != nullptr) {
-		int gx, gy, gz;
-		debugblock->global_position(&gx, &gy, &gz);
 		string name = "undef";
-		BlockData* data = blocks->blocks[debugblock->get()];
+		BlockData* data = blocks->blocks[debugblock->value];
 		if (data != nullptr) {
 			name = data->name;
 		}
 		// if (debugblock->group != nullptr) {
 		// 	debugblock->group->debug(debugstream);
 		// }
-		debugstream << "tracking block " << debugblock << " at " << gx << "x " << gy << "y " << gz << "z " << endl;
-		debugstream << " type:" << name << " char:" << int(debugblock->value) << " scale:" << debugblock->scale << endl;
+		debugstream << "tracking block " << debugblock << " at " << debugblock->parbl->globalpos << endl;
+		debugstream << " type:" << name << " char:" << int(debugblock->value) << " scale:" << debugblock->parbl->scale << endl;
 		debugstream << " direction:" << int(debugblock->direction) << " render_index:" << debugblock->render_index.start << ',' << debugblock->render_index.size << endl;
-		debugstream << " flags: light " << debugblock->light_flag << " render " << debugblock->render_flag << endl;
-		debugstream << " parent coords:" << debugblock->px << ',' << debugblock->py << ',' << debugblock->pz << endl;
+		debugstream << " flags: light " << debugblock->parbl->light_flag << " render " << debugblock->parbl->render_flag << endl;
+		debugstream << " parent coords: " << debugblock->parbl->parentpos << endl;
 		debugstream << " physics_group:" << debugblock->group << ' ' << "light " << debugblock->blocklight << ' ' << debugblock->sunlight << endl;
 		debugstream << " joints ";
 		for (int joint : debugblock->joints) {

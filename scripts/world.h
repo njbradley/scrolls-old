@@ -46,7 +46,7 @@ class TileLoop { public:
 
 extern int view_dist;
 
-class World: public Collider {
+class World: public Container {
     vector<ivec3> loading_chunks;
     vector<ivec3> deleting_chunks;
     unordered_set<ivec3,ivec3_hash> block_updates;
@@ -101,6 +101,7 @@ class World: public Collider {
         void tick();
         void drop_ticks();
         void block_update(int,int,int);
+        void block_update(ivec3);
         void aftertick(std::function<void(World*)> func);
         void light_update(int,int,int);
         void update_lighting();

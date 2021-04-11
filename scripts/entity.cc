@@ -139,7 +139,7 @@ void Entity::tick() {
 }
 
 bool Entity::is_solid_block(Block* block) {
-  return block != nullptr and (block->get() != 0 and block->get() != 7);
+  return block != nullptr and (block->pixel->value != 0 and block->pixel->value != 7);
 }
 
 void Entity::calc_constraints() {
@@ -201,7 +201,7 @@ void Entity::calc_constraints() {
                     Block* pix = collider->get_global(x,y,z,1);
                     bool new_const = is_solid_block(pix);
                     if (new_const) {
-                      Material* mat = blocks->blocks[pix->get_pix()->value]->material;
+                      Material* mat = blocks->blocks[pix->pixel->value]->material;
                       if (mat_consts[axis] == nullptr or mat_consts[axis]->toughness < mat->toughness) {
                         mat_consts[axis] = mat;
                       }
@@ -229,7 +229,7 @@ void Entity::calc_constraints() {
                       if (!is_solid_block(pix)) {
                         continue;
                       } else {
-                        mat = blocks->blocks[pix->get_pix()->value]->material;
+                        mat = blocks->blocks[pix->pixel->value]->material;
                       }
                       constraint = true;
                       for (int yoff = 1; yoff < 3; yoff ++) {
@@ -242,7 +242,7 @@ void Entity::calc_constraints() {
                           constraint = true;
                           break;
                         } else {
-                          mat = blocks->blocks[pix->get_pix()->value]->material;
+                          mat = blocks->blocks[pix->pixel->value]->material;
                         }
                       }
                       if (mat != nullptr and (mat_consts[axis+3] == nullptr or mat_consts[axis+3]->toughness < mat->toughness)) {
@@ -265,7 +265,7 @@ void Entity::calc_constraints() {
                     Block* above = collider->get_global(x,y+1,z,1);
                     if (!is_solid_block(above)) {
                       constraint = true;
-                      Material* mat = blocks->blocks[floor->get_pix()->value]->material;
+                      Material* mat = blocks->blocks[floor->pixel->value]->material;
                       if (mat_consts[axis+3] == nullptr or mat_consts[axis+3]->toughness < mat->toughness) {
                         mat_consts[axis+3] = mat;
                       }
@@ -311,7 +311,7 @@ void Entity::calc_constraints() {
                       Block* pix = collider->get_global(x,y,z,1);
                       bool new_const = is_solid_block(pix);
                       if (new_const) {
-                        Material* mat = blocks->blocks[pix->get_pix()->value]->material;
+                        Material* mat = blocks->blocks[pix->pixel->value]->material;
                         if (mat_consts[axis+3] == nullptr or mat_consts[axis+3]->toughness < mat->toughness) {
                           mat_consts[axis+3] = mat;
                         }
@@ -335,7 +335,7 @@ void Entity::calc_constraints() {
         for (int y = (int)neg.y; y < pos.y+1 and !in_water; y ++) {
           for (int z = (int)neg.z; z < pos.z+1 and !in_water; z ++) {
             Block* pix = collider->get_global(x,y,z,1);
-            if (pix != nullptr and pix->get() == 7) {
+            if (pix != nullptr and pix->pixel->value == 7) {
               in_water = true;
             }
           }
@@ -707,11 +707,10 @@ void DisplayEntity::render(RenderVecs* allvecs) {
     vecs.clear();
     for (Pixel* pix : block.block->iter()) {
       pix->render_index = RenderIndex::npos;
-      pix->set_render_flag();
+      pix->parbl->set_render_flag();
       pix->sunlight = lightmax;
     }
-    bool faces[] = {true,true,true,true,true,true};
-    block.block->render(&vecs, &vecs, &block, 0, 0, 0, 1, faces, true, false);
+    block.block->render(&vecs, &vecs, 0xff, true);
     for (int i = 0; i < vecs.num_verts; i++) {
       vecs.verts[i*3+0] += blockpos.x;
       vecs.verts[i*3+1] += blockpos.y;
@@ -792,23 +791,22 @@ void DisplayEntity::calc_light(vec3 offset, vec2 ang) {
   
   if (emitted_light == 0 and !emitted_light_flag) {
     if (b != nullptr) {
-      sunlight = b->get_pix()->sunlight;
-      blocklight = b->get_pix()->blocklight;
+      sunlight = b->pixel->sunlight;
+      blocklight = b->pixel->blocklight;
     } else {
       sunlight = 10;
       blocklight = 0;
     }
   } else {
     if (b != nullptr) {
-      Pixel* pix = b->get_pix();
-      ivec3 newpos;
-      pix->global_position(&newpos.x, &newpos.y, &newpos.z);
+      Pixel* pix = b->pixel;
+      ivec3 newpos = pix->parbl->globalpos;
       sunlight = pix->sunlight;
       if (newpos != lit_block or emitted_light_flag) {
         Block* bb = world->get_global(lit_block.x, lit_block.y, lit_block.z, 1);
         if (bb != nullptr) {
-          bb->get_pix()->entitylight = 0;
-          bb->get_pix()->render_update();
+          bb->pixel->entitylight = 0;
+          bb->pixel->render_update();
         }
         if (pix->blocklight < emitted_light) {
           pix->entitylight = emitted_light;
@@ -846,8 +844,8 @@ DisplayEntity::~DisplayEntity() {
   if (emitted_light > 0) {
     Block* b = world->get_global(lit_block.x, lit_block.y, lit_block.z, 1);
     if (b != nullptr) {
-      b->get_pix()->entitylight = 0;
-      b->get_pix()->render_update();
+      b->pixel->entitylight = 0;
+      b->pixel->render_update();
     }
   }
   if (!render_index.isnull()) {
@@ -855,7 +853,6 @@ DisplayEntity::~DisplayEntity() {
     //world->dead_render_indexes.push_back(render_index);
   }
   if (block.block != nullptr) {
-    block.block->del(false);
     delete block.block;
   }
   
@@ -895,7 +892,10 @@ Block* NamedEntity::loadblock(string name) {
   box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
   char buff;
   ifile.read(&buff,1);
-  return Block::from_file(ifile, 0, 0, 0, size, nullptr, nullptr);
+  Block* nblock = new Block();
+  nblock->set_parent(nullptr, &block, ivec3(0,0,0), size);
+  nblock->from_file(ifile);
+  return nblock;
 }
 
 void NamedEntity::on_timestep(double deltatime) {
@@ -933,7 +933,7 @@ void NamedEntity::on_timestep(double deltatime) {
     for (int x = 0; x < block.block->scale; x ++) {
       for (int y = 0; y < block.block->scale; y ++) {
         for (int z = 0; z < block.block->scale; z ++) {
-          Pixel* pix = block.block->get_global(x, y, z, 1)->get_pix();
+          Pixel* pix = block.block->get_global(x, y, z, 1)->pixel;
           if (pix->value != 0) {
             world->set(position.x+x, position.y+y, position.z+z, pix->value, pix->direction);
           }
@@ -956,8 +956,7 @@ vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup), item(nullptr) {
   const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
   last_pixels.emplace(start_pix);
   
-  ivec3 start_pos;
-  start_pix->global_position(&start_pos.x, &start_pos.y, &start_pos.z);
+  ivec3 start_pos = start_pix->parbl->globalpos;
   
   ivec3 lower_bound = start_pos;
   ivec3 upper_bound = start_pos;
@@ -968,12 +967,11 @@ vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup), item(nullptr) {
     }
     
     for (Pixel* pix : last_pixels) {
-      ivec3 pos;
-      pix->global_position(&pos.x, &pos.y, &pos.z);
+      ivec3 pos = pix->parbl->globalpos;
       
       for (ivec3 dir : dir_array) {
-        ivec3 sidepos = pos + pix->scale * dir;
-        Block* block = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
+        ivec3 sidepos = pos + pix->parbl->scale * dir;
+        Block* block = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->parbl->scale);
         if (block != nullptr) {
           for (Pixel* sidepix : block->iter_side(-dir)) {
             if ((sidepix->group == pix->group) and pixels.count(sidepix) == 0) {
@@ -1002,18 +1000,18 @@ vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup), item(nullptr) {
     scale *= 2;
   }
   
-  block.block = new Pixel(0,0,0, 0,scale, nullptr, nullptr);
+  block.block = new Block(new Pixel(0));
+  block.block->set_parent(nullptr, &block, ivec3(0,0,0), scale);
   density = 0;
   
   for (Pixel* pix : pixels) {
-    ivec3 pos;
-    pix->global_position(&pos.x, &pos.y, &pos.z);
+    ivec3 pos = pix->parbl->globalpos;
     ivec3 localpos = pos - lower_bound;
     
     density += blocks->blocks[pix->value]->material->density;
     
-    block.set(ivec4(localpos.x, localpos.y, localpos.z, pix->scale), pix->value, pix->direction, pix->joints);
-    Pixel* blockpix = block.get_global(localpos.x, localpos.y, localpos.z, pix->scale)->get_pix();
+    block.set(ivec4(localpos.x, localpos.y, localpos.z, pix->parbl->scale), pix->value, pix->direction); // tofix joints
+    Pixel* blockpix = block.get_global(localpos.x, localpos.y, localpos.z, pix->parbl->scale)->pixel;
     //blockpix->group = pix->group;
     for (int i = 0; i < 6; i ++) {
       blockpix->joints[i] = pix->joints[i];
@@ -1025,12 +1023,11 @@ vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup), item(nullptr) {
   density = -1;
   
   for (Pixel* pix : pixels) {
-    ivec3 pos;
-    pix->global_position(&pos.x, &pos.y, &pos.z);
+    ivec3 pos = pix->parbl->globalpos;
     ivec3 localpos = pos - lower_bound;
     
     
-    world->set(ivec4(pos.x, pos.y, pos.z, pix->scale), 0, 0);
+    world->set(ivec4(pos.x, pos.y, pos.z, pix->parbl->scale), 0, 0);
   }
   
   
@@ -1042,7 +1039,9 @@ FallingBlockEntity::FallingBlockEntity(World* nworld, istream& ifile): DisplayEn
   ifile >> final >> scale;
   string str;
   getline(ifile, str, ':');
-  block.block = Block::from_file(ifile, 0, 0, 0, scale, nullptr, nullptr);
+  block.block = new Block();
+  block.block->set_parent(nullptr, &block, ivec3(0,0,0), scale);
+  block.block->from_file(ifile);
   // string buff;
   // int scale;
   // ifile >> scale;
@@ -1054,7 +1053,7 @@ void FallingBlockEntity::to_file(ostream& ofile) {
   DisplayEntity::to_file(ofile);
   item.to_file(ofile);
   ofile << final << ' ' << block.block->scale << endl << ':';
-  block.block->save_to_file(ofile);
+  block.block->to_file(ofile);
 }
 
 void FallingBlockEntity::on_timestep(double deltatime) {
@@ -1065,11 +1064,10 @@ void FallingBlockEntity::on_timestep(double deltatime) {
     // map<BlockGroup*,Pixel*> groups;
     for (Pixel* pix : block.block->iter()) {
       if (pix->value != 0) {
-        ivec3 pos;
-        pix->global_position(&pos.x, &pos.y, &pos.z);
+        ivec3 pos = pix->parbl->globalpos;
         ivec3 globalpos = ivec3(position) + pos;
-        world->set(ivec4(globalpos.x, globalpos.y, globalpos.z, pix->scale), pix->value, pix->direction, pix->joints);
-        Pixel* worldpix = world->get_global(globalpos.x, globalpos.y, globalpos.z, pix->scale)->get_pix();
+        world->set(ivec4(globalpos.x, globalpos.y, globalpos.z, pix->parbl->scale), pix->value, pix->direction);// tofix joints
+        Pixel* worldpix = world->get_global(globalpos.x, globalpos.y, globalpos.z, pix->parbl->scale)->pixel;
         //worldpix->group = pix->group;
         // for (int i = 0; i < 6; i ++) {
         //   worldpix->joints[i] = pix->joints[i];
@@ -1077,7 +1075,7 @@ void FallingBlockEntity::on_timestep(double deltatime) {
         //pix->group->recalculate_flag = true;
         // groups[pix->group] = worldpix;
         //pix->group = nullptr;
-        pixels.push_back(world->get_global(globalpos.x, globalpos.y, globalpos.z, pix->scale)->get_pix());
+        pixels.push_back(world->get_global(globalpos.x, globalpos.y, globalpos.z, pix->parbl->scale)->pixel);
       }
     }
     
@@ -1140,15 +1138,18 @@ void FallingBlockEntity::calc_constraints() {
     for (Pixel* pix : block.block->iter()) {
       if (!pix->is_air(0,0,0)) {
         int bx, by, bz;
-        pix->global_position(&bx, &by, &bz);
+        ivec3 pos = pix->parbl->globalpos;
+        bx = pos.x;
+        by = pos.y;
+        bz = pos.z;
         
         Block* inblock = world->get_global(position.x+bx, position.y+by, position.z+bz, 1);
-        if (inblock != nullptr and inblock->get_pix()->value == 7) {
+        if (inblock != nullptr and inblock->pixel->value == 7) {
           in_water = true;
         }
         
         vec3 block_box1(bx+axis_gap, by+axis_gap, bz+axis_gap);
-        vec3 block_box2(bx+pix->scale-axis_gap-1, by+pix->scale-axis_gap-1, bz+pix->scale-axis_gap-1);
+        vec3 block_box2(bx+pix->parbl->scale-axis_gap-1, by+pix->parbl->scale-axis_gap-1, bz+pix->parbl->scale-axis_gap-1);
         for (int axis = 0; axis < 3; axis ++) {
           vec3 coords = coords_array[axis];
           vec3 dir = dir_array[axis];
@@ -1164,11 +1165,11 @@ void FallingBlockEntity::calc_constraints() {
           
           //positive side
           //pos2 is the other point for the face
-          gx = bx+int(dir.x)*pix->scale;
-          gy = by+int(dir.y)*pix->scale;
-          gz = bz+int(dir.z)*pix->scale;
+          gx = bx+int(dir.x)*pix->parbl->scale;
+          gy = by+int(dir.y)*pix->parbl->scale;
+          gz = bz+int(dir.z)*pix->parbl->scale;
           //cout << gx << ' ' << gy << ' ' << gz << endl;
-          side = block.block->get_global(gx, gy, gz, pix->scale);
+          side = block.block->get_global(gx, gy, gz, pix->parbl->scale);
           bool out_bounds = gx >= block.block->scale or gy >= block.block->scale or gz >= block.block->scale;
           //cout << out_bounds << endl;
           if (side == nullptr or out_bounds or side->is_air(-dir.x, -dir.y, -dir.z)) {
@@ -1183,7 +1184,7 @@ void FallingBlockEntity::calc_constraints() {
                   Block* pix = world->get_global(x,y,z,1);
                   bool new_const = is_solid_block(pix);
                   if (new_const) {
-                    Material* mat = blocks->blocks[pix->get_pix()->value]->material;
+                    Material* mat = blocks->blocks[pix->pixel->value]->material;
                     if (mat_consts[axis] == nullptr or mat_consts[axis]->toughness < mat->toughness) {
                       mat_consts[axis] = mat;
                     }
@@ -1199,11 +1200,11 @@ void FallingBlockEntity::calc_constraints() {
             }
           }
           
-          gx = bx-int(dir.x)*pix->scale;
-          gy = by-int(dir.y)*pix->scale;
-          gz = bz-int(dir.z)*pix->scale;
+          gx = bx-int(dir.x)*pix->parbl->scale;
+          gy = by-int(dir.y)*pix->parbl->scale;
+          gz = bz-int(dir.z)*pix->parbl->scale;
           //cout << gx << ' ' << gy << ' ' << gz << endl;
-          side = block.block->get_global(gx, gy, gz, pix->scale);
+          side = block.block->get_global(gx, gy, gz, pix->parbl->scale);
           out_bounds = gx < 0 or gy < 0 or gz < 0;
           if (side == nullptr or out_bounds or side->is_air(dir.x, dir.y, dir.z)) {
             vec3 neg2 = neg*dir + pos*coords;
@@ -1216,7 +1217,7 @@ void FallingBlockEntity::calc_constraints() {
                   Block* pix = world->get_global(x,y,z,1);
                   bool new_const = is_solid_block(pix);
                   if (new_const) {
-                    Material* mat = blocks->blocks[pix->get_pix()->value]->material;
+                    Material* mat = blocks->blocks[pix->pixel->value]->material;
                     if (mat_consts[axis] == nullptr or mat_consts[axis]->toughness < mat->toughness) {
                       mat_consts[axis] = mat;
                     }
@@ -1275,11 +1276,11 @@ void FallingBlockEntity::render(RenderVecs* allvecs) {
     vecs.clear();
     for (Pixel* pix : block.block->iter()) {
       pix->render_index = RenderIndex::npos;
-      pix->set_render_flag();
+      pix->parbl->set_render_flag();
       pix->sunlight = lightmax;
     }
     bool faces[] = {true,true,true,true,true,true};
-    block.block->render(&vecs, &vecs, &block, 0, 0, 0, 1, faces, true, false);
+    block.block->render(&vecs, &vecs, 0xff, true);
     for (int i = 0; i < vecs.num_verts; i++) {
       vecs.verts[i*3+0] += blockpos.x;
       vecs.verts[i*3+1] += blockpos.y;
@@ -1312,7 +1313,7 @@ void FallingBlockEntity::render(RenderVecs* allvecs) {
     //cout << worldpos.x << ' ' << worldpos.y << ' ' << worldpos.z << endl;
     Block* block = world->get_global(worldpos.x, worldpos.y, worldpos.z, 1);
     if (block != nullptr) {
-      Pixel* pix = block->get_pix();
+      Pixel* pix = block->pixel;
       for (int j = 0; j < 6; j ++) {
         int index = (i*6+j)*2;
         translated.light[index+0] = translated.light[index+0] * pix->sunlight/lightmax;
@@ -1350,14 +1351,12 @@ void FallingBlockEntity::calc_light(vec3 offset, vec2 angle) {
   for (Pixel* pix : block.block->iter()) {
     //cout << "loop" << pix << ' ' << int(pix->value) << endl;
     //cout << pix->blocklight << endl;
-    ivec3 blockpos;
-    pix->global_position(&blockpos.x, &blockpos.y, &blockpos.z);
+    ivec3 blockpos = pix->parbl->globalpos;
     ivec3 gpos (position + vec3(blockpos));
     Block* b = world->get_global(gpos.x, gpos.y, gpos.z, 1);
     if (b != nullptr) {
-      Pixel* worldpix = b->get_pix();
-      ivec3 wpixpos;
-      worldpix->global_position(&wpixpos.x, &wpixpos.y, &wpixpos.z);
+      Pixel* worldpix = b->pixel;
+      ivec3 wpixpos = worldpix->parbl->globalpos;
       bool exists = false;
       if (find(lit_blocks.begin(), lit_blocks.end(), wpixpos) != lit_blocks.end()) {
         worldpix->entitylight = 0;
@@ -1370,7 +1369,7 @@ void FallingBlockEntity::calc_light(vec3 offset, vec2 angle) {
         //cout << "set lit block" << endl;
         if (!exists) {
           //cout << "light update " << endl;
-          worldpix->set_light_flag();
+          worldpix->parbl->set_light_flag();
         }
         // /cout << worldpix << endl;
       }
@@ -1381,7 +1380,7 @@ void FallingBlockEntity::calc_light(vec3 offset, vec2 angle) {
     if (find(new_lit_blocks.begin(), new_lit_blocks.end(), pos) == new_lit_blocks.end()) {
       Block* block = world->get_global(pos.x, pos.y, pos.z, 1);
       if (block != nullptr) {
-        block->get_pix()->entitylight = 0;
+        block->pixel->entitylight = 0;
         block->set_light_flag();
       }
     }

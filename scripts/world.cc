@@ -434,8 +434,8 @@ void World::tick() {
     //cout << pos.x << endl;
     tileat_global(pos)->changelock.lock();
     Block* block = get_global(pos.x, pos.y, pos.z, 1);
-    if (block != nullptr and block->get_pix() != nullptr) {
-      block->get_pix()->tick();
+    if (block != nullptr and !block->continues) {
+      block->pixel->tick();
     }
     tileat_global(pos)->changelock.unlock();
   }
@@ -536,6 +536,9 @@ void World::block_update(int x, int y, int z) {
     //cout << "Recording Block Update at the global world position " << x << ' ' << y << ' ' << z << endl;
     block_updates.emplace(ivec3(x,y,z));
   
+}
+void World::block_update(ivec3 pos) {
+    block_updates.emplace(pos);
 }
 
 void World::aftertick(std::function<void(World*)> func) {
@@ -721,7 +724,7 @@ void World::set(ivec4 pos, char val, int direction, int joints[6]) {
   int lx = pos.x - px*chunksize;
   int ly = pos.y - py*chunksize;
   int lz = pos.z - pz*chunksize;
-  tile->chunk = tile->chunk->set_global(ivec4(lx, ly, lz, pos.w), val, direction, joints);
+  tile->chunk->set_global(ivec3(lx, ly, lz), pos.w, val, direction, joints);
 }
 
 void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras) {
@@ -733,7 +736,7 @@ char World::get(int x, int y, int z) {
     if (block == nullptr) {
       return -1;
     }
-    return block->get();
+    return block->pixel->value;
 }
 
 Block* World::raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time) {
@@ -743,7 +746,7 @@ Block* World::raycast(double* x, double* y, double* z, double dx, double dy, dou
     if (b == nullptr) {
         return b;
     }
-    return b->raycast(this, x, y, z, dx, dy, dz, time);
+    return nullptr;//b->raycast(this, x, y, z, dx, dy, dz, time);
 }
 
 void World::save_chunk(ivec3 pos) {

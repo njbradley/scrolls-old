@@ -12,27 +12,13 @@
 
 //#include <ZipLib/ZipFile.h>
 
-Block* Tile::generate(ivec3 pos) {
-  Pixel* pix = new Pixel(pos.x,pos.y,pos.z,0,chunksize,nullptr,this);
-  if (world->generation) {
-    Chunk* chunk = pix->resolve(true);
-  	if (chunk == nullptr) {
-  		return pix;
-  	} else {
-  		return chunk;
-  	}
-  } else {
-    return pix;
-  }
-}
-
 void Tile::update_lighting() {
   
   for (int x = 0; x < chunksize; x ++) {
     for (int z = 0; z < chunksize; z ++) {
       int y = chunksize-1;
-      while (y >= 0 and chunk->get_global(x,y,z,1)->get() == 0) {
-        chunk->get_global(x,y,z,1)->get_pix()->sunlight = lightmax;
+      while (y >= 0 and chunk->get_global(x,y,z,1)->pixel->value == 0) {
+        chunk->get_global(x,y,z,1)->pixel->sunlight = lightmax;
         y--;
       }
     }
@@ -48,8 +34,8 @@ void Tile::lighting_update() {
       Tile* tile = world->tileat(pos+dir);
       if (tile != nullptr) {
         for (Pixel* pix : tile->chunk->iter_side(-dir)) {
-          pix->set_render_flag();
-          pix->set_light_flag();
+          pix->parbl->set_render_flag();
+          pix->parbl->set_light_flag();
         }
         //tile->lighting_update();
       }
@@ -70,7 +56,7 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
           Tile* tile = world->tileat(pos+dir);
           if (tile != nullptr) {
             for (Pixel* pix : tile->chunk->iter_side(-dir)) {
-              pix->set_render_flag();
+              pix->parbl->set_render_flag();
             }
           }
         }
@@ -134,7 +120,7 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
       }
       //cout << world << endl;
       chunk->lighting_update();
-      chunk->render(glvecs, transvecs, world, 0, 0, 0, render_depth, render_faces, false, true);
+      chunk->render(glvecs, transvecs, 0xff, false);
     }
     changelock.unlock();
     deletelock.unlock_shared();
@@ -156,9 +142,8 @@ void Tile::save() {
     }
   }
   ofstream ofile(path.str(), std::ios::binary);
-  vector<BlockGroup*> groups;
   
-  chunk->save_to_file(ofile, &groups, true);
+  chunk->to_file(ofile);
   ofile << endl << entities.size() << endl;
   for (DisplayEntity* e : entities) {
     //cout << "entity " << e << " saving pos:";
@@ -258,7 +243,9 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
   	}
     vector<BlockGroup*> groups;
     
-    chunk = Block::from_file(ifile, pos.x, pos.y, pos.z, chunksize, nullptr, this, &groups);
+    chunk = new Block();
+    chunk->set_parent(nullptr, world, pos, chunksize);
+    chunk->from_file(ifile);
     
     const ivec3 dir_array[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
     
@@ -282,7 +269,9 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
 }
 
 Tile::Tile(ivec3 position, World* nworld, istream& ifile): pos(position), world(nworld), chunksize(nworld->chunksize), deleting(false) {
-  chunk = Block::from_file(ifile, pos.x, pos.y, pos.z, chunksize, nullptr, this);
+  chunk = new Block();
+  chunk->set_parent(nullptr, world, position, chunksize);
+  chunk->from_file(ifile);
   
   const ivec3 dir_array[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
   
@@ -308,7 +297,6 @@ void Tile::del(bool remove_faces) {
     // cout << "deleting tile del entitiy " << entity << endl;
     delete entity;
   }
-  chunk->del(remove_faces);
   delete chunk;
   // dfile << "DEL" << endl;
   deletelock.unlock();

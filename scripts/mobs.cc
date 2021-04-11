@@ -90,25 +90,25 @@ void Mob::on_timestep(double deltatime) {
 		if ( consts[4]) {
 			ivec3 pos(glm::round(position + blockpos));
 			if (angle.y > 3.14/4) {
-				block.block->rotate(2, 1);
+				// block.block->rotate(2, 1);
 			} else if (angle.y < -3.14/4) {
-				block.block->rotate(2,-1);
+				// block.block->rotate(2,-1);
 			}
 			
 			int lat = round(angle.x/(3.14/2));
 			lat = lat%4;
 			for (int i = 0; i < lat; i ++) {
-				block.block->rotate(1, 1); //ERR: somehow skeletons are getting instantiated with uninitialized block.blocks? block.block is 0xfeeefeeefeeefeee
+				// block.block->rotate(1, 1); //ERR: somehow skeletons are getting instantiated with uninitialized block.blocks? block.block is 0xfeeefeeefeeefeee
 																	 //weird, it cant be 0xfeeefeeefeeefeee from the start, must be partially deleted?
 			}
 			for (int i = 0; i > lat; i --) {
-				block.block->rotate(1, -1);
+				// block.block->rotate(1, -1);
 			}
 			
 			for (int x = 0; x < block.block->scale; x ++) {
 				for (int y = 0; y < block.block->scale; y ++) {
 					for (int z = 0; z < block.block->scale; z ++) {
-						Pixel* pix = block.get_global(x, y, z, 1)->get_pix();
+						Pixel* pix = block.get_global(x, y, z, 1)->pixel;
 						if (pix->value != 0) {
 							world->set(pos.x+x, pos.y+y, pos.z+z, pix->value, pix->direction);
 						}
@@ -170,7 +170,9 @@ Mob::Mob(World* nworld, istream& ifile): NamedEntity(nworld, ifile) {
   blockifile >> scale;
   char buff;
   blockifile.read(&buff,1);
-  block.block = Block::from_file(blockifile, 0, 0, 0, scale, nullptr, nullptr);
+	block.block = new Block();
+	block.block->set_parent(nullptr, &block, ivec3(0,0,0), scale);
+	block.block->from_file(blockifile);
 	
 	int size;
 	ifile >> size;

@@ -28,20 +28,19 @@ BlockGroup::BlockGroup(World* nworld, vector<Pixel*> pixels): world(nworld) {
 	id = rand();
 	for (Pixel* pix : pixels) {
 		//add(pix, nullptr, ivec3(0,0,0));
-		ivec3 pos;
-		pix->global_position(&pos.x, &pos.y, &pos.z);
+		ivec3 pos = pix->parbl->globalpos;
 		int i = 0;
 		for (ivec3 dir : dir_array) {
-			ivec3 sidepos = pos + dir * pix->scale;
-			Block* block = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->scale);
+			ivec3 sidepos = pos + dir * pix->parbl->scale;
+			Block* block = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->parbl->scale);
 			if (block != nullptr) {
-				if (block->get_pix() != nullptr) {
-					Pixel* sidepix = block->get_pix();
+				if (block->pixel != nullptr) {
+					Pixel* sidepix = block->pixel;
 					if (sidepix->value != 0 and std::find(pixels.begin(), pixels.end(), sidepix) == pixels.end()) {
-						consts[i] += pix->scale * pix->scale;
+						consts[i] += pix->parbl->scale * pix->parbl->scale;
 						
 						if (blocks->clumpy(sidepix->value, pix->value)) {
-							if (sidepix->scale == pix->scale) {
+							if (sidepix->parbl->scale == pix->parbl->scale) {
 								sidepix->joints[(i+3)%6] = 7;
 							}
 							pix->joints[i] = 7;
@@ -52,7 +51,7 @@ BlockGroup::BlockGroup(World* nworld, vector<Pixel*> pixels): world(nworld) {
 				} else {
 					for (Pixel* sidepix : block->iter_side(-dir)) {
 						if (sidepix->value != 0 and std::find(pixels.begin(), pixels.end(), sidepix) == pixels.end()) {
-							int num_touching = std::min(pix->scale, sidepix->scale);
+							int num_touching = std::min(pix->parbl->scale, sidepix->parbl->scale);
 							consts[i] += num_touching * num_touching;
 							
 							if (blocks->clumpy(sidepix->value, pix->value)) {
@@ -116,13 +115,13 @@ bool BlockGroup::add(Pixel* pix, Pixel* source, ivec3 dir) {
 			pix->group->del(pix);
 		}
 		pix->group = this;
-		size += pix->scale * pix->scale * pix->scale;
+		size += pix->parbl->scale * pix->parbl->scale * pix->parbl->scale;
 		//cout << pix << ' ' << int(pix->value) << endl;
 		return true;
 	} else {
 		//cout << "possible set const, " << (pix->value == 0) << (source == nullptr) << endl;
 		if (pix->value != 0 and source != nullptr) {
-			int num_touching = std::min(pix->scale, source->scale);
+			int num_touching = std::min(pix->parbl->scale, source->parbl->scale);
 			consts[index] += num_touching * num_touching;
 			//cout << "setting cönsts in ädd "<< endl;
 		}
@@ -147,14 +146,14 @@ void BlockGroup::spread(Pixel* start_pix, Pixel* source, ivec3 pastdir, int dept
     for (Pixel* pix : last_pixels) {
 			int i = 0;
       for (ivec3 dir : dir_array) {
-				BlockIter iter = pix->iter_touching_side(dir);
+				BlockIter iter = pix->parbl->iter_touching_side(dir);
 				
 				if (iter.begin() != iter.end()) {
 					for (Pixel* sidepix : iter) {
 						if (over_limit) {
 							if (!contains(sidepix) and sidepix->value != 0) {
 								isolated = false;
-								int num_touching = std::min(pix->scale, sidepix->scale);
+								int num_touching = std::min(pix->parbl->scale, sidepix->parbl->scale);
 								consts[i] += num_touching * num_touching;
 							}
 						} else if (!contains(sidepix) and add(sidepix, pix, dir)) {
@@ -162,7 +161,7 @@ void BlockGroup::spread(Pixel* start_pix, Pixel* source, ivec3 pastdir, int dept
 						}
 					}
 				} else {
-					consts[i] += pix->scale * pix->scale;
+					consts[i] += pix->parbl->scale * pix->parbl->scale;
 				}
 				i++;
       }
@@ -183,7 +182,7 @@ void BlockGroup::spread(Pixel* start_pix, Pixel* source, ivec3 pastdir, int dept
 // 					spread(sidepix, pix, dir, depth-1);
 // 				}
 // 			} else {
-// 				consts[i] += pix->scale * pix->scale;
+// 				consts[i] += pix->parbl->scale * pix->parbl->scale;
 // 				//cout << "setting cönsts in sprëad "<< endl;
 // 			}
 // 			i ++;
@@ -191,7 +190,7 @@ void BlockGroup::spread(Pixel* start_pix, Pixel* source, ivec3 pastdir, int dept
 // 	} else if (depth <= 0) {
 // 		if (pix->value != 0) {
 // 			isolated = false;
-// 			consts[dir_to_index(pastdir)] += pix->scale * pix->scale;
+// 			consts[dir_to_index(pastdir)] += pix->parbl->scale * pix->parbl->scale;
 // 		}
 // 	}
 // }
@@ -199,7 +198,7 @@ void BlockGroup::spread(Pixel* start_pix, Pixel* source, ivec3 pastdir, int dept
 bool BlockGroup::del(Pixel* pix) {
 	if (contains(pix)) {
 		pix->group = nullptr;
-		size -= pix->scale * pix->scale * pix->scale;
+		size -= pix->parbl->scale * pix->parbl->scale * pix->parbl->scale;
 		if (size == 0) {
 			delete this;
 		}
