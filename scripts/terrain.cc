@@ -215,6 +215,7 @@ int TerrainLoader::gen_func(ivec4 pos) {
 	// }
 	// return below;
 	if (pos.w == 1) {
+		// return pos.y*2 < pos.x;
 		char val = get_biome(ivec3(pos.x, pos.y, pos.z));
 		//Biome<Shallow,Plains,TallTree,Tree<0>,BigTree>().gen_func(this, ivec3(pos.x, pos.y, pos.z));
 		if (val == 0 and pos.y < 96) {

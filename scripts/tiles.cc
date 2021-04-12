@@ -33,6 +33,7 @@ void Tile::lighting_update() {
     for (ivec3 dir : dirs) {
       Tile* tile = world->tileat(pos+dir);
       if (tile != nullptr) {
+        // cout << "side update" << endl;
         for (Pixel* pix : tile->chunk->iter_side(-dir)) {
           pix->parbl->set_render_flag();
           pix->parbl->set_light_flag();
@@ -55,6 +56,7 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
         for (ivec3 dir : dirs) {
           Tile* tile = world->tileat(pos+dir);
           if (tile != nullptr) {
+            cout << "side update 2" << endl;
             for (Pixel* pix : tile->chunk->iter_side(-dir)) {
               pix->parbl->set_render_flag();
             }
@@ -315,6 +317,7 @@ void Tile::generate_chunk(ivec3 pos) {
 
 char Tile::gen_block(ostream& ofile, int gx, int gy, int gz, int scale) {
   char val = world->loader.gen_func(ivec4(gx, gy, gz, scale));
+  // cout << int(val) << ' ' << ivec3(gx,gy,gz) << ' ' << scale << endl;
   if (scale == 1 or val != -1) {
     Block::write_pix_val(ofile, 0b00, val);
     return val;

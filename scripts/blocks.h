@@ -12,7 +12,7 @@
 
 #define csize 2
 
-extern const float lightmax;
+extern const uint8 lightmax;
 
 
 // The main class of the octree. Has three states:
@@ -32,8 +32,8 @@ extern const float lightmax;
 class Block: public Collider { public:
 	ivec3 parentpos;
 	ivec3 globalpos;
-	bool render_flag;
-	bool light_flag;
+	bool render_flag = true;
+	bool light_flag = true;
 	int scale;
 	Block* parent = nullptr;
 	Container* world;
@@ -114,9 +114,9 @@ class Pixel { public:
 	uint8 entitylight;
 	uint8 lightsource = -1;
 	uint8 joints[6] = {0,0,0,0,0,0};
-	RenderIndex render_index;
+	RenderIndex render_index = RenderIndex::npos;
 	RenderVecs* lastvecs;
-	BlockGroup* group;
+	BlockGroup* group = nullptr;
 	
 	Pixel(int val, int direction = -1, int njoints[6] = nullptr);
 	Pixel(Block* newblock, istream& ifile);

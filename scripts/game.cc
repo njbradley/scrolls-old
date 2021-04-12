@@ -536,6 +536,13 @@ void MainGame::print_debug() {
 		}
 		debugstream << endl;
 	}
+	ivec3 pos = world->player->position;
+	Block* block = world->get_global(pos.x, pos.y, pos.z, 1);
+	if (block != nullptr) {
+		debugblock = block->pixel;
+		Block* start = world->get_global(pos.x, pos.y, pos.z, 64);
+		debugstream << start->globalpos << ' ' << start->parentpos << endl;
+	}
 	if (debugblock != nullptr) {
 		string name = "undef";
 		BlockData* data = blocks->blocks[debugblock->value];

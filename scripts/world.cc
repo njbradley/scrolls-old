@@ -236,8 +236,9 @@ void World::spawn_player() {
     i ++;
     spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
   }
+  // ivec3 spawnpos(10, 40, 32);
   player = new Player(this, vec3(spawnpos));
-  player->spectator = false;
+  player->spectator = true;
   player->autojump = true;
   player->health = 10;
   player->max_health = 10;
@@ -638,33 +639,11 @@ Tile* World::tileat_global(ivec3 pos) {
 Block* World::get_global(int x, int y, int z, int scale) {
     //cout << "world::get global(" << x << ' ' << y << ' ' << z << ' ' << scale << endl;
     //// dfile << "gg ";
-    int px = x/chunksize;
-    int py = y/chunksize;
-    int pz = z/chunksize;
-    if (x < 0 and -x%chunksize != 0) {
-        px --;
-    } if (y < 0 and -y%chunksize != 0) {
-        py --;
-    } if (z < 0 and -z%chunksize != 0) {
-        pz --;
-    }
-    ivec3 pos(px, py, pz);
-    //cout << "pair<" << pos.first << ' ' << pos.second << endl;
-    //tilelock.lock();
-    // unordered_map<ivec3,Tile*,ivec3_hash>::iterator foundkv = tiles.find(pos);
-    // //tilelock.unlock();
-    // if (foundkv == tiles.end() or std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) != deleting_chunks.end()) {
-    //     //cout << "   returning null\n";
-    //     return nullptr;
-    // }
-    //cout << endl;
-    int ox = ((x < 0) ? chunksize : 0) + x%chunksize;
-    int oy = ((y < 0) ? chunksize : 0) + y%chunksize;
-    int oz = ((z < 0) ? chunksize : 0) + z%chunksize;
-    
-    Tile* tile = tileat(pos);
+    ivec3 pos (x,y,z);
+    ivec3 tpos = SAFEDIV(pos, chunksize);
+    Tile* tile = tileat(tpos);
     if (tile != nullptr) {
-      Block* result = tile->chunk->get_global(ox, oy, oz, scale);
+      Block* result = tile->chunk->get_global(pos, scale);
       //// dfile << "GG " << endl;
       return result;
     }
@@ -825,6 +804,8 @@ void World::close_world() {
     //} else {
     //  hard_game->crash(923400304);
     //}
+    glvecs.ignore = true;
+    transparent_glvecs.ignore = true;
     for (ivec3 pos : poses) {
         tileat(pos)->save();
     }

@@ -119,22 +119,61 @@ int main() {
 	for (Pixel* pix : startpix->iter_group(&container)) {
 		cout << pix->parbl->globalpos << ' ' << pix->parbl->scale << endl;
 	}
-		
+	
+	cout << endl << "Get global tests" << endl;
+	
+	ivec4 checks[] {
+		{0, 0, 0, 1},
+		{3, 3, 3, 1},
+		{0, 0, 0, 2},
+		{3, 3, 3, 4},
+	};
+	
+	for (ivec4 pos : checks) {
+		Block* b = block->get_global(pos.x, pos.y, pos.z, pos.w);
+		cout << b->globalpos << ' ' << b->scale << endl;
+	}
+	
+	cout << "local" << endl;
+	
+	for (ivec4 pos : checks) {
+		Block* b = block->get_global(0,0,0,1)->get_global(pos.x, pos.y, pos.z, pos.w);
+		cout << b->globalpos << ' ' << b->scale << endl;
+	}
 	
 	cout << endl;
 	
-	ifstream ifile("saves/Starting-World/chunks/0x0y-2z.dat", std::ios::binary);
+	ifstream ifile("saves/Starting-World/chunks/-1x1y-2z.dat", std::ios::binary);
 	BlockContainer bigcontainer(64);
 	bigcontainer.block->from_file(ifile);
 	Block* bigblock = bigcontainer.block;
 	
-	int num_pix = 0;
+	cout << endl << "get global speed test" << endl;
+	
 	int start = clock();
+	for (int i = 0; i < 1000000; i ++) {
+		Block* block = bigblock->get_global(rand()%64, rand()%64, rand()%64, 1);
+	}
+	cout << double(clock() - start) / CLOCKS_PER_SEC << " result" << endl;
+	
+	cout << "next to get_globals" << endl;
+	
+	start = clock();
+	Block* chosen = bigblock->get_global(32, 32, 32, 4);
+	ivec3 dir = dir_array[rand()%6];
+	cout << chosen << endl;
+	for (int i = 0; i < 1000000; i ++) {
+		Block* block = chosen->get_global(ivec3(32,32,32) + dir * 4, 1);
+	}
+	cout << double(clock() - start) / CLOCKS_PER_SEC << " result" << endl;
+	
+	int num_pix = 0;
+	start = clock();
 	for (Pixel* pix : bigblock->iter()) {
 		num_pix ++;
 	}
 	int end = clock();
-	cout << "num pix " << num_pix << endl;
+	cout << endl << "num pix " << num_pix << endl;
 	cout << "iter time: " << end - start << endl;
 	
 	cout << endl << "Big group iter: " << endl;

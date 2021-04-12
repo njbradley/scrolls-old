@@ -90,6 +90,7 @@ class AsyncGLVecs: public RenderVecs { public:
   
   int num_verts = 0;
   int offset = 0;
+  bool ignore = false;
   
   std::mutex addlock;
   std::mutex emptyaddlock;
