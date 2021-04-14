@@ -367,20 +367,6 @@ void World::add_tile(Tile* tile) {
       break;
     }
   }
-  // for (BlockGroup* group : physicsgroups) {
-  //   ivec3 gpos = group->position;
-  //   ivec3 cpos = gpos/chunksize - ivec3(gpos.x<0, gpos.y<0, gpos.z<0);
-  //   if (cpos == pos) {
-  //     group->set_pix_pointers();
-  //   }
-  // }
-  for (Pixel* pix : tile->chunk->iter()) {
-    // if (BlockGroup::is_persistant(pix->value)) {
-    //   int gx, gy, gz;
-    //   pix->global_position(&gx, &gy, &gz);
-    //   pix->tile->world->block_update(gx, gy, gz);
-    // }
-  }
 }
 
 void World::timestep() {

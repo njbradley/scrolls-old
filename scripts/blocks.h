@@ -24,7 +24,7 @@ extern const uint8 lightmax;
 //   pixel is nullptr.
 //
 // pixel type: This is where the block is an end of the tree, and it
-//   has a value. continues is false, and pixel has a pixel.
+//   has a value. continues is false, and pixel points to a pixel.
 //
 // chunk type: This is when the block is a branch block, whith 8 children
 //   continues is true.
@@ -103,7 +103,6 @@ class Block: public Collider { public:
 	static void write_pix_val(ostream& ofile, char type, unsigned int val);
 	static void read_pix_val(istream& ifile, char* type, unsigned int* val);
 };
-
 
 class Pixel { public:
 	Block* parbl;

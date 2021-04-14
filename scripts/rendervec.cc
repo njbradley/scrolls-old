@@ -188,7 +188,7 @@ void AsyncGLVecs::set_destination_offset(GLVecsDestination* dest, int newoffset)
 
 RenderIndex AsyncGLVecs::add(MemVecs* vecs) {
   if (ignore) return RenderIndex::npos;
-  synclock.lock_shared();
+  synclock.lock();
   
   for (std::list<Empty>::iterator empty = emptys.begin(); empty != emptys.end(); empty ++) {
     if (empty->index.size > vecs->num_verts) {
@@ -223,13 +223,13 @@ RenderIndex AsyncGLVecs::add(MemVecs* vecs) {
   num_verts += vecs->num_verts;
   addlock.unlock();
   
-  synclock.unlock_shared();
+  synclock.unlock();
   return result;
 }
 
 void AsyncGLVecs::del(RenderIndex index) {
   if (ignore) return;
-  synclock.lock_shared();
+  synclock.lock();
   
   for (std::list<Empty>::iterator empty = emptys.begin(); empty != emptys.end(); empty ++) {
     if (index.can_add(empty->index)) {
@@ -254,7 +254,7 @@ void AsyncGLVecs::del(RenderIndex index) {
   emptys.push_back({index, newchange});
   emptyaddlock.unlock();
   
-  synclock.unlock_shared();
+  synclock.unlock();
 }
 
 void AsyncGLVecs::edit(RenderIndex index, MemVecs* vecs) {

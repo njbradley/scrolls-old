@@ -759,10 +759,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
   GLfloat z = parbl->globalpos.z;
   
   if (value == 0) {
-    if (render_index.start > -1) {
-      lastvecs->del(render_index);
-      render_index = RenderIndex::npos;
-    }
+    erase_render();
     return;
   } else {
     
@@ -805,10 +802,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
       i ++;
     }
     
-    if (!render_index.isnull()) {
-      lastvecs->del(render_index);
-      render_index = RenderIndex::npos;
-    }
+    erase_render();
     if (vecs.num_verts != 0) {
       if (blockdata->transparent) {
         render_index = transvecs->add(&vecs);
@@ -930,6 +924,7 @@ void Pixel::tick() { // ERR: race condition, render and tick threads race, rende
 void Pixel::erase_render() {
   if (render_index.start != -1) {
     lastvecs->del(render_index);
+    render_index = RenderIndex::npos;
   }
 }
 

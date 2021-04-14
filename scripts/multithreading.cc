@@ -162,7 +162,9 @@ void LoadingThread::operator()() {
 				Tile* tile = new Tile(pos, world);
 				double mid = glfwGetTime();
 				world->add_tile(tile);
-				tile->lighting_update();
+				//for (int i = 0; i < 5; i ++) {
+					tile->lighting_update();
+				//}
 			}
 		} else {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
