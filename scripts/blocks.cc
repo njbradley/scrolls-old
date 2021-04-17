@@ -360,13 +360,14 @@ int Block::get_blocklight(int dx, int dy, int dz) const {
   
   for (const Pixel* pix : const_iter_side(ivec3(dx, dy, dz))) {
     if (pix->parbl->is_air(dx, dy, dz)) {
-      int light;
-      const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
-      ivec3 source_dir = -dirs[pix->lightsource];
-      if (source_dir.x == dx and source_dir.y == dy and source_dir.z == dz) {
-        light = pix->blocklight;
-      } else {
-        light = pix->blocklight*0.875;
+      int light = 0;
+      if (pix->blocklight != 0) {
+        ivec3 source_dir = dir_array[pix->lightsource];
+        if (source_dir.x == dx and source_dir.y == dy and source_dir.z == dz) {
+          light = pix->blocklight;
+        } else {
+          light = pix->blocklight*0.875;
+        }
       }
       
       lightlevel += light;
