@@ -24,11 +24,11 @@ uniform mat4 MVP;
 vec3 sunlightDir = vec3(0,-1,0);
 
 void set_attr(uvec2 data, vec4 normal) {
-	edges = 0;
+	edges = 0u;
 	tex = data.x;
-	rot = (data.y & 0xff00) >> 8;
+	rot = (data.y & 0xff00u) >> 8u;
 	float sundot = dot(sunlightDir, normal.xyz);
-	outlight = vec2(((data.y & 0xff000000) >> 24) - (sundot*2+2), (data.y & 0xff0000) >> 16) / 20;
+	outlight = vec2(float((data.y & 0xff000000u) >> 24u) - (sundot*2+2), float((data.y & 0xff0000u) >> 16u)) / 20;
 }
 
 bool isCulled(vec4 normal) {
@@ -81,22 +81,22 @@ void main() {
   vec4 dy = MVP[1] * voxSize;
   vec4 dz = MVP[2] * voxSize;
 
-	if ((facepx[0].x) != 0) {
+	if ((facepx[0].x) != 0u) {
   	AddQuad(center + dx, dy, dz,  dx, facepx[0]);
   }
-  if ((facenx[0].x) != 0) {
+  if ((facenx[0].x) != 0u) {
     AddQuad(center, dz, dy,  -dx, facenx[0]);
 	}
-  if ((facepy[0].x) != 0) {
+  if ((facepy[0].x) != 0u) {
     AddQuad(center + dy, dz, dx,  dy, facepy[0]);
 	}
-  if ((faceny[0].x) != 0) {
+  if ((faceny[0].x) != 0u) {
     AddQuad(center, dx, dz,  -dy, faceny[0]);
 	}
-  if ((facepz[0].x) != 0) {
+  if ((facepz[0].x) != 0u) {
     AddQuad(center + dz, dx, dy,  dz, facepz[0]);
 	}
-  if ((facenz[0].x) != 0) {
+  if ((facenz[0].x) != 0u) {
     AddQuad(center, dy, dx,  -dz, facenz[0]);
 	}
 }
