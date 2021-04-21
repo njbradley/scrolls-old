@@ -360,13 +360,14 @@ int Block::get_blocklight(int dx, int dy, int dz) const {
   
   for (const Pixel* pix : const_iter_side(ivec3(dx, dy, dz))) {
     if (pix->parbl->is_air(dx, dy, dz)) {
-      int light;
-      const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
-      ivec3 source_dir = -dirs[pix->lightsource];
-      if (source_dir.x == dx and source_dir.y == dy and source_dir.z == dz) {
-        light = pix->blocklight;
-      } else {
-        light = pix->blocklight*0.875;
+      int light = 0;
+      if (pix->blocklight != 0) {
+        ivec3 source_dir = dir_array[pix->lightsource];
+        if (source_dir.x == dx and source_dir.y == dy and source_dir.z == dz) {
+          light = pix->blocklight;
+        } else {
+          light = pix->blocklight*0.875;
+        }
       }
       
       lightlevel += light;
@@ -658,6 +659,7 @@ void Pixel::rotate_to_origin(int* mats, int* dirs, int rotation) {
   }
 }
 
+/*
 void Pixel::render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* blocks[6], int index, ivec3 dir, int uv_dir, int minscale, int mat, bool render_null) {
   GLfloat uvmax = 1.0f;
   Block* block = blocks[index];
@@ -745,9 +747,67 @@ void Pixel::render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* b
     
     vecs->add_face(face, new_uvs, facesunlight, faceblocklight, minscale, 0, overlay, edges, mat);
   }
-}
+}*/
 
 void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
+  
+  if (render_index.index > -1) {
+    lastvecs->del(render_index);
+    render_index = RenderIndex::npos;
+  }
+  
+  if (value != 0) {
+    ivec3 gpos = parbl->globalpos;
+    BlockData* blockdata = blocks->blocks[value];
+    RenderData renderdata;
+    
+    bool exposed = false;
+    
+    renderdata.pos.loc.pos = gpos;
+    renderdata.pos.loc.rot = vec2(0,0);
+    renderdata.pos.loc.scale = parbl->scale;
+    
+    int mat[6];
+    for (int i = 0; i < 6; i ++) {
+      mat[i] = blockdata->texture[i];
+    }
+    int dirs[6] {0,0,0,0,0,0};
+    
+    if (direction != blockdata->default_direction) {
+      rotate_to_origin(mat, dirs, blockdata->default_direction);
+      rotate_from_origin(mat, dirs, direction);
+    }
+     
+    int minscale = blockdata->minscale;
+    int i = 0;
+    
+    for (int i = 0; i < 6; i ++) {
+      ivec3 dir = dir_array[i];
+      Block* block = parbl->get_global(gpos + dir_array[i] * parbl->scale, parbl->scale);
+      renderdata.type.faces[i].tex = 0;
+      if (block != nullptr and block->is_air(-dir.x, -dir.y, -dir.z)) {
+        renderdata.type.faces[i].tex = mat[i];
+        renderdata.type.faces[i].rot = dirs[i];
+        renderdata.type.faces[i].blocklight = block->get_blocklight(-dir.x, -dir.y, -dir.z);
+        renderdata.type.faces[i].sunlight = block->get_sunlight(-dir.x, -dir.y, -dir.z);
+        exposed = true;
+      }
+    }
+    
+    if (exposed) {
+      if (blockdata->transparent) {
+        render_index = transvecs->add(renderdata);
+        lastvecs = transvecs;
+      } else {
+        render_index = allvecs->add(renderdata);
+        lastvecs = allvecs;
+      }
+    }
+  }
+}
+    
+    
+  /*
   READ_LOCK;
   
   MemVecs vecs;
@@ -813,7 +873,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
       }
     }
   }
-}
+}*/
 
 void Pixel::set(int val, int newdirection, int newjoints[6]) {
   WRITE_LOCK;
@@ -922,7 +982,7 @@ void Pixel::tick() { // ERR: race condition, render and tick threads race, rende
 }
 
 void Pixel::erase_render() {
-  if (render_index.start != -1) {
+  if (render_index.index != -1) {
     lastvecs->del(render_index);
     render_index = RenderIndex::npos;
   }

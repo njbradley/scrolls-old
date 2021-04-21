@@ -554,7 +554,7 @@ void MainGame::print_debug() {
 		// }
 		debugstream << "tracking block " << debugblock << " at " << debugblock->parbl->globalpos << endl;
 		debugstream << " type:" << name << " char:" << int(debugblock->value) << " scale:" << debugblock->parbl->scale << endl;
-		debugstream << " direction:" << int(debugblock->direction) << " render_index:" << debugblock->render_index.start << ',' << debugblock->render_index.size << endl;
+		debugstream << " direction:" << int(debugblock->direction) << " render_index:" << debugblock->render_index.index << endl;
 		debugstream << " flags: light " << debugblock->parbl->light_flag << " render " << debugblock->parbl->render_flag << endl;
 		debugstream << " parent coords: " << debugblock->parbl->parentpos << endl;
 		debugstream << " physics_group:" << debugblock->group << ' ' << "light " << debugblock->blocklight << ' ' << debugblock->sunlight << endl;
@@ -676,8 +676,8 @@ void MainGame::dump_buffers() {
 	float* data = (float*)glMapNamedBuffer( world->vecs_dest.vertexbuffer, GL_READ_ONLY);
 	int len = settings->allocated_memory*3;
 	ofstream ofile("dump_buffers_verts.txt");
-	for (int i = 0; i < settings->allocated_memory*3; i ++) {
-		ofile << i/6/3 << ' ' << data[i] << endl;
+	for (int i = 0; i < world->glvecs.num_verts*6 + 100; i ++) {
+		ofile << i/3 << ' ' << data[i] << endl;
 		// if (data[i] > 100000 or i%(len/100) == 0 or i < 1000) {
 		//
 		// }
@@ -689,20 +689,20 @@ void MainGame::dump_buffers() {
 	glUnmapNamedBuffer( world->vecs_dest.vertexbuffer );
 	
 	cout << "dumping material data" << endl;
-	int* matdata = (int*)glMapNamedBuffer( world->vecs_dest.matbuffer, GL_READ_ONLY);
-	len = settings->allocated_memory*2;
+	int* matdata = (int*)glMapNamedBuffer( world->vecs_dest.databuffer, GL_READ_ONLY);
+	len = settings->allocated_memory*3;
 	ofstream mofile("dump_buffers_mat.txt");
-	for (int i = 0; i < settings->allocated_memory*2; i ++) {
+	for (int i = 0; i < world->glvecs.num_verts*12 + 100; i ++) {
 		//if (matdata[i] > 100000 or i%(len/100) == 0 or i < 1000) {
-			mofile << i/6/2 << ' ' << matdata[i] << endl;
+			mofile << i/3 << ' ' << matdata[i] << endl;
 		//}
 	}
 	mofile << "numverts" << world->glvecs.num_verts/6 << endl;
 	//char* dat = (char*)data;
 	//ofstream ofile("datadump.dat");
 	//ofile.write(dat, len*sizeof(float));
-	glUnmapNamedBuffer( world->vecs_dest.matbuffer );
-	
+	glUnmapNamedBuffer( world->vecs_dest.databuffer );
+	/*
 	cout << "dumping light data" << endl;
 	data = (float*)glMapNamedBuffer( world->vecs_dest.lightbuffer, GL_READ_ONLY);
 	len = settings->allocated_memory;
@@ -717,7 +717,7 @@ void MainGame::dump_buffers() {
 	//ofstream ofile("datadump.dat");
 	//ofile.write(dat, len*sizeof(float));
 	glUnmapNamedBuffer( world->vecs_dest.lightbuffer );
-	
+	*/
 }
 
 void MainGame::dump_emptys() {

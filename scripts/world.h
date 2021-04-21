@@ -58,7 +58,6 @@ class World: public Container {
         //unordered_map<ivec3, Tile*, ivec3_hash> tiles;
         vector<Tile*> tiles;
         std::mutex tilelock;
-    		vector<pair<int,int> > dead_render_indexes;
         int seed;
         int difficulty = 1;
         bool generation = true;
@@ -85,7 +84,7 @@ class World: public Container {
         World(string newname, int newseed);
         World(string oldname);
         World(string newname, istream& datafile);
-        void set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size);
+        void set_buffers(GLuint verts, GLuint datas, int start_size);
         vec3 get_position() const;
         void unzip();
         void load_groups();
