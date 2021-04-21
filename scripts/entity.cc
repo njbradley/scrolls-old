@@ -660,21 +660,21 @@ void Entity::kill() {
 
 
 DisplayEntity::DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 newblockpos, vector<DisplayEntity*> newlimbs):
-Entity(nworld, starting_pos, hitbox1, hitbox2), block(newblock), render_index(-1,0), render_flag(true), limbs(newlimbs), blockpos(newblockpos), dead_falling(false) {
+Entity(nworld, starting_pos, hitbox1, hitbox2), block(newblock), render_index(-1), render_flag(true), limbs(newlimbs), blockpos(newblockpos), dead_falling(false) {
   // int size = block.block->scale;
   // box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
   //block->render(&vecs, this, 0, 0, 0);
 }
 
 DisplayEntity::DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 newblockpos):
-Entity(nworld, starting_pos, hitbox1, hitbox2), block(newblock), render_index(-1,0), render_flag(true), blockpos(newblockpos), dead_falling(false) {
+Entity(nworld, starting_pos, hitbox1, hitbox2), block(newblock), render_index(-1), render_flag(true), blockpos(newblockpos), dead_falling(false) {
   // int size = block.block->scale;
   // box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
   //block->render(&vecs, this, 0, 0, 0);
 }
 
 DisplayEntity::DisplayEntity(World* nworld, istream& ifile):
-Entity(nworld, vec3(0,0,0), vec3(0,0,0), vec3(0,0,0)), block(nullptr), render_index(-1,0), render_flag(true), blockpos(0,0,0), dead_falling(false) {
+Entity(nworld, vec3(0,0,0), vec3(0,0,0), vec3(0,0,0)), block(nullptr), render_index(-1), render_flag(true), blockpos(0,0,0), dead_falling(false) {
   ifile >> position.x >> position.y >> position.z;
   ifile >> vel.x >> vel.y >> vel.z;
   ifile >> angle.x >> angle.y;
@@ -701,7 +701,7 @@ void DisplayEntity::render(RenderVecs* allvecs) {
   // });
   // block->render(&vecs, int(position.x), int(position.y), int(position.z));
   //
-  
+  /*
   
   if (render_flag) {
     vecs.clear();
@@ -767,7 +767,7 @@ void DisplayEntity::render(RenderVecs* allvecs) {
     } else {
       allvecs->edit(render_index, &translated); //ERR: passes problemic vector? segfault deep in allvecs.edit, where translated.verts is added on
     }
-  }
+  }*/
   //cout << render_index.first << ',' << render_index.second << ' ' << vecs.num_verts << endl;
   // cout << position.x << ' ' << position.y << ' ' << position.z << endl;
   // for (bool b : consts) {
@@ -1270,7 +1270,7 @@ void FallingBlockEntity::render(RenderVecs* allvecs) {
   // });
   // block->render(&vecs, int(position.x), int(position.y), int(position.z));
   //
-  
+  /*
   
   if (render_flag) {
     vecs.clear();
@@ -1338,7 +1338,7 @@ void FallingBlockEntity::render(RenderVecs* allvecs) {
     render_index = allvecs->add(&translated);
   } else {
     allvecs->edit(render_index, &translated); //ERR: passes problemic vector? segfault deep in allvecs.edit, where translated.verts is added on
-  }
+  }*/
 }
 
 

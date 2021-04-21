@@ -105,8 +105,8 @@ commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+
   load_data_file(datafile);
 }
 
-void World::set_buffers(GLuint verts, GLuint uvs, GLuint light, GLuint mats, int start_size) {
-  vecs_dest.set_buffers(verts, uvs, light, mats, start_size);
+void World::set_buffers(GLuint verts, GLuint datas, int start_size) {
+  vecs_dest.set_buffers(verts, datas, start_size);
   glvecs.set_destination(&vecs_dest);
   transparent_glvecs.set_destination_offset(&vecs_dest, start_size - start_size * 0.1);
   // transparent_glvecs.set_buffers_prealloc(verts, uvs, light, mats, start_size*0.1, start_size - start_size*0.25);
@@ -588,11 +588,6 @@ bool World::render() {
         }
       }
     }
-    for (pair<int,int> render_index : dead_render_indexes) {
-      glvecs.del(render_index);
-      changed = true;
-    }
-    dead_render_indexes.clear();
     
     // if (glvecs.clean_flag or transparent_glvecs.clean_flag or changed) {
     //   glvecs.clean();

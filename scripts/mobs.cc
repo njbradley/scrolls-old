@@ -124,7 +124,7 @@ void Mob::on_timestep(double deltatime) {
 	}
 }
 
-void Mob::fall_apart(DisplayEntity* entity) {
+void Mob::fall_apart(DisplayEntity* entity) {/*
 	entity->dead_falling = true;
 	int render_off = entity->vecs.num_verts;
 	entity->render_index.size = render_off;
@@ -150,7 +150,7 @@ void Mob::fall_apart(DisplayEntity* entity) {
 		limb->drop_ticks();
 		fall_apart(limb);
 	}
-	entity->limbs.clear();
+	entity->limbs.clear();*/
 	//cout << entity << endl;
 }
 

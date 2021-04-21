@@ -22,7 +22,7 @@ GraphicsMainContext::GraphicsMainContext(Settings* newsettings) {
 }
 
 void GraphicsMainContext::set_world_buffers(World* world, int allocated_memory) {
-	world->set_buffers(vertexbuffer, uvbuffer, lightbuffer, matbuffer, allocated_memory);
+	world->set_buffers(vertexbuffer, databuffer, allocated_memory);
 }
 
 void GraphicsMainContext::init_glfw() {
@@ -93,12 +93,12 @@ void GraphicsMainContext::init_glfw() {
 	
 	// Cull triangles which normal is not towards the camera
 	glEnable(GL_CULL_FACE);
-	
+	// glDisable(GL_CULL_FACE);
 	glGenVertexArrays(1, &VertexArrayID);
 	
 	glGenVertexArrays(1, &uiVertexArrayID);
 	// Create and compile our GLSL program from the shaders
-	programID = LoadShaders( "resources/shaders/block.vs", "resources/shaders/block.fs" );
+	programID = LoadShadersGeo( "resources/shaders/block.vs", "resources/shaders/block.fs", "resources/shaders/block.gs" );
 	uiProgram = LoadShaders( "resources/shaders/ui.vs", "resources/shaders/ui.fs" );
 	
 	
@@ -128,13 +128,11 @@ void GraphicsMainContext::init_glfw() {
 	
 	glBindVertexArray(VertexArrayID);
 	
-	GLuint blockbuffs[4];
-	glGenBuffers(4, blockbuffs);
+	GLuint blockbuffs[2];
+	glGenBuffers(2, blockbuffs);
 	vertexbuffer = blockbuffs[0];
-	uvbuffer = blockbuffs[1];
-	lightbuffer = blockbuffs[2];
-	matbuffer = blockbuffs[3];
-	
+	databuffer = blockbuffs[1];
+		
 }
 
 void GraphicsMainContext::load_textures() {
@@ -222,51 +220,21 @@ void GraphicsMainContext::block_draw_call(Player* player, float sunlight, AsyncG
 	
 	// 1rst attribute buffer : vertices
 	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glVertexAttribPointer(
-		0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-		3,                  // size
-		GL_FLOAT,           // type
-		GL_FALSE,           // normalized?
-		0,                  // stride
-		(void*)0            // array buffer offset
-	);
-	
-	// 2nd attribute buffer : UVs
 	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-	glVertexAttribPointer(
-		1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-		2,                                // size : U+V => 2
-		GL_FLOAT,                         // type
-		GL_FALSE,                         // normalized?
-		0,                                // stride
-		(void*)0                          // array buffer offset
-	);
-	
 	glEnableVertexAttribArray(2);
-	glBindBuffer(GL_ARRAY_BUFFER, lightbuffer);
-	glVertexAttribPointer(
-		2,                                // attribute. No particular reason for 2, but must match the layout in the shader.
-		2,                                // size : 1
-		GL_FLOAT,                         // type
-		GL_FALSE,                         // normalized?
-		0,                                // stride
-		(void*)0                          // array buffer offset
-	);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderPosData), (void*) offsetof(RenderPosPart, pos));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(RenderPosData), (void*) offsetof(RenderPosPart, rot));
+	glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(RenderPosData), (void*) offsetof(RenderPosPart, scale));
+	// cout << sizeof(RenderPosData) << ' ' << (void*) offsetof(RenderPosPart, pos) << ' ' <<
+	// (void*) offsetof(RenderPosPart, scale) << ' ' << (void*) offsetof(RenderPosPart, rot) << endl;
 	
-	glEnableVertexAttribArray(3);
-	glBindBuffer(GL_ARRAY_BUFFER, matbuffer);
-	glVertexAttribIPointer(
-		3,                                // attribute. No particular reason for 2, but must match the layout in the shader.
-		2,                                // size : 1
-		GL_INT,                         // type
-														 // normalized?
-		0,                                // stride
-		(void*)0                          // array buffer offset
-	);
-	//cout << num_tris << endl;
-	// Draw the triangle !
+	glBindBuffer(GL_ARRAY_BUFFER, databuffer);
+	for (int i = 0; i < 6; i ++) {
+		glEnableVertexAttribArray(3+i);
+		glVertexAttribIPointer(3+i, 2, GL_UNSIGNED_INT, sizeof(RenderTypeData), (void*) (offsetof(RenderTypeData, faces) + i * sizeof(RenderFaceData)));
+		// cout << 3+i << ' ' << sizeof(RenderTypeData) << ' ' << (void*) (offsetof(RenderTypeData, faces) + i * sizeof(RenderFaceData)) << endl;
+	}
 	
 	int breakingTex = num_blocks;
 	glActiveTexture(GL_TEXTURE0+breakingTex);
@@ -289,7 +257,7 @@ void GraphicsMainContext::block_draw_call(Player* player, float sunlight, AsyncG
 	}
 	glUniform1iv(TextureID, num_blocks, ids);
 	
-	glDrawArrays(GL_TRIANGLES, 0, glvecs->num_verts); // 12*3 indices starting at 0 -> 12 triangles
+	glDrawArrays(GL_POINTS, 0, glvecs->num_verts); // 12*3 indices starting at 0 -> 12 triangles
 	
 	
 	glEnable(GL_BLEND);
@@ -305,7 +273,7 @@ void GraphicsMainContext::block_draw_call(Player* player, float sunlight, AsyncG
 	glUniform1iv(TextureID, num_blocks, ids);
 	
 	
-	glDrawArrays(GL_TRIANGLES, transparent_glvecs->offset, transparent_glvecs->num_verts);
+	glDrawArrays(GL_POINTS, transparent_glvecs->offset, transparent_glvecs->num_verts);
 	
 	
 	glDisableVertexAttribArray(0);
@@ -428,9 +396,7 @@ void GraphicsMainContext::swap() {
 GraphicsMainContext::~GraphicsMainContext() {
 	
 	glDeleteBuffers(1, &vertexbuffer);
-	glDeleteBuffers(1, &uvbuffer);
-	glDeleteBuffers(1, &lightbuffer);
-	glDeleteBuffers(1, &matbuffer);
+	glDeleteBuffers(1, &databuffer);
 	
 	glDeleteBuffers(1, &vertex_ui_buffer);
 	glDeleteBuffers(1, &uv_ui_buffer);

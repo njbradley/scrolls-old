@@ -29,9 +29,8 @@ class GraphicsContext { public:
 	vector<GLuint> ui_textures;
 	
 	GLuint vertexbuffer;
-	GLuint uvbuffer;
-	GLuint lightbuffer;
-	GLuint matbuffer;
+	GLuint databuffer;
+	
 	GLuint vertex_ui_buffer;
 	GLuint uv_ui_buffer;
 	GLuint mat_ui_buffer;
