@@ -157,9 +157,11 @@ void Block::set_global(ivec3 pos, int w, int val, int direc, int joints[6]) {
   }
   
   if (curblock->continues) {
+    cout << "joining" << endl;
     curblock->join();
     curblock->set_pixel(new Pixel(val, direc, joints));
   } else {
+    cout << "setting" << endl;
     curblock->pixel->set(val, direc, joints);
   }
 }
@@ -415,8 +417,36 @@ void Block::read_pix_val(istream& ifile, char* type, unsigned int* value) {
 
 
 
-
-
+Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
+  Block* curblock = this;
+  
+  while (curblock->pixel->value == 0 or curblock->pixel->value == 7) {
+    
+    ivec3 gpos = curblock->globalpos;
+    vec3 relpos = *pos - vec3(gpos);
+    float mintime = 999999;
+    for (int i = 0; i < 3; i ++) {
+      float time = 999999;
+      if (dir[i] < 0) {
+        time = -relpos[i] / dir[i];
+      } else if (dir[i]) {
+        time = (curblock->scale - relpos[i]) / dir[i];
+      }
+      if (time < mintime) {
+        mintime = time;
+      }
+    }
+    
+    *pos += dir * (mintime + 0.001f);
+    timeleft -= mintime;
+    if (timeleft < 0) {
+      return nullptr;
+    }
+    curblock = curblock->get_global(ivec3(*pos), 1);
+  }
+  
+  return curblock;
+}
 
 /*
 Block* Block::raycast(Collider* this_world, double* x, double* y, double* z, double dx, double dy, double dz, double time) {
@@ -785,7 +815,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
       ivec3 dir = dir_array[i];
       Block* block = parbl->get_global(gpos + dir_array[i] * parbl->scale, parbl->scale);
       renderdata.type.faces[i].tex = 0;
-      if (block != nullptr and block->is_air(-dir.x, -dir.y, -dir.z)) {
+      if (block != nullptr and block->is_air(-dir.x, -dir.y, -dir.z, value)) {
         renderdata.type.faces[i].tex = mat[i];
         renderdata.type.faces[i].rot = dirs[i];
         renderdata.type.faces[i].blocklight = block->get_blocklight(-dir.x, -dir.y, -dir.z);

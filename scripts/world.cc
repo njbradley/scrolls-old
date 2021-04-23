@@ -684,7 +684,8 @@ void World::set(ivec4 pos, char val, int direction, int joints[6]) {
   int lx = pos.x - px*chunksize;
   int ly = pos.y - py*chunksize;
   int lz = pos.z - pz*chunksize;
-  tile->chunk->set_global(ivec3(lx, ly, lz), pos.w, val, direction, joints);
+  cout << tile << ' ' << tile->chunk << endl;
+  tile->chunk->set_global(ivec3(pos.x, pos.y, pos.z), pos.w, val, direction, joints);
 }
 
 void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras) {
@@ -699,14 +700,14 @@ char World::get(int x, int y, int z) {
     return block->pixel->value;
 }
 
-Block* World::raycast(double* x, double* y, double* z, double dx, double dy, double dz, double time) {
+Block* World::raycast(vec3* pos, vec3 dir, double time) {
     //cout << "world raycast" << *x << ' ' << *y << ' ' << *z << ' ' << dx << ' ' << dy << ' ' << dz << endl;
-    Block* b = get_global((int)*x - (*x<0), (int)*y - (*y<0), (int)*z - (*z<0), 1);
+    Block* b = get_global((int)pos->x - (pos->x<0), (int)pos->y - (pos->y<0), (int)pos->z - (pos->z<0), 1);
     //cout << b << endl;
     if (b == nullptr) {
         return b;
     }
-    return nullptr;//b->raycast(this, x, y, z, dx, dy, dz, time);
+    return b->raycast(pos, dir, time);
 }
 
 void World::save_chunk(ivec3 pos) {

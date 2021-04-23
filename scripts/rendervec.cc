@@ -61,7 +61,7 @@ RenderIndex AsyncGLVecs::add(RenderData data) {
     changes[num_verts++] = data;
   }
   
-  synclock.unlock_shared();
+  synclock.unlock();
   return RenderIndex(pos);
 }
 
@@ -71,7 +71,7 @@ void AsyncGLVecs::del(RenderIndex index) {
   
   emptys.emplace(index.index);
   RenderData empty;
-  empty.pos.data[0] = NAN;
+  empty.pos.data[5] = NAN;
   changes[index.index] = empty;
   
   synclock.unlock();
@@ -79,18 +79,18 @@ void AsyncGLVecs::del(RenderIndex index) {
 
 void AsyncGLVecs::edit(RenderIndex index, RenderData data) {
   if (ignore) return;
-  synclock.lock_shared();
+  synclock.lock();
   
   changes[index.index] = data;
   
-  synclock.unlock_shared();
+  synclock.unlock();
 }
 
 void AsyncGLVecs::sync() {
   synclock.lock();
   
   for (std::unordered_map<int,RenderData>::iterator change = changes.begin(); change != changes.end(); change ++) {
-    destination->write(change->first, change->second);
+    destination->write(change->first + offset, change->second);
   }
   
   addlock.lock();
@@ -123,7 +123,6 @@ void GLVecsDestination::set_buffers(GLuint verts, GLuint databuf, int start_size
 
 
 void GLVecsDestination::write(RenderIndex index, RenderData data) {
-  //cout << index.index << ' ' << index.vert_index() << endl;
   glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
   glBufferSubData(GL_ARRAY_BUFFER, index.vert_index()*sizeof(GLfloat), index.vert_size*sizeof(GLfloat), data.pos.data);
   glBindBuffer(GL_ARRAY_BUFFER, databuffer);

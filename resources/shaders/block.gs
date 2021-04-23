@@ -1,7 +1,7 @@
 #version 330 core
 
 layout(points) in;
-layout(triangle_strip, max_vertices = 24) out;
+layout(triangle_strip, max_vertices = 12) out;
 
 flat in uvec2 facepx[];
 flat in uvec2 facepy[];
@@ -27,16 +27,21 @@ void set_attr(uvec2 data, vec4 normal) {
 	edges = 0u;
 	tex = data.x;
 	rot = (data.y & 0xff00u) >> 8u;
-	float sundot = dot(sunlightDir, normal.xyz);
+	float sundot = dot(sunlightDir, normal.xyz/scale[0]);
 	outlight = vec2(float((data.y & 0xff000000u) >> 24u) - (sundot*2+2), float((data.y & 0xff0000u) >> 16u)) / 20;
 }
 
-bool isCulled(vec4 normal) {
-  return false;//normal.z > 0;
+bool isCulled(vec4 normal, vec4 center) {
+	// vec4 newnorm = (center + normal) / (center.w+normal.w) - center/center.w;
+  return normal.z > 0;
 }
 
 void AddQuad(vec4 center, vec4 dy, vec4 dx, vec4 normal, uvec2 data) {
-	if (isCulled(normal)) {
+	vec2 point1 = (center.xy + dy.xy) / (center.w + dy.w);
+	vec2 point2 = (center.xy + dx.xy) / (center.w + dx.w);
+	vec2 cent = center.xy/center.w;
+	float result = (point2.x - cent.x)*(point1.y - cent.y) - (point2.y - cent.y)*(point1.x - cent.x);
+	if (center.w > 0 && result > 0) {
 		return;
 	}
 	
@@ -66,10 +71,12 @@ void AddQuad(vec4 center, vec4 dy, vec4 dx, vec4 normal, uvec2 data) {
 
 
 void main() {
-	float voxSize = scale[0];
-	sunlightDir = vec3(MVP * vec4(sunlightDir, 0));
+	if (isnan(scale[0])) {
+		return;
+	}
 	
   vec4 center = gl_in[0].gl_Position;
+	float voxSize = scale[0];
   
 	// vec4 centercam = (center) / center.w;
 	// vec4 centercamhigh = (center + voxSize) / center.w;
@@ -77,10 +84,42 @@ void main() {
 		// return;
 	// }
 	
+	float divisor = center.w + voxSize;
+	if (center.w < -voxSize || abs(max(center.x/divisor, center.y/divisor)) > 1 + 1.5*voxSize/divisor) {
+		return;
+	}
+	
+	sunlightDir = vec3(MVP * vec4(sunlightDir, 0));
+	
+	
   vec4 dx = MVP[0] * voxSize;
   vec4 dy = MVP[1] * voxSize;
   vec4 dz = MVP[2] * voxSize;
-
+	
+	/*
+	uvec2 chosenface;
+	if ((facepx[0].x) != 0u) {
+  	chosenface = facepx[0];
+  }
+  if ((facenx[0].x) != 0u) {
+    chosenface = facenx[0];
+	}
+  if ((facepy[0].x) != 0u) {
+    chosenface = facepy[0];
+	}
+  if ((faceny[0].x) != 0u) {
+    chosenface = faceny[0];
+	}
+  if ((facepz[0].x) != 0u) {
+    chosenface = facepz[0];
+	}
+  if ((facenz[0].x) != 0u) {
+    chosenface = facenz[0];
+	}
+	
+	AddQuad(center, vec4(voxSize,0,0,0), vec4(0,voxSize,0,0), vec4(0,0,-voxSize,0), chosenface);
+	return;*/
+	
 	if ((facepx[0].x) != 0u) {
   	AddQuad(center + dx, dy, dz,  dx, facepx[0]);
   }

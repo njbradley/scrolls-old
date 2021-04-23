@@ -98,6 +98,7 @@ class Block: public Collider { public:
 	bool is_air(int, int, int, char otherval = -1) const;
 	int get_sunlight(int dx, int dy, int dz) const;
 	int get_blocklight(int dx, int dy, int dz) const;
+	Block* raycast(vec3* pos, vec3 dir, double time);
 	vec3 get_position() const;
 	
 	static void write_pix_val(ostream& ofile, char type, unsigned int val);

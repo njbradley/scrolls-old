@@ -172,10 +172,8 @@ mat4 Player::getProjectionMatrix(){
 void Player::raycast(Pixel** hit, vec3* hitpos, DisplayEntity** target_entity) {
 	vec3 v = position;
 	double tiny = 0.00001;
-	double x = position.x;
-	double y = position.y;
-	double z = position.z;
-	Block* target = world->raycast(&x, &y, &z, pointing.x + tiny, pointing.y + tiny, pointing.z + tiny, 8);
+	vec3 pos = position;
+	Block* target = world->raycast(&pos, pointing, 8);
 	//cout << "ksjdflajsdfklajsd" << endl;
 	vector<DisplayEntity*> entities;
 	get_nearby_entities(&entities);
@@ -183,9 +181,9 @@ void Player::raycast(Pixel** hit, vec3* hitpos, DisplayEntity** target_entity) {
 	int bx, by, bz;
 	float dist;
 	if (target != nullptr) {
-		dist = glm::length(position-vec3(x,y,z));
+		dist = glm::length(position-pos);
 		*hit = target->pixel;
-		*hitpos = vec3(x,y,z);
+		*hitpos = pos;
 	} else {
 		dist = -1;
 		*hit = nullptr;
