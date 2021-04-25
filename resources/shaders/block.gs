@@ -82,7 +82,7 @@ void main() {
 		return;
 	}
 	
-  vec4 center = MVP * gl_in[0].gl_Position;
+  vec4 center = gl_in[0].gl_Position;
 	float voxSize = scale[0];
   
 	// vec4 centercam = (center) / center.w;
