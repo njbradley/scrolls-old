@@ -21,8 +21,8 @@ out vec2 outlight;
 
 uniform mat4 MVmat;
 uniform mat4 Pmat;
+uniform vec3 sunlightDir
 
-vec3 sunlightDir = vec3(0,-1,0);
 float voxSize;
 
 void set_attr(uvec2 data, vec4 normal) {
@@ -77,9 +77,6 @@ void main() {
 	if (position.z > 1.8*voxSize || abs(max(screencenter.x/divisor, screencenter.y/divisor)) > 1 + 1.8*voxSize/divisor) {
 		return;
 	}
-	
-	sunlightDir = vec3(MVmat * vec4(sunlightDir, 0));
-	
 	
   vec4 dx = MVmat[0] * voxSize;
   vec4 dy = MVmat[1] * voxSize;

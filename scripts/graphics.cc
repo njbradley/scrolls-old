@@ -185,7 +185,7 @@ void GraphicsMainContext::load_textures() {
 
 void GraphicsMainContext::block_draw_call(Player* player, float sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) {
 	if (game->debug_visible and triquery_recieved) {
-		glBeginQuery(GL_PRIMITIVES_GENERATED, triquery);
+		//glBeginQuery(GL_PRIMITIVES_GENERATED, triquery);
 	}
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
@@ -211,6 +211,7 @@ void GraphicsMainContext::block_draw_call(Player* player, float sunlight, AsyncG
 	glm::mat4 ModelMatrix = glm::mat4(1.0);
 	glm::mat4 P = ProjectionMatrix;
 	glm::mat4 MV = ViewMatrix * ModelMatrix;
+	vec3 sunlightdir = P*MV*vec3(0,-1,0);
 	
 	// Send our transformation to the currently bound shader,
 	// in the "MVP" uniform
@@ -219,7 +220,7 @@ void GraphicsMainContext::block_draw_call(Player* player, float sunlight, AsyncG
 	glUniform3f(clearcolorID, clearcolor.x * sunlight, clearcolor.y * sunlight, clearcolor.z * sunlight);
 	glClearColor(clearcolor.x * sunlight, clearcolor.y * sunlight, clearcolor.z * sunlight, 0.0f);
 	glUniform1i(viewdistID, view_distance);
-	glUniform1f(sunlightID, sunlight);
+	glUniform3f(sunlightID, sunlightdir.x, sunlightdir.y, sunlightdir.z);
 	
 	
 	// 1rst attribute buffer : vertices
@@ -285,7 +286,7 @@ void GraphicsMainContext::block_draw_call(Player* player, float sunlight, AsyncG
 	glDisableVertexAttribArray(2);
 	glDisableVertexAttribArray(3);
 	
-	if (game->debug_visible) {
+	if (false and game->debug_visible) {
 		if (triquery_recieved) {
 			triquery_recieved = false;
 			glEndQuery(GL_PRIMITIVES_GENERATED);
