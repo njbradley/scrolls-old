@@ -24,8 +24,7 @@ flat out vec2 rotation;
 flat out float scale;
 
 // Values that stay constant for the whole mesh.
-uniform mat4 MVP;
-uniform vec3 player_position;
+uniform mat4 MVmat;
 
 void main(){
 	

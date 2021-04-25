@@ -102,12 +102,12 @@ void GraphicsMainContext::init_glfw() {
 	uiProgram = LoadShaders( "resources/shaders/ui.vs", "resources/shaders/ui.fs" );
 	
 	
-	MatrixID = glGetUniformLocation(programID, "MVP");
+	pMatID = glGetUniformLocation(programID, "Pmat");
+	mvMatID = glGetUniformLocation(programID, "MVmat");
 	TextureID  = glGetUniformLocation(programID, "myTextureSampler");
 	uiTextureID  = glGetUniformLocation(uiProgram, "myTextureSampler");
 	viewdistID = glGetUniformLocation(programID, "view_distance");
 	clearcolorID = glGetUniformLocation(programID, "clear_color");
-	player_positionID = glGetUniformLocation(programID, "player_position");
 	sunlightID = glGetUniformLocation(programID, "sunlight");
 	breakingTexID = glGetUniformLocation(programID, "breakingTex");
 	overlayTexID = glGetUniformLocation(programID, "overlayTex");
@@ -209,15 +209,16 @@ void GraphicsMainContext::block_draw_call(Player* player, float sunlight, AsyncG
 	glm::mat4 ProjectionMatrix = player->getProjectionMatrix();
 	glm::mat4 ViewMatrix = player->getViewMatrix();
 	glm::mat4 ModelMatrix = glm::mat4(1.0);
-	glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
+	glm::mat4 P = ProjectionMatrix;
+	glm::mat4 MV = ViewMatrix * ModelMatrix;
 	
 	// Send our transformation to the currently bound shader,
 	// in the "MVP" uniform
-	glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+	glUniformMatrix4fv(pMatID, 1, GL_FALSE, &P[0][0]);
+	glUniformMatrix4fv(mvMatID, 1, GL_FALSE, &MV[0][0]);
 	glUniform3f(clearcolorID, clearcolor.x * sunlight, clearcolor.y * sunlight, clearcolor.z * sunlight);
 	glClearColor(clearcolor.x * sunlight, clearcolor.y * sunlight, clearcolor.z * sunlight, 0.0f);
 	glUniform1i(viewdistID, view_distance);
-	glUniform3f(player_positionID, player->position.x, player->position.y, player->position.z);
 	glUniform1f(sunlightID, sunlight);
 	
 	

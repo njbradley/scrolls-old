@@ -35,12 +35,12 @@ class GraphicsContext { public:
 	GLuint uv_ui_buffer;
 	GLuint mat_ui_buffer;
 	
-	GLuint MatrixID;
+	GLuint pMatID;
+	GLuint mvMatID;
 	GLuint TextureID;
 	GLuint uiTextureID = 8969;
 	GLuint viewdistID;
 	GLuint clearcolorID;
-	GLuint player_positionID;
 	GLuint sunlightID;
 	GLuint breakingTexID;
 	GLuint overlayTexID;
