@@ -132,7 +132,8 @@ void GraphicsMainContext::init_glfw() {
 	glGenBuffers(2, blockbuffs);
 	vertexbuffer = blockbuffs[0];
 	databuffer = blockbuffs[1];
-		
+	
+	glGenQueries(1, &triquery);
 }
 
 void GraphicsMainContext::load_textures() {
@@ -183,7 +184,9 @@ void GraphicsMainContext::load_textures() {
 
 
 void GraphicsMainContext::block_draw_call(Player* player, float sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) {
-	
+	if (game->debug_visible and triquery_recieved) {
+		glBeginQuery(GL_PRIMITIVES_GENERATED, triquery);
+	}
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 	glDepthMask(GL_TRUE);
@@ -280,6 +283,20 @@ void GraphicsMainContext::block_draw_call(Player* player, float sunlight, AsyncG
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(2);
 	glDisableVertexAttribArray(3);
+	
+	if (game->debug_visible) {
+		if (triquery_recieved) {
+			triquery_recieved = false;
+			glEndQuery(GL_PRIMITIVES_GENERATED);
+		} else {
+			GLuint ready;
+			glGetQueryObjectuiv(triquery, GL_QUERY_RESULT_AVAILABLE, &ready);
+			if (ready == GL_TRUE) {
+				triquery_recieved = true;
+				glGetQueryObjectuiv(triquery, GL_QUERY_RESULT, &triquery_result);
+			}
+		}
+	}
 }
 
 void GraphicsMainContext::make_ui_buffer(Player* player, string debugstream) {
@@ -401,6 +418,8 @@ GraphicsMainContext::~GraphicsMainContext() {
 	glDeleteBuffers(1, &vertex_ui_buffer);
 	glDeleteBuffers(1, &uv_ui_buffer);
 	glDeleteBuffers(1, &mat_ui_buffer);
+	
+	glDeleteQueries(1, &triquery);
 	
 	glDeleteProgram(programID);
 	glDeleteProgram(uiProgram);

@@ -46,6 +46,10 @@ class GraphicsContext { public:
 	GLuint overlayTexID;
 	GLuint edgesTexID;
 	
+	GLuint triquery;
+	GLuint triquery_result;
+	bool triquery_recieved = true;
+	
 	virtual void set_world_buffers(World* world, int mem) = 0;
 	virtual void init_glfw() = 0;
 	virtual void load_textures() = 0;

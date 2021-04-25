@@ -32,6 +32,7 @@ class Game { public:
 	DisplayEntity* debugentity = nullptr;
 	Pixel* debugblock = nullptr;
 	stringstream debugstream;
+	bool debug_visible = true;
 	
 	virtual ~Game() {};
 	
@@ -53,7 +54,6 @@ class Game { public:
 
 class MainGame : public Game { public:
 	double min_ms_per_frame;
-	bool debug_visible = true;
 	
 	double lastTime;
 	double currentTime;

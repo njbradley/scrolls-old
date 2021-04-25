@@ -465,7 +465,7 @@ void MainGame::print_debug() {
 	debugstream << std::fixed;
 	debugstream.precision(3);
 	
-	debugstream << "fps: " << fps << endl;
+	debugstream << "fps: " << fps << " T:" << graphics->triquery_result << endl;
 	debugstream << "x: " << world->player->position.x << "\ny: " << world->player->position.y << "\nz: " << world->player->position.z << endl;
 	debugstream << "dx: " << world->player->vel.x << "\ndy: " << world->player->vel.y << "\ndz: " << world->player->vel.z << endl;
 	debugstream << "chunk: "

@@ -27,7 +27,12 @@ extern const uint8 lightmax;
 //   has a value. continues is false, and pixel points to a pixel.
 //
 // chunk type: This is when the block is a branch block, whith 8 children
-//   continues is true.
+//   continues is true. Chunks can have different winding types, to better
+//   suit smaller and different shaped objects. the types are:
+//     winding = 0 - normal, 2 by 2 by 2.
+//     winding = 0b10XYZXYZ - flat face, 1 by 4 by 2, the first XYZ marks which axis is
+//                            4 long, the second marks the 2 long axis.
+//     winding = 0b01000XYZ - long line, 1 by 1 by 8, the XYZ marks the 8 long axis
 
 class Block: public Collider { public:
 	ivec3 parentpos;
@@ -38,6 +43,7 @@ class Block: public Collider { public:
 	Block* parent = nullptr;
 	Container* world;
 	bool continues;
+	uint8 winding;
 	union {
 		Pixel* pixel;
 		Block* children;
@@ -51,7 +57,7 @@ class Block: public Collider { public:
 	Block(Pixel* pix);
 	// Initializez to chunk state with given new[8] allocated
 	// children array
-	Block(Block* childs);
+	Block(Block* childs, uint8 nwinding = 0);
 	// initializes from a file (must be top level)
 	Block(istream& ifile);
 	~Block();
@@ -64,6 +70,9 @@ class Block: public Collider { public:
 	// (no error checking for speed)
 	Block* get(ivec3 pos);
 	Block* get(int x, int y, int z);
+	int indexof(ivec3 pos) const;
+	int indexof(int x, int y, int z) const;
+	ivec3 posof(int index) const;
 	const Block* get(ivec3 pos) const;
 	const Block* get(int x, int y, int z) const;
 	// travels the tree to find the requested size and pos.
@@ -74,9 +83,10 @@ class Block: public Collider { public:
 	// turns undef or pixel type blocks to chunk type
 	// divide leaves all children as undef type (use subdivide for
 	// fully initialized children)
-	void divide();
+	void divide(uint8 nwinding = 0);
 	void subdivide();
 	void join();
+	void changewinding(uint8 nwinding);
 	// read/writes the block to a file recursively
 	// reading should be done to undef type
 	void to_file(ostream& ofile) const;

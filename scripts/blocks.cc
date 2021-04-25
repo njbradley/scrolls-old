@@ -51,7 +51,7 @@ Block::Block(Pixel* pix): continues(false), pixel(pix) {
   pixel->set_block(this);
 }
 
-Block::Block(Block* childs): continues(true), children(childs) {
+Block::Block(Block* childs, uint8 nwinding): continues(true), children(childs), winding(nwinding) {
   
 }
 
@@ -78,7 +78,7 @@ void Block::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale
   
   if (continues) {
     for (int i = 0; i < 8; i ++) {
-      children[i].set_parent(this, world, ivec3(i/4, i/2%2, i%2), scale / 2);
+      children[i].set_parent(this, world, posof(i), scale / 2);
     }
   }
   ASSERT(parent != this)
@@ -108,13 +108,56 @@ Block* Block::get(int x, int y, int z) {
 }
 
 const Block* Block::get(ivec3 pos) const {
-  return children + (pos.x*4 + pos.y * 2 + pos.z);
+  return children + indexof(pos);
 }
 
 const Block* Block::get(int x, int y, int z) const {
-  return children + (x*4 + y*2 + z);
+  return children + indexof(x,y,z);
 }
 
+int Block::indexof(ivec3 pos) const {
+  if (winding == 0) {
+    return pos.x*4 + pos.y*2 + pos.z;
+  } else if (winding & 0b10000000) {
+    return (pos.x)*(winding&0b100000) + (pos.x*4)*(winding&0b100)
+    + (pos.y)*(winding&0b10000) + (pos.y*4)*(winding&0b10)
+    + (pos.z)*(winding&0b1000) + (pos.z*4)*(winding&0b1);
+  } else if (winding & 0b01000000) {
+    return pos.x*(winding&0b100 != 0) + pos.y*(winding&0b10 != 0) + pos.z*(winding&0b1 != 0);
+  }
+  ERR("invalid winding");
+  return 0;
+}
+
+int Block::indexof(int x, int y, int z) const {
+  if (winding == 0) {
+    return x*4 + y*2 + z;
+  } else if (winding & 0b10000000) {
+    return x*(winding&0b100000) + (x*4)*(winding&0b100)
+    + y*(winding&0b10000) + (y*4)*(winding&0b10)
+    + z*(winding&0b1000) + (z*4)*(winding&0b1);
+  } else if (winding & 0b01000000) {
+    return x*(winding&0b100 != 0) + y*(winding&0b10 != 0) + z*(winding&0b1 != 0);
+  }
+  ERR("invalid winding");
+  return 0;
+}
+
+ivec3 Block::posof(int index) const {
+  if (winding == 0) {
+    return ivec3(index/4, index/2%2, index%2);
+  } else if (winding & 0b10000000) {
+    return ivec3(
+      (index%4)*(winding&0b100000) + (index/4)*(winding&0b100),
+      (index%4)*(winding&0b10000) + (index/4)*(winding&0b10),
+      (index%4)*(winding&0b1000) + (index/4)*(winding&0b1)
+    );
+  } else if (winding & 0b01000000) {
+    return ivec3(index*(winding&0b100 != 0), index*(winding&0b10 != 0), index*(winding&0b1 != 0));
+  }
+  ERR("invalid winding");
+  return ivec3(0,0,0);
+}
 
 Block* Block::get_global(int x, int y, int z, int w) {
   return get_global(ivec3(x,y,z), w);
@@ -166,10 +209,11 @@ void Block::set_global(ivec3 pos, int w, int val, int direc, int joints[6]) {
   }
 }
 
-void Block::divide() { ASSERT(!continues)
+void Block::divide(uint8 nwinding) { ASSERT(!continues)
   if (pixel != nullptr) {
     delete pixel;
   }
+  winding = nwinding;
   children = new Block[8];
   continues = true;
   for (int i = 0; i < 8; i ++) {
@@ -190,6 +234,18 @@ void Block::join() { ASSERT(ISCHUNK)
   continues = false;
   pixel = nullptr;
 }
+
+void Block::changewinding(uint8 nwinding) {
+  Block blocks[8];
+  for (int i = 0; i < 8; i ++) {
+    blocks[i] = *get(i/4, i/2%2, i%2);
+  }
+  winding = nwinding;
+  for (int i = 0; i < 8; i ++) {
+    *get(i/4, i/2%2, i%2) = blocks[i];
+  }
+}
+
 
 void Block::to_file(ostream& ofile) const {
   if (continues) {

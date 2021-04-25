@@ -1,7 +1,7 @@
 #version 330 core
 
 layout(points) in;
-layout(triangle_strip, max_vertices = 12) out;
+layout(triangle_strip, max_vertices = 24) out;
 
 flat in uvec2 facepx[];
 flat in uvec2 facepy[];
@@ -37,11 +37,18 @@ bool isCulled(vec4 normal, vec4 center) {
 }
 
 void AddQuad(vec4 center, vec4 dy, vec4 dx, vec4 normal, uvec2 data) {
+	/*
 	vec2 point1 = (center.xy + dy.xy) / (center.w + dy.w);
 	vec2 point2 = (center.xy + dx.xy) / (center.w + dx.w);
 	vec2 cent = center.xy/center.w;
 	float result = (point2.x - cent.x)*(point1.y - cent.y) - (point2.y - cent.y)*(point1.x - cent.x);
-	if (center.w > 0 && result > 0) {
+	if (center.w > max(max(-dx.w, -dy.w), max(-dx.w-dy.w, 0)) && result > 0) {
+		return;
+	}*/
+	
+	vec3 realnorm = abs(cross(dx.xyz, dy.xyz)) * sign(normal.xyz);
+	float dotresult = dot(center.xyz, realnorm);
+	if (dotresult > 0) {
 		return;
 	}
 	
@@ -75,7 +82,7 @@ void main() {
 		return;
 	}
 	
-  vec4 center = gl_in[0].gl_Position;
+  vec4 center = MVP * gl_in[0].gl_Position;
 	float voxSize = scale[0];
   
 	// vec4 centercam = (center) / center.w;
