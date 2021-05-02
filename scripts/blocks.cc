@@ -477,7 +477,6 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
   Block* curblock = this;
   
   while (curblock->pixel->value == 0 or curblock->pixel->value == 7) {
-    
     ivec3 gpos = curblock->globalpos;
     vec3 relpos = *pos - vec3(gpos);
     float mintime = 999999;
@@ -485,20 +484,19 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
       float time = 999999;
       if (dir[i] < 0) {
         time = -relpos[i] / dir[i];
-      } else if (dir[i]) {
+      } else if (dir[i] > 0) {
         time = (curblock->scale - relpos[i]) / dir[i];
       }
       if (time < mintime) {
         mintime = time;
       }
     }
-    
     *pos += dir * (mintime + 0.001f);
     timeleft -= mintime;
     if (timeleft < 0) {
       return nullptr;
     }
-    curblock = curblock->get_global(ivec3(*pos), 1);
+    curblock = curblock->get_global(SAFEFLOOR3(*pos), 1);
   }
   
   return curblock;
@@ -850,7 +848,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
     bool exposed = false;
     
     renderdata.pos.loc.pos = gpos;
-    renderdata.pos.loc.rot = vec2(0,0);
+    renderdata.pos.loc.rot = vec4(0,0,0,0);
     renderdata.pos.loc.scale = parbl->scale;
     
     int mat[6];
@@ -963,7 +961,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
 
 void Pixel::set(int val, int newdirection, int newjoints[6]) {
   WRITE_LOCK;
-  
+  cout << int(val) << endl;
   if (val == 0) {
     newdirection = 0;
   } else {
@@ -1053,6 +1051,7 @@ void Pixel::random_tick() {
 }
 
 void Pixel::tick() { // ERR: race condition, render and tick threads race, render renders, tick causes falling
+  return;
   if (value == 0) {
     if (group != nullptr) {
       group->del(this);

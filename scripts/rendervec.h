@@ -12,14 +12,14 @@
 
 struct RenderPosPart {
   vec3 pos;
-  vec2 rot;
+  vec4 rot;
   float scale;
 };
 
 struct RenderPosData {
   union {
     RenderPosPart loc;
-    GLfloat data[6];
+    GLfloat data[8];
   };
 };
 
@@ -56,7 +56,7 @@ class RenderIndex { public:
   
   static int to_vert_index(int num);
   static int to_data_index(int num);
-  static const int vert_size = 6;
+  static const int vert_size = 8;
   static const int data_size = 12;
   
   int vert_index() const;

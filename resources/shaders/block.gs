@@ -10,7 +10,7 @@ flat in uvec2 facenx[];
 flat in uvec2 faceny[];
 flat in uvec2 facenz[];
 
-flat in vec2 rotation[];
+flat in vec4 rotation[];
 flat in float scale[];
 
 out vec2 UV;
@@ -21,46 +21,60 @@ out vec2 outlight;
 
 uniform mat4 MVmat;
 uniform mat4 Pmat;
-uniform vec3 sunlightDir
+uniform vec3 sunlight;
 
 float voxSize;
 
-void set_attr(uvec2 data, vec4 normal) {
-	edges = 0u;
-	tex = data.x;
-	rot = (data.y & 0xff00u) >> 8u;
-	float sundot = dot(sunlightDir, normal.xyz/voxSize);
-	outlight = vec2(float((data.y & 0xff000000u) >> 24u) - (sundot*2+2), float((data.y & 0xff0000u) >> 16u)) / 20;
+vec2 light;
+uvec3 outattr;
+
+void gen_attr(uvec2 data, vec4 normal) {
+	outattr.z = 0u;
+	outattr.x = data.x;
+	outattr.y = (data.y & 0xff00u) >> 8u;
+	float sundot = -dot(sunlight, normal.xyz/voxSize);
+	light = vec2(float((data.y & 0xff000000u) >> 24u) - (sundot*5+5), float((data.y & 0xff0000u) >> 16u)) / 20;
+}
+
+void set_attr() {
+	edges = outattr.z;
+	tex = outattr.x;
+	rot = outattr.y;
+	outlight = light;
 }
 
 void addQuad(vec4 position, vec4 dy, vec4 dx, vec4 normal, uvec2 data) {
 	if (dot(position, normal) > 0) {
 		return;
 	}
+	gen_attr(data, normal);
 	
   UV = vec2(1,0);
-	set_attr(data, normal);
+	set_attr();
   gl_Position = Pmat * (position + dx);
   EmitVertex();
 	
 	UV = vec2(0,0);
-	set_attr(data, normal);
+	set_attr();
 	gl_Position = Pmat * position;
   EmitVertex();
 
 	UV = vec2(1,1);
-	set_attr(data, normal);
+	set_attr();
 	gl_Position = Pmat * (position + dx + dy);
   EmitVertex();
 
 	UV = vec2(0,1);
-	set_attr(data, normal);
+	set_attr();
   gl_Position = Pmat * (position + dy);
   EmitVertex();
 
   EndPrimitive();
 }
 
+vec4 rotatePos(vec4 v, vec4 q) {
+	return vec4(v.xyz + 2.0*cross(q.xyz, cross(q.xyz, v.xyz) + q.w * v.xyz), v.w);
+}
 
 void main() {
 	if (isnan(scale[0])) {
@@ -71,6 +85,7 @@ void main() {
 	
 	vec4 center = (position + MVmat * vec4(0.5,0.5,0.5,0));
 	voxSize = scale[0];
+	vec4 rotquat = rotation[0];
 	
 	vec4 screencenter = Pmat * center;
 	float divisor = screencenter.w + voxSize;
@@ -78,9 +93,15 @@ void main() {
 		return;
 	}
 	
-  vec4 dx = MVmat[0] * voxSize;
-  vec4 dy = MVmat[1] * voxSize;
-  vec4 dz = MVmat[2] * voxSize;
+  // vec4 dx = (MVmat[0] * voxSize);
+  // vec4 dy = (MVmat[1] * voxSize);
+  // vec4 dz = (MVmat[2] * voxSize);
+	
+	
+  vec4 dx = MVmat * rotatePos(vec4(voxSize,0,0,0), rotquat);
+  vec4 dy = MVmat * rotatePos(vec4(0,voxSize,0,0), rotquat);
+  vec4 dz = MVmat * rotatePos(vec4(0,0,voxSize,0), rotquat);
+	
 	
 	/*
 	uvec2 chosenface;
@@ -105,9 +126,6 @@ void main() {
 	
 	addQuad(center-vec4(voxSize/2,voxSize/2,0,0), vec4(voxSize,0,0,0), vec4(0,voxSize,0,0), vec4(0,0,voxSize,0), chosenface);
 	return;*/
-	
-	int max = 0;
-	
 	
 	if ((facepx[0].x) != 0u) {
   	addQuad(position + dx, dy, dz,  dx, facepx[0]);

@@ -16,7 +16,7 @@ RenderIndex::RenderIndex(): index(-1) {
 }
 
 int RenderIndex::to_vert_index(int num) {
-  return num*6;
+  return num*8;
 }
 
 int RenderIndex::to_data_index(int num) {

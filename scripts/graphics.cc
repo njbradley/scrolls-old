@@ -109,6 +109,7 @@ void GraphicsMainContext::init_glfw() {
 	viewdistID = glGetUniformLocation(programID, "view_distance");
 	clearcolorID = glGetUniformLocation(programID, "clear_color");
 	sunlightID = glGetUniformLocation(programID, "sunlight");
+	suncolorID = glGetUniformLocation(programID, "suncolor");
 	breakingTexID = glGetUniformLocation(programID, "breakingTex");
 	overlayTexID = glGetUniformLocation(programID, "overlayTex");
 	edgesTexID = glGetUniformLocation(programID, "edgesTex");
@@ -183,7 +184,7 @@ void GraphicsMainContext::load_textures() {
 
 
 
-void GraphicsMainContext::block_draw_call(Player* player, float sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) {
+void GraphicsMainContext::block_draw_call(Player* player, vec3 sunlightdir, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) {
 	if (game->debug_visible and triquery_recieved) {
 		//glBeginQuery(GL_PRIMITIVES_GENERATED, triquery);
 	}
@@ -211,16 +212,17 @@ void GraphicsMainContext::block_draw_call(Player* player, float sunlight, AsyncG
 	glm::mat4 ModelMatrix = glm::mat4(1.0);
 	glm::mat4 P = ProjectionMatrix;
 	glm::mat4 MV = ViewMatrix * ModelMatrix;
-	vec3 sunlightdir = P*MV*vec3(0,-1,0);
-	
+	sunlightdir = vec3(MV * vec4(sunlightdir.x, sunlightdir.y, sunlightdir.z, 0));
+	float sunlight = glm::length(sunlightdir);
 	// Send our transformation to the currently bound shader,
 	// in the "MVP" uniform
 	glUniformMatrix4fv(pMatID, 1, GL_FALSE, &P[0][0]);
 	glUniformMatrix4fv(mvMatID, 1, GL_FALSE, &MV[0][0]);
-	glUniform3f(clearcolorID, clearcolor.x * sunlight, clearcolor.y * sunlight, clearcolor.z * sunlight);
+	glUniform3f(clearcolorID, clearcolor.x, clearcolor.y, clearcolor.z);
 	glClearColor(clearcolor.x * sunlight, clearcolor.y * sunlight, clearcolor.z * sunlight, 0.0f);
 	glUniform1i(viewdistID, view_distance);
 	glUniform3f(sunlightID, sunlightdir.x, sunlightdir.y, sunlightdir.z);
+	glUniform3f(suncolorID, world->suncolor.x, world->suncolor.y, world->suncolor.z);
 	
 	
 	// 1rst attribute buffer : vertices
@@ -229,7 +231,7 @@ void GraphicsMainContext::block_draw_call(Player* player, float sunlight, AsyncG
 	glEnableVertexAttribArray(2);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderPosData), (void*) offsetof(RenderPosPart, pos));
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(RenderPosData), (void*) offsetof(RenderPosPart, rot));
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderPosData), (void*) offsetof(RenderPosPart, rot));
 	glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(RenderPosData), (void*) offsetof(RenderPosPart, scale));
 	// cout << sizeof(RenderPosData) << ' ' << (void*) offsetof(RenderPosPart, pos) << ' ' <<
 	// (void*) offsetof(RenderPosPart, scale) << ' ' << (void*) offsetof(RenderPosPart, rot) << endl;

@@ -17,7 +17,8 @@ uniform sampler2DArray overlayTex;
 uniform sampler2DArray edgesTex;
 uniform vec3 clear_color;
 uniform int view_distance;
-uniform float sunlight;
+uniform vec3 sunlight;
+uniform vec3 suncolor;
 
 void main() {
 	
@@ -25,7 +26,7 @@ void main() {
 	if (tex.a < 0.05) {
 		discard;
 	}
-	vec3 color3 = tex.bgr * max(outlight.y, sunlight*outlight.x);
+	vec3 color3 = tex.bgr * max(outlight.yyy, suncolor*outlight.x);
 	color = vec4(color3.x, color3.y, color3.z, tex.a);
 	/*
 	const vec4 colors[] = {

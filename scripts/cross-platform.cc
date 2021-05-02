@@ -374,7 +374,7 @@ void setup_backtrace() {
   //dwstExceptionDialog( __DATE__ " - " __TIME__ );
 	SetUnhandledExceptionFilter( exceptionHandler );
   signal(SIGABRT, sig_abort);
-  //signal(SIGINT, sig_int);
+  signal(SIGINT, sig_int);
   #endif
 }
 

@@ -73,7 +73,12 @@ class World: public Container {
         bool closing_world;
         int timestep_clock = 0;
         int mobcount;
-        float sunlight;
+        vec3 sunlight;
+        vec3 suncolor;
+        RenderIndex sunindex;
+        int suntexture;
+        RenderIndex moonindex;
+        int moontexture;
         double daytime = 500;
         double last_time;
         bool initial_generation = true;

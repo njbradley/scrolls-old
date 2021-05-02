@@ -42,6 +42,7 @@ class GraphicsContext { public:
 	GLuint viewdistID;
 	GLuint clearcolorID;
 	GLuint sunlightID;
+	GLuint suncolorID;
 	GLuint breakingTexID;
 	GLuint overlayTexID;
 	GLuint edgesTexID;
@@ -53,7 +54,7 @@ class GraphicsContext { public:
 	virtual void set_world_buffers(World* world, int mem) = 0;
 	virtual void init_glfw() = 0;
 	virtual void load_textures() = 0;
-	virtual void block_draw_call(Player* player, float sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) = 0;
+	virtual void block_draw_call(Player* player, vec3 sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) = 0;
 	virtual void make_ui_buffer(Player* player, string debugstream) = 0;
 	virtual void ui_draw_call(Player* player, std::stringstream* debugstream) = 0;
 	virtual void swap() = 0;
@@ -65,7 +66,7 @@ class GraphicsMainContext : public GraphicsContext { public:
 	virtual void set_world_buffers(World* world, int mem);
 	virtual void init_glfw();
 	virtual void load_textures();
-	virtual void block_draw_call(Player* player, float sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs);
+	virtual void block_draw_call(Player* player, vec3 sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs);
 	virtual void make_ui_buffer(Player* player, string debugstream);
 	virtual void ui_draw_call(Player* player, std::stringstream* debugstream);
 	virtual void swap();
@@ -76,7 +77,7 @@ class GraphicsNullContext : public GraphicsContext { public:
 	virtual void set_world_buffers(World* world, int mem) {}
 	virtual void init_glfw() {}
 	virtual void load_textures() {}
-	virtual void block_draw_call(Player* player, float sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) {}
+	virtual void block_draw_call(Player* player, vec3 sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) {}
 	virtual void make_ui_buffer(Player* player, string debugstream) {}
 	virtual void ui_draw_call(Player* player, std::stringstream* debugstream) {}
 	virtual void swap() {}

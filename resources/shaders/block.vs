@@ -2,7 +2,7 @@
 
 // Input vertex data, different for all executions of this shader.
 layout(location = 0) in vec3 position;
-layout(location = 1) in vec2 inrotation;
+layout(location = 1) in vec4 inrotation;
 layout(location = 2) in float inscale;
 
 layout(location = 3) in uvec2 infacepx;
@@ -20,7 +20,7 @@ flat out uvec2 facenx;
 flat out uvec2 faceny;
 flat out uvec2 facenz;
 
-flat out vec2 rotation;
+flat out vec4 rotation;
 flat out float scale;
 
 // Values that stay constant for the whole mesh.
