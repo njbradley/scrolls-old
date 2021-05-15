@@ -11,6 +11,7 @@
 #include "rendervec.h"
 
 #define csize 2
+#define csize3 8
 
 extern const uint8 lightmax;
 
@@ -33,6 +34,10 @@ extern const uint8 lightmax;
 //     winding = 0b10XYZXYZ - flat face, 1 by 4 by 2, the first XYZ marks which axis is
 //                            4 long, the second marks the 2 long axis.
 //     winding = 0b01000XYZ - long line, 1 by 1 by 8, the XYZ marks the 8 long axis
+//
+// a block can also be "floating", when it is not on the standard xyz grid
+// in that case, the globalpos points to the "grounded block" and floatpos is the
+// offset from that block
 
 class Block: public Collider { public:
 	ivec3 parentpos;
@@ -42,10 +47,14 @@ class Block: public Collider { public:
 	int scale;
 	Block* parent = nullptr;
 	Container* world;
+	FreeBlock* freecontainer = nullptr;
 	bool continues;
 	uint8 winding;
 	union {
-		Pixel* pixel;
+		struct {
+			Pixel* pixel;
+			FreeBlock* freeblock = nullptr;
+		};
 		Block* children;
 	};
 	
@@ -63,8 +72,11 @@ class Block: public Collider { public:
 	~Block();
 	
 	// sets the parent of this block (only call for toplevel blocks)
-	void set_parent(Block* parent, Container* world, ivec3 ppos, int nscale);
+	void set_parent(Container* world, ivec3 ppos, int nscale);
+	void set_parent(Block* parent, Container* world, FreeBlock* freecont, ivec3 ppos, int nscale);
 	void set_child(ivec3 pos, Block* block);
+	void set_freeblock(FreeBlock* nfreeblock);
+	bool expand_freeblock(FreeBlock* nfreeblock);
 	void set_pixel(Pixel* pix);
 	// gets the block for chunk blocks
 	// (no error checking for speed)
@@ -75,10 +87,16 @@ class Block: public Collider { public:
 	ivec3 posof(int index) const;
 	const Block* get(ivec3 pos) const;
 	const Block* get(int x, int y, int z) const;
+	// returns the floating point global pos
+	vec3 fglobalpos() const;
+	quat getrotation() const;
 	// travels the tree to find the requested size and pos.
 	// calls to world if it reaches the top
 	Block* get_global(int x, int y, int z, int w);
 	Block* get_global(ivec3 pos, int w);
+	Block* get_global(vec3 pos, int w, vec3 dir);
+	Block* get_local(vec3 pos, int w, vec3 dir);
+	Block* get_touching(ivec3 pos, int w, ivec3 dir);
 	void set_global(ivec3 pos, int w, int val, int direc = -1, int joints[6] = nullptr);
 	// turns undef or pixel type blocks to chunk type
 	// divide leaves all children as undef type (use subdivide for
@@ -113,6 +131,24 @@ class Block: public Collider { public:
 	
 	static void write_pix_val(ostream& ofile, char type, unsigned int val);
 	static void read_pix_val(istream& ifile, char* type, unsigned int* val);
+};
+
+class FreeBlock : public Block { public:
+	vec3 offset;
+	quat rotation;
+	Block* highparent;
+	
+	FreeBlock(vec3 newoffset = vec3(0,0,0), quat newrotation = quat(0,0,0,1));
+	void set_parent(Block* nparent);
+	void set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale);
+	vec3 transform_into(vec3 pos) const;
+	ivec3 transformi_into(ivec3 pos) const;
+	vec3 transform_into_dir(vec3 dir) const;
+	ivec3 transformi_into_dir(ivec3 dir) const;
+	vec3 transform_out(vec3 pos) const;
+	ivec3 transformi_out(ivec3 pos) const;
+	vec3 transform_out_dir(vec3 dir) const;
+	ivec3 transformi_out_dir(ivec3 dir) const;
 };
 
 class Pixel { public:
@@ -179,6 +215,24 @@ class BlockIter { public:
   ivec3 start_pos;
   ivec3 end_pos;
   ivec3 (*increment_func)(ivec3 pos, ivec3 startpos, ivec3 endpos);
+  class iterator { public:
+    BlockIter* parent;
+    Pixel* pix;
+    Pixel* operator*();
+    iterator operator++();
+    friend bool operator!=(const iterator& iter1, const iterator& iter2);
+  };
+  iterator begin();
+  iterator end();
+};
+
+class FreeBlockIter { public:
+	Block* base;
+	vec3 position;
+	vec3 xdir;
+	vec3 ydir;
+	vec3 normal;
+	int scale;
   class iterator { public:
     BlockIter* parent;
     Pixel* pix;

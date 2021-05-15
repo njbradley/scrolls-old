@@ -3,6 +3,17 @@
 
 #include "classes.h"
 
+class Axes {
+	vec3 offset = vec3(0,0,0);
+	quat rotation = quat(0,0,0,1);
+	
+	Axes(vec3 newoff = vec3(0,0,0), quat newrot = quat(0,0,0,1));
+	vec3 transform(vec3 pos) const;
+	ivec3 transformi(ivec3 pos) const;
+	vec3 reverse(vec3 pos) const;
+	ivec3 reversei(ivec3 pos) const;
+};
+
 struct Collider {
   virtual Block * get_global(int x,int y,int z,int scale) = 0;
   // this is a function shared by all classes that hold

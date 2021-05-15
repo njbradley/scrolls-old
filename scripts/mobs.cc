@@ -171,7 +171,7 @@ Mob::Mob(World* nworld, istream& ifile): NamedEntity(nworld, ifile) {
   char buff;
   blockifile.read(&buff,1);
 	block.block = new Block();
-	block.block->set_parent(nullptr, &block, ivec3(0,0,0), scale);
+	// block.block->set_parent(nullptr, &block, ivec3(0,0,0), scale);
 	block.block->from_file(blockifile);
 	
 	int size;

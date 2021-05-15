@@ -322,10 +322,20 @@ void Player::right_mouse(double deltatime) {
 	}
 	ivec3 cross_dir = ivec3(glm::cross(vec3(dir), vec3(close_dir)));
 	
+	
 	if (blocks->blocks[pix->value]->rcaction != "null" and !shifting) {
 		blocks->blocks[pix->value]->do_rcaction(pix);
 	} else {
 		if (!inhand->isnull and inhand->data->onplace != nullptr) {
+			world->set(ivec4(ox+dx, oy+dy, oz+dz, 1), 0, 0);
+			Block* airblock = world->get_global(ox+dx, oy+dy, oz+dz, 1);
+			if (airblock != nullptr and airblock->pixel->value == 0) {
+				FreeBlock* freeblock = new FreeBlock(vec3(airblock->globalpos), quat(0.92, 0, 0.38, 0));
+				freeblock->set_parent(nullptr, airblock->world, ivec3(0,0,0), 1);
+				freeblock->set_pixel(new Pixel(1));
+				airblock->set_freeblock(freeblock);
+			}
+			return;
 			Item* item = inven.get(selitem);
 			if (!item->isnull) {
 				CharArray* arr = item->data->onplace;

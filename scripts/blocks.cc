@@ -63,10 +63,14 @@ Block::~Block() {
   }
 }
 
-void Block::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale) {
+void Block::set_parent(Container* nworld, ivec3 ppos, int nscale) {
+  set_parent(nullptr, nworld, nullptr, ppos, nscale);
+}
+
+void Block::set_parent(Block* nparent, Container* nworld, FreeBlock* freecont, ivec3 ppos, int nscale) {
   parent = nparent;
   world = nworld;
-  ASSERT(world != nullptr)
+  freecontainer = freecont;
   parentpos = ppos;
   scale = nscale;
   
@@ -77,18 +81,17 @@ void Block::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale
   }
   
   if (continues) {
-    for (int i = 0; i < 8; i ++) {
-      children[i].set_parent(this, world, posof(i), scale / 2);
+    for (int i = 0; i < csize3; i ++) {
+      children[i].set_parent(this, world, freecontainer, posof(i), scale / csize);
     }
   }
-  ASSERT(parent != this)
   set_render_flag();
   set_light_flag();
 }
 
 void Block::set_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
   *get(pos) = std::move(*block);
-  get(pos)->set_parent(this, world, pos, scale / 2);
+  get(pos)->set_parent(this, world, freecontainer, pos, scale / csize);
 }
 
 void Block::set_pixel(Pixel* pix) { ASSERT(ISUNDEF||ISPIXEL)
@@ -99,20 +102,34 @@ void Block::set_pixel(Pixel* pix) { ASSERT(ISUNDEF||ISPIXEL)
   pixel = pix;
 }
 
+void Block::set_freeblock(FreeBlock* nfreeblock) {
+  freeblock = nfreeblock;
+  freeblock->set_parent(this);
+  set_render_flag();
+  set_light_flag();
+}
+
+bool Block::expand_freeblock(FreeBlock* nfreeblock) {
+  freeblock = nfreeblock;
+  return true;
+}
+
+
+
 Block* Block::get(ivec3 pos) {
-  return children + (pos.x*4 + pos.y * 2 + pos.z);
+  return children + (pos.x*csize*csize + pos.y * csize + pos.z);
 }
 
 Block* Block::get(int x, int y, int z) {
-  return children + (x*4 + y*2 + z);
+  return children + (x*csize*csize + y*csize + z);
 }
 
 const Block* Block::get(ivec3 pos) const {
-  return children + indexof(pos);
+  return children + (pos.x*csize*csize + pos.y * csize + pos.z);
 }
 
 const Block* Block::get(int x, int y, int z) const {
-  return children + indexof(x,y,z);
+  return children + (x*csize*csize + y*csize + z);
 }
 
 int Block::indexof(ivec3 pos) const {
@@ -145,7 +162,7 @@ int Block::indexof(int x, int y, int z) const {
 
 ivec3 Block::posof(int index) const {
   if (winding == 0) {
-    return ivec3(index/4, index/2%2, index%2);
+    return ivec3(index/(csize*csize), index/csize%csize, index%csize);
   } else if (winding & 0b10000000) {
     return ivec3(
       (index%4)*(winding&0b100000) + (index/4)*(winding&0b100),
@@ -159,6 +176,29 @@ ivec3 Block::posof(int index) const {
   return ivec3(0,0,0);
 }
 
+
+quat Block::getrotation() const {
+  quat rot(1,0,0,0);
+  // cout << rot.w << endl;
+  // cout << ((float*)&rot)[0] << ((float*)&rot)[1] << ((float*)&rot)[2] << ((float*)&rot)[3] << endl;
+  FreeBlock* free = freecontainer;
+  while (free != nullptr) {
+    rot = rot * free->rotation;
+    free = free->highparent->freecontainer;
+  }
+  return rot;
+}
+
+vec3 Block::fglobalpos() const {
+  vec3 pos = globalpos;
+  FreeBlock* free = freecontainer;
+  while (free != nullptr) {
+    pos = free->transform_out(pos);
+    free = free->highparent->freecontainer;
+  }
+  return pos;
+}
+
 Block* Block::get_global(int x, int y, int z, int w) {
   return get_global(ivec3(x,y,z), w);
 }
@@ -167,17 +207,74 @@ Block* Block::get_global(ivec3 pos, int w) {
   Block* curblock = this;
   while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale)) {
     if (curblock->parent == nullptr) {
-      Block* result = world->get_global(pos.x, pos.y, pos.z, w);
-      // cout << "give up " << pos << ' ' << curblock->scale << ' ' << curblock->globalpos
-      // << ' ' << SAFEDIV(pos, curblock->scale) << ' ' << SAFEDIV(curblock->globalpos, curblock->scale)<< endl;
-      return result;
+      if (curblock->freecontainer != nullptr) {
+        pos = curblock->freecontainer->transformi_out(pos);
+        curblock = curblock->freecontainer->highparent;
+      } else {
+        Block* result = world->get_global(pos.x, pos.y, pos.z, w);
+        return result;
+      }
+    } else {
+      curblock = curblock->parent;
+    }
+  }
+  
+  while (curblock->scale > w and curblock->continues) {
+    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
+    curblock = curblock->get(rem);
+  }
+  return curblock;
+}
+
+Block* Block::get_global(vec3 pos, int w, vec3 dir) {
+  Block* curblock = this;
+  const float tiny = 0.001f;
+  while (SAFEFLOOR3((pos + dir * tiny) / float(curblock->scale)) != SAFEDIV(curblock->globalpos, curblock->scale)) {
+    if (curblock->parent == nullptr) {
+      if (curblock->freecontainer != nullptr) {
+        pos = curblock->freecontainer->transform_out(pos);
+        dir = curblock->freecontainer->transform_out_dir(dir);
+        curblock = curblock->freecontainer->highparent;
+      } else {
+        Block* result = world->get_global(int(pos.x+dir.x*tiny), int(pos.y+dir.y*tiny), int(pos.z+dir.z*tiny), w);
+        return result;
+      }
+    } else {
+      curblock = curblock->parent;
+    }
+  }
+  
+  while (curblock->scale > w and curblock->continues) {
+    vec3 rem = pos + dir * tiny - ((pos + dir * tiny) / float(curblock->scale)) * float(curblock->scale);
+    curblock = curblock->get(SAFEFLOOR3(rem));
+  }
+  
+  if (curblock->freeblock != nullptr) {
+    FreeBlock* freeblock = curblock->freeblock;
+    while (freeblock != nullptr) {
+      Block* block = freeblock->get_local(freeblock->transform_into(pos), w, freeblock->transform_into_dir(dir));
+      if (block != nullptr) {
+        return block;
+      }
+    }
+  }
+  
+  return curblock;
+}
+
+Block* Block::get_local(vec3 pos, int w, vec3 dir) {
+  Block* curblock = this;
+  const float tiny = 0.001f;
+  while (SAFEFLOOR3((pos + dir * tiny) / float(curblock->scale)) != SAFEDIV(curblock->globalpos, curblock->scale)) {
+    if (curblock->parent == nullptr) {
+      return nullptr;
     }
     curblock = curblock->parent;
   }
   
   while (curblock->scale > w and curblock->continues) {
-    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / 2);
-    curblock = curblock->get(rem);
+    vec3 rem = pos + dir * tiny - ((pos + dir * tiny) / float(curblock->scale)) * float(curblock->scale);
+    curblock = curblock->get(SAFEFLOOR3(rem));
   }
   return curblock;
 }
@@ -192,7 +289,7 @@ void Block::set_global(ivec3 pos, int w, int val, int direc, int joints[6]) {
   }
   
   while (curblock->scale > w) {
-    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / 2);
+    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
     if (!curblock->continues) {
       curblock->subdivide();
     }
@@ -214,17 +311,17 @@ void Block::divide(uint8 nwinding) { ASSERT(!continues)
     delete pixel;
   }
   winding = nwinding;
-  children = new Block[8];
+  children = new Block[csize3];
   continues = true;
-  for (int i = 0; i < 8; i ++) {
-    children[i].set_parent(this, world, ivec3(i/4, i/2%2, i%2), scale / 2);
+  for (int i = 0; i < csize3; i ++) {
+    children[i].set_parent(this, world, freecontainer, posof(i), scale / csize);
   }
 }
 
 void Block::subdivide() { ASSERT(!continues)
   Pixel pix = *pixel;
   divide();
-  for (int i = 0; i < 8; i ++) {
+  for (int i = 0; i < csize3; i ++) {
     children[i].set_pixel(new Pixel(pix));
   }
 }
@@ -236,13 +333,13 @@ void Block::join() { ASSERT(ISCHUNK)
 }
 
 void Block::changewinding(uint8 nwinding) {
-  Block blocks[8];
-  for (int i = 0; i < 8; i ++) {
-    blocks[i] = *get(i/4, i/2%2, i%2);
+  Block blocks[csize3];
+  for (int i = 0; i < csize3; i ++) {
+    blocks[i] = *get(posof(i));
   }
   winding = nwinding;
-  for (int i = 0; i < 8; i ++) {
-    *get(i/4, i/2%2, i%2) = blocks[i];
+  for (int i = 0; i < csize3; i ++) {
+    *get(posof(i)) = blocks[i];
   }
 }
 
@@ -250,7 +347,7 @@ void Block::changewinding(uint8 nwinding) {
 void Block::to_file(ostream& ofile) const {
   if (continues) {
     ofile << char(0b11000000);
-    for (int i = 0; i < 8; i ++) {
+    for (int i = 0; i < csize3; i ++) {
       children[i].to_file(ofile);
     }
   } else {
@@ -262,7 +359,7 @@ void Block::from_file(istream& ifile) { ASSERT(ISUNDEF)
   if (ifile.peek() == (0b11000000)) {
     ifile.get();
     divide();
-    for (int i = 0; i < 8; i ++) {
+    for (int i = 0; i < csize3; i ++) {
       children[i].from_file(ifile);
     }
   } else {
@@ -275,16 +372,22 @@ void Block::set_render_flag() {
   Block* curblock = parent;
   while (curblock != nullptr and !curblock->render_flag) {
     curblock->render_flag = true;
-    curblock = curblock->parent;
+    if (curblock->parent == nullptr and curblock->freecontainer != nullptr) {
+      curblock = curblock->freecontainer;
+    } else {
+      curblock = curblock->parent;
+    }
   }
 }
 
 void Block::set_all_render_flags() {
   render_flag = true;
   if (continues) {
-    for (int i = 0; i < 8; i ++) {
+    for (int i = 0; i < csize3; i ++) {
       children[i].set_all_render_flags();
     }
+  } else if (freeblock != nullptr) {
+    freeblock->set_all_render_flags();
   }
 }
 
@@ -293,7 +396,11 @@ void Block::set_light_flag() {
   Block* curblock = parent;
   while (curblock != nullptr and !curblock->light_flag) {
     curblock->light_flag = true;
-    curblock = curblock->parent;
+    if (curblock->parent == nullptr and curblock->freecontainer != nullptr) {
+      curblock = curblock->freecontainer;
+    } else {
+      curblock = curblock->parent;
+    }
   }
 }
 
@@ -301,11 +408,14 @@ void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool re
   if (render_flag) {
     render_flag = false;
     if (continues) {
-      for (int i = 0; i < 8; i ++) {
+      for (int i = 0; i < csize3; i ++) {
         children[i].render(vecs, transvecs, faces, render_null);
       }
     } else {
       pixel->render(vecs, transvecs, faces, render_null);
+      if (freeblock != nullptr) {
+        freeblock->render(vecs, transvecs, faces, render_null);
+      }
     }
   }
 }
@@ -314,7 +424,7 @@ void Block::lighting_update()  {
   if (light_flag) {
     light_flag = false;
     if (continues) {
-      for (int i = 0; i < 8; i ++) {
+      for (int i = 0; i < csize3; i ++) {
         children[i].lighting_update();
       }
     } else {
@@ -354,6 +464,7 @@ ConstBlockIter Block::const_iter(ivec3 startpos, ivec3 endpos, ivec3 (*iterfunc)
   				pos.x ++;
   			}
   		}
+      // cout << '-' << pos << ' ' << startpos << endl;
   		return pos;
   	};
   }
@@ -502,68 +613,65 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
   return curblock;
 }
 
-/*
-Block* Block::raycast(Collider* this_world, double* x, double* y, double* z, double dx, double dy, double dz, double time) {
-    //cout << "block raycast(" << *x << ' ' << *y << ' ' << *z << ' ' << dx << ' ' << dy << ' ' << dz << endl;
-    if (!continues() and get() != 0 and get() != 7) {
-        //cout << "returning" << continues() << get() << endl;
-        return this;
-    }
-    
-    
-    double lx, ly, lz;
-    //world_to_local(*x, *y, *z, &lx, &ly, &lz);
-    int gx, gy, gz;
-    global_position(&gx, &gy, &gz);
-    
-    lx = *x - gx;
-    ly = *y - gy;
-    lz = *z - gz;
-    
-    //cout << "this " << px <<  ' ' << py << ' ' << pz << ' ' << scale << endl;
-    //cout << "local " << lx << ' ' << ly << ' ' << lz << endl;
-    //cout << "global " << gx << ' ' << gy << ' ' << gz << endl;
-    
-    double tx = (dx < 0) ? lx/(-dx) : (scale-lx)/dx;
-    double ty = (dy < 0) ? ly/(-dy) : (scale-ly)/dy;
-    double tz = (dz < 0) ? lz/(-dz) : (scale-lz)/dz;
-    
-    //cout << "ts " << tx << ' ' << ty << ' ' << tz << endl;
-    double extra = 0.001;
-    
-    if (tx < ty and tx < tz) { // hits x wall first
-        *x += dx*(tx+extra);
-        *y += dy*(tx+extra);
-        *z += dz*(tx+extra);
-        time -= tx;
-    } else if (ty < tx and ty < tz) { // hits y wall first
-        *x += dx*(ty+extra);
-        *y += dy*(ty+extra);
-        *z += dz*(ty+extra);
-        time -= ty;
-    } else if (tz < tx and tz < ty) { // hits z wall first
-        *x += dx*(tz+extra);
-        *y += dy*(tz+extra);
-        *z += dz*(tz+extra);
-        time -= tz;
-    }
-    time -= 0.01;
-    //cout << "get(" << (int)*x - (*x<0) << ' ' << (int)*y - (*y<0) << ' ' << (int)*z - (*z<0) << ' ' << (*x < 0) << endl;
-    Block* b = this_world->get_global((int)*x - (*x<0), (int)*y - (*y<0), (int)*z - (*z<0), 1);
-    if (b == nullptr or time < 0) {
-        return nullptr;
-    }
-    return b->raycast(this_world, x, y, z, dx, dy, dz, time);
-}
-*/
-
   
 
 
 
 
+FreeBlock::FreeBlock(vec3 newoffset, quat newrotation): Block(), offset(newoffset), rotation(newrotation) {
+  
+}
+
+void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale) {
+  highparent = nparent;
+  Block::set_parent(nullptr, nworld, this, ppos, nscale);
+}
+
+void FreeBlock::set_parent(Block* nparent) {
+  highparent = nparent;
+}
 
 
+
+
+vec3 FreeBlock::transform_into(vec3 pos) const {
+  return glm::inverse(rotation) * (pos - offset);
+}
+
+ivec3 FreeBlock::transformi_into(ivec3 pos) const {
+  vec3 result = glm::inverse(rotation) * (vec3(pos) - offset);
+  return SAFEFLOOR3(result);
+}
+
+
+vec3 FreeBlock::transform_into_dir(vec3 dir) const {
+  return glm::inverse(rotation) * dir;
+}
+
+ivec3 FreeBlock::transformi_into_dir(ivec3 dir) const {
+  vec3 result = glm::inverse(rotation) * vec3(dir);
+  return SAFEFLOOR3(result);
+}
+
+
+vec3 FreeBlock::transform_out(vec3 pos) const {
+  return offset + rotation * pos;
+}
+
+ivec3 FreeBlock::transformi_out(ivec3 pos) const {
+  vec3 result = offset + rotation * vec3(pos);
+  return SAFEFLOOR3(result);
+}
+
+
+vec3 FreeBlock::transform_out_dir(vec3 dir) const {
+  return rotation * dir;
+}
+
+ivec3 FreeBlock::transformi_out_dir(ivec3 dir) const {
+  vec3 result = rotation * vec3(dir);
+  return SAFEFLOOR3(result);
+}
 
 
 
@@ -847,8 +955,8 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
     
     bool exposed = false;
     
-    renderdata.pos.loc.pos = gpos;
-    renderdata.pos.loc.rot = vec4(0,0,0,0);
+    renderdata.pos.loc.pos = parbl->fglobalpos();
+    renderdata.pos.loc.rot = parbl->getrotation();
     renderdata.pos.loc.scale = parbl->scale;
     
     int mat[6];
@@ -867,7 +975,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
     
     for (int i = 0; i < 6; i ++) {
       ivec3 dir = dir_array[i];
-      Block* block = parbl->get_global(gpos + dir_array[i] * parbl->scale, parbl->scale);
+      Block* block = parbl->get_global((vec3(gpos) + parbl->scale/2.0f) + vec3(dir) * (parbl->scale/2.0f), parbl->scale, dir);
       renderdata.type.faces[i].tex = 0;
       if (block != nullptr and block->is_air(-dir.x, -dir.y, -dir.z, value)) {
         renderdata.type.faces[i].tex = mat[i];
@@ -1387,12 +1495,12 @@ void Pixel::to_file(ostream& of) {
 
 
 BlockContainer::BlockContainer(Block* b): block(b), allocated(false) {
-	block->set_parent(nullptr, this, ivec3(0,0,0), b->scale);
+	block->set_parent(nullptr, this, nullptr, ivec3(0,0,0), b->scale);
 }
 
 BlockContainer::BlockContainer(int scale): allocated(true) {
   block = new Block();
-	block->set_parent(nullptr, this, ivec3(0,0,0), scale);
+	block->set_parent(nullptr, this, nullptr, ivec3(0,0,0), scale);
 }
 
 BlockContainer::~BlockContainer() {
@@ -1475,6 +1583,100 @@ BlockIter::iterator BlockIter::end() {
 bool operator!=(const BlockIter::iterator& iter1, const BlockIter::iterator& iter2) {
   return iter1.parent != iter2.parent or iter1.pix != iter2.pix;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Pixel* FreeBlockIter::iterator::operator*() {
+  return pix;
+}
+
+bool FreeBlockIter::iterator::pos_in_range(vec3 pos, vec3 dx, vec3 dy) {
+  
+
+bool FreeBlock::iterator::step_down(ivec3 lastpos) {
+  if (!block->continues) {
+    return false;
+  }
+  float dividor = block->scale / csize;
+  ivec3 min_bound = glm::min (
+    SAFEFLOOR3(position / dividor),
+    SAFEFLOOR3((position + dirx) / dividor),
+    SAFEFLOOR3((position + dirx + diry) / dividor),
+    SAFEFLOOR3((position + diry) / dividor)
+  );
+  ivec3 max_bound = glm::max (
+    SAFEFLOOR3(position / dividor),
+    SAFEFLOOR3((position + dirx) / dividor),
+    SAFEFLOOR3((position + dirx + diry) / dividor),
+    SAFEFLOOR3((position + diry) / dividor)
+  );
+  
+  min_bound -= block->globalpos / (block->scale / csize);
+  max_bound -= block->globalpos / (block->scale / csize);
+  
+  min_bound = glm::max(vec3(0,0,0), min_bound);
+  max_bound = glm::min(vec3(csize-1,csize-1,csize-1), max_bound);
+  
+  ivec3 pos = min_bound;
+  if (lastpos.x != -1) {
+    pos = parent->increment_func(lastpos, min_bound, max_bound);
+  }
+  block = block->get(pos);
+
+FreeBlockIter::iterator FreeBlockIter::iterator::operator++() {
+  Block* block = pix->parbl;
+  while (block->parent != parent->base->parent and block->parentpos == parent->end_pos) {
+    block = block->parent;
+  }
+  if (block->parent == parent->base->parent) {
+    pix = nullptr;
+    return *this;
+  }
+  ivec3 pos = block->parentpos;
+  pos = parent->increment_func(pos, parent->start_pos, parent->end_pos);
+  block = block->parent->get(pos);
+  while (block->continues) {
+    block = block->get(parent->start_pos);
+  }
+  pix = block->pixel;
+  return *this;
+}
+
+FreeBlockIter::iterator FreeBlockIter::begin() {
+  if (base == nullptr) {
+    return end();
+  }
+  Block* block = base;
+  while (block->continues) {
+    block = block->get(start_pos);
+  }
+  return {this, block->pixel};
+}
+
+FreeBlockIter::iterator BlockIter::end() {
+  return {this, nullptr};
+}
+
+bool operator!=(const FreeBlockIter::iterator& iter1, const FreeBlockIter::iterator& iter2) {
+  return iter1.parent != iter2.parent or iter1.pix != iter2.pix;
+}
+
+
+
+
+
+
 
 
 
@@ -1607,6 +1809,7 @@ ConstBlockIter::iterator ConstBlockIter::begin() {
   while (block->continues) {
     block = block->get(start_pos);
   }
+  // cout << "start p " << block->globalpos << ' ' << block->parentpos << endl;
   return {this, block->pixel};
 }
 

@@ -893,7 +893,7 @@ Block* NamedEntity::loadblock(string name) {
   char buff;
   ifile.read(&buff,1);
   Block* nblock = new Block();
-  nblock->set_parent(nullptr, &block, ivec3(0,0,0), size);
+  // nblock->set_parent(nullptr, &block, ivec3(0,0,0), size);
   nblock->from_file(ifile);
   return nblock;
 }
@@ -1001,7 +1001,7 @@ vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup), item(nullptr) {
   }
   
   block.block = new Block(new Pixel(0));
-  block.block->set_parent(nullptr, &block, ivec3(0,0,0), scale);
+  // block.block->set_parent(nullptr, &block, ivec3(0,0,0), scale);
   density = 0;
   
   for (Pixel* pix : pixels) {
@@ -1040,7 +1040,7 @@ FallingBlockEntity::FallingBlockEntity(World* nworld, istream& ifile): DisplayEn
   string str;
   getline(ifile, str, ':');
   block.block = new Block();
-  block.block->set_parent(nullptr, &block, ivec3(0,0,0), scale);
+  // block.block->set_parent(nullptr, &block, ivec3(0,0,0), scale);
   block.block->from_file(ifile);
   // string buff;
   // int scale;

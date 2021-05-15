@@ -12,7 +12,7 @@
 
 struct RenderPosPart {
   vec3 pos;
-  vec4 rot;
+  quat rot;
   float scale;
 };
 

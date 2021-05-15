@@ -11,6 +11,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <functional>
 #include <unordered_map>
 #include <unordered_set>
@@ -22,6 +23,7 @@ using glm::ivec2;
 using glm::vec4;
 using glm::ivec4;
 using glm::mat4;
+using glm::quat;
 using std::cout;
 using std::endl;
 using std::string;
@@ -38,10 +40,10 @@ using std::pair;
 typedef uint8_t uint8;
 typedef unsigned int uint;
 
-#define SAFEMOD(a,b) (b + (a%b)) % b
-#define SAFEDIV(a,b) a / b + ((a % b) >> 31)
-#define SAFEFLOOR(a) int(a) - (a - int(a) < 0)
-#define SAFEFLOOR3(a) ivec3(SAFEFLOOR((a).x), SAFEFLOOR((a).y), SAFEFLOOR((a).z))
+#define SAFEMOD(a,b) ( ((b) + ((a)%(b))) % (b) )
+#define SAFEDIV(a,b) ( (a) / (b) + (((a) % (b)) >> 31) )
+#define SAFEFLOOR(a) ( int(a) - (a - int(a) < 0) )
+#define SAFEFLOOR3(a) ( ivec3(SAFEFLOOR((a).x), SAFEFLOOR((a).y), SAFEFLOOR((a).z)) )
 
 #define ERR(msg) throw std::runtime_error(string(msg) + "\n" + __PRETTY_FUNCTION__ + ": " + __FILE__ + " Line " + std::to_string(__LINE__));
 
@@ -90,6 +92,7 @@ extern int dloc;
 
 ////////////////// CLASSES ///////////////////////////
 class Block;
+class FreeBlock;
 class BlockContainer;
 class BlockIter;
 class ConstBlockIter;

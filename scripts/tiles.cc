@@ -246,7 +246,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
     vector<BlockGroup*> groups;
     
     chunk = new Block();
-    chunk->set_parent(nullptr, world, pos, chunksize);
+    chunk->set_parent(world, pos, chunksize);
     chunk->from_file(ifile);
     
     const ivec3 dir_array[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
@@ -272,7 +272,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
 
 Tile::Tile(ivec3 position, World* nworld, istream& ifile): pos(position), world(nworld), chunksize(nworld->chunksize), deleting(false) {
   chunk = new Block();
-  chunk->set_parent(nullptr, world, position, chunksize);
+  chunk->set_parent(world, position, chunksize);
   chunk->from_file(ifile);
   
   const ivec3 dir_array[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};

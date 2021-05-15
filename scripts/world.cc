@@ -421,7 +421,7 @@ void World::timestep() {
   
   RenderData data;
   data.pos.loc.pos = player->position + sundirection * 1000.0f;
-  data.pos.loc.rot = vec4(0, 0, sin(daytime*3.14/1000/2), cos(daytime*3.14/1000/2));
+  data.pos.loc.rot = quat(cos(daytime*3.14/1000/2), 0, 0, sin(daytime*3.14/1000/2));
   data.pos.loc.scale = 64;
   
   for (int i = 0; i < 6; i ++) {
@@ -435,7 +435,7 @@ void World::timestep() {
   }
   
   data.pos.loc.pos = player->position - sundirection * 1000.0f;
-  data.pos.loc.rot = vec4(0, 0, sin(daytime*3.14/1000/2 + 3.14), cos(daytime*3.14/1000/2 + 3.14));
+  data.pos.loc.rot = quat(cos(daytime*3.14/1000/2 + 3.14), 0, 0, sin(daytime*3.14/1000/2 + 3.14));
   data.pos.loc.scale = 64;
   
   for (int i = 0; i < 6; i ++) {
