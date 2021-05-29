@@ -49,7 +49,7 @@ class Block: public Collider { public:
 	Container* world;
 	FreeBlock* freecontainer = nullptr;
 	bool continues;
-	uint8 winding;
+	uint8 winding = 0;
 	union {
 		struct {
 			Pixel* pixel;
@@ -95,6 +95,7 @@ class Block: public Collider { public:
 	Block* get_global(int x, int y, int z, int w);
 	Block* get_global(ivec3 pos, int w);
 	Block* get_global(vec3 pos, int w, vec3 dir);
+	Block* get_local(ivec3 pos, int w);
 	Block* get_local(vec3 pos, int w, vec3 dir);
 	Block* get_touching(ivec3 pos, int w, ivec3 dir);
 	void set_global(ivec3 pos, int w, int val, int direc = -1, int joints[6] = nullptr);
@@ -119,13 +120,14 @@ class Block: public Collider { public:
 	
 	BlockIter iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(csize-1,csize-1,csize-1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr);
 	BlockIter iter_side(ivec3 dir);
-	BlockIter iter_touching_side(ivec3 dir);
+	BlockTouchSideIter iter_touching_side(ivec3 dir);
 	BlockTouchIter iter_touching();
 	ConstBlockIter const_iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(csize-1,csize-1,csize-1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr) const;
 	ConstBlockIter const_iter_side(ivec3 dir) const;
-	bool is_air(int, int, int, char otherval = -1) const;
-	int get_sunlight(int dx, int dy, int dz) const;
-	int get_blocklight(int dx, int dy, int dz) const;
+	bool is_air(ivec3 dir, char otherval = -1);
+	bool is_air(int,int,int, char otherval = -1) const;
+	int get_sunlight(ivec3 dir);
+	int get_blocklight(ivec3 dir);
 	Block* raycast(vec3* pos, vec3 dir, double time);
 	vec3 get_position() const;
 	
@@ -141,6 +143,7 @@ class FreeBlock : public Block { public:
 	FreeBlock(vec3 newoffset = vec3(0,0,0), quat newrotation = quat(0,0,0,1));
 	void set_parent(Block* nparent);
 	void set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale);
+	void expand(ivec3 dir);
 	vec3 transform_into(vec3 pos) const;
 	ivec3 transformi_into(ivec3 pos) const;
 	vec3 transform_into_dir(vec3 dir) const;
@@ -207,6 +210,7 @@ class BlockContainer: public Container { public:
 	vec3 get_position() const;
 	Block* get_global(int x, int y, int z, int size);
   void set(ivec4 pos, char val, int direction, int joints[6] = nullptr);
+	void set_global(ivec3 pos, int w, int val, int direction, int joints[6] = nullptr);
 	void block_update(ivec3 pos){}
 };
 
@@ -227,22 +231,57 @@ class BlockIter { public:
 };
 
 class FreeBlockIter { public:
-	Block* base;
+	vector<Block*> bases;
 	vec3 position;
-	vec3 xdir;
-	vec3 ydir;
+	vec3 dirx;
+	vec3 diry;
 	vec3 normal;
-	int scale;
+	float facescale;
+	ivec3 start_pos = ivec3(0,0,0);
+	ivec3 end_pos = ivec3(csize,csize,csize)-1;
+	ivec3 (*increment_func)(ivec3 pos, ivec3 startpos, ivec3 endpos);
   class iterator { public:
-    BlockIter* parent;
+    FreeBlockIter* parent;
+		Block* base;
+		int baseindex = 0;
     Pixel* pix;
     Pixel* operator*();
     iterator operator++();
+		bool in_cube(vec3 pos, vec3 norm, vec3 center, float scale);
+		bool in_face(Block* block);
+		void increment(Block* block);
+		void get_to_pix(Block* block);
     friend bool operator!=(const iterator& iter1, const iterator& iter2);
   };
+	FreeBlockIter(Collider* world, vec3 pos, vec3 dx, vec3 dy, vec3 norm, float scale);
+	FreeBlockIter() {};
   iterator begin();
   iterator end();
 };
+
+class BlockTouchSideIter { public:
+	Block* base;
+	Collider* world;
+	// union {
+		BlockIter blockiter;
+		FreeBlockIter freeiter;
+	// };
+	bool free;
+	class iterator { public:
+		BlockTouchSideIter* parent;
+		// union {
+			BlockIter::iterator blockiter;
+			FreeBlockIter::iterator freeiter;
+		// };
+    Pixel* operator*();
+    iterator operator++();
+    friend bool operator != (const iterator& iter1, const iterator& iter2);
+	};
+	BlockTouchSideIter(Block* block, ivec3 dir);
+	iterator begin();
+	iterator end();
+};
+		
 
 class BlockTouchIter { public:
   Block* base;

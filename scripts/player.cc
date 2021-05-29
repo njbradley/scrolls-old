@@ -169,6 +169,20 @@ mat4 Player::getProjectionMatrix(){
 	return ProjectionMatrix;
 }
 
+void Player::raycast(Block** hit, ivec3* dir, vec3* hitpos) {
+	*hitpos = position;
+	*hit = world->raycast(hitpos, pointing, 8);
+	if (*hit != nullptr) {
+		if ((*hit)->freecontainer != nullptr) {
+			vec3 pos = (*hit)->freecontainer->transform_into(*hitpos);
+			ivec3 backpos = SAFEFLOOR3(pos - (*hit)->freecontainer->transform_into_dir(pointing) * 0.002f);
+			*dir = backpos - SAFEFLOOR3(pos);
+		} else {
+			*dir = SAFEFLOOR3(*hitpos - pointing*0.002f) - SAFEFLOOR3(*hitpos);
+		}
+	}
+}
+
 void Player::raycast(Pixel** hit, vec3* hitpos, DisplayEntity** target_entity) {
 	vec3 v = position;
 	double tiny = 0.00001;
@@ -255,7 +269,31 @@ void Player::right_mouse(double deltatime) {
 		return;
 	}
 	timeout = -0.2;
-
+	bool shifting = glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS;
+	
+	vec3 hitpos;
+	ivec3 dir;
+	Block* block;
+	raycast(&block, &dir, &hitpos);
+	
+	if (block != nullptr) {
+		ivec3 blockpos = block->globalpos + dir;
+		if (shifting) {
+			world->set_global(blockpos, 1, 0, 0);
+			Block* airblock = world->get_global(blockpos.x, blockpos.y, blockpos.z, 1);
+			if (airblock != nullptr and airblock->pixel->value == 0) {
+				FreeBlock* freeblock = new FreeBlock(vec3(airblock->globalpos), quat(0.92, 0, 0.38, 0));
+				freeblock->set_parent(nullptr, airblock->world, ivec3(0,0,0), 1);
+				freeblock->set_pixel(new Pixel(1));
+				airblock->set_freeblock(freeblock);
+			}
+		} else {
+			block->set_global(blockpos, 1, 1, 0);
+			// world->get_global(ox, oy, oz, 1)->set_global(ivec3(ox+dx, oy+dy, oz+dz), 1, 1, 0);
+		}
+	}
+	return;
+	/*
 	vec3 hitpos;
 	Pixel* pix;
 	DisplayEntity* target_entity;
@@ -327,14 +365,9 @@ void Player::right_mouse(double deltatime) {
 		blocks->blocks[pix->value]->do_rcaction(pix);
 	} else {
 		if (!inhand->isnull and inhand->data->onplace != nullptr) {
-			world->set(ivec4(ox+dx, oy+dy, oz+dz, 1), 0, 0);
-			Block* airblock = world->get_global(ox+dx, oy+dy, oz+dz, 1);
-			if (airblock != nullptr and airblock->pixel->value == 0) {
-				FreeBlock* freeblock = new FreeBlock(vec3(airblock->globalpos), quat(0.92, 0, 0.38, 0));
-				freeblock->set_parent(nullptr, airblock->world, ivec3(0,0,0), 1);
-				freeblock->set_pixel(new Pixel(1));
-				airblock->set_freeblock(freeblock);
-			}
+			
+			
+			
 			return;
 			Item* item = inven.get(selitem);
 			if (!item->isnull) {
@@ -385,7 +418,7 @@ void Player::right_mouse(double deltatime) {
 			game->debugentity = target_entity;
 		}
 	
-	}
+	}*/
 }
 
 void Player::left_mouse(double deltatime) {

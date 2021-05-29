@@ -118,6 +118,7 @@ class World: public Container {
         void summon(DisplayEntity* entity);
         void set(int x, int y, int z, char val, int direction = 0, BlockExtra* extras = nullptr);
         void set(ivec4 pos, char val, int direction, int joints[6] = nullptr);
+        void set_global(ivec3 pos, int w, int val, int direction, int joints[6] = nullptr);
         char get(int x, int y, int z);
         Block* raycast(vec3* pos, vec3 dir, double time);
         void save_chunk(ivec3 pos);

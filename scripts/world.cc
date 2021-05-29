@@ -483,7 +483,7 @@ void World::timestep() {
   //}
 }
 
-void World::tick() {
+void World::tick() { return;
   unordered_set<ivec3,ivec3_hash> local_updates;
   local_updates.swap(block_updates);
   for (ivec3 pos : local_updates) {
@@ -756,6 +756,12 @@ void World::set(ivec4 pos, char val, int direction, int joints[6]) {
   cout << tile << ' ' << tile->chunk << endl;
   tile->chunk->set_global(ivec3(pos.x, pos.y, pos.z), pos.w, val, direction, joints);
 }
+
+void World::set_global(ivec3 pos, int w, int val, int direction, int joints[6]) {
+  ivec3 chunkpos = SAFEDIV(pos, chunksize);
+  tileat(chunkpos)->chunk->set_global(pos, w, val, direction, joints);
+}
+
 
 void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras) {
   set(ivec4(x,y,z,1), val, direction);

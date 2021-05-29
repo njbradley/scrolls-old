@@ -97,6 +97,7 @@ class BlockContainer;
 class BlockIter;
 class ConstBlockIter;
 class BlockTouchIter;
+class BlockTouchSideIter;
 class BlockGroupIter;
 class Collider;
 class Pixel;

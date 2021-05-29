@@ -16,6 +16,7 @@ class Axes {
 
 struct Collider {
   virtual Block * get_global(int x,int y,int z,int scale) = 0;
+	virtual Block* get_global(ivec3 pos, int scale) {return get_global(pos.x, pos.y, pos.z, scale);}
   // this is a function shared by all classes that hold
   // chunks/pixels in them
   // it returns a block that is at the global position xyz
@@ -29,6 +30,7 @@ struct Collider {
 
 class Container : public Collider { public:
 	virtual void block_update(ivec3 pos) = 0;
+	virtual void set_global(ivec3 pos, int w, int val, int direc, int joints[6] = nullptr) = 0;
 };
 
 

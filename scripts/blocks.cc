@@ -211,7 +211,7 @@ Block* Block::get_global(ivec3 pos, int w) {
         pos = curblock->freecontainer->transformi_out(pos);
         curblock = curblock->freecontainer->highparent;
       } else {
-        Block* result = world->get_global(pos.x, pos.y, pos.z, w);
+        Block* result = world->get_global(pos, w);
         return result;
       }
     } else {
@@ -236,7 +236,7 @@ Block* Block::get_global(vec3 pos, int w, vec3 dir) {
         dir = curblock->freecontainer->transform_out_dir(dir);
         curblock = curblock->freecontainer->highparent;
       } else {
-        Block* result = world->get_global(int(pos.x+dir.x*tiny), int(pos.y+dir.y*tiny), int(pos.z+dir.z*tiny), w);
+        Block* result = world->get_global(ivec3(pos+dir*tiny), w);
         return result;
       }
     } else {
@@ -262,6 +262,28 @@ Block* Block::get_global(vec3 pos, int w, vec3 dir) {
   return curblock;
 }
 
+Block* Block::get_local(ivec3 pos, int w) {
+  Block* curblock = this;
+  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale)) {
+    if (curblock->parent == nullptr) {
+      if (curblock->freecontainer != nullptr) {
+        return nullptr;
+      } else {
+        Block* result = world->get_global(pos.x, pos.y, pos.z, w);
+        return result;
+      }
+    } else {
+      curblock = curblock->parent;
+    }
+  }
+  
+  while (curblock->scale > w and curblock->continues) {
+    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
+    curblock = curblock->get(rem);
+  }
+  return curblock;
+}
+
 Block* Block::get_local(vec3 pos, int w, vec3 dir) {
   Block* curblock = this;
   const float tiny = 0.001f;
@@ -283,7 +305,19 @@ void Block::set_global(ivec3 pos, int w, int val, int direc, int joints[6]) {
   Block* curblock = this;
   while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale)) {
     if (curblock->parent == nullptr) {
-      return;// world->get_global(pos.x, pos.y, pos.z, w);
+      if (curblock->freecontainer != nullptr) {
+        cout << " antes posicion " << pos << endl;
+        ivec3 expand_dir = glm::sign(SAFEDIV(pos, curblock->scale) - SAFEDIV(curblock->globalpos, curblock->scale));
+        ivec3 expand_off = (-expand_dir + 1) / 2;
+        pos += expand_off * curblock->scale;
+        cout << " despues posicion " << pos << ' ' << curblock->scale << endl;
+        curblock->freecontainer->expand(expand_dir);
+        cout << curblock->scale << endl;
+        curblock = curblock->get(0,0,0);
+      } else {
+        world->set_global(pos, w, val, direc, joints);
+        return;
+      }
     }
     curblock = curblock->parent;
   }
@@ -479,15 +513,8 @@ BlockIter Block::iter_side(ivec3 dir) {
   return iter(startpos, endpos);
 }
 
-BlockIter Block::iter_touching_side(ivec3 dir) {
-  ivec3 pos = globalpos;
-  pos += dir * scale;
-  Block* block = get_global(pos, scale);
-  if (block != nullptr) {
-    return block->iter_side(-dir);
-  } else {
-    return BlockIter{.base = nullptr};
-  }
+BlockTouchSideIter Block::iter_touching_side(ivec3 dir) {
+  return BlockTouchSideIter(this, dir);
 }
 
 ConstBlockIter Block::const_iter_side(ivec3 dir) const {
@@ -507,12 +534,12 @@ vec3 Block::get_position() const {
 }
 
 
-int Block::get_sunlight(int dx, int dy, int dz) const {
+int Block::get_sunlight(ivec3 dir) {
   int lightlevel = 0;
   int num = 0;
   
-  for (const Pixel* pix : const_iter_side(ivec3(dx, dy, dz))) {
-    if (pix->parbl->is_air(dx, dy, dz)) {
+  for (Pixel* pix : iter_touching_side(dir)) {
+    if (pix->value == 0 or pix->value == 7) {
       lightlevel += pix->sunlight;
       num ++;
     }
@@ -523,16 +550,16 @@ int Block::get_sunlight(int dx, int dy, int dz) const {
   return 0;
 }
 
-int Block::get_blocklight(int dx, int dy, int dz) const {
+int Block::get_blocklight(ivec3 dir) {
   int lightlevel = 0;
   int num = 0;
   
-  for (const Pixel* pix : const_iter_side(ivec3(dx, dy, dz))) {
-    if (pix->parbl->is_air(dx, dy, dz)) {
+  for (Pixel* pix : iter_touching_side(dir)) {
+    if (pix->value == 0 or pix->value == 7) {
       int light = 0;
       if (pix->blocklight != 0) {
         ivec3 source_dir = dir_array[pix->lightsource];
-        if (source_dir.x == dx and source_dir.y == dy and source_dir.z == dz) {
+        if (source_dir.x == -dir.x and source_dir.y == -dir.y and source_dir.z == -dir.z) {
           light = pix->blocklight;
         } else {
           light = pix->blocklight*0.875;
@@ -547,6 +574,16 @@ int Block::get_blocklight(int dx, int dy, int dz) const {
     return lightlevel / num;
   }
   return 0;
+}
+
+bool Block::is_air(ivec3 dir, char otherval) {
+  for (const Pixel* pix : iter_touching_side(dir)) {
+    bool isair = (pix->value == 0 or (blocks->blocks[pix->value]->transparent and otherval != pix->value));
+    if (isair) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool Block::is_air(int dx, int dy, int dz, char otherval) const {
@@ -586,8 +623,65 @@ void Block::read_pix_val(istream& ifile, char* type, unsigned int* value) {
 
 Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
   Block* curblock = this;
+  cout << "Raycast " << *pos << ' ' << dir << ' ' << timeleft << endl;
   
-  while (curblock->pixel->value == 0 or curblock->pixel->value == 7) {
+  while (curblock != nullptr and (curblock->pixel->value == 0 or curblock->pixel->value == 7)) {
+    cout << " raycast " << curblock << ' ' << *pos << endl;
+    if (curblock->freeblock != nullptr) {
+      vec3 start = curblock->freeblock->transform_into(*pos);
+      vec3 newdir = curblock->freeblock->transform_into_dir(dir);
+      cout << start << ' ' << newdir << endl;
+  		float dt = 0;
+  		float maxdt = -1;
+  		bool ray_valid = true;
+  		for (int axis = 0; axis < 3 and ray_valid; axis ++) {
+  			float mintime;
+  			float maxtime;
+  			
+  			if (start[axis] < 0) {
+  				mintime = (-start[axis]) / newdir[axis];
+  				maxtime = (curblock->freeblock->scale - start[axis]) / newdir[axis];
+  			} else if (start[axis] > curblock->freeblock->scale) {
+  				mintime = (curblock->freeblock->scale - start[axis]) / newdir[axis];
+  				maxtime = (-start[axis]) / newdir[axis];
+  			} else {
+  				mintime = 0;
+  				if (newdir[axis] < 0) {
+  					maxtime = (-start[axis]) / newdir[axis];
+  				} else {
+  					maxtime = (curblock->freeblock->scale - start[axis]) / newdir[axis];
+  				}
+  			}
+        cout << mintime << ' ' << maxtime << endl;
+  			if (maxdt == -1) {
+  				maxdt = maxtime;
+  			}
+  			if ( mintime < 0 or mintime > maxdt or maxtime < dt) {
+  				ray_valid = false;
+  				break;
+  			} else {
+  				if (mintime > dt) {
+  					dt = mintime;
+  				}
+  				if (maxtime < maxdt) {
+  					maxdt = maxtime;
+  				}
+  			}
+      }
+      
+      if (ray_valid and dt < timeleft) {
+        vec3 newpos = start + newdir * (dt + 0.001f);
+        Block* startblock = curblock->freeblock->get_local(SAFEFLOOR3(newpos), 1);
+        cout << " startblock " << startblock << ' ' << SAFEFLOOR3(newpos) << ' ' << newpos << ' ' << dt << endl;
+        Block* result = startblock->raycast(&newpos, newdir, timeleft - dt);
+        cout << " result " << result << endl;
+        if (result != nullptr) {
+          return result;
+        }
+      }
+    }
+      
+    
     ivec3 gpos = curblock->globalpos;
     vec3 relpos = *pos - vec3(gpos);
     float mintime = 999999;
@@ -607,7 +701,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
     if (timeleft < 0) {
       return nullptr;
     }
-    curblock = curblock->get_global(SAFEFLOOR3(*pos), 1);
+    curblock = curblock->get_local(SAFEFLOOR3(*pos), 1);
   }
   
   return curblock;
@@ -631,7 +725,44 @@ void FreeBlock::set_parent(Block* nparent) {
   highparent = nparent;
 }
 
-
+void FreeBlock::expand(ivec3 dir) {
+  cout << "expand " << this << ' ' << dir << endl;
+  Block tmpblock = std::move(*this);
+  continues = false;
+  pixel = nullptr;
+  ivec3 newpos = (-dir + 1) / 2;
+  
+  // Cambiando el posicion de bloque libre
+  offset -= transform_out_dir(newpos * scale);
+  int newscale = scale * csize;
+  Block::set_parent(nullptr, world, this, parentpos, newscale);
+  cout << parentpos << ' ' << scale << ' ' << endl;
+  
+  cout << "bouta divide" << endl;
+  divide();
+  cout << "dividado " << endl;
+  cout << newpos << endl;
+  for (int i = 0; i < csize3; i ++) {
+    cout << " ." << i << endl;
+    if (posof(i) == newpos) {
+      set_child(newpos, &tmpblock);
+      get(newpos)->set_pixel(get(newpos)->pixel);
+    } else {
+      get(posof(i))->set_pixel(new Pixel(0));
+    }
+  }
+  
+  cout << "Test " << endl;
+  cout << this << ' ' << globalpos << ' ' << parentpos << ' ' << parent << ' ' << freecontainer << ' ' << scale << endl;
+  for (Pixel* pix : iter()) {
+    Block* block = pix->parbl;
+    cout << block << ' ' << block->globalpos << ' ' << block->parentpos
+    << ' ' << block->parent << ' ' << block->freecontainer << ' ' << block->scale << endl;
+  }
+  
+  cout << "done " << endl;
+  
+}
 
 
 vec3 FreeBlock::transform_into(vec3 pos) const {
@@ -975,13 +1106,14 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
     
     for (int i = 0; i < 6; i ++) {
       ivec3 dir = dir_array[i];
-      Block* block = parbl->get_global((vec3(gpos) + parbl->scale/2.0f) + vec3(dir) * (parbl->scale/2.0f), parbl->scale, dir);
+      // Block* block = parbl->get_global((vec3(gpos) + parbl->scale/2.0f) + vec3(dir) * (parbl->scale/2.0f), parbl->scale, dir);
+      Block* block = parbl->get_global(gpos + dir * parbl->scale, parbl->scale);
       renderdata.type.faces[i].tex = 0;
-      if (block != nullptr and block->is_air(-dir.x, -dir.y, -dir.z, value)) {
+      if (block != nullptr and parbl->is_air(dir, value)) {
         renderdata.type.faces[i].tex = mat[i];
         renderdata.type.faces[i].rot = dirs[i];
-        renderdata.type.faces[i].blocklight = block->get_blocklight(-dir.x, -dir.y, -dir.z);
-        renderdata.type.faces[i].sunlight = block->get_sunlight(-dir.x, -dir.y, -dir.z);
+        renderdata.type.faces[i].blocklight = parbl->get_blocklight(dir);
+        renderdata.type.faces[i].sunlight = parbl->get_sunlight(dir);
         exposed = true;
       }
     }
@@ -1101,7 +1233,14 @@ void Pixel::set(int val, int newdirection, int newjoints[6]) {
 
   reset_lightlevel();
   render_update();
-
+  
+  for (ivec3 dir : dir_array) {
+    for (Pixel* pix : parbl->iter_touching_side(dir)) {
+      pix->render_update();
+    }
+  }
+  
+  /*
   Block* block;
   Pixel* lastpix = nullptr;
   int i = 0;
@@ -1146,7 +1285,7 @@ void Pixel::set(int val, int newdirection, int newjoints[6]) {
   }
   if (lastpix != nullptr) {
     oldgroup->del(lastpix);
-  }
+  }*/
 }
   
 void Pixel::render_update() {
@@ -1536,6 +1675,9 @@ void BlockContainer::set(ivec4 pos, char val, int direction, int newjoints[6]) {
   block->set_global(pos, pos.w, val, direction, newjoints);
 }
 
+void BlockContainer::set_global(ivec3 pos, int w, int val, int direction, int newjoints[6]) {
+  block->set_global(pos, w, val, direction, newjoints);
+}
 
 
 
@@ -1594,78 +1736,135 @@ bool operator!=(const BlockIter::iterator& iter1, const BlockIter::iterator& ite
 
 
 
-
+FreeBlockIter::FreeBlockIter(Collider* world, vec3 pos, vec3 dx, vec3 dy, vec3 norm, float scale):
+position(pos), dirx(dx), diry(dy), normal(norm), facescale(scale) {
+  // cout << "new freiter " << pos << ' ' << dx << ' ' << dy << ' ' << norm << ' ' << scale << endl;
+  increment_func = [] (ivec3 pos, ivec3 startpos, ivec3 endpos) {
+    pos.z++;
+    if (pos.z > endpos.z) {
+      pos.z = startpos.z;
+      pos.y ++;
+      if (pos.y > endpos.y) {
+        pos.y = startpos.y;
+        pos.x ++;
+      }
+    }
+    return pos;
+  };
+  
+  Block* pointblocks[4] {
+    world->get_global(ivec3(pos), 1),
+    world->get_global(ivec3(pos+dx), 1),
+    world->get_global(ivec3(pos+dy+dx), 1),
+    world->get_global(ivec3(pos+dy), 1)
+  };
+  
+  int minscale = World::chunksize;
+  for (int i = 0; i < 4; i ++) {
+    if (pointblocks[i]->scale < minscale) {
+      minscale = pointblocks[i]->scale;
+    }
+  }
+  
+  while (minscale < World::chunksize and (pointblocks[0] != pointblocks[1]
+  or pointblocks[1] != pointblocks[2] or pointblocks[2] != pointblocks[3])) {
+    for (int i = 0; i < 4; i ++) {
+      if (pointblocks[i]->scale == minscale) {
+        pointblocks[i] = pointblocks[i]->parent;
+      }
+    }
+    minscale *= csize;
+  }
+  
+  for (int i = 0; i < 4; i ++) {
+    if (i == 0 or bases.back() != pointblocks[i]) {
+      bases.push_back(pointblocks[i]);
+    }
+  }
+}
 
 
 Pixel* FreeBlockIter::iterator::operator*() {
+  // cout << "-- Used " << pix->parbl->globalpos << ' ' << pix->parbl->scale << endl;
   return pix;
 }
 
-bool FreeBlockIter::iterator::pos_in_range(vec3 pos, vec3 dx, vec3 dy) {
-  
+bool FreeBlockIter::iterator::in_cube(vec3 pos, vec3 norm, vec3 center, float scale) {
+  pos += norm * 0.001f;
+  return  center.x - scale <= pos.x and pos.x <= center.x + scale
+      and center.y - scale <= pos.y and pos.y <= center.y + scale
+      and center.z - scale <= pos.z and pos.z <= center.z + scale;
+}
 
-bool FreeBlock::iterator::step_down(ivec3 lastpos) {
-  if (!block->continues) {
-    return false;
-  }
-  float dividor = block->scale / csize;
-  ivec3 min_bound = glm::min (
-    SAFEFLOOR3(position / dividor),
-    SAFEFLOOR3((position + dirx) / dividor),
-    SAFEFLOOR3((position + dirx + diry) / dividor),
-    SAFEFLOOR3((position + diry) / dividor)
+bool FreeBlockIter::iterator::in_face(Block* block) {
+  float scale = block->scale / 2.0f;
+  vec3 center = vec3(block->globalpos) + scale;
+  vec2 planepoint (
+    glm::dot(center - parent->position, parent->dirx),
+    glm::dot(center - parent->position, parent->diry)
   );
-  ivec3 max_bound = glm::max (
-    SAFEFLOOR3(position / dividor),
-    SAFEFLOOR3((position + dirx) / dividor),
-    SAFEFLOOR3((position + dirx + diry) / dividor),
-    SAFEFLOOR3((position + diry) / dividor)
-  );
-  
-  min_bound -= block->globalpos / (block->scale / csize);
-  max_bound -= block->globalpos / (block->scale / csize);
-  
-  min_bound = glm::max(vec3(0,0,0), min_bound);
-  max_bound = glm::min(vec3(csize-1,csize-1,csize-1), max_bound);
-  
-  ivec3 pos = min_bound;
-  if (lastpos.x != -1) {
-    pos = parent->increment_func(lastpos, min_bound, max_bound);
-  }
-  block = block->get(pos);
+  // cout << " before inface " << planepoint.x << ' ' << planepoint.y << ' ' << parent->position << ' ' << parent->dirx << ' ' << parent->diry << endl;
+  planepoint = glm::max(glm::min(planepoint, vec2(parent->facescale, parent->facescale)), vec2(0,0));
+  vec3 closepoint = planepoint.x * parent->dirx + planepoint.y * parent->diry + parent->position;
+  // cout << " inface  " << closepoint << ' ' << planepoint.x << ',' << planepoint.y << ' ' << center << ' ' << scale << endl;
+  return in_cube(closepoint, parent->normal, center, scale);
+}
 
 FreeBlockIter::iterator FreeBlockIter::iterator::operator++() {
   Block* block = pix->parbl;
-  while (block->parent != parent->base->parent and block->parentpos == parent->end_pos) {
+  pix = nullptr;
+  increment(block);
+  return *this;
+}
+  
+void FreeBlockIter::iterator::increment(Block* block) {
+  while (block->parent != base->parent and block->parentpos == parent->end_pos) {
     block = block->parent;
   }
-  if (block->parent == parent->base->parent) {
-    pix = nullptr;
-    return *this;
+  if (block->parent == base->parent) {
+    baseindex ++;
+    if (baseindex >= parent->bases.size()) {
+      pix = (Pixel*)0x1; // horrible, lo cambiare pronto
+      cout << " Termino " << endl;
+      return;
+    } else {
+      base = parent->bases[baseindex];
+      get_to_pix(base);
+      return;
+    }
   }
-  ivec3 pos = block->parentpos;
-  pos = parent->increment_func(pos, parent->start_pos, parent->end_pos);
+  ivec3 pos = parent->increment_func(block->parentpos, parent->start_pos, parent->end_pos);
   block = block->parent->get(pos);
-  while (block->continues) {
-    block = block->get(parent->start_pos);
+  get_to_pix(block);
+}
+
+void FreeBlockIter::iterator::get_to_pix(Block* block) {
+  // cout << "get_to_pix ( " << block << ' ' << block->globalpos << ' ' << block->scale << endl;
+  while (pix == nullptr) {
+    if (!in_face(block)) {
+      // cout << " not in face " << endl;
+      increment(block);
+    } else if (block->continues) {
+      // cout << " inner " << endl;
+      block = block->get(parent->start_pos);
+    } else {
+      // cout << " setting " << endl;
+      pix = block->pixel;
+    }
   }
-  pix = block->pixel;
-  return *this;
 }
 
 FreeBlockIter::iterator FreeBlockIter::begin() {
-  if (base == nullptr) {
-    return end();
-  }
-  Block* block = base;
-  while (block->continues) {
-    block = block->get(start_pos);
-  }
-  return {this, block->pixel};
+  // if (base == nullptr) {
+  //   return end();
+  // }
+  iterator iter {this, bases[0], 0, nullptr};
+  iter.get_to_pix(bases[0]);
+  return iter;
 }
 
-FreeBlockIter::iterator BlockIter::end() {
-  return {this, nullptr};
+FreeBlockIter::iterator FreeBlockIter::end() {
+  return {this, nullptr, 0, (Pixel*)0x1};
 }
 
 bool operator!=(const FreeBlockIter::iterator& iter1, const FreeBlockIter::iterator& iter2) {
@@ -1673,6 +1872,97 @@ bool operator!=(const FreeBlockIter::iterator& iter1, const FreeBlockIter::itera
 }
 
 
+
+
+
+
+
+
+Pixel* BlockTouchSideIter::iterator::operator*() {
+  if (parent->free) {
+    return *freeiter;
+  } else {
+    return *blockiter;
+  }
+}
+
+BlockTouchSideIter::iterator BlockTouchSideIter::iterator::operator++() {
+  if (parent->free) {
+    ++freeiter;
+  } else {
+    ++blockiter;
+  }
+  return *this;
+}
+
+BlockTouchSideIter::BlockTouchSideIter(Block* block, ivec3 dir) {
+  Block* side = block->get_local(block->globalpos + dir * block->scale, block->scale);
+  if (side == nullptr) {
+    if (block->freecontainer != nullptr) {
+      // cout << "Free iter " << block << ' ' << dir << endl;
+      vec3 norm = dir;
+      vec3 dx;
+      vec3 dy;
+      vec3 position = block->globalpos;
+      if (dir_to_index(dir) < 3) {
+        position += block->scale;
+        dx = dir_array[(dir_to_index(dir)+1) % 3 + 3];
+        dy = dir_array[(dir_to_index(dir)+2) % 3 + 3];
+      } else {
+        dx = dir_array[(dir_to_index(dir)+1) % 3];
+        dy = dir_array[(dir_to_index(dir)+2) % 3];
+      }
+      
+      free = true;
+      freeiter = FreeBlockIter(block->world,
+        block->freecontainer->transform_out(position),
+        block->freecontainer->transform_out_dir(dx),
+        block->freecontainer->transform_out_dir(dy),
+        block->freecontainer->transform_out_dir(norm),
+        block->scale
+      );
+    } else {
+      free = false;
+      blockiter = BlockIter{.base = nullptr};
+    }
+  } else {
+    free = false;
+    blockiter = side->iter_side(-dir);
+  }
+}
+
+BlockTouchSideIter::iterator BlockTouchSideIter::begin() {
+  iterator iter;
+  iter.parent = this;
+  if (free) {
+    iter.freeiter = freeiter.begin();
+  } else {
+    iter.blockiter = blockiter.begin();
+  }
+  return iter;
+}
+
+BlockTouchSideIter::iterator BlockTouchSideIter::end() {
+  iterator iter;
+  iter.parent = this;
+  if (free) {
+    iter.freeiter = freeiter.end();
+  } else {
+    iter.blockiter = blockiter.end();
+  }
+  return iter;
+}
+
+bool operator!=(const BlockTouchSideIter::iterator& iter1, const BlockTouchSideIter::iterator& iter2) {
+  if (iter1.parent != iter2.parent) {
+    return false;
+  }
+  if (iter1.parent->free) {
+    return iter1.freeiter != iter2.freeiter;
+  } else {
+    return iter1.blockiter != iter2.blockiter;
+  }
+}
 
 
 

@@ -146,7 +146,7 @@ void BlockGroup::spread(Pixel* start_pix, Pixel* source, ivec3 pastdir, int dept
     for (Pixel* pix : last_pixels) {
 			int i = 0;
       for (ivec3 dir : dir_array) {
-				BlockIter iter = pix->parbl->iter_touching_side(dir);
+				BlockTouchSideIter iter = pix->parbl->iter_touching_side(dir);
 				
 				if (iter.begin() != iter.end()) {
 					for (Pixel* sidepix : iter) {

@@ -114,6 +114,7 @@ class Player: public DisplayEntity {
 		void right_mouse(double dt);
 		void left_mouse(double dt);
     void raycast(Pixel** hit, vec3* hitpos, DisplayEntity** entity);
+    void raycast(Block** hit, ivec3* dir, vec3* hitpos);
 		void mouse_button();
 		void computeMatricesFromInputs();
     void update_held_light();
