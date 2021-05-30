@@ -9,6 +9,7 @@
 #include "cross-platform.h"
 #include "materials.h"
 #include "blocks.h"
+#include "blockiter.h"
 #include "entity.h"
 #include "text.h"
 #include "blockgroups.h"

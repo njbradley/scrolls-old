@@ -4,6 +4,7 @@
 #include "tiles.h"
 
 #include "blocks.h"
+#include "blockiter.h"
 #include "blockdata.h"
 #include "blockgroups.h"
 #include "mobs.h"

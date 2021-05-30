@@ -1,6 +1,8 @@
 #ifndef CLASSES_H
 #define CLASSES_H
 
+#define csize 2
+#define csize3 8
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>

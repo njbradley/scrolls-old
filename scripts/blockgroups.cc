@@ -4,6 +4,7 @@
 #include "blockgroups.h"
 
 #include "blocks.h"
+#include "blockiter.h"
 #include "world.h"
 #include "blockdata.h"
 #include "menu.h"

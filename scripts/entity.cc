@@ -11,6 +11,8 @@
 #include "blockdata.h"
 #include "cross-platform.h"
 #include "game.h"
+#include "blocks.h"
+#include "blockiter.h"
 
 #include <algorithm>
 

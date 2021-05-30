@@ -4,6 +4,7 @@
 #include "entity.h"
 
 #include "blocks.h"
+#include "blockiter.h"
 #include "items.h"
 #include "blockdata.h"
 #include "world.h"
