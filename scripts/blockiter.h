@@ -25,8 +25,8 @@ class FreeBlockIter { public:
 	vec3 position;
 	vec3 dirx;
 	vec3 diry;
-	vec3 normal;
-	float facescale;
+	vec3 dirz;
+	vec3 dims;
 	ivec3 start_pos = ivec3(0,0,0);
 	ivec3 end_pos = ivec3(csize,csize,csize)-1;
 	ivec3 (*increment_func)(ivec3 pos, ivec3 startpos, ivec3 endpos);
@@ -37,13 +37,13 @@ class FreeBlockIter { public:
     Pixel* pix;
     Pixel* operator*();
     iterator operator++();
-		bool in_cube(vec3 pos, vec3 norm, vec3 center, float scale);
-		bool in_face(Block* block);
+		bool point_in_cube(vec3 pos, vec3 center, float scale);
+		bool cube_in_cube(Block* block);
 		void increment(Block* block);
 		void get_to_pix(Block* block);
     friend bool operator!=(const iterator& iter1, const iterator& iter2);
   };
-	FreeBlockIter(Collider* world, vec3 pos, vec3 dx, vec3 dy, vec3 norm, float scale);
+	FreeBlockIter(Collider* world, vec3 pos, vec3 dx, vec3 dy, vec3 dz, vec3 ndims);
 	FreeBlockIter() {};
   iterator begin();
   iterator end();
@@ -71,7 +71,7 @@ class BlockTouchSideIter { public:
 	iterator begin();
 	iterator end();
 };
-		
+
 
 class BlockTouchIter { public:
   Block* base;

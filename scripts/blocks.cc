@@ -100,6 +100,26 @@ void Block::set_pixel(Pixel* pix) { ASSERT(ISUNDEF||ISPIXEL)
     delete pixel;
   }
   pixel = pix;
+  set_render_flag();
+  set_light_flag();
+}
+
+void Block::set_children(Block* childs) {
+  if (!continues and pixel != nullptr) {
+    delete pixel;
+    pixel = nullptr;
+  }
+  continues = true;
+  if (children != nullptr) {
+    cout << "deleting children " << children << endl;
+    delete[] children;
+  }
+  children = childs;
+  for (int i = 0; i < csize3; i ++) {
+    cout << children[i].globalpos << ' ' << children[i].scale << endl;
+    children[i].set_parent(this, world, freecontainer, posof(i), scale / csize);
+    cout << "after " << children[i].globalpos << ' ' << children[i].scale << endl;
+  }
 }
 
 void Block::set_freeblock(FreeBlock* nfreeblock) {
@@ -302,6 +322,7 @@ Block* Block::get_local(vec3 pos, int w, vec3 dir) {
 }
 
 void Block::set_global(ivec3 pos, int w, int val, int direc, int joints[6]) {
+  cout << " setting globla " << pos << ' ' << w << endl;
   Block* curblock = this;
   while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale)) {
     if (curblock->parent == nullptr) {
@@ -463,6 +484,9 @@ void Block::lighting_update()  {
       }
     } else {
       pixel->lighting_update();
+      if (freeblock != nullptr) {
+        freeblock->lighting_update();
+      }
     }
   }
 }
@@ -623,14 +647,15 @@ void Block::read_pix_val(istream& ifile, char* type, unsigned int* value) {
 
 Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
   Block* curblock = this;
-  cout << "Raycast " << *pos << ' ' << dir << ' ' << timeleft << endl;
+  // cout << "Raycast " << *pos << ' ' << dir << ' ' << timeleft << endl;
   
   while (curblock != nullptr and (curblock->pixel->value == 0 or curblock->pixel->value == 7)) {
-    cout << " raycast " << curblock << ' ' << *pos << endl;
+    // cout << " raycast " << curblock << ' ' << *pos << endl;
     if (curblock->freeblock != nullptr) {
+      // cout << " going into free block" << endl;
       vec3 start = curblock->freeblock->transform_into(*pos);
       vec3 newdir = curblock->freeblock->transform_into_dir(dir);
-      cout << start << ' ' << newdir << endl;
+      // cout << start << ' ' << newdir << endl;
   		float dt = 0;
   		float maxdt = -1;
   		bool ray_valid = true;
@@ -652,7 +677,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
   					maxtime = (curblock->freeblock->scale - start[axis]) / newdir[axis];
   				}
   			}
-        cout << mintime << ' ' << maxtime << endl;
+        // cout << mintime << ' ' << maxtime << endl;
   			if (maxdt == -1) {
   				maxdt = maxtime;
   			}
@@ -672,10 +697,13 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
       if (ray_valid and dt < timeleft) {
         vec3 newpos = start + newdir * (dt + 0.001f);
         Block* startblock = curblock->freeblock->get_local(SAFEFLOOR3(newpos), 1);
-        cout << " startblock " << startblock << ' ' << SAFEFLOOR3(newpos) << ' ' << newpos << ' ' << dt << endl;
+        // cout << " startblock " << startblock << ' ' << SAFEFLOOR3(newpos) << ' ' << newpos << ' ' << dt << endl;
+        cout << "Before " << start << ' ' << newpos << endl;
         Block* result = startblock->raycast(&newpos, newdir, timeleft - dt);
-        cout << " result " << result << endl;
+        cout << "After " << newpos << endl;
+        // cout << " result " << result << endl;
         if (result != nullptr) {
+          *pos = curblock->freeblock->transform_out(newpos);
           return result;
         }
       }
@@ -726,8 +754,21 @@ void FreeBlock::set_parent(Block* nparent) {
 }
 
 void FreeBlock::expand(ivec3 dir) {
-  cout << "expand " << this << ' ' << dir << endl;
-  Block tmpblock = std::move(*this);
+  cout << "expand " << this << ' ' << dir << ' ' << globalpos << ' ' << scale << endl;
+  //Block tmpblock = std::move(*this);
+  Pixel* oldpix = pixel;
+  Block* oldchilds = children;
+  bool oldcont = continues;
+  cout << "old " << oldpix << oldcont << endl;
+  
+  cout << "oldtest " << endl;
+  cout << this << ' ' << globalpos << ' ' << parentpos << ' ' << parent << ' ' << freecontainer << ' ' << scale << endl;
+  for (Pixel* pix : iter()) {
+    Block* block = pix->parbl;
+    cout << block << ' ' << block->globalpos << ' ' << block->parentpos
+    << ' ' << block->parent << ' ' << block->freecontainer << ' ' << block->scale << endl;
+  }
+  
   continues = false;
   pixel = nullptr;
   ivec3 newpos = (-dir + 1) / 2;
@@ -738,6 +779,18 @@ void FreeBlock::expand(ivec3 dir) {
   Block::set_parent(nullptr, world, this, parentpos, newscale);
   cout << parentpos << ' ' << scale << ' ' << endl;
   
+  // update freeblock pointers
+  vec3 pos = transform_out(ivec3(0,0,0));
+  vec3 dx = transform_out_dir(ivec3(1,0,0));
+  vec3 dy = transform_out_dir(ivec3(0,1,0));
+  vec3 dz = transform_out_dir(ivec3(0,0,1));
+  FreeBlockIter myiter (world, pos, dx, dy, dz, vec3(scale, scale, scale));
+  for (Pixel* pix : myiter) {
+    pix->parbl->set_render_flag();
+    pix->parbl->set_light_flag();
+    pix->parbl->freeblock = this;
+  }
+  
   cout << "bouta divide" << endl;
   divide();
   cout << "dividado " << endl;
@@ -745,11 +798,25 @@ void FreeBlock::expand(ivec3 dir) {
   for (int i = 0; i < csize3; i ++) {
     cout << " ." << i << endl;
     if (posof(i) == newpos) {
-      set_child(newpos, &tmpblock);
-      get(newpos)->set_pixel(get(newpos)->pixel);
+      if (oldcont) {
+        get(newpos)->set_children(oldchilds);
+        Block* block = get(newpos);
+        cout << " test " << block << ' ' << block->globalpos << ' ' << block->parentpos
+        << ' ' << block->parent << ' ' << block->freecontainer << ' ' << block->scale << endl;
+        for (Pixel* pix : block->iter()) {
+          Block* block = pix->parbl;
+          cout << block << ' ' << block->globalpos << ' ' << block->parentpos
+          << ' ' << block->parent << ' ' << block->freecontainer << ' ' << block->scale << endl;
+        }
+      } else {
+        get(newpos)->set_pixel(oldpix);
+      }
     } else {
       get(posof(i))->set_pixel(new Pixel(0));
     }
+    Block* block = get(posof(i));
+    cout << block << ' ' << block->globalpos << ' ' << block->parentpos
+    << ' ' << block->parent << ' ' << block->freecontainer << ' ' << block->scale << endl;
   }
   
   cout << "Test " << endl;

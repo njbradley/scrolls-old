@@ -33,8 +33,9 @@ extern const uint8 lightmax;
 //     winding = 0b01000XYZ - long line, 1 by 1 by 8, the XYZ marks the 8 long axis
 //
 // a block can also be "floating", when it is not on the standard xyz grid
-// in that case, the globalpos points to the "grounded block" and floatpos is the
-// offset from that block
+// in that case, globalpos is no longer global, it is local to the group of blocks
+// in the same axis.
+//
 
 class Block: public Collider { public:
 	ivec3 parentpos;
@@ -75,6 +76,7 @@ class Block: public Collider { public:
 	void set_freeblock(FreeBlock* nfreeblock);
 	bool expand_freeblock(FreeBlock* nfreeblock);
 	void set_pixel(Pixel* pix);
+	void set_children(Block* childs);
 	// gets the block for chunk blocks
 	// (no error checking for speed)
 	Block* get(ivec3 pos);

@@ -176,8 +176,9 @@ void Player::raycast(Block** hit, ivec3* dir, vec3* hitpos) {
 	if (*hit != nullptr) {
 		if ((*hit)->freecontainer != nullptr) {
 			vec3 pos = (*hit)->freecontainer->transform_into(*hitpos);
-			ivec3 backpos = SAFEFLOOR3(pos - (*hit)->freecontainer->transform_into_dir(pointing) * 0.002f);
-			*dir = backpos - SAFEFLOOR3(pos);
+			vec3 backpos = pos - (*hit)->freecontainer->transform_into_dir(pointing) * 0.002f;
+			*dir = SAFEFLOOR3(backpos) - SAFEFLOOR3(pos);
+			cout << pos << ' ' << backpos << ' ' << *dir << endl;
 		} else {
 			*dir = SAFEFLOOR3(*hitpos - pointing*0.002f) - SAFEFLOOR3(*hitpos);
 		}

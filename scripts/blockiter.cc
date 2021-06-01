@@ -62,9 +62,9 @@ bool operator!=(const BlockIter::iterator& iter1, const BlockIter::iterator& ite
 
 
 
-FreeBlockIter::FreeBlockIter(Collider* world, vec3 pos, vec3 dx, vec3 dy, vec3 norm, float scale):
-position(pos), dirx(dx), diry(dy), normal(norm), facescale(scale) {
-  // cout << "new freiter " << pos << ' ' << dx << ' ' << dy << ' ' << norm << ' ' << scale << endl;
+FreeBlockIter::FreeBlockIter(Collider* world, vec3 pos, vec3 dx, vec3 dy, vec3 dz, vec3 ndims):
+position(pos), dirx(dx), diry(dy), dirz(dz), dims(ndims) {
+  // cout << "new freiter " << pos << ' ' << dx << ' ' << dy << ' ' << dz << ' ' << dims << endl;
   increment_func = [] (ivec3 pos, ivec3 startpos, ivec3 endpos) {
     pos.z++;
     if (pos.z > endpos.z) {
@@ -78,35 +78,61 @@ position(pos), dirx(dx), diry(dy), normal(norm), facescale(scale) {
     return pos;
   };
   
-  Block* pointblocks[4] {
-    world->get_global(ivec3(pos), 1),
-    world->get_global(ivec3(pos+dx), 1),
-    world->get_global(ivec3(pos+dy+dx), 1),
-    world->get_global(ivec3(pos+dy), 1)
-  };
-  
-  int minscale = World::chunksize;
-  for (int i = 0; i < 4; i ++) {
-    if (pointblocks[i]->scale < minscale) {
-      minscale = pointblocks[i]->scale;
-    }
-  }
-  
-  while (minscale < World::chunksize and (pointblocks[0] != pointblocks[1]
-  or pointblocks[1] != pointblocks[2] or pointblocks[2] != pointblocks[3])) {
-    for (int i = 0; i < 4; i ++) {
-      if (pointblocks[i]->scale == minscale) {
-        pointblocks[i] = pointblocks[i]->parent;
-      }
-    }
-    minscale *= csize;
-  }
-  
-  for (int i = 0; i < 4; i ++) {
-    if (i == 0 or bases.back() != pointblocks[i]) {
-      bases.push_back(pointblocks[i]);
-    }
-  }
+	dx *= dims.x;
+	dy *= dims.y;
+	dz *= dims.z;
+	vec3 points[8] {
+		pos,
+		pos+dz,
+		pos+dy,
+		pos+dy+dz,
+		pos+dx,
+		pos+dx+dz,
+		pos+dx+dy,
+		pos+dx+dy+dz
+	};
+	
+	int num_removed = 0;
+	for (int i = 0; i < 8; i ++) {
+		if (world->get_global(ivec3(points[i]), 1) == nullptr) {
+			num_removed++;
+		} else if (num_removed != 0) {
+			points[i-num_removed] = points[i];
+		}
+	}
+	
+	int num_points = 8 - num_removed;
+	
+	if (num_points > 0) {
+		int maxscale = 1;
+		int progress = 1;
+		// Block* last = world->get_global(ivec3(points[0]), maxscale);
+		Block* last;
+		// aqui aumento la tama~no hasta el bloque tiene todos los puntos
+		do {
+			last = world->get_global(ivec3(points[progress-1]), maxscale);
+			Block* block;
+			while ((block = world->get_global(ivec3(points[progress]), maxscale)) == last and progress < num_points) {
+				last = block;
+				progress ++;
+			}
+			maxscale *= csize;
+		} while (last->parent != nullptr and progress < num_points);
+		
+		maxscale /= csize;
+		
+		bases.push_back(world->get_global(ivec3(points[0]), maxscale));
+		// cout << "bases " << bases.back() << ' ' << bases.back()->globalpos << ' ' << bases.back()->scale << endl;
+		if (maxscale == World::chunksize) {
+			for (int i = 1; i < 8; i ++) {
+				Block* block = world->get_global(ivec3(points[i]), maxscale);
+				if (block != bases.back()) {
+					bases.push_back(block);
+					// cout << "bases " << bases.back() << ' ' << bases.back()->globalpos << ' ' << bases.back()->scale << endl;
+				}
+			}
+		}
+	}
 }
 
 
@@ -115,25 +141,27 @@ Pixel* FreeBlockIter::iterator::operator*() {
   return pix;
 }
 
-bool FreeBlockIter::iterator::in_cube(vec3 pos, vec3 norm, vec3 center, float scale) {
-  pos += norm * 0.001f;
-  return  center.x - scale <= pos.x and pos.x <= center.x + scale
-      and center.y - scale <= pos.y and pos.y <= center.y + scale
-      and center.z - scale <= pos.z and pos.z <= center.z + scale;
+bool FreeBlockIter::iterator::point_in_cube(vec3 pos, vec3 center, float scale) {
+  return  center.x - scale < pos.x and pos.x < center.x + scale
+      and center.y - scale < pos.y and pos.y < center.y + scale
+      and center.z - scale < pos.z and pos.z < center.z + scale;
 }
 
-bool FreeBlockIter::iterator::in_face(Block* block) {
+bool FreeBlockIter::iterator::cube_in_cube(Block* block) {
   float scale = block->scale / 2.0f;
   vec3 center = vec3(block->globalpos) + scale;
-  vec2 planepoint (
-    glm::dot(center - parent->position, parent->dirx),
-    glm::dot(center - parent->position, parent->diry)
-  );
-  // cout << " before inface " << planepoint.x << ' ' << planepoint.y << ' ' << parent->position << ' ' << parent->dirx << ' ' << parent->diry << endl;
-  planepoint = glm::max(glm::min(planepoint, vec2(parent->facescale, parent->facescale)), vec2(0,0));
-  vec3 closepoint = planepoint.x * parent->dirx + planepoint.y * parent->diry + parent->position;
-  // cout << " inface  " << closepoint << ' ' << planepoint.x << ',' << planepoint.y << ' ' << center << ' ' << scale << endl;
-  return in_cube(closepoint, parent->normal, center, scale);
+	vec3 localpoint (
+		glm::dot(center - parent->position, parent->dirx),
+		glm::dot(center - parent->position, parent->diry),
+		glm::dot(center - parent->position, parent->dirz)
+	);
+	localpoint = glm::max(glm::min(localpoint, parent->dims), vec3(0,0,0));
+	vec3 closepoint = parent->position
+		+ localpoint.x * parent->dirx
+		+ localpoint.y * parent->diry
+		+ localpoint.z * parent->dirz;
+	// cout << center << ' ' << parent->position << ' ' << localpoint << ' ' << closepoint << ' ' << parent->dims << endl;
+  return point_in_cube(closepoint, center, scale);
 }
 
 FreeBlockIter::iterator FreeBlockIter::iterator::operator++() {
@@ -142,7 +170,7 @@ FreeBlockIter::iterator FreeBlockIter::iterator::operator++() {
   increment(block);
   return *this;
 }
-  
+
 void FreeBlockIter::iterator::increment(Block* block) {
   while (block->parent != base->parent and block->parentpos == parent->end_pos) {
     block = block->parent;
@@ -151,7 +179,7 @@ void FreeBlockIter::iterator::increment(Block* block) {
     baseindex ++;
     if (baseindex >= parent->bases.size()) {
       pix = (Pixel*)0x1; // horrible, lo cambiare pronto
-      cout << " Termino " << endl;
+      // cout << " Termino " << endl;
       return;
     } else {
       base = parent->bases[baseindex];
@@ -167,7 +195,7 @@ void FreeBlockIter::iterator::increment(Block* block) {
 void FreeBlockIter::iterator::get_to_pix(Block* block) {
   // cout << "get_to_pix ( " << block << ' ' << block->globalpos << ' ' << block->scale << endl;
   while (pix == nullptr) {
-    if (!in_face(block)) {
+    if (!cube_in_cube(block)) {
       // cout << " not in face " << endl;
       increment(block);
     } else if (block->continues) {
@@ -181,9 +209,9 @@ void FreeBlockIter::iterator::get_to_pix(Block* block) {
 }
 
 FreeBlockIter::iterator FreeBlockIter::begin() {
-  // if (base == nullptr) {
-  //   return end();
-  // }
+  if (bases.size() == 0) {
+    return end();
+  }
   iterator iter {this, bases[0], 0, nullptr};
   iter.get_to_pix(bases[0]);
   return iter;
@@ -225,7 +253,7 @@ BlockTouchSideIter::BlockTouchSideIter(Block* block, ivec3 dir) {
   Block* side = block->get_local(block->globalpos + dir * block->scale, block->scale);
   if (side == nullptr) {
     if (block->freecontainer != nullptr) {
-      // cout << "Free iter " << block << ' ' << dir << endl;
+			// cout << "touchsideiter " << block << ' ' << block->globalpos << ' ' << block->scale << ' ' << dir << endl;
       vec3 norm = dir;
       vec3 dx;
       vec3 dy;
@@ -245,7 +273,7 @@ BlockTouchSideIter::BlockTouchSideIter(Block* block, ivec3 dir) {
         block->freecontainer->transform_out_dir(dx),
         block->freecontainer->transform_out_dir(dy),
         block->freecontainer->transform_out_dir(norm),
-        block->scale
+        vec3(block->scale, block->scale, 0.1f)
       );
     } else {
       free = false;
