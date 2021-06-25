@@ -51,12 +51,12 @@ void addQuad(vec4 position, vec4 dy, vec4 dx, vec4 normal, uvec2 data) {
 	
   UV = vec2(1,0);
 	set_attr();
-  gl_Position = Pmat * (position + dx);
+  gl_Position = Pmat * (position + dx - dy);
   EmitVertex();
 	
 	UV = vec2(0,0);
 	set_attr();
-	gl_Position = Pmat * position;
+	gl_Position = Pmat * (position - dx - dy);
   EmitVertex();
 
 	UV = vec2(1,1);
@@ -66,7 +66,7 @@ void addQuad(vec4 position, vec4 dy, vec4 dx, vec4 normal, uvec2 data) {
 
 	UV = vec2(0,1);
 	set_attr();
-  gl_Position = Pmat * (position + dy);
+  gl_Position = Pmat * (position - dx + dy);
   EmitVertex();
 
   EndPrimitive();
@@ -81,15 +81,15 @@ void main() {
 		return;
 	}
 	
-  vec4 position = MVmat * gl_in[0].gl_Position;
+  vec4 center = MVmat * gl_in[0].gl_Position;
 	
-	vec4 center = (position + MVmat * vec4(0.5,0.5,0.5,0));
-	voxSize = scale[0];
+	voxSize = scale[0] / 2;
+	//vec4 center = (position + MVmat * vec4(voxSize,voxSize,voxSize,0));
 	vec4 rotquat = rotation[0];
 	
 	vec4 screencenter = Pmat * center;
 	float divisor = screencenter.w + voxSize;
-	if (position.z > 1.8*voxSize || abs(max(screencenter.x/divisor, screencenter.y/divisor)) > 1 + 1.8*voxSize/divisor) {
+	if (center.z > 1.8*voxSize || abs(max(screencenter.x/divisor, screencenter.y/divisor)) > 1 + 1.8*voxSize/divisor) {
 		return;
 	}
 	
@@ -128,21 +128,21 @@ void main() {
 	return;*/
 	
 	if ((facepx[0].x) != 0u) {
-  	addQuad(position + dx, dy, dz,  dx, facepx[0]);
+  	addQuad(center + dx, dy, dz,  dx, facepx[0]);
   }
   if ((facenx[0].x) != 0u) {
-    addQuad(position, dz, dy,  -dx, facenx[0]);
+    addQuad(center - dx, dz, dy,  -dx, facenx[0]);
 	}
   if ((facepy[0].x) != 0u) {
-    addQuad(position + dy, dz, dx,  dy, facepy[0]);
+    addQuad(center + dy, dz, dx,  dy, facepy[0]);
 	}
   if ((faceny[0].x) != 0u) {
-    addQuad(position, dx, dz,  -dy, faceny[0]);
+    addQuad(center - dy, dx, dz,  -dy, faceny[0]);
 	}
   if ((facepz[0].x) != 0u) {
-    addQuad(position + dz, dx, dy,  dz, facepz[0]);
+    addQuad(center + dz, dx, dy,  dz, facepz[0]);
 	}
   if ((facenz[0].x) != 0u) {
-    addQuad(position, dy, dx,  -dz, facenz[0]);
+    addQuad(center - dz, dy, dx,  -dz, facenz[0]);
 	}
 }

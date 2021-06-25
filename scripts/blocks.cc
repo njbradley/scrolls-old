@@ -63,6 +63,15 @@ Block::~Block() {
   }
 }
 
+
+void Block::lock() {
+  locked = true;
+}
+
+void Block::unlock() {
+  locked = false;
+}
+
 void Block::set_parent(Container* nworld, ivec3 ppos, int nscale) {
   set_parent(nullptr, nworld, nullptr, ppos, nscale);
 }
@@ -129,10 +138,13 @@ void Block::set_freeblock(FreeBlock* nfreeblock) {
   set_light_flag();
 }
 
-bool Block::expand_freeblock(FreeBlock* nfreeblock) {
-  freeblock = nfreeblock;
-  return true;
-}
+// bool Block::expand_freeblock(FreeBlock* nfreeblock) {
+//   if (pixel->value == 0 or pixel->value == 7) {
+//     freeblock = nfreeblock;
+//     return true;
+//   }
+//   return false;
+// }
 
 
 
@@ -423,9 +435,10 @@ void Block::from_file(istream& ifile) { ASSERT(ISUNDEF)
 }
 
 void Block::set_render_flag() {
+  if (locked) return;
   render_flag = true;
   Block* curblock = parent;
-  while (curblock != nullptr and !curblock->render_flag) {
+  while (curblock != nullptr and !curblock->render_flag and !curblock->locked) {
     curblock->render_flag = true;
     if (curblock->parent == nullptr and curblock->freecontainer != nullptr) {
       curblock = curblock->freecontainer;
@@ -447,9 +460,10 @@ void Block::set_all_render_flags() {
 }
 
 void Block::set_light_flag() {
+  if (locked) return;
   light_flag = true;
   Block* curblock = parent;
-  while (curblock != nullptr and !curblock->light_flag) {
+  while (curblock != nullptr and !curblock->light_flag and !curblock->locked) {
     curblock->light_flag = true;
     if (curblock->parent == nullptr and curblock->freecontainer != nullptr) {
       curblock = curblock->freecontainer;
@@ -460,7 +474,7 @@ void Block::set_light_flag() {
 }
 
 void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
-  if (render_flag) {
+  if (render_flag and !locked) {
     render_flag = false;
     if (continues) {
       for (int i = 0; i < csize3; i ++) {
@@ -476,7 +490,7 @@ void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool re
 }
 
 void Block::lighting_update()  {
-  if (light_flag) {
+  if (light_flag and !locked) {
     light_flag = false;
     if (continues) {
       for (int i = 0; i < csize3; i ++) {
@@ -756,6 +770,8 @@ void FreeBlock::set_parent(Block* nparent) {
 void FreeBlock::expand(ivec3 dir) {
   cout << "expand " << this << ' ' << dir << ' ' << globalpos << ' ' << scale << endl;
   //Block tmpblock = std::move(*this);
+  lock();
+  
   Pixel* oldpix = pixel;
   Block* oldchilds = children;
   bool oldcont = continues;
@@ -828,16 +844,44 @@ void FreeBlock::expand(ivec3 dir) {
   }
   
   cout << "done " << endl;
-  
+  unlock();
+  set_render_flag();
+  set_light_flag();
 }
 
 
+void FreeBlock::set_rotation(quat newrot) {
+  rotation = newrot;
+  for (Pixel* pix : iter()) {
+    pix->parbl->set_render_flag();
+  }
+}
+
+void FreeBlock::set_position(vec3 newpos) {
+  offset = newpos;
+  for (Pixel* pix : iter()) {
+    pix->parbl->set_render_flag();
+  }
+}
+
+bool FreeBlock::try_set_location(vec3 newpos, quat newrot) {
+  vec3 dx = transform_out_dir(vec3(1,0,0));
+  vec3 dy = transform_out_dir(vec3(0,1,0));
+  vec3 dz = transform_out_dir(vec3(0,0,1));
+  for (Pixel* pix : iter()) {
+    if (pix->value != 0) {
+      vec3 pos = transform_out(pix->parbl->globalpos);
+      
+    }
+  }
+}
+
 vec3 FreeBlock::transform_into(vec3 pos) const {
-  return glm::inverse(rotation) * (pos - offset);
+  return glm::inverse(rotation) * (pos - offset - 0.5f) + 0.5f;
 }
 
 ivec3 FreeBlock::transformi_into(ivec3 pos) const {
-  vec3 result = glm::inverse(rotation) * (vec3(pos) - offset);
+  vec3 result = glm::inverse(rotation) * (vec3(pos) - offset - 0.5f) + 0.5f;
   return SAFEFLOOR3(result);
 }
 
@@ -853,11 +897,11 @@ ivec3 FreeBlock::transformi_into_dir(ivec3 dir) const {
 
 
 vec3 FreeBlock::transform_out(vec3 pos) const {
-  return offset + rotation * pos;
+  return offset + 0.5f + rotation * (pos - 0.5f);
 }
 
 ivec3 FreeBlock::transformi_out(ivec3 pos) const {
-  vec3 result = offset + rotation * vec3(pos);
+  vec3 result = offset + rotation * (vec3(pos) - 0.5f);
   return SAFEFLOOR3(result);
 }
 
@@ -1153,8 +1197,9 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
     
     bool exposed = false;
     
-    renderdata.pos.loc.pos = parbl->fglobalpos();
-    renderdata.pos.loc.rot = parbl->getrotation();
+    quat rot = parbl->getrotation();
+    renderdata.pos.loc.pos = parbl->fglobalpos() + rot * vec3(parbl->scale/2.0f, parbl->scale/2.0f, parbl->scale/2.0f);
+    renderdata.pos.loc.rot = rot;
     renderdata.pos.loc.scale = parbl->scale;
     
     int mat[6];

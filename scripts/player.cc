@@ -267,31 +267,65 @@ void Player::raycast(Pixel** hit, vec3* hitpos, DisplayEntity** target_entity) {
 
 void Player::right_mouse(double deltatime) {
 	//cout << "riht" << endl;
-	if (timeout < 0) {
-		return;
-	}
-	timeout = -0.2;
 	bool shifting = glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS;
 	
-	vec3 hitpos;
-	ivec3 dir;
-	Block* block;
-	raycast(&block, &dir, &hitpos);
-	
-	if (block != nullptr) {
-		ivec3 blockpos = block->globalpos + dir;
-		if (shifting) {
-			world->set_global(blockpos, 1, 0, 0);
-			Block* airblock = world->get_global(blockpos.x, blockpos.y, blockpos.z, 1);
-			if (airblock != nullptr and airblock->pixel->value == 0) {
-				FreeBlock* freeblock = new FreeBlock(vec3(airblock->globalpos), quat(0.92, 0, 0.38, 0));
-				freeblock->set_parent(nullptr, airblock->world, ivec3(0,0,0), 1);
-				freeblock->set_pixel(new Pixel(1));
-				airblock->set_freeblock(freeblock);
+	if (placing_block == nullptr and placing_freeblock == nullptr) {
+		
+		vec3 hitpos;
+		ivec3 dir;
+		Block* block;
+		raycast(&block, &dir, &hitpos);
+		
+		Item* inhand = inven.get(selitem);
+		
+		if (block != nullptr) {
+			if (!inhand->isnull) {
+				ivec3 blockpos = block->globalpos + dir;//SAFEFLOOR3(hitpos) + dir;
+				if (shifting) {
+					world->set_global(blockpos, 1, 0, 0);
+					Block* airblock = world->get_global(blockpos.x, blockpos.y, blockpos.z, 1);
+					if (airblock != nullptr and airblock->pixel->value == 0) {
+						FreeBlock* freeblock = new FreeBlock(vec3(airblock->globalpos), quat(1, 0, 0, 0));
+						freeblock->set_parent(nullptr, airblock->world, ivec3(0,0,0), 1);
+						freeblock->set_pixel(new Pixel(1));
+						airblock->set_freeblock(freeblock);
+						
+						placing_freeblock = freeblock;
+						placing_block = airblock;
+					}
+				} else {
+					block->set_global(blockpos, 1, 1, 0);
+					placing_block = block->get_global(blockpos, 1);
+					// world->get_global(ox, oy, oz, 1)->set_global(ivec3(ox+dx, oy+dy, oz+dz), 1, 1, 0);
+				}
+				placing_dir = dir;
+				placing_pointing = angle;
+			} else {
+				cout << block << '.' << block->freecontainer << endl;
+				placing_block = block;
+				placing_freeblock = block->freecontainer;
+				placing_dir = dir;
+				placing_pointing = angle;
 			}
-		} else {
-			block->set_global(blockpos, 1, 1, 0);
-			// world->get_global(ox, oy, oz, 1)->set_global(ivec3(ox+dx, oy+dy, oz+dz), 1, 1, 0);
+		}
+	} else {
+		float dist = (placing_pointing.y - angle.y) * 6.0f;
+		cout << dist << endl;
+		if (placing_freeblock == nullptr and dist > 0.05) {
+			Pixel pix = *placing_block->pixel;
+			placing_block->pixel->set(0, 0);
+			FreeBlock* freeblock = new FreeBlock(vec3(placing_block->globalpos), quat(1, 0, 0, 0));
+			freeblock->set_parent(nullptr, placing_block->world, ivec3(0,0,0), 1);
+			freeblock->set_pixel(new Pixel(pix));
+			placing_block->set_freeblock(freeblock);
+			
+			placing_freeblock = freeblock;
+		}
+		if (placing_freeblock != nullptr) {
+			quat newrot = glm::angleAxis(dist, vec3(placing_dir));
+			cout << "settting " << placing_freeblock << ' ' << placing_dir << endl;
+			placing_freeblock->set_rotation(newrot);
+			placing_block->set_render_flag();
 		}
 	}
 	return;
@@ -778,6 +812,8 @@ void Player::computeMatricesFromInputs(){
 		timeout += deltaTime;
 	} else {
 		timeout = 0;
+		placing_block = nullptr;
+		placing_freeblock = nullptr;
 	}
 	//mouse = false;
 	

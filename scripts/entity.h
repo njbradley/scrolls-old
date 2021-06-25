@@ -98,6 +98,11 @@ class Player: public DisplayEntity {
   MemVecs block_breaking_vecs;
   int block_breaking_tex;
   
+  Block* placing_block = nullptr;
+  FreeBlock* placing_freeblock = nullptr;
+  ivec3 placing_dir;
+  vec2 placing_pointing;
+  
 	public:
 		ItemContainer inven;
 		ItemContainer backpack;

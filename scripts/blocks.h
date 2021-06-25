@@ -48,6 +48,7 @@ class Block: public Collider { public:
 	FreeBlock* freecontainer = nullptr;
 	bool continues;
 	uint8 winding = 0;
+	bool locked = false;
 	union {
 		struct {
 			Pixel* pixel;
@@ -69,12 +70,17 @@ class Block: public Collider { public:
 	Block(istream& ifile);
 	~Block();
 	
+	// locks and unlocks block (used for editing)
+	// prevents setting render flags from going up,
+	// and from render and lighting updates from going down
+	void lock();
+	void unlock();
 	// sets the parent of this block (only call for toplevel blocks)
 	void set_parent(Container* world, ivec3 ppos, int nscale);
 	void set_parent(Block* parent, Container* world, FreeBlock* freecont, ivec3 ppos, int nscale);
 	void set_child(ivec3 pos, Block* block);
 	void set_freeblock(FreeBlock* nfreeblock);
-	bool expand_freeblock(FreeBlock* nfreeblock);
+	bool can_set_freeblock(FreeBlock* nfreeblock);
 	void set_pixel(Pixel* pix);
 	void set_children(Block* childs);
 	// gets the block for chunk blocks
@@ -143,6 +149,9 @@ class FreeBlock : public Block { public:
 	void set_parent(Block* nparent);
 	void set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale);
 	void expand(ivec3 dir);
+	void set_rotation(quat newrot);
+	void set_position(vec3 newpos);
+	bool try_set_location(vec3 newpos, quat newrot);
 	vec3 transform_into(vec3 pos) const;
 	ivec3 transformi_into(ivec3 pos) const;
 	vec3 transform_into_dir(vec3 dir) const;
