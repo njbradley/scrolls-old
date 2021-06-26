@@ -32,48 +32,35 @@ using std::thread;
 int view_dist = 3;
 
 
-TileLoop::iterator::iterator(TileLoop* newtileloop, int newiter): tileloop(newtileloop), index(newiter) {
-  while (index < tileloop->world->tiles.size() and (tileloop->world->tiles[index] == nullptr or tileloop->world->tiles[index]->deleting)) {
-    index ++;
-  }
-}
-
-vector<Tile*>::iterator TileLoop::iterator::operator->() {
-  return tileloop->world->tiles.begin() + index;
-}
-
 Tile* TileLoop::iterator::operator*() {
-  return tileloop->world->tiles[index];
+  return iter->second;
 }
 
 TileLoop::iterator TileLoop::iterator::operator++() {
-  if (index < tileloop->world->tiles.size()) {
-    index ++;
-    while (index < tileloop->world->tiles.size() and (tileloop->world->tiles[index] == nullptr or tileloop->world->tiles[index]->deleting)) {
-      index ++;
-    }
-  }
+  ++iter;
   return *this;
 }
 
-bool operator==(const TileLoop::iterator& iter1, const TileLoop::iterator& iter2) {
-  return iter1.index == iter2.index and iter1.tileloop == iter2.tileloop;
-}
-
 bool operator!=(const TileLoop::iterator& iter1, const TileLoop::iterator& iter2) {
-  return iter1.index != iter2.index or iter1.tileloop != iter2.tileloop;
+  return iter1.iter != iter2.iter;
 }
 
 TileLoop::TileLoop(World* nworld): world(nworld) {
+  world->tilelock.lock();
+  tiles = world->tiles;
+  world->tilelock.unlock();
+}
+
+TileLoop::~TileLoop() {
   
 }
 
 TileLoop::iterator TileLoop::begin() {
-  return iterator(this, 0);
+  return TileLoop::iterator {tiles.begin()};
 }
 
 TileLoop::iterator TileLoop::end() {
-  return iterator(this, world->tiles.size());
+  return TileLoop::iterator {tiles.end()};
 }
 
 
@@ -85,13 +72,13 @@ TileLoop::iterator TileLoop::end() {
 
 
 World::World(string newname, int newseed): loader(seed), seed(newseed), name(newname), closing_world(false),
-commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * 2, nullptr) {
+commandprogram(this,&cout,&cout) {
     setup_files();
     startup();
 }
 
 World::World(string oldname): loader(seed), name(oldname), closing_world(false),
-commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * 2, nullptr) {
+commandprogram(this,&cout,&cout) {
     //unzip();
     string path = "saves/" + name + "/worlddata.txt";
     ifstream ifile(path);
@@ -101,7 +88,7 @@ commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+
 }
 
 World::World(string newname, istream& datafile): loader(seed), name(newname), closing_world(false),
-commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * 2, nullptr) {
+commandprogram(this,&cout,&cout) {
   load_data_file(datafile);
 }
 
@@ -272,7 +259,6 @@ void World::set_player_vars() {
 }
 
 void World::load_nearby_chunks() {
-  // dfile << "load ";
   if (!player->spectator) {
     
     bool loaded_chunks = false;
@@ -280,22 +266,11 @@ void World::load_nearby_chunks() {
     int px = player->position.x/chunksize - (player->position.x<0);
     int py = player->position.y/chunksize - (player->position.y<0);
     int pz = player->position.z/chunksize - (player->position.z<0);
-    //px = 0;
-    //pz = 0;
+    
     const int maxrange = view_dist;
-    // ivec3 pos(px,py,pz);
-    // if (!tiles.count(pos) and std::find(loading_chunks.begin(), loading_chunks.end(), pos) == loading_chunks.end()) {
-    //   //load_chunk(ivec3(x,y,z));
-    //   if (threadmanager->add_loading_job(pos)) {
-    //     loading_chunks.push_back(pos);
-    //   }
-    // }
-    //
+    
     int max_chunks = ((view_dist)*2+1) * ((view_dist)*2+1) * ((view_dist)*2+1);
-    int num_chunks = loading_chunks.size();
-    for (Tile* tile : tiles) {
-      num_chunks += (tile != nullptr);
-    }
+    int num_chunks = tiles.size();
     
     if (!closing_world) {
       for (int range = 0; range < maxrange; range ++) {
@@ -304,15 +279,12 @@ void World::load_nearby_chunks() {
           for (int x = px-range; x < px+range+1; x ++) {
             for (int z = pz-range; z < pz+range+1; z ++) {
               if (x == px-range or x == px+range or y == py-range or y == py+range or z == pz-range or z == pz+range) {
-                //cout << range << ' ' << x << ' ' << y << ' ' << z << endl;
                 ivec3 pos(x,y,z);
-                if (tileat(pos) == nullptr and num_chunks < max_chunks and std::find(loading_chunks.begin(), loading_chunks.end(), pos) == loading_chunks.end()) {
+                if (tileat(pos) == nullptr and num_chunks < max_chunks) {
                   //load_chunk(ivec3(x,y,z));
                   loaded_chunks = true;
                   num_chunks ++;
-                  if (threadmanager->add_loading_job(pos)) {
-                    loading_chunks.push_back(pos);
-                  }
+                  threadmanager->add_loading_job(pos);
                 }
               }
             }
@@ -323,18 +295,14 @@ void World::load_nearby_chunks() {
     //game->crash(17658654574687);
     const double max_distance = std::sqrt((maxrange)*(maxrange)*2);
     //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
-    TileLoop loop(this);
-    for (Tile* tile : loop) {
+    for (Tile* tile : TileLoop(this)) {
       ivec3 pos = tile->pos;
       int range = maxrange;
-      if ((pos.x < px-range or pos.x > px+range or pos.y < py-range or pos.y > py+range or pos.z < pz-range or pos.z > pz+range)
-      and std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) == deleting_chunks.end()) {
+      if ((pos.x < px-range or pos.x > px+range or pos.y < py-range or pos.y > py+range or pos.z < pz-range or pos.z > pz+range)) {
       // double distance = std::sqrt((px-pos.x)*(px-pos.x) + (py-pos.y)*(py-pos.y) + (pz-pos.z)*(pz-pos.z));
       // if ((distance > max_distance or closing_world) and std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) == deleting_chunks.end()) {
         //del_chunk(kv.first, true);
-        if (threadmanager->add_deleting_job(pos)) {
-          deleting_chunks.push_back(pos);
-        }
+        threadmanager->add_deleting_job(pos);
       }
     }
     //  tiles_lock.unlock();
@@ -344,7 +312,7 @@ void World::load_nearby_chunks() {
       initial_generation = false;
     }
   }
-  get_async_loaded_chunks();
+  //get_async_loaded_chunks();
   // dfile << "LOAD " << endl;
 }
 
@@ -365,22 +333,9 @@ void World::get_async_loaded_chunks() {
 
 void World::add_tile(Tile* tile) {
   ivec3 pos = tile->pos;
-  
-  for (int i = 0; i < tiles.size(); i ++) {
-    if (tiles[i] == nullptr) {
-      // dfile << "load" << i << ' ';
-      tiles[i] = tile;
-      // dfile << "LOAD" << i << endl;
-      break;
-    }
-  }
-  
-  for (int i = 0; i < loading_chunks.size(); i ++) {
-    if (loading_chunks[i] == pos) {
-      loading_chunks.erase(loading_chunks.begin()+i);
-      break;
-    }
-  }
+  tilelock.lock();
+  tiles[pos] = tile;
+  tilelock.unlock();
 }
 
 void World::timestep() {
@@ -470,9 +425,8 @@ void World::timestep() {
   mobcount = 0;
   timestep_clock ++;
   int i = 0;
-  TileLoop loop(this);
   
-  for (Tile* tile : loop) {
+  for (Tile* tile : TileLoop(this)) {
       tile->timestep();
       mobcount += tile->entities.size() + tile->block_entities.size();
     i ++;
@@ -575,8 +529,7 @@ void World::tick() { return;
 
 void World::drop_ticks() {
   player->drop_ticks();
-  TileLoop loop(this);
-  for (Tile* tile : loop) {
+  for (Tile* tile : TileLoop(this)) {
     tile->drop_ticks();
   }
 }
@@ -622,8 +575,7 @@ bool World::render() {
       playertile->render(&glvecs, &transparent_glvecs);
       changed = true;
     } else {
-      TileLoop loop(this);
-      for (Tile* tile : loop) {
+      for (Tile* tile : TileLoop(this)) {
         changed = changed or (tile->chunk->render_flag and tile->fully_loaded);
         if (changed) {
           tile->render(&glvecs, &transparent_glvecs);
@@ -631,8 +583,7 @@ bool World::render() {
         }
       }
       if (!changed) {
-        loop = TileLoop(this);
-        for (Tile* tile : loop) {
+        for (Tile* tile : TileLoop(this)) {
           if (!tile->lightflag) {
             changed = changed or (tile->chunk->render_flag);
             tile->render(&glvecs, &transparent_glvecs);
@@ -661,29 +612,24 @@ bool World::render() {
 }
 
 void World::update_lighting() {
-  TileLoop loop(this);
-  for (Tile* tile : loop) {
+  for (Tile* tile : TileLoop(this)) {
     tile->update_lighting();
   }
 }
 
 Tile* World::tileat(ivec3 pos) {
-  for (Tile* tile : tiles) {
-    if (tile != nullptr and tile->pos == pos and !tile->deleting) {
-      return tile;
-    }
+  tilelock.lock();
+  unordered_map<ivec3, Tile*, ivec3_hash>::iterator iter = tiles.find(pos);
+  if (iter != tiles.end()) {
+    tilelock.unlock();
+    return iter->second;
   }
+  tilelock.unlock();
   return nullptr;
 }
 
 Tile* World::tileat_global(ivec3 pos) {
-  ivec3 divpos = pos / chunksize;
-  divpos -= ivec3(
-    pos.x < 0 and -pos.x%chunksize != 0,
-    pos.y < 0 and -pos.y%chunksize != 0,
-    pos.z < 0 and -pos.z%chunksize != 0
-  );
-  return tileat(divpos);
+  return tileat(SAFEDIV(pos, chunksize));
 }
 
 Block* World::get_global(int x, int y, int z, int scale) {
@@ -727,14 +673,6 @@ void World::summon(DisplayEntity* entity) {
   if (tile != nullptr) {
     tile->entities.push_back(entity);
   }
-  // if (tiles.find(pos) == tiles.end() or std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) != deleting_chunks.end()) {
-  //   return;
-  // }
-  // try {
-  //   tiles.at(pos)->entities.push_back(entity);
-  // } catch (std::out_of_range& ex) {
-  //   cout << "world summon caught " << ex.what() << endl;
-  // }
 }
 
 void World::set(ivec4 pos, char val, int direction, int joints[6]) {
@@ -794,44 +732,16 @@ void World::save_chunk(ivec3 pos) {
 }
 
 void World::del_chunk(ivec3 pos, bool remove_faces) {
-    // Tile* tile = tiles[pos];
-    // tiles.erase(pos);
-    // tile->save();
-    // tile->del(remove_faces);
-    // delete tile;
-    Tile* tile = tileat(pos);
-    tile->deleting = true;
-    for (int i = 0; i < tiles.size(); i ++) {
-      if (tiles[i] != nullptr and tiles[i]->pos == pos) {
-        // dfile << "del_chunk ";
-        tiles[i] = nullptr;
-        // dfile << "DEL_CHUNK " << endl;
-        break;
-      }
-    }
-    // if (saving) {
-    //   tile->save();
-    // }
-    tile->del(remove_faces);
-    delete tile;
-    // save_chunk(pos);
-    // tiles[pos]->del(remove_faces);
-    // delete tiles[pos];
-    // tiles.erase(pos);
-}
-
-void World::load_chunk(ivec3 pos) {
-    //cout << "loading chunk ..." << endl;
-    //cout << "creating tile " << this << endl;
-    for (int i = 0; i < tiles.size(); i++) {
-      if (tiles[i] == nullptr) {
-        // dfile << "loadc ";
-        tiles[i] = new Tile(pos, this);
-        // dfile << "LOADC " << endl;
-        break;
-      }
-    }
-    //cout << "done" << endl;
+  tilelock.lock();
+  unordered_map<ivec3, Tile*, ivec3_hash>::iterator iter = tiles.find(pos);
+  if (iter != tiles.end()) {
+    tilelock.unlock();
+    return;
+  }
+  
+  iter->second->deleting = true;
+  delete iter->second;
+  tilelock.unlock();
 }
 
 void World::zip() {
@@ -853,8 +763,7 @@ void World::close_world() {
     ofile.close();
     vector<ivec3> poses;
     //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
-    TileLoop loop(this);
-      for (Tile* tile : loop) {
+      for (Tile* tile : TileLoop(this)) {
           poses.push_back(tile->pos);
       }
     //  tiles_lock.unlock();

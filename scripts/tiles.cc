@@ -291,7 +291,7 @@ Tile::Tile(ivec3 position, World* nworld, istream& ifile): pos(position), world(
 }
 
 
-void Tile::del(bool remove_faces) {
+Tile::~Tile() {
   //cout << "start of deleting tile ";
   deletelock.lock();
   // dfile << "del " << endl;

@@ -28,13 +28,13 @@ class Tile {
 		vector<FallingBlockEntity*> block_entities;
 		Tile(ivec3 position, World* world, istream& ifile);
 		Tile(ivec3 position, World* world);
+		~Tile();
 		void timestep();
 		void drop_ticks();
 		void render(RenderVecs* vecs, RenderVecs* transvecs);
 		void save();
 		void update_lighting();
 		void lighting_update();
-		void del(bool remove_faces);
 		void generate_chunk(ivec3 pos);
 		char gen_block(ostream& ofile, int gx, int gy, int gz, int scale);
 		void fix_side_groups(std::unordered_map<int,BlockGroup*>& sidegroups);

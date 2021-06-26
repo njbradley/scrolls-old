@@ -63,9 +63,6 @@ int children_inc(Block** children, int i) {
 //      .....
 #define CHILDREN_LOOP(varname) int varname = children_begin(children); varname < csize3; varname = children_inc(children, varname)
 
-// Goes until a null value then breaks
-#define FREECHILDREN_LOOP(varname) int varname = 0; varname < csize3 and freeblocks[varname] != nullptr; varname ++
-
 
 Block::Block(): continues(false), pixel(nullptr) {
   // for (int i = 0; i < csize3; i ++) {
@@ -165,8 +162,8 @@ Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ISPIXEL)
 
 void Block::set_freeblock(FreeBlock* nfreeblock) {
   int i = 0;
-  while (i < 8 and freeblocks[i] == nullptr) i ++;
-  freeblocks[i] = nfreeblock;
+  // while (i < 8 and freeblocks[i] == nullptr) i ++;
+  // freeblocks[i] = nfreeblock;
   // freeblocks[i]->set_parent(this);
   set_render_flag();
   set_light_flag();
@@ -282,13 +279,13 @@ Block* Block::get_global(vec3 pos, int w, vec3 dir) {
     curblock = curblock->get(SAFEFLOOR3(rem));
   }
   
-  for (int i = 0; i < csize3 and curblock->freeblocks[i] != nullptr; i ++) {
-    FreeBlock* freeblock = curblock->freeblocks[i]->freecontainer;
-    Block* block = freeblock->get_local(freeblock->transform_into(pos), w, freeblock->transform_into_dir(dir));
-    if (block != nullptr) {
-      return block;
-    }
-  }
+  // for (int i = 0; i < csize3 and curblock->freeblocks[i] != nullptr; i ++) {
+  //   FreeBlock* freeblock = curblock->freeblocks[i]->freecontainer;
+  //   Block* block = freeblock->get_local(freeblock->transform_into(pos), w, freeblock->transform_into_dir(dir));
+  //   if (block != nullptr) {
+  //     return block;
+  //   }
+  // }
   
   return curblock;
 }
@@ -455,9 +452,9 @@ void Block::set_all_render_flags() {
       children[i]->set_all_render_flags();
     }
   }
-  for (FREECHILDREN_LOOP(i)) {
-    freeblocks[i]->freecontainer->set_all_render_flags();
-  }
+  // for (FREECHILDREN_LOOP(i)) {
+  //   freeblocks[i]->freecontainer->set_all_render_flags();
+  // }
 }
 
 void Block::set_light_flag() {
@@ -483,9 +480,9 @@ void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool re
       }
     } else {
       pixel->render(vecs, transvecs, faces, render_null);
-      for (FREECHILDREN_LOOP(i)) {
-        freeblocks[i]->render(vecs, transvecs, faces, render_null);
-      }
+      // for (FREECHILDREN_LOOP(i)) {
+      //   freeblocks[i]->render(vecs, transvecs, faces, render_null);
+      // }
     }
   }
 }
@@ -499,9 +496,9 @@ void Block::lighting_update()  {
       }
     } else {
       pixel->lighting_update();
-      for (FREECHILDREN_LOOP(i)) {
-        freeblocks[i]->lighting_update();
-      }
+      // for (FREECHILDREN_LOOP(i)) {
+      //   freeblocks[i]->lighting_update();
+      // }
     }
   }
 }

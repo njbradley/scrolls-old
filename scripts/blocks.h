@@ -37,9 +37,7 @@ class Block: public Collider { public:
 	bool locked = false;
 	FreeBlock* freeblock;
 	union {
-		struct {
-			Pixel* pixel;
-		};
+		Pixel* pixel;
 		Block* children[csize3];
 	};
 	

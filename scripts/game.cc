@@ -477,10 +477,7 @@ void MainGame::print_debug() {
 		<< intppos.x % world->chunksize + world->chunksize * (intppos.x < 0 and intppos.x%world->chunksize != 0) << ' '
 		<< intppos.y % world->chunksize + world->chunksize * (intppos.y < 0 and intppos.y%world->chunksize != 0) << ' '
 		<< intppos.z % world->chunksize + world->chunksize * (intppos.z < 0 and intppos.z%world->chunksize != 0) << endl;
-	int loaded_tiles = 0;
-	for (Tile* tile : world->tiles) {
-		loaded_tiles += (tile != nullptr);
-	}
+	int loaded_tiles = world->tiles.size();
 	debugstream << "loaded tiles: " << loaded_tiles << endl;
 	debugstream << "mobcount: " << world->mobcount << endl;
 	debugstream << "consts: ";

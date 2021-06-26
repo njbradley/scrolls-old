@@ -28,17 +28,27 @@ using std::unordered_map;
 
 class TileLoop { public:
   World* world;
+  unordered_map<ivec3, Tile*, ivec3_hash> tiles;
+  // class iterator { public:
+  //   TileLoop* tileloop;
+  //   int index;
+  //   iterator(TileLoop* newtileloop, int newindex);
+  //   vector<Tile*>::iterator operator->();
+  //   Tile* operator*();
+  //   iterator operator++();
+  //   friend bool operator==(const iterator& iter1, const iterator& iter2);
+  //   friend bool operator!=(const iterator& iter1, const iterator& iter2);
+  // };
   class iterator { public:
-    TileLoop* tileloop;
-    int index;
-    iterator(TileLoop* newtileloop, int newindex);
-    vector<Tile*>::iterator operator->();
+    std::unordered_map<ivec3, Tile*, ivec3_hash>::iterator iter;
     Tile* operator*();
     iterator operator++();
     friend bool operator==(const iterator& iter1, const iterator& iter2);
     friend bool operator!=(const iterator& iter1, const iterator& iter2);
   };
+  // typedef std::unordered_map<ivec3, Tile*, ivec3_hash>::iterator iterator;
   TileLoop(World* nworld);
+  ~TileLoop();
   iterator begin();
   iterator end();
 };
@@ -55,8 +65,8 @@ class World: public Container {
     //mutable std::shared_timed_mutex tiles_lock;
     char* tmparr;
     public:
-        //unordered_map<ivec3, Tile*, ivec3_hash> tiles;
-        vector<Tile*> tiles;
+        unordered_map<ivec3, Tile*, ivec3_hash> tiles;
+        //vector<Tile*> tiles;
         std::mutex tilelock;
         int seed;
         int difficulty = 1;
@@ -123,7 +133,6 @@ class World: public Container {
         Block* raycast(vec3* pos, vec3 dir, double time);
         void save_chunk(ivec3 pos);
         void del_chunk(ivec3 pos, bool remove_faces);
-        void load_chunk(ivec3 pos);
         void close_world();
         bool is_world_closed();
         void zip();

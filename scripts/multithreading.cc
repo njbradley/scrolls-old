@@ -19,7 +19,9 @@ ThreadJob::ThreadJob(ivec3 npos): pos(npos), result(nullptr), complete(false) {
 
 template <typename T>
 void JobQueue<T>::push_back(T newitem) {
-	queue.push_back(newitem);
+	if (std::find(queue.begin(), queue.end(), newitem) == queue.end()) {
+		queue.push_back(newitem);
+	}
 }
 
 template <typename T>
@@ -40,7 +42,6 @@ template <typename T>
 bool JobQueue<T>::empty() {
 	return queue.empty();
 }
-
 
 ThreadManager::ThreadManager() {
 	rendering = false;
