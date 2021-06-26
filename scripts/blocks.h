@@ -15,22 +15,9 @@ extern const uint8 lightmax;
 
 // The main class of the octree. Has three states:
 //
-// undefined, this is after a block has been initialized from
-//   the empty constructor. Most functions will not work in this
-//   state, though some, like from_file, require it. In this state,
-//   the block has no value or children. continues is false, but
-//   pixel is nullptr.
-//
 // pixel type: This is where the block is an end of the tree, and it
 //   has a value. continues is false, and pixel points to a pixel.
 //
-// chunk type: This is when the block is a branch block, whith 8 children
-//   continues is true. Chunks can have different winding types, to better
-//   suit smaller and different shaped objects. the types are:
-//     winding = 0 - normal, 2 by 2 by 2.
-//     winding = 0b10XYZXYZ - flat face, 1 by 4 by 2, the first XYZ marks which axis is
-//                            4 long, the second marks the 2 long axis.
-//     winding = 0b01000XYZ - long line, 1 by 1 by 8, the XYZ marks the 8 long axis
 //
 // a block can also be "floating", when it is not on the standard xyz grid
 // in that case, globalpos is no longer global, it is local to the group of blocks
@@ -47,51 +34,61 @@ class Block: public Collider { public:
 	Container* world;
 	FreeBlock* freecontainer = nullptr;
 	bool continues;
-	uint8 winding = 0;
 	bool locked = false;
+	FreeBlock* freeblock;
 	union {
 		struct {
 			Pixel* pixel;
-			FreeBlock* freeblock = nullptr;
 		};
-		Block* children;
+		Block* children[csize3];
 	};
 	
-	// Initializes to uninitialized state,
-	// continues == false, pixel == nullptr
+	// Initializes to undef
 	Block();
+	// Initializes to chunk state with given values
+	Block(Block* childs[8]);
 	// Initializes pixel state with given new allocated
 	// pixel
 	Block(Pixel* pix);
-	// Initializez to chunk state with given new[8] allocated
-	// children array
-	Block(Block* childs, uint8 nwinding = 0);
-	// initializes from a file (must be top level)
+	// initializes from a file
 	Block(istream& ifile);
 	~Block();
 	
 	// locks and unlocks block (used for editing)
 	// prevents setting render flags from going up,
 	// and from render and lighting updates from going down
+	// Important: not enough for true thread safety, only
+	// minimal protection if you know the flags are not set
 	void lock();
 	void unlock();
 	// sets the parent of this block (only call for toplevel blocks)
 	void set_parent(Container* world, ivec3 ppos, int nscale);
 	void set_parent(Block* parent, Container* world, FreeBlock* freecont, ivec3 ppos, int nscale);
+	// sets a child at a location
+	// set_child deletes the old child, swap_child returns it
 	void set_child(ivec3 pos, Block* block);
+	Block* swap_child(ivec3 pos, Block* block);
+	
 	void set_freeblock(FreeBlock* nfreeblock);
 	bool can_set_freeblock(FreeBlock* nfreeblock);
+	// sets the pixel of this block
+	// set_pixel deletes the current pixel, swap_pixel
+	// returns it
 	void set_pixel(Pixel* pix);
-	void set_children(Block* childs);
+	Pixel* swap_pixel(Pixel* pix);
 	// gets the block for chunk blocks
 	// (no error checking for speed)
 	Block* get(ivec3 pos);
 	Block* get(int x, int y, int z);
-	int indexof(ivec3 pos) const;
-	int indexof(int x, int y, int z) const;
-	ivec3 posof(int index) const;
 	const Block* get(ivec3 pos) const;
 	const Block* get(int x, int y, int z) const;
+	// returns the index into the children array
+	// for a position
+	int indexof(ivec3 pos) const;
+	int indexof(int x, int y, int z) const;
+	// returns the position of a specific index into
+	// the children array
+	ivec3 posof(int index) const;
 	// returns the floating point global pos
 	vec3 fglobalpos() const;
 	quat getrotation() const;
@@ -99,18 +96,21 @@ class Block: public Collider { public:
 	// calls to world if it reaches the top
 	Block* get_global(int x, int y, int z, int w);
 	Block* get_global(ivec3 pos, int w);
-	Block* get_global(vec3 pos, int w, vec3 dir);
+	Block* get_global(vec3 pos, int w, vec3 dir); // WIP
+	// travels the tree, but does not travel between freeblocks/baseblocks
 	Block* get_local(ivec3 pos, int w);
-	Block* get_local(vec3 pos, int w, vec3 dir);
-	Block* get_touching(ivec3 pos, int w, ivec3 dir);
+	Block* get_local(vec3 pos, int w, vec3 dir); // WIP
+	Block* get_touching(ivec3 pos, int w, ivec3 dir); //bad
+	// travels the tree, and sets the block specified. does not travel between
+	// freeblocks/baseblocks
 	void set_global(ivec3 pos, int w, int val, int direc = -1, int joints[6] = nullptr);
-	// turns undef or pixel type blocks to chunk type
-	// divide leaves all children as undef type (use subdivide for
+	// turns pixel type blocks to chunk type
+	// divide leaves all children as null (use subdivide for
 	// fully initialized children)
-	void divide(uint8 nwinding = 0);
+	void divide();
 	void subdivide();
+	// turns chunk type into pixel type (deletes all children)
 	void join();
-	void changewinding(uint8 nwinding);
 	// read/writes the block to a file recursively
 	// reading should be done to undef type
 	void to_file(ostream& ofile) const;

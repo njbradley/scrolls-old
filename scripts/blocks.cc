@@ -35,7 +35,6 @@ const uint8 lightmax = 20;
 
 #define ISPIXEL (!continues and pixel != nullptr)
 #define ISCHUNK continues
-#define ISUNDEF (!continues and pixel == nullptr)
 
 #ifdef SCROLLS_BLOCK_CHECKS
 #define ASSERT(cond) if (!(cond)) {ERR("ERR: assert failed: " #cond)}
@@ -43,21 +42,52 @@ const uint8 lightmax = 20;
 #define ASSERT(cond) ;
 #endif
 
+
+int children_begin(Block** children) {
+  for (int i = 0; i < csize3; i ++) {
+    if (children[i] != nullptr) {
+      return i;
+    }
+  }
+  return csize3;
+}
+
+int children_inc(Block** children, int i) {
+  i ++;
+  while (i < csize3 and children[i] == nullptr) i ++;
+  return i;
+}
+// Shorthand for:
+// for (int i = 0; i < csize3; i ++) {
+//    if (children[i] != nullptr) {
+//      .....
+#define CHILDREN_LOOP(varname) int varname = children_begin(children); varname < csize3; varname = children_inc(children, varname)
+
+// Goes until a null value then breaks
+#define FREECHILDREN_LOOP(varname) int varname = 0; varname < csize3 and freeblocks[varname] != nullptr; varname ++
+
+
 Block::Block(): continues(false), pixel(nullptr) {
-  
+  // for (int i = 0; i < csize3; i ++) {
+  //   children[i] = nullptr;
+  // }
+}
+
+Block::Block(Block* childs[8]): continues(true) {
+  for (int i = 0; i < csize3; i ++) {
+    children[i] = childs[i];
+  }
 }
 
 Block::Block(Pixel* pix): continues(false), pixel(pix) {
   pixel->set_block(this);
 }
 
-Block::Block(Block* childs, uint8 nwinding): continues(true), children(childs), winding(nwinding) {
-  
-}
-
 Block::~Block() {
   if (continues) {
-    delete[] children;
+    for (CHILDREN_LOOP(i)) {
+      delete children[i];
+    }
   } else if (pixel != nullptr) {
     delete pixel;
   }
@@ -90,8 +120,8 @@ void Block::set_parent(Block* nparent, Container* nworld, FreeBlock* freecont, i
   }
   
   if (continues) {
-    for (int i = 0; i < csize3; i ++) {
-      children[i].set_parent(this, world, freecontainer, posof(i), scale / csize);
+    for (CHILDREN_LOOP(i)) {
+      children[i]->set_parent(this, world, freecontainer, posof(i), scale / csize);
     }
   }
   set_render_flag();
@@ -99,11 +129,22 @@ void Block::set_parent(Block* nparent, Container* nworld, FreeBlock* freecont, i
 }
 
 void Block::set_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
-  *get(pos) = std::move(*block);
-  get(pos)->set_parent(this, world, freecontainer, pos, scale / csize);
+  Block* old = get(pos);
+  if (old != nullptr) {
+    delete old;
+  }
+  children[indexof(pos)] = block;
+  block->set_parent(this, world, freecontainer, pos, scale / csize);
 }
 
-void Block::set_pixel(Pixel* pix) { ASSERT(ISUNDEF||ISPIXEL)
+Block* Block::swap_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
+  Block* old = get(pos);
+  children[indexof(pos)] = block;
+  block->set_parent(this, world, freecontainer, pos, scale / csize);
+  return old;
+}
+
+void Block::set_pixel(Pixel* pix) {
   pix->set_block(this);
   if (pixel != nullptr) {
     delete pixel;
@@ -113,27 +154,20 @@ void Block::set_pixel(Pixel* pix) { ASSERT(ISUNDEF||ISPIXEL)
   set_light_flag();
 }
 
-void Block::set_children(Block* childs) {
-  if (!continues and pixel != nullptr) {
-    delete pixel;
-    pixel = nullptr;
-  }
-  continues = true;
-  if (children != nullptr) {
-    cout << "deleting children " << children << endl;
-    delete[] children;
-  }
-  children = childs;
-  for (int i = 0; i < csize3; i ++) {
-    cout << children[i].globalpos << ' ' << children[i].scale << endl;
-    children[i].set_parent(this, world, freecontainer, posof(i), scale / csize);
-    cout << "after " << children[i].globalpos << ' ' << children[i].scale << endl;
-  }
+Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ISPIXEL)
+  pix->set_block(this);
+  Pixel* old = pixel;
+  pixel = pix;
+  set_render_flag();
+  set_light_flag();
+  return old;
 }
 
 void Block::set_freeblock(FreeBlock* nfreeblock) {
-  freeblock = nfreeblock;
-  freeblock->set_parent(this);
+  int i = 0;
+  while (i < 8 and freeblocks[i] == nullptr) i ++;
+  freeblocks[i] = nfreeblock;
+  // freeblocks[i]->set_parent(this);
   set_render_flag();
   set_light_flag();
 }
@@ -149,65 +183,32 @@ void Block::set_freeblock(FreeBlock* nfreeblock) {
 
 
 Block* Block::get(ivec3 pos) {
-  return children + (pos.x*csize*csize + pos.y * csize + pos.z);
+  return children[pos.x*csize*csize + pos.y*csize + pos.z];
 }
 
 Block* Block::get(int x, int y, int z) {
-  return children + (x*csize*csize + y*csize + z);
+  return children[x*csize*csize + y*csize + z];
 }
 
 const Block* Block::get(ivec3 pos) const {
-  return children + (pos.x*csize*csize + pos.y * csize + pos.z);
+  return children[pos.x*csize*csize + pos.y*csize + pos.z];
 }
 
 const Block* Block::get(int x, int y, int z) const {
-  return children + (x*csize*csize + y*csize + z);
-}
-
-int Block::indexof(ivec3 pos) const {
-  if (winding == 0) {
-    return pos.x*4 + pos.y*2 + pos.z;
-  } else if (winding & 0b10000000) {
-    return (pos.x)*(winding&0b100000) + (pos.x*4)*(winding&0b100)
-    + (pos.y)*(winding&0b10000) + (pos.y*4)*(winding&0b10)
-    + (pos.z)*(winding&0b1000) + (pos.z*4)*(winding&0b1);
-  } else if (winding & 0b01000000) {
-    return pos.x*(winding&0b100 != 0) + pos.y*(winding&0b10 != 0) + pos.z*(winding&0b1 != 0);
-  }
-  ERR("invalid winding");
-  return 0;
-}
-
-int Block::indexof(int x, int y, int z) const {
-  if (winding == 0) {
-    return x*4 + y*2 + z;
-  } else if (winding & 0b10000000) {
-    return x*(winding&0b100000) + (x*4)*(winding&0b100)
-    + y*(winding&0b10000) + (y*4)*(winding&0b10)
-    + z*(winding&0b1000) + (z*4)*(winding&0b1);
-  } else if (winding & 0b01000000) {
-    return x*(winding&0b100 != 0) + y*(winding&0b10 != 0) + z*(winding&0b1 != 0);
-  }
-  ERR("invalid winding");
-  return 0;
+  return children[x*csize*csize + y*csize + z];
 }
 
 ivec3 Block::posof(int index) const {
-  if (winding == 0) {
-    return ivec3(index/(csize*csize), index/csize%csize, index%csize);
-  } else if (winding & 0b10000000) {
-    return ivec3(
-      (index%4)*(winding&0b100000) + (index/4)*(winding&0b100),
-      (index%4)*(winding&0b10000) + (index/4)*(winding&0b10),
-      (index%4)*(winding&0b1000) + (index/4)*(winding&0b1)
-    );
-  } else if (winding & 0b01000000) {
-    return ivec3(index*(winding&0b100 != 0), index*(winding&0b10 != 0), index*(winding&0b1 != 0));
-  }
-  ERR("invalid winding");
-  return ivec3(0,0,0);
+  return ivec3(index/(csize*csize), index/csize%csize, index%csize);
 }
 
+int Block::indexof(ivec3 pos) const {
+  return pos.x*csize*csize + pos.y*csize + pos.z;
+}
+
+int Block::indexof(int x, int y, int z) const {
+  return x*csize*csize + y*csize + z;
+}
 
 quat Block::getrotation() const {
   quat rot(1,0,0,0);
@@ -281,13 +282,11 @@ Block* Block::get_global(vec3 pos, int w, vec3 dir) {
     curblock = curblock->get(SAFEFLOOR3(rem));
   }
   
-  if (curblock->freeblock != nullptr) {
-    FreeBlock* freeblock = curblock->freeblock;
-    while (freeblock != nullptr) {
-      Block* block = freeblock->get_local(freeblock->transform_into(pos), w, freeblock->transform_into_dir(dir));
-      if (block != nullptr) {
-        return block;
-      }
+  for (int i = 0; i < csize3 and curblock->freeblocks[i] != nullptr; i ++) {
+    FreeBlock* freeblock = curblock->freeblocks[i]->freecontainer;
+    Block* block = freeblock->get_local(freeblock->transform_into(pos), w, freeblock->transform_into_dir(dir));
+    if (block != nullptr) {
+      return block;
     }
   }
   
@@ -373,15 +372,13 @@ void Block::set_global(ivec3 pos, int w, int val, int direc, int joints[6]) {
   }
 }
 
-void Block::divide(uint8 nwinding) { ASSERT(!continues)
+void Block::divide() { ASSERT(!continues)
   if (pixel != nullptr) {
     delete pixel;
   }
-  winding = nwinding;
-  children = new Block[csize3];
   continues = true;
   for (int i = 0; i < csize3; i ++) {
-    children[i].set_parent(this, world, freecontainer, posof(i), scale / csize);
+    children[i] = nullptr;
   }
 }
 
@@ -389,49 +386,52 @@ void Block::subdivide() { ASSERT(!continues)
   Pixel pix = *pixel;
   divide();
   for (int i = 0; i < csize3; i ++) {
-    children[i].set_pixel(new Pixel(pix));
+    set_child(posof(i), new Block(new Pixel(pix)));
   }
 }
 
 void Block::join() { ASSERT(ISCHUNK)
-  delete[] children;
+  for (CHILDREN_LOOP(i)) {
+    delete children[i];
+  }
   continues = false;
   pixel = nullptr;
 }
-
-void Block::changewinding(uint8 nwinding) {
-  Block blocks[csize3];
-  for (int i = 0; i < csize3; i ++) {
-    blocks[i] = *get(posof(i));
-  }
-  winding = nwinding;
-  for (int i = 0; i < csize3; i ++) {
-    *get(posof(i)) = blocks[i];
-  }
-}
-
 
 void Block::to_file(ostream& ofile) const {
   if (continues) {
     ofile << char(0b11000000);
     for (int i = 0; i < csize3; i ++) {
-      children[i].to_file(ofile);
+      if (children[i] != nullptr) {
+        children[i]->to_file(ofile);
+      } else {
+        ofile << char(0b11111111);
+      }
     }
   } else {
     pixel->to_file(ofile);
   }
 }
 
-void Block::from_file(istream& ifile) { ASSERT(ISUNDEF)
+void Block::from_file(istream& ifile) {
   if (ifile.peek() == (0b11000000)) {
     ifile.get();
     divide();
     for (int i = 0; i < csize3; i ++) {
-      children[i].from_file(ifile);
+      if (ifile.peek() == (0b11111111)) {
+        ifile.get();
+        children[i] = nullptr;
+      } else {
+        set_child(posof(i), new Block(ifile));
+      }
     }
   } else {
     set_pixel(new Pixel(this, ifile));
   }
+}
+
+Block::Block(istream& ifile): continues(false), pixel(nullptr) {
+  from_file(ifile);
 }
 
 void Block::set_render_flag() {
@@ -451,11 +451,12 @@ void Block::set_render_flag() {
 void Block::set_all_render_flags() {
   render_flag = true;
   if (continues) {
-    for (int i = 0; i < csize3; i ++) {
-      children[i].set_all_render_flags();
+    for (CHILDREN_LOOP(i)) {
+      children[i]->set_all_render_flags();
     }
-  } else if (freeblock != nullptr) {
-    freeblock->set_all_render_flags();
+  }
+  for (FREECHILDREN_LOOP(i)) {
+    freeblocks[i]->freecontainer->set_all_render_flags();
   }
 }
 
@@ -477,13 +478,13 @@ void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool re
   if (render_flag and !locked) {
     render_flag = false;
     if (continues) {
-      for (int i = 0; i < csize3; i ++) {
-        children[i].render(vecs, transvecs, faces, render_null);
+      for (CHILDREN_LOOP(i)) {
+        children[i]->render(vecs, transvecs, faces, render_null);
       }
     } else {
       pixel->render(vecs, transvecs, faces, render_null);
-      if (freeblock != nullptr) {
-        freeblock->render(vecs, transvecs, faces, render_null);
+      for (FREECHILDREN_LOOP(i)) {
+        freeblocks[i]->render(vecs, transvecs, faces, render_null);
       }
     }
   }
@@ -493,18 +494,17 @@ void Block::lighting_update()  {
   if (light_flag and !locked) {
     light_flag = false;
     if (continues) {
-      for (int i = 0; i < csize3; i ++) {
-        children[i].lighting_update();
+      for (CHILDREN_LOOP(i)) {
+        children[i]->lighting_update();
       }
     } else {
       pixel->lighting_update();
-      if (freeblock != nullptr) {
-        freeblock->lighting_update();
+      for (FREECHILDREN_LOOP(i)) {
+        freeblocks[i]->lighting_update();
       }
     }
   }
 }
-
 
 BlockIter Block::iter(ivec3 startpos, ivec3 endpos, ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end)) {
   if (iterfunc == nullptr) {
@@ -665,10 +665,12 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
   
   while (curblock != nullptr and (curblock->pixel->value == 0 or curblock->pixel->value == 7)) {
     // cout << " raycast " << curblock << ' ' << *pos << endl;
-    if (curblock->freeblock != nullptr) {
+    /*
+    for (int i = 0; i < csize3 and curblock->freeblocks[i] != nullptr; i ++) {
+      FreeBlock* freeblock = curblock->freeblocks[i]->freecontainer;
       // cout << " going into free block" << endl;
-      vec3 start = curblock->freeblock->transform_into(*pos);
-      vec3 newdir = curblock->freeblock->transform_into_dir(dir);
+      vec3 start = freeblock->transform_into(*pos);
+      vec3 newdir = freeblock->transform_into_dir(dir);
       // cout << start << ' ' << newdir << endl;
   		float dt = 0;
   		float maxdt = -1;
@@ -679,16 +681,16 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
   			
   			if (start[axis] < 0) {
   				mintime = (-start[axis]) / newdir[axis];
-  				maxtime = (curblock->freeblock->scale - start[axis]) / newdir[axis];
-  			} else if (start[axis] > curblock->freeblock->scale) {
-  				mintime = (curblock->freeblock->scale - start[axis]) / newdir[axis];
+  				maxtime = (freeblock->scale - start[axis]) / newdir[axis];
+  			} else if (start[axis] > freeblock->scale) {
+  				mintime = (freeblock->scale - start[axis]) / newdir[axis];
   				maxtime = (-start[axis]) / newdir[axis];
   			} else {
   				mintime = 0;
   				if (newdir[axis] < 0) {
   					maxtime = (-start[axis]) / newdir[axis];
   				} else {
-  					maxtime = (curblock->freeblock->scale - start[axis]) / newdir[axis];
+  					maxtime = (freeblock->scale - start[axis]) / newdir[axis];
   				}
   			}
         // cout << mintime << ' ' << maxtime << endl;
@@ -721,7 +723,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
           return result;
         }
       }
-    }
+    }*/
       
     
     ivec3 gpos = curblock->globalpos;
@@ -773,7 +775,10 @@ void FreeBlock::expand(ivec3 dir) {
   lock();
   
   Pixel* oldpix = pixel;
-  Block* oldchilds = children;
+  Block* oldchilds[csize];
+  for (int i = 0; i < csize3; i ++) {
+    oldchilds[i] = children[i];
+  }
   bool oldcont = continues;
   cout << "old " << oldpix << oldcont << endl;
   
@@ -804,7 +809,7 @@ void FreeBlock::expand(ivec3 dir) {
   for (Pixel* pix : myiter) {
     pix->parbl->set_render_flag();
     pix->parbl->set_light_flag();
-    pix->parbl->freeblock = this;
+    // pix->parbl->freeblock = this;
   }
   
   cout << "bouta divide" << endl;
@@ -815,8 +820,10 @@ void FreeBlock::expand(ivec3 dir) {
     cout << " ." << i << endl;
     if (posof(i) == newpos) {
       if (oldcont) {
-        get(newpos)->set_children(oldchilds);
         Block* block = get(newpos);
+        for (int i = 0; i < csize3; i ++) {
+          block->set_child(posof(i), oldchilds[i]);
+        }
         cout << " test " << block << ' ' << block->globalpos << ' ' << block->parentpos
         << ' ' << block->parent << ' ' << block->freecontainer << ' ' << block->scale << endl;
         for (Pixel* pix : block->iter()) {
@@ -874,6 +881,7 @@ bool FreeBlock::try_set_location(vec3 newpos, quat newrot) {
       
     }
   }
+  return true;
 }
 
 vec3 FreeBlock::transform_into(vec3 pos) const {
