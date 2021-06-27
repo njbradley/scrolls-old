@@ -31,42 +31,6 @@ using std::thread;
 
 int view_dist = 3;
 
-/*
-Tile* TileLoop::iterator::operator*() {
-  return iter->second;
-}
-
-TileLoop::iterator TileLoop::iterator::operator++() {
-  ++iter;
-  return *this;
-}
-
-bool operator!=(const TileLoop::iterator& iter1, const TileLoop::iterator& iter2) {
-  return iter1.iter != iter2.iter;
-}
-
-TileLoop::TileLoop(World* nworld): world(nworld) {
-  world->tilelock.lock();
-  tiles = world->tiles;
-  world->tilelock.unlock();
-}
-
-TileLoop::~TileLoop() {
-  
-}
-
-TileLoop::iterator TileLoop::begin() {
-  return TileLoop::iterator {tiles.begin()};
-}
-
-TileLoop::iterator TileLoop::end() {
-  return TileLoop::iterator {tiles.end()};
-}*/
-
-
-
-
-
 Tile* TileMap::iterator::operator*() {
   return item->tile;
 }
@@ -194,15 +158,14 @@ void TileMap::status(ostream& ofile) {
 }
 
 
-World::World(string newname, int newseed): loader(seed), seed(newseed), name(newname), closing_world(false),
+World::World(string newname, int newseed): loader(seed), seed(newseed), name(newname),
 commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) - 1) {
     setup_files();
     startup();
 }
 
-World::World(string oldname): loader(seed), name(oldname), closing_world(false),
+World::World(string oldname): loader(seed), name(oldname),
 commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) - 1) {
-    //unzip();
     string path = "saves/" + name + "/worlddata.txt";
     ifstream ifile(path);
     load_data_file(ifile);
@@ -210,7 +173,7 @@ commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+
     startup();
 }
 
-World::World(string newname, istream& datafile): loader(seed), name(newname), closing_world(false),
+World::World(string newname, istream& datafile): loader(seed), name(newname),
 commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) - 1) {
   load_data_file(datafile);
 }
@@ -219,18 +182,6 @@ void World::set_buffers(GLuint verts, GLuint datas, int start_size) {
   vecs_dest.set_buffers(verts, datas, start_size);
   glvecs.set_destination(&vecs_dest);
   transparent_glvecs.set_destination_offset(&vecs_dest, start_size - start_size * 0.1);
-  // transparent_glvecs.set_buffers_prealloc(verts, uvs, light, mats, start_size*0.1, start_size - start_size*0.25);
-  // glvecs.size_alloc = start_size - start_size*0.25;
-}
-
-void World::unzip() {
-  ifstream ifile("saves/" + name + "/worlddata.txt");
-  if (ifile.good()) {
-    return;
-  }
-  string command = "cd saves & unzip " + name + ".scrollsworld.zip > NUL";
-  system(command.c_str());
-  cout << "uncompressed files from zip" << endl;
 }
 
 void World::load_data_file(istream& ifile) {
@@ -281,8 +232,6 @@ void World::setup_files() {
 }
 
 void World::startup() {
-    //load_image();
-    //generative_setup_world(seed);
     last_time = glfwGetTime();
     ifstream ifile("saves/" + name + "/player.txt");
     if (ifile.good()) {
@@ -307,50 +256,6 @@ void World::startup() {
         moontexture = i;
       }
     }
-    
-    //load_nearby_chunks();
-    load_groups();
-}
-
-void World::load_groups() {
-  // vector<string> group_paths;
-  // get_files_folder("saves/" + name + "/groups", &group_paths);
-  // for (string path : group_paths) {
-  //   string fullpath = "saves/" + name + "/groups/" + path;
-  //   //cout << "loading group from " << fullpath << endl;
-  //   ifstream ifile(fullpath);
-  //   BlockGroup* group = BlockGroup::from_file(this, ifile);
-  //   ifile.close();
-  //   //remove(fullpath.c_str());
-  //   group->set_pix_pointers();
-  //   physicsgroups.emplace(group);
-  // }
-  // cout << "loaded " << group_paths.size() << " groups from file" << endl;
-  // for (BlockGroup* group : physicsgroups) {
-  //   group->link();
-  // }
-  // cout << "linked groups sucessfully" << endl;
-}
-
-void World::save_groups() {
-  // vector<string> group_paths;
-  // get_files_folder("saves/" + name + "/groups", &group_paths);
-  // for (string path : group_paths) {
-  //   string fullpath = "saves/" + name + "/groups/" + path;
-  //   remove(fullpath.c_str());
-  // }
-  // for (BlockGroup* group : physicsgroups) {
-  //   ivec3 pos = group->position;
-  //   std::stringstream path;
-  //   path << "saves/" + name + "/groups/" << pos.x << 'x' << pos.y << 'y' << pos.z << "z.txt";
-  //   ofstream ofile(path.str());
-  //   //cout << "saving group to " << path.str() << endl;
-  //   group->to_file(ofile);
-  //   group->block_poses.clear();
-  //   delete group;
-  // }
-  // cout << "saved " << physicsgroups.size() << " groups to file" << endl;
-  // physicsgroups.clear();
 }
 
 void World::spawn_player() {
@@ -360,7 +265,6 @@ void World::spawn_player() {
     i ++;
     spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
   }
-  // ivec3 spawnpos(10, 40, 32);
   player = new Player(this, vec3(spawnpos));
   player->spectator = true;
   player->autojump = true;
@@ -395,7 +299,7 @@ void World::load_nearby_chunks() {
     int max_chunks = ((view_dist)*2+1) * ((view_dist)*2+1) * ((view_dist)*2+1);
     int num_chunks = tiles.size();
     
-    if (!closing_world) {
+    if (!world_closing) {
       for (int range = 0; range < maxrange; range ++) {
         for (int y = py-range; y < py+range+1; y ++) {
         //for (int y = py+range; y >= py-range; y --) {
@@ -404,7 +308,6 @@ void World::load_nearby_chunks() {
               if (x == px-range or x == px+range or y == py-range or y == py+range or z == pz-range or z == pz+range) {
                 ivec3 pos(x,y,z);
                 if (tileat(pos) == nullptr and num_chunks < max_chunks and std::find(loading_chunks.begin(), loading_chunks.end(), pos) == loading_chunks.end()) {
-                  //load_chunk(ivec3(x,y,z));
                   loaded_chunks = true;
                   num_chunks ++;
                   if (threadmanager->add_loading_job(pos)) {
@@ -417,62 +320,38 @@ void World::load_nearby_chunks() {
         }
       }
     }
-    //game->crash(17658654574687);
+    
     const double max_distance = std::sqrt((maxrange)*(maxrange)*2);
-    //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
+    
     for (Tile* tile : tiles) {
       ivec3 pos = tile->pos;
       int range = maxrange;
-      if ((pos.x < px-range or pos.x > px+range or pos.y < py-range or pos.y > py+range or pos.z < pz-range or pos.z > pz+range)
-      and std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) == deleting_chunks.end()) {
-      // double distance = std::sqrt((px-pos.x)*(px-pos.x) + (py-pos.y)*(py-pos.y) + (pz-pos.z)*(pz-pos.z));
-      // if ((distance > max_distance or closing_world) and std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) == deleting_chunks.end()) {
-        //del_chunk(kv.first, true);
+      if (((pos.x < px-range or pos.x > px+range or pos.y < py-range or pos.y > py+range or pos.z < pz-range or pos.z > pz+range)
+      or world_closing) and std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) == deleting_chunks.end()) {
         if (threadmanager->add_deleting_job(pos)) {
           deleting_chunks.push_back(pos);
         }
       }
     }
-    //  tiles_lock.unlock();
-    //}
+    
     if (!loaded_chunks and threadmanager->load_queue.empty() and initial_generation) {
       cout << "Initial generation finished: " << glfwGetTime() - gen_start_time << 's' << endl;
       initial_generation = false;
-      tiles.status(cout);
     }
   }
-  //get_async_loaded_chunks();
-  // dfile << "LOAD " << endl;
-}
-
-void World::get_async_loaded_chunks() {
-  vector<Tile*> loaded_chunks = threadmanager->get_loaded_tiles();
-  //if (tiles_lock.try_lock_for(std::chrono::seconds(1))) {
-    for (Tile* tile : loaded_chunks) {
-      add_tile(tile);
-    }
-    for (int i = deleting_chunks.size()-1; i >= 0; i --) {
-      if (tileat(deleting_chunks[i]) == nullptr) {
-        deleting_chunks.erase(deleting_chunks.begin()+i);
-      }
-    }
-    //tiles_lock.unlock();
-  //}
 }
 
 void World::add_tile(Tile* tile) {
   tiles.add_tile(tile);
   
+  loadinglock.lock();
   for (int i = 0; i < loading_chunks.size(); i ++) {
     if (loading_chunks[i] == tile->pos) {
       loading_chunks.erase(loading_chunks.begin()+i);
       break;
     }
   }
-  // ivec3 pos = tile->pos;
-  // tilelock.lock();
-  // tiles[pos] = tile;
-  // tilelock.unlock();
+  loadinglock.unlock();
 }
 
 void World::timestep() {
@@ -484,7 +363,7 @@ void World::timestep() {
   if (tileat(chunk) != nullptr or player->spectator) {
     player->timestep();
   }
-  //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
+  
   daytime += dt;
   if (daytime > 2000) {
     daytime -= 2000;
@@ -558,7 +437,7 @@ void World::timestep() {
   
   suncolor *= sunlevel;
   graphics->clearcolor = skycolor * sunlevel;
-  //cout << daytime << ' ' << sunlight << endl;
+  
   mobcount = 0;
   timestep_clock ++;
   int i = 0;
@@ -569,16 +448,13 @@ void World::timestep() {
     i ++;
   }
   
-    //cout << "total " << entities << endl;
-  //  tiles_lock.unlock();
-  //}
 }
 
 void World::tick() { return;
   unordered_set<ivec3,ivec3_hash> local_updates;
   local_updates.swap(block_updates);
   for (ivec3 pos : local_updates) {
-    //cout << pos.x << endl;
+    
     tileat_global(pos)->changelock.lock();
     Block* block = get_global(pos.x, pos.y, pos.z, 1);
     if (block != nullptr and !block->continues) {
@@ -591,77 +467,6 @@ void World::tick() { return;
     aftertick_funcs[i](this);
   }
   aftertick_funcs.clear();
-  
-  /*
-  //cout << "world tick" << endl;
-  //if (writelock.try_lock_for(std::chrono::seconds(1))) {
-  
-    //world->load_nearby_chunks();
-    
-    for (ivec3 pos : block_updates) {
-      Pixel* pix = get_global(pos.x, pos.y, pos.z, 1)->get_pix();
-      BlockGroup* group = pix->physicsgroup;
-      if (group != nullptr) {
-        if (group->persistant()) {
-          group->update_flag = true;
-        } else {
-          delete group;
-        }
-      }
-    }
-    
-    vector<BlockGroup*> dead_groups;
-    for (BlockGroup* group : physicsgroups) {
-      if (group->block_poses.size() > 0) {
-        group->tick();
-      } else {
-        dead_groups.push_back(group);
-      }
-    }
-    for (BlockGroup* group : dead_groups) {
-      delete group;
-      physicsgroups.erase(group);
-      cout << "erased " << group << endl;
-    }
-    
-    for (ivec3 pos : block_updates) {
-      //cout << pos.x << endl;
-      Block* block = get_global(pos.x, pos.y, pos.z, 1);
-      if (block != nullptr and block->get_pix() != nullptr) {
-        block->get_pix()->tick();
-      }
-    }
-    block_updates.clear();
-    
-    // for (BlockGroup* group : physicsgroups) {
-    //   group->remove_pix_pointers();
-    //   delete group;
-    // }
-    //physicsgroups.clear();
-    
-    for (int i = 0; i < 5; i ++) {
-      
-      if (tiles.size() > 0) {
-        //cout << 827349 << endl;
-        Tile* tile = tiles[rand()%tiles.size()];
-        //cout << "start of tick for tile ";
-        //print (tile->pos);
-        if (tile != nullptr) {
-          if (std::find(deleting_chunks.begin(), deleting_chunks.end(), tile->pos) == deleting_chunks.end()) {
-            //if (tile->writelock.try_lock_for(std::chrono::seconds(1))) {
-              Block* block = tile->chunk->get_global(rand()%chunksize, rand()%chunksize, rand()%chunksize, 1); //ERR: tile is 337? maybe change to del_chunk
-              if (block != nullptr and block->get_pix() != nullptr) {
-                block->get_pix()->random_tick();
-              }
-              //tile->writelock.unlock();
-            //}
-          }
-        }
-      }
-    }
-  //  writelock.unlock();
-  //}
-  //cout << "end world tick" << endl;*/
 }
 
 void World::drop_ticks() {
@@ -676,15 +481,10 @@ vec3 World::get_position() const {
 }
 
 void World::block_update(int x, int y, int z) {
-  if (x == 0 and y == 0 and z == 0) {
-    //cout << "big prob at 296, block update called on 0,0,0, likely a bug, but it is possible if the block at 0,0,0 was actually updated" << endl;
-  }
-    //cout << "Recording Block Update at the global world position " << x << ' ' << y << ' ' << z << endl;
-    block_updates.emplace(ivec3(x,y,z));
-  
+  block_updates.emplace(ivec3(x,y,z));
 }
 void World::block_update(ivec3 pos) {
-    block_updates.emplace(pos);
+  block_updates.emplace(pos);
 }
 
 void World::aftertick(std::function<void(World*)> func) {
@@ -697,7 +497,6 @@ void World::light_update(int x, int y, int z) {
 
 bool World::render() {
     if (lighting_flag) {
-      //update_lighting();
       lighting_flag = false;
     }
     bool changed = false;
@@ -732,19 +531,6 @@ bool World::render() {
       }
     }
     
-    // if (glvecs.clean_flag or transparent_glvecs.clean_flag or changed) {
-    //   glvecs.clean();
-    //   //cout << "changed" << endl;
-    //   transparent_glvecs.clean();
-    //   //if (glvecs.writelock.try_lock_for(std::chrono::seconds(1))) {
-    //     //int before = clock();
-    //     glFinish();
-    //     //cout << "glfinish time " << clock() - before << endl;
-    //     //glvecs.writelock.unlock();
-    //   //}
-    //   return true;
-    // }
-    //return false;
     return changed;
 }
 
@@ -756,14 +542,6 @@ void World::update_lighting() {
 
 Tile* World::tileat(ivec3 pos) {
   return tiles.tileat(pos);
-  // tilelock.lock();
-  // unordered_map<ivec3, Tile*, ivec3_hash>::iterator iter = tiles.find(pos);
-  // if (iter != tiles.end()) {
-  //   tilelock.unlock();
-  //   return iter->second;
-  // }
-  // tilelock.unlock();
-  // return nullptr;
 }
 
 Tile* World::tileat_global(ivec3 pos) {
@@ -771,33 +549,14 @@ Tile* World::tileat_global(ivec3 pos) {
 }
 
 Block* World::get_global(int x, int y, int z, int scale) {
-    //cout << "world::get global(" << x << ' ' << y << ' ' << z << ' ' << scale << endl;
-    //// dfile << "gg ";
-    ivec3 pos (x,y,z);
-    ivec3 tpos = SAFEDIV(pos, chunksize);
-    Tile* tile = tileat(tpos);
-    if (tile != nullptr) {
-      Block* result = tile->chunk->get_global(pos, scale);
-      //// dfile << "GG " << endl;
-      return result;
-    }
-    //// dfile << "GG2 " << endl;
-    // if (foundkv->second != nullptr and !foundkv->second->deleting) {
-    //   return foundkv->second->chunk->get_global(ox, oy, oz, scale);
-    // }
-    return nullptr;
-    //cout << ox << ' ' << y << ' ' << oz << endl;
-    // try {
-    //   Tile* tile = tiles.at(pos);
-    //   if (tile != nullptr and !tile->deleting) {
-    //     return tile->chunk->get_global(ox, oy, oz, scale);
-    //   } else {
-    //     return nullptr;
-    //   }
-    // } catch (std::out_of_range& ex) {
-    //   cout << "world get_global caught " << ex.what() <<  " with pos " << pos.x << ' ' << pos.y << ' ' << pos.z << endl;
-    //   return nullptr;
-    // }
+  ivec3 pos (x,y,z);
+  ivec3 tpos = SAFEDIV(pos, chunksize);
+  Tile* tile = tileat(tpos);
+  if (tile != nullptr) {
+    Block* result = tile->chunk->get_global(pos, scale);
+    return result;
+  }
+  return nullptr;
 }
 
 void World::summon(DisplayEntity* entity) {
@@ -825,11 +584,11 @@ void World::set(ivec4 pos, char val, int direction, int joints[6]) {
       pz --;
   }
   Tile* tile = tileat(ivec3(px, py, pz));
-  //cout << "tile " << ivec3(px, py, pz) << endl;
+  
   int lx = pos.x - px*chunksize;
   int ly = pos.y - py*chunksize;
   int lz = pos.z - pz*chunksize;
-  cout << tile << ' ' << tile->chunk << endl;
+  
   tile->chunk->set_global(ivec3(pos.x, pos.y, pos.z), pos.w, val, direction, joints);
 }
 
@@ -852,56 +611,39 @@ char World::get(int x, int y, int z) {
 }
 
 Block* World::raycast(vec3* pos, vec3 dir, double time) {
-    //cout << "world raycast" << *x << ' ' << *y << ' ' << *z << ' ' << dx << ' ' << dy << ' ' << dz << endl;
-    Block* b = get_global((int)pos->x - (pos->x<0), (int)pos->y - (pos->y<0), (int)pos->z - (pos->z<0), 1);
-    //cout << b << endl;
-    if (b == nullptr) {
-        return b;
-    }
-    return b->raycast(pos, dir, time);
+  Block* b = get_global((int)pos->x - (pos->x<0), (int)pos->y - (pos->y<0), (int)pos->z - (pos->z<0), 1);
+  if (b == nullptr) {
+      return b;
+  }
+  return b->raycast(pos, dir, time);
 }
 
 void World::save_chunk(ivec3 pos) {
-  //cout << "saving chunk ..." << endl;
   if (saving) {
     tileat(pos)->save();
   }
-  //cout << "done" << endl;
 }
 
 void World::del_chunk(ivec3 pos, bool remove_faces) {
-  // tilelock.lock();
-  // unordered_map<ivec3, Tile*, ivec3_hash>::iterator iter = tiles.find(pos);
-  // if (iter != tiles.end()) {
-  //   tilelock.unlock();
-  //   return;
-  // }
-  
   Tile* tile = tiles.del_tile(pos);
   
   if (tile != nullptr) {
     tile->deleting = true;
     delete tile;
     
+    deletinglock.lock();
     for (int i = 0; i < deleting_chunks.size(); i ++) {
       if (deleting_chunks[i] == pos) {
         deleting_chunks.erase(deleting_chunks.begin()+i);
         break;
       }
     }
+    deletinglock.unlock();
   }
 }
 
-void World::zip() {
-  //return;
-  string command = "cd saves & zip -r -m " + name + ".scrollsworld.zip world > NUL";
-  //remove(("saves/" + name + ".scrollsworld.zip").c_str());
-  system(command.c_str());
-  cout << "compressed world into zip file" << endl;
-}
-
 bool World::is_world_closed() {
-  return closing_world and tiles.size() == 0 and deleting_chunks.size() == 0;
+  return world_closing and tiles.size() == 0 and deleting_chunks.size() == 0;
 }
 
 void World::close_world() {
@@ -910,29 +652,23 @@ void World::close_world() {
     delete player;
     ofile.close();
     vector<ivec3> poses;
-    //if (tiles_lock.try_lock_shared_for(std::chrono::seconds(1))) {
-      for (Tile* tile : tiles) {
-          poses.push_back(tile->pos);
-      }
-    //  tiles_lock.unlock();
-    //} else {
-    //  hard_game->crash(923400304);
-    //}
-    glvecs.ignore = true;
-    transparent_glvecs.ignore = true;
-    for (ivec3 pos : poses) {
-        tileat(pos)->save();
-    }
-    for (ivec3 pos : poses) {
-        del_chunk(pos, false);
-    }
-    tiles.status(cout);
-    cout << "all tiles saved sucessfully" << endl;
-    save_groups();
+    
+    // for (Tile* tile : tiles) {
+    //     poses.push_back(tile->pos);
+    // }
+    //
+    // glvecs.ignore = true;
+    // transparent_glvecs.ignore = true;
+    // for (ivec3 pos : poses) {
+    //     tileat(pos)->save();
+    // }
+    // for (ivec3 pos : poses) {
+    //     del_chunk(pos, false);
+    // }
+    cout << "all tiles saved sucessfully: " << tiles.size() << endl;
     string path = "saves/" + name + "/worlddata.txt";
     ofstream datafile(path);
     save_data_file(datafile);
-    //zip();
     ofstream ofile2("saves/latest.txt");
     ofile2 << name;
 }

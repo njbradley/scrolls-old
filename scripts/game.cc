@@ -450,12 +450,15 @@ void MainGame::gametick() {
 			menu = nullptr;
 		}
 	}
+	if (world->is_world_closed()) {
+		playing = false;
+	}
 	if (glfwGetKey(window, GLFW_KEY_Q ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
-		//world->closing_world = true;
-		playing = false;
+		world->world_closing = true;
+		// playing = false;
 	} else if (glfwWindowShouldClose(window)) {
-		//world->closing_world = true;
-		playing = false;
+		world->world_closing = true;
+		// playing = false;
 	} else if (glfwGetKey(window, GLFW_KEY_X ) == GLFW_PRESS) {
 		cout << "Hard termination, no logging" << endl;
 		exit(2);

@@ -19,39 +19,12 @@
 #include <future>
 #include <thread>
 #include <mutex>
+#include <atomic>
 //#include <shared_mutex>
 #include <unordered_set>
 
 using std::unordered_set;
 using std::unordered_map;
-
-
-class TileLoop { public:
-  World* world;
-  unordered_map<ivec3, Tile*, ivec3_hash> tiles;
-  // class iterator { public:
-  //   TileLoop* tileloop;
-  //   int index;
-  //   iterator(TileLoop* newtileloop, int newindex);
-  //   vector<Tile*>::iterator operator->();
-  //   Tile* operator*();
-  //   iterator operator++();
-  //   friend bool operator==(const iterator& iter1, const iterator& iter2);
-  //   friend bool operator!=(const iterator& iter1, const iterator& iter2);
-  // };
-  class iterator { public:
-    std::unordered_map<ivec3, Tile*, ivec3_hash>::iterator iter;
-    Tile* operator*();
-    iterator operator++();
-    friend bool operator==(const iterator& iter1, const iterator& iter2);
-    friend bool operator!=(const iterator& iter1, const iterator& iter2);
-  };
-  // typedef std::unordered_map<ivec3, Tile*, ivec3_hash>::iterator iterator;
-  TileLoop(World* nworld);
-  ~TileLoop();
-  iterator begin();
-  iterator end();
-};
   
 
 class TileMap {
@@ -67,8 +40,8 @@ class TileMap {
   };
   
   Bucket* buckets;
-  int num_buckets;
-  int num_items;
+  const int num_buckets;
+  std::atomic<int> num_items;
   
 public:
   
@@ -108,13 +81,11 @@ class World: public Container {
     unordered_set<ivec3,ivec3_hash> block_updates;
     unordered_set<ivec3,ivec3_hash> light_updates;
     vector<std::function<void(World*)>> aftertick_funcs;
-    //mutable std::shared_timed_mutex tiles_lock;
     char* tmparr;
     public:
-        // unordered_map<ivec3, Tile*, ivec3_hash> tiles;
-        //vector<Tile*> tiles;
         TileMap tiles;
-        std::mutex tilelock;
+        std::mutex loadinglock;
+        std::mutex deletinglock;
         int seed;
         int difficulty = 1;
         bool generation = true;
@@ -127,7 +98,7 @@ class World: public Container {
         TerrainLoader loader;
         bool lighting_flag;
         Player* player;
-        bool closing_world;
+        bool world_closing = false;
         int timestep_clock = 0;
         int mobcount;
         vec3 sunlight;
@@ -148,9 +119,6 @@ class World: public Container {
         World(string newname, istream& datafile);
         void set_buffers(GLuint verts, GLuint datas, int start_size);
         vec3 get_position() const;
-        void unzip();
-        void load_groups();
-        void save_groups();
         void load_data_file(istream& ifile);
         void save_data_file(ostream& ofile);
         void setup_files();
@@ -167,7 +135,6 @@ class World: public Container {
         void light_update(int,int,int);
         void update_lighting();
         void load_nearby_chunks();
-        void get_async_loaded_chunks();
         void add_tile(Tile* tile);
         Tile* tileat(ivec3 pos);
         Tile* tileat_global(ivec3 pos);
@@ -182,7 +149,6 @@ class World: public Container {
         void del_chunk(ivec3 pos, bool remove_faces);
         void close_world();
         bool is_world_closed();
-        void zip();
 };
 
 #endif
