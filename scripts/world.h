@@ -54,6 +54,52 @@ class TileLoop { public:
 };
   
 
+class TileMap {
+  
+  struct Item {
+    Tile* tile;
+    Item* next;
+  };
+  
+  struct Bucket {
+    std::mutex lock;
+    Item* items = nullptr;
+  };
+  
+  Bucket* buckets;
+  int num_buckets;
+  int num_items;
+  
+public:
+  
+  class iterator {
+  public:
+    Bucket* bucket;
+    Bucket* endbucket;
+    Item* item;
+    Tile* operator*();
+    iterator operator++();
+    void move_to_next();
+    friend bool operator!=(const iterator& iter1, const iterator& iter2);
+  };
+  
+  TileMap(int max_items);
+  ~TileMap();
+  
+  void add_tile(Tile* tile);
+  Tile* tileat(ivec3 pos);
+  Tile* del_tile(ivec3 pos);
+  
+  int size();
+  
+  iterator begin();
+  iterator end();
+  
+  void status(ostream& ofile);
+};
+
+
+
 extern int view_dist;
 
 class World: public Container {
@@ -65,8 +111,9 @@ class World: public Container {
     //mutable std::shared_timed_mutex tiles_lock;
     char* tmparr;
     public:
-        unordered_map<ivec3, Tile*, ivec3_hash> tiles;
+        // unordered_map<ivec3, Tile*, ivec3_hash> tiles;
         //vector<Tile*> tiles;
+        TileMap tiles;
         std::mutex tilelock;
         int seed;
         int difficulty = 1;

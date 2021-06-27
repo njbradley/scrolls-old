@@ -636,8 +636,7 @@ vec3toivec3([] (Program* program, vec3 val) {
 	return ivec3(val);
 }),
 killall([] (Program* program) {
-	TileLoop loop(program->world);
-	for (Tile* tile : loop) {
+	for (Tile* tile : program->world->tiles) {
 		tile->entities.clear();
 	}
 }),

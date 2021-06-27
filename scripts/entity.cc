@@ -104,8 +104,7 @@ void Entity::drop_ticks() {
 void Entity::get_nearby_entities(vector<DisplayEntity*>* colliders) {
   ivec3 chunk = ivec3(position)/world->chunksize - ivec3(position.x<0, position.y<0, position.z<0);
   //std::map<ivec3,Tile*>::iterator it = world->tiles.find(chunk);
-  TileLoop loop(world);
-  for (Tile* tile : loop) {
+  for (Tile* tile : world->tiles) {
     if (glm::length(vec3(tile->pos-chunk)) <= 1.5) {
       //print (kvpair.first);
       for (DisplayEntity* e : tile->entities) {
@@ -121,8 +120,7 @@ void Entity::find_colliders(vector<Collider*>* colliders) {
   ivec3 chunk = ivec3(position)/world->chunksize - ivec3(position.x<0, position.y<0, position.z<0);
   //std::map<ivec3,Tile*>::iterator it = world->tiles.find(chunk);
   vector<FallingBlockEntity*> entities;
-  TileLoop loop(world);
-  for (Tile* tile : loop) {
+  for (Tile* tile : world->tiles) {
     if (glm::length(vec3(tile->pos-chunk)) <= 1.5) {
       //print (kvpair.first);
       for (FallingBlockEntity* e : tile->block_entities) {
