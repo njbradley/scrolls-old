@@ -629,6 +629,7 @@ void World::del_chunk(ivec3 pos, bool remove_faces) {
   
   if (tile != nullptr) {
     tile->deleting = true;
+    tile->save();
     delete tile;
     
     deletinglock.lock();
