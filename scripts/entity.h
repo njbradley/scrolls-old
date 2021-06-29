@@ -22,8 +22,10 @@ class Hitbox { public:
   vec3 global_center();
   
   vec3 transform_in(vec3 pos);
+  quat transform_in(quat rot);
   vec3 transform_in_dir(vec3 pos);
   vec3 transform_out(vec3 pos);
+  quat transform_out(quat rot);
   vec3 transform_out_dir(vec3 pos);
   
   Hitbox transform_in(Hitbox box);
@@ -63,8 +65,10 @@ class FreeHitbox : public Hitbox { public:
   vec3 global_center();
   
   vec3 transform_in(vec3 pos);
+  quat transform_in(quat rot);
   vec3 transform_in_dir(vec3 pos);
   vec3 transform_out(vec3 pos);
+  quat transform_out(quat rot);
   vec3 transform_out_dir(vec3 pos);
   
   FreeHitbox transform_in(Hitbox box);

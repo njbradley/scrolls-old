@@ -37,7 +37,7 @@ void Hitbox::points(vec3* points) {
 }
 
 vec3 Hitbox::local_center() {
-  return negbox + posbox / 2.0f;
+  return (negbox + posbox) / 2.0f;
 }
 
 vec3 Hitbox::global_center() {
@@ -52,7 +52,7 @@ vec3 Hitbox::transform_in_dir(vec3 dir) {
   return dir;
 }
 
-quat Hitbox::transform_in_dir(quat rot) {
+quat Hitbox::transform_in(quat rot) {
   return rot;
 }
 
@@ -64,41 +64,41 @@ vec3 Hitbox::transform_out_dir(vec3 pos) {
   return pos;
 }
 
-quat Hitbox::transform_out_dir(quat rot) {
+quat Hitbox::transform_out(quat rot) {
   return rot;
 }
 
-HitBox Hitbox::transform_in(Hitbox box) {
+Hitbox Hitbox::transform_in(Hitbox box) {
   return Hitbox(
     transform_in(box.position),
-    transform_in(box.negbox),
-    transform_in(box.posbox)
+    box.negbox,
+    box.posbox
   );
 }
 
-FreeHitBox Hitbox::transform_in(FreeHitbox box) {
+FreeHitbox Hitbox::transform_in(FreeHitbox box) {
   return FreeHitbox(
     transform_in(box.position),
-    transform_in(box.negbox),
-    transform_in(box.posbox),
-    transform_in_dir(box.rotation)
+    box.negbox,
+    box.posbox,
+    transform_in(box.rotation)
   );
 }
 
-HitBox Hitbox::transform_out(Hitbox box) {
+Hitbox Hitbox::transform_out(Hitbox box) {
   return Hitbox(
     transform_out(box.position),
-    transform_out(box.negbox),
-    transform_out(box.posbox)
+    box.negbox,
+    box.posbox
   );
 }
 
-FreeHitBox Hitbox::transform_out(FreeHitbox box) {
+FreeHitbox Hitbox::transform_out(FreeHitbox box) {
   return FreeHitbox(
     transform_out(box.position),
-    transform_out(box.negbox),
-    transform_out(box.posbox),
-    transform_out_dir(box.rotation)
+    box.negbox,
+    box.posbox,
+    transform_out(box.rotation)
   );
 }
 
@@ -222,7 +222,7 @@ vec3 FreeHitbox::transform_in_dir(vec3 dir) {
   return glm::inverse(rotation) * dir;
 }
 
-quat FreeHitbox::transform_in_dir(quat rot) {
+quat FreeHitbox::transform_in(quat rot) {
   return glm::inverse(rotation) * rot;
 }
 
@@ -234,43 +234,43 @@ vec3 FreeHitbox::transform_out_dir(vec3 dir) {
   return rotation * dir;
 }
 
-quat FreeHitbox::transform_out_dir(quat rot) {
+quat FreeHitbox::transform_out(quat rot) {
   return rotation * rot;
 }
 
-HitBox FreeHitbox::transform_in(Hitbox box) {
+FreeHitbox FreeHitbox::transform_in(Hitbox box) {
   return FreeHitbox(
     transform_in(box.position),
-    transform_in(box.negbox),
-    transform_in(box.posbox),
-    transform_in_dir(quat(1,0,0,0))
+    box.negbox,
+    box.posbox,
+    transform_in(quat(1,0,0,0))
   );
 }
 
-FreeHitBox FreeHitbox::transform_in(FreeHitbox box) {
+FreeHitbox FreeHitbox::transform_in(FreeHitbox box) {
   return FreeHitbox(
     transform_in(box.position),
-    transform_in(box.negbox),
-    transform_in(box.posbox),
-    transform_in_dir(box.rotation)
+    box.negbox,
+    box.posbox,
+    transform_in(box.rotation)
   );
 }
 
-HitBox FreeHitbox::transform_out(Hitbox box) {
+FreeHitbox FreeHitbox::transform_out(Hitbox box) {
   return FreeHitbox(
     transform_out(box.position),
-    transform_out(box.negbox),
-    transform_out(box.posbox),
-    transform_out_dir(quat(1,0,0,0))
+    box.negbox,
+    box.posbox,
+    transform_out(quat(1,0,0,0))
   );
 }
 
-FreeHitBox FreeHitbox::transform_out(FreeHitbox box) {
+FreeHitbox FreeHitbox::transform_out(FreeHitbox box) {
   return FreeHitbox(
     transform_out(box.position),
-    transform_out(box.negbox),
-    transform_out(box.posbox),
-    transform_out_dir(box.rotation)
+    box.negbox,
+    box.posbox,
+    transform_out(box.rotation)
   );
 }
 
@@ -279,10 +279,8 @@ bool FreeHitbox::collide(Hitbox other) {
 }
   
 bool FreeHitbox::collide(FreeHitbox other) {
-  Hitbox newbox (position, negbox, posbox);
-  vec3 newpos = glm::inverse(rotation) * (other.position - position) + position;
-  FreeHitbox newfree (newpos, other.negbox, other.posbox, rotation*other.rotation);
-  
+  Hitbox newbox = transform_in(Hitbox(position, negbox, posbox));
+  FreeHitbox newfree = transform_in(other);
   return newbox.collide(newfree);
 }
 
@@ -306,8 +304,7 @@ bool FreeHitbox::contains(Hitbox other) {
 
 bool FreeHitbox::contains(FreeHitbox other) {
   Hitbox newbox (position, negbox, posbox);
-  vec3 newpos = rotation * (other.position - position) + position;
-  FreeHitbox newfree (newpos, other.negbox, other.posbox, rotation*other.rotation);
+  FreeHitbox newfree = transform_in(other);
   
   return newbox.contains(newfree);
 }
