@@ -2,6 +2,7 @@
 #include "cross-platform.h"
 
 #define COLLIDETEST(box1, box2) cout << box1 << " collide " << box2 << ' ' << box1.collide(box2) << endl;
+#define CONTAINSTEST(box1, box2) cout << box1 << " contains " << box2 << ' ' << box1.contains(box2) << endl;
 
 int main() {
 	setup_backtrace();

@@ -52,6 +52,10 @@ vec3 Hitbox::transform_in_dir(vec3 dir) {
   return dir;
 }
 
+quat Hitbox::transform_in_dir(quat rot) {
+  return rot;
+}
+
 vec3 Hitbox::transform_out(vec3 pos) {
   return pos + position;
 }
@@ -60,14 +64,48 @@ vec3 Hitbox::transform_out_dir(vec3 pos) {
   return pos;
 }
 
+quat Hitbox::transform_out_dir(quat rot) {
+  return rot;
+}
+
+HitBox Hitbox::transform_in(Hitbox box) {
+  return Hitbox(
+    transform_in(box.position),
+    transform_in(box.negbox),
+    transform_in(box.posbox)
+  );
+}
+
+FreeHitBox Hitbox::transform_in(FreeHitbox box) {
+  return FreeHitbox(
+    transform_in(box.position),
+    transform_in(box.negbox),
+    transform_in(box.posbox),
+    transform_in_dir(box.rotation)
+  );
+}
+
+HitBox Hitbox::transform_out(Hitbox box) {
+  return Hitbox(
+    transform_out(box.position),
+    transform_out(box.negbox),
+    transform_out(box.posbox)
+  );
+}
+
+FreeHitBox Hitbox::transform_out(FreeHitbox box) {
+  return FreeHitbox(
+    transform_out(box.position),
+    transform_out(box.negbox),
+    transform_out(box.posbox),
+    transform_out_dir(box.rotation)
+  );
+}
+
 bool Hitbox::collide(Hitbox other) {
-  cout << *this << " collide " << other << endl;
   vec3 otherpos = transform_in(other.global_center());
-  cout << other.global_center() << ' ' << otherpos << endl;
   otherpos = glm::min(glm::max(otherpos, negbox), posbox);
-  cout << otherpos << endl;
   otherpos = transform_out(otherpos);
-  cout << otherpos << endl;
   
   return other.contains_noedge(otherpos);
 }
@@ -184,6 +222,10 @@ vec3 FreeHitbox::transform_in_dir(vec3 dir) {
   return glm::inverse(rotation) * dir;
 }
 
+quat FreeHitbox::transform_in_dir(quat rot) {
+  return glm::inverse(rotation) * rot;
+}
+
 vec3 FreeHitbox::transform_out(vec3 pos) {
   return rotation * pos + position;
 }
@@ -192,6 +234,45 @@ vec3 FreeHitbox::transform_out_dir(vec3 dir) {
   return rotation * dir;
 }
 
+quat FreeHitbox::transform_out_dir(quat rot) {
+  return rotation * rot;
+}
+
+HitBox FreeHitbox::transform_in(Hitbox box) {
+  return FreeHitbox(
+    transform_in(box.position),
+    transform_in(box.negbox),
+    transform_in(box.posbox),
+    transform_in_dir(quat(1,0,0,0))
+  );
+}
+
+FreeHitBox FreeHitbox::transform_in(FreeHitbox box) {
+  return FreeHitbox(
+    transform_in(box.position),
+    transform_in(box.negbox),
+    transform_in(box.posbox),
+    transform_in_dir(box.rotation)
+  );
+}
+
+HitBox FreeHitbox::transform_out(Hitbox box) {
+  return FreeHitbox(
+    transform_out(box.position),
+    transform_out(box.negbox),
+    transform_out(box.posbox),
+    transform_out_dir(quat(1,0,0,0))
+  );
+}
+
+FreeHitBox FreeHitbox::transform_out(FreeHitbox box) {
+  return FreeHitbox(
+    transform_out(box.position),
+    transform_out(box.negbox),
+    transform_out(box.posbox),
+    transform_out_dir(box.rotation)
+  );
+}
 
 bool FreeHitbox::collide(Hitbox other) {
   return other.collide(*this);

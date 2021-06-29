@@ -26,6 +26,11 @@ class Hitbox { public:
   vec3 transform_out(vec3 pos);
   vec3 transform_out_dir(vec3 pos);
   
+  Hitbox transform_in(Hitbox box);
+  FreeHitbox transform_in(FreeHitbox box);
+  Hitbox transform_out(Hitbox box);
+  FreeHitbox transform_out(FreeHitbox box);
+  
   // boxes collide when they overlap, so bordering cubes are not colliding
   bool collide(Hitbox other);
   bool collide(FreeHitbox other);
@@ -62,6 +67,10 @@ class FreeHitbox : public Hitbox { public:
   vec3 transform_out(vec3 pos);
   vec3 transform_out_dir(vec3 pos);
   
+  FreeHitbox transform_in(Hitbox box);
+  FreeHitbox transform_in(FreeHitbox box);
+  FreeHitbox transform_out(Hitbox box);
+  FreeHitbox transform_out(FreeHitbox box);
   
   bool collide(Hitbox other);
   bool collide(FreeHitbox other);
