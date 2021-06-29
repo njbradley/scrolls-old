@@ -35,7 +35,6 @@ using namespace glm;
 #include "terrain.h"
 #include "blockgroups.h"
 #include "multithreading.h"
-#include "mobs.h"
 #include "commands.h"
 #include "materials.h"
 #include "ui.h"

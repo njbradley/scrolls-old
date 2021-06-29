@@ -11,7 +11,6 @@
 #include "blockgroups.h"
 #include "world.h"
 #include "entity.h"
-#include "mobs.h"
 #include "game.h"
 #include "glue.h"
 #include "generative.h"
@@ -1425,9 +1424,6 @@ void Pixel::tick() { // ERR: race condition, render and tick threads race, rende
     BlockGroup* newgroup = new BlockGroup(world);
     newgroup->spread(this, nullptr, ivec3(0,0,0), 1000);
   }
-  // if (group != nullptr and !group->consts[4]) {
-    // block_entities.push_back(new FallingBlockEntity(world, group, this));
-  // }
 }
 
 void Pixel::erase_render() {

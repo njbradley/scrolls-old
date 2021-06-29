@@ -3,7 +3,6 @@
 
 #include "clientgame.h"
 #include "entity.h"
-#include "mobs.h"
 #include "blockdata.h"
 #include "materials.h"
 #include "items.h"
@@ -21,8 +20,6 @@ ClientGame::ClientGame(string ip, int port, string username): socketmanager(ip, 
 	blocks = new BlockStorage();
 	itemstorage = new ItemStorage();
 	recipestorage = new RecipeStorage();
-	entitystorage = new EntityStorage();
-	mobstorage = new MobStorage();
 	
 	graphics->view_distance = view_dist * World::chunksize * 10;
 	
@@ -43,8 +40,6 @@ ClientGame::~ClientGame() {
 	delete blocks;
 	delete connstorage;
 	delete recipestorage;
-	delete entitystorage;
-	delete mobstorage;
 	delete matstorage;
 	
 }

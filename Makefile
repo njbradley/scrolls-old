@@ -21,10 +21,10 @@ EXESUFFIX :=.exe
 endif
 endif
 
-TARGETS := main gentest blocktest commandtest block_editor server client
+TARGETS := main gentest blocktest commandtest block_editor server client entitytest
 MAINS := $(addprefix build/, $(addsuffix .o, $(TARGETS)))
-SCRIPTNAMES := audio blockdata blockgroups blocks blockiter classes clientgame commands crafting cross-platform entity game generative glue graphics items materials menu mobs multithreading multiplayer player rendervec servergame shader terrain text texture tiles ui world
-HEADERS := blockdata.h blockgroups.h blocks.h blockiter.h classes.h clientgame.h collider.h commands.h crafting.h cross-platform.h entity.h generative.h glue.h items.h materials.h menu.h mobs.h multithreading.h multiplayer.h rendervec.h servergame.h shader.h terrain.h text.h texture.h tiles.h ui.h world.h graphics.h game.h audio.h
+SCRIPTNAMES := audio blockdata blockgroups blocks blockiter classes clientgame commands crafting cross-platform entity game generative glue graphics items materials menu multithreading multiplayer player rendervec servergame shader terrain text texture tiles ui world
+HEADERS := blockdata.h blockgroups.h blocks.h blockiter.h classes.h clientgame.h collider.h commands.h crafting.h cross-platform.h entity.h generative.h glue.h items.h materials.h menu.h multithreading.h multiplayer.h rendervec.h servergame.h shader.h terrain.h text.h texture.h tiles.h ui.h world.h graphics.h game.h audio.h
 #OBJ := blockdata.o blockphysics.o blocks.o classes.o commands.o crafting.o cross-platform.o entity.o generative.o items.o materials.o menu.o mobs.o multithreading.o player.o rendervec.o shader.o terrain.o text.o texture.o tiles.o ui.o world.o $(MAINS)
 OBJ := $(addprefix build/, $(addsuffix .o, $(SCRIPTNAMES)))
 #SRC := $(addprefix scripts/, $(addsuffix .cc, $(SCRIPTNAMES)))

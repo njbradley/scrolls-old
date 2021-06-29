@@ -35,7 +35,7 @@ class Block: public Collider { public:
 	FreeBlock* freecontainer = nullptr;
 	bool continues;
 	bool locked = false;
-	FreeBlock* freeblock;
+	FreeBlock* freeblock = nullptr;
 	union {
 		Pixel* pixel;
 		Block* children[csize3];

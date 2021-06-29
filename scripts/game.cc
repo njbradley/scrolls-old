@@ -8,7 +8,6 @@
 #include "multithreading.h"
 #include "blocks.h"
 #include "entity.h"
-#include "mobs.h"
 #include "blockdata.h"
 #include "materials.h"
 #include "items.h"
@@ -99,8 +98,6 @@ MainGame::MainGame() {
 	connstorage = new ConnectorStorage();
 	itemstorage = new ItemStorage();
 	recipestorage = new RecipeStorage();
-	entitystorage = new EntityStorage();
-	mobstorage = new MobStorage();
 	
 	
 	ifstream ifile("saves/latest.txt");
@@ -150,8 +147,6 @@ MainGame::~MainGame() {
 	delete itemstorage;
 	delete blocks;
 	delete recipestorage;
-	delete entitystorage;
-	delete mobstorage;
 	delete matstorage;
 	
 	delete threadmanager;

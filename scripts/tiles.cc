@@ -7,9 +7,9 @@
 #include "blockiter.h"
 #include "blockdata.h"
 #include "blockgroups.h"
-#include "mobs.h"
 #include "world.h"
 #include "generative.h"
+#include "entity.h"
 
 //#include <ZipLib/ZipFile.h>
 
@@ -147,16 +147,6 @@ void Tile::save() {
   ofstream ofile(path.str(), std::ios::binary);
   
   chunk->to_file(ofile);
-  ofile << endl << entities.size() << endl;
-  for (DisplayEntity* e : entities) {
-    //cout << "entity " << e << " saving pos:";
-    //print(e->position);
-    e->to_file(ofile);
-  }
-  ofile << block_entities.size() << endl;
-  for (FallingBlockEntity* e : block_entities) {
-    e->to_file(ofile);
-  }
 }
 
 void Tile::timestep() {
@@ -164,63 +154,10 @@ void Tile::timestep() {
     return;
   }
   // ERR: started deleting while this function was running
-  for (int i = entities.size()-1; i >= 0; i --) {
-    //cout << i << endl;
-    //int dist = glm::length(world->player->position - entities[i]->position) / 4;
-      entities[i]->timestep();
-      // if (timestep_clock%500 == 0) {
-      //   cout << "timestep entity " << entities[i] << " pos ";
-      //   print (entities[i]->position);
-      // }
-      if (entities[i]->alive) {
-        vec3 epos = entities[i]->position;
-        ivec3 chunk = ivec3(epos)/world->chunksize - ivec3(epos.x<0,epos.y<0,epos.z<0);
-        if (chunk != pos) {
-          //cout << "moving " << chunk.x << ' ' << chunk.y << ' ' << chunk.z << "   " << pos.x << ' ' << pos.y << ' ' << pos.z << endl;
-          Tile* tile = world->tileat(chunk);
-          if (tile != nullptr) {
-            tile->entities.push_back(entities[i]);
-          } else {
-            // cout << "deleting entity " << entities[i] << endl;
-            delete entities[i];
-          }
-          entities.erase(entities.begin()+i);
-        }
-      } else {
-        //entities[i]->die();
-        delete entities[i];
-        entities.erase(entities.begin()+i);
-      }
-  }
-  
-  for (int i = block_entities.size()-1; i >= 0; i --) {
-    block_entities[i]->timestep();
-    if (block_entities[i]->alive) {
-      vec3 epos = block_entities[i]->position;
-      ivec3 chunk = ivec3(epos)/world->chunksize - ivec3(epos.x<0,epos.y<0,epos.z<0);
-      if (chunk != pos) {
-        Tile* tile = world->tileat(chunk);
-        if (tile != nullptr) {
-          tile->block_entities.push_back(block_entities[i]);
-        } else {
-          delete block_entities[i];
-        }
-        block_entities.erase(block_entities.begin()+i);
-      }
-    } else {
-      delete block_entities[i];
-      block_entities.erase(block_entities.begin()+i);
-    }
-  }
 }
 
 void Tile::drop_ticks() {
-  for (DisplayEntity* entity : entities) {
-    entity->drop_ticks();
-  }
-  for (FallingBlockEntity* e : block_entities) {
-    e->drop_ticks();
-  }
+  
 }
 
 
@@ -251,16 +188,6 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
     chunk->from_file(ifile);
     
     const ivec3 dir_array[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
-    
-    int size;
-    ifile >> size;
-    for (int i = 0; i < size; i ++) {
-      entities.push_back(Mob::from_file(world, ifile));
-    }
-    ifile >> size;
-    for (int i = 0; i < size; i ++) {
-      block_entities.push_back(new FallingBlockEntity(world, ifile));
-    }
     done_reading = true;
   	//render_chunk_vectors(pos);
   	//render(&world->glvecs);
@@ -278,15 +205,6 @@ Tile::Tile(ivec3 position, World* nworld, istream& ifile): pos(position), world(
   
   const ivec3 dir_array[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
   
-  int size;
-  ifile >> size;
-  for (int i = 0; i < size; i ++) {
-    entities.push_back(Mob::from_file(world, ifile));
-  }
-  ifile >> size;
-  for (int i = 0; i < size; i ++) {
-    block_entities.push_back(new FallingBlockEntity(world, ifile));
-  }
   done_reading = true;
 }
 
@@ -296,10 +214,6 @@ Tile::~Tile() {
   deletelock.lock();
   // dfile << "del " << endl;
   deleting = true;
-  for (DisplayEntity* entity : entities) {
-    // cout << "deleting tile del entitiy " << entity << endl;
-    delete entity;
-  }
   delete chunk;
   // dfile << "DEL" << endl;
   deletelock.unlock();

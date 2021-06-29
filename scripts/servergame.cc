@@ -3,7 +3,6 @@
 
 #include "servergame.h"
 #include "entity.h"
-#include "mobs.h"
 #include "blockdata.h"
 #include "materials.h"
 #include "items.h"
@@ -33,8 +32,6 @@ ServerGame::ServerGame(int port): socketmanager(port), iothread(IOthread(this)) 
 	blocks = new BlockStorage();
 	itemstorage = new ItemStorage();
 	recipestorage = new RecipeStorage();
-	entitystorage = new EntityStorage();
-	mobstorage = new MobStorage();
 }
 
 ServerGame::~ServerGame() {

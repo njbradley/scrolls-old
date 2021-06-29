@@ -13,7 +13,6 @@
 #include "terrain.h"
 #include "materials.h"
 #include "glue.h"
-#include "mobs.h"
 
 
 float initialFoV = 110.0f;
@@ -37,8 +36,6 @@ int main() {
 	connstorage = new ConnectorStorage();
 	itemstorage = new ItemStorage();
 	recipestorage = new RecipeStorage();
-	entitystorage = new EntityStorage();
-	mobstorage = new MobStorage();
 	
 	World world("name", nullptr, 12345);
 	

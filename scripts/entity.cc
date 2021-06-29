@@ -24,7 +24,215 @@ void print(vec3 v) {
     cout << v.x << ' ' << v.y << ' ' << v.z << endl;
 }
 
-EntityStorage* entitystorage;
+
+
+Hitbox::Hitbox(vec3 pos, vec3 nbox, vec3 pbox): position(pos), negbox(nbox), posbox(pbox) {
+  
+}
+
+void Hitbox::points(vec3* points) {
+  for (int i = 0; i < 8; i ++) {
+    points[i] = position + posbox * vec3(i/4,i/2%2,i%2) + negbox * vec3(1-i/4, 1-i/2%2, 1-i%2);
+  }
+}
+
+vec3 Hitbox::local_center() {
+  return negbox + posbox / 2.0f;
+}
+
+vec3 Hitbox::global_center() {
+  return transform_out(local_center());
+}
+
+vec3 Hitbox::transform_in(vec3 pos) {
+  return pos - position;
+}
+
+vec3 Hitbox::transform_in_dir(vec3 dir) {
+  return dir;
+}
+
+vec3 Hitbox::transform_out(vec3 pos) {
+  return pos + position;
+}
+
+vec3 Hitbox::transform_out_dir(vec3 pos) {
+  return pos;
+}
+
+bool Hitbox::collide(Hitbox other) {
+  cout << *this << " collide " << other << endl;
+  vec3 otherpos = transform_in(other.global_center());
+  cout << other.global_center() << ' ' << otherpos << endl;
+  otherpos = glm::min(glm::max(otherpos, negbox), posbox);
+  cout << otherpos << endl;
+  otherpos = transform_out(otherpos);
+  cout << otherpos << endl;
+  
+  return other.contains_noedge(otherpos);
+}
+  
+bool Hitbox::collide(FreeHitbox other) {
+  vec3 otherpos = transform_in(other.global_center());
+  otherpos = glm::min(glm::max(otherpos, negbox), posbox);
+  otherpos = transform_out(otherpos);
+  
+  return other.contains_noedge(otherpos);
+}
+
+bool Hitbox::contains_noedge(vec3 point) {
+  point = transform_in(point);
+  return negbox.x < point.x and point.x < posbox.x
+     and negbox.y < point.y and point.y < posbox.y
+     and negbox.z < point.z and point.z < posbox.z;
+}
+
+bool Hitbox::contains(vec3 point) {
+  point = transform_in(point);
+  return negbox.x <= point.x and point.x <= posbox.x
+     and negbox.y <= point.y and point.y <= posbox.y
+     and negbox.z <= point.z and point.z <= posbox.z;
+}
+
+bool Hitbox::contains(Hitbox other) {
+  vec3 otherpoints[8];
+  other.points(otherpoints);
+  
+  for (int i = 0; i < 8; i ++) {
+    if (!contains(otherpoints[i])) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+bool Hitbox::contains(FreeHitbox other) {
+  vec3 otherpoints[8];
+  other.points(otherpoints);
+  
+  for (int i = 0; i < 8; i ++) {
+    if (!contains(otherpoints[i])) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+Hitbox Hitbox::boundingbox_points(vec3 position, vec3* points, int num) {
+  vec3 min = points[0] - position;
+  vec3 max = points[0] - position;
+  for (int i = 1; i < num; i ++) {
+    vec3 relpos = points[i] - position;
+    min = glm::min(relpos, min);
+    max = glm::max(relpos, max);
+  }
+  
+  return Hitbox(position, min, max);
+}
+
+ostream& operator<<(ostream& ofile, const Hitbox& hitbox) {
+  ofile << "Hitbox(pos=" << hitbox.position << " negbox=" << hitbox.negbox << " posbox=" << hitbox.posbox << ")";
+  return ofile;
+}
+
+
+
+
+FreeHitbox::FreeHitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot): Hitbox(pos, nbox, pbox), rotation(rot) {
+  
+}
+
+FreeHitbox::FreeHitbox(Hitbox box, quat rot): Hitbox(box), rotation(rot) {
+  
+}
+
+void FreeHitbox::points(vec3* points) {
+  for (int i = 0; i < 8; i ++) {
+    points[i] = position + rotation * (posbox * vec3(i/4,i/2%2,i%2)) + rotation * (negbox * vec3(1-i/4, 1-i/2%2, 1-i%2));
+  }
+}
+
+Hitbox FreeHitbox::boundingbox() {
+  vec3 pointarr[8];
+  points(pointarr);
+  return boundingbox_points(position, pointarr, 8);
+}
+
+vec3 FreeHitbox::global_center() {
+  return transform_out(local_center());
+}
+
+vec3 FreeHitbox::dirx() {
+  return rotation * vec3(1,0,0);
+}
+
+vec3 FreeHitbox::diry() {
+  return rotation * vec3(0,1,0);
+}
+
+vec3 FreeHitbox::dirz() {
+  return rotation * vec3(0,0,1);
+}
+
+vec3 FreeHitbox::transform_in(vec3 pos) {
+  return glm::inverse(rotation) * (pos - position);
+}
+
+vec3 FreeHitbox::transform_in_dir(vec3 dir) {
+  return glm::inverse(rotation) * dir;
+}
+
+vec3 FreeHitbox::transform_out(vec3 pos) {
+  return rotation * pos + position;
+}
+
+vec3 FreeHitbox::transform_out_dir(vec3 dir) {
+  return rotation * dir;
+}
+
+
+bool FreeHitbox::collide(Hitbox other) {
+  return other.collide(*this);
+}
+  
+bool FreeHitbox::collide(FreeHitbox other) {
+  Hitbox newbox (position, negbox, posbox);
+  vec3 newpos = glm::inverse(rotation) * (other.position - position) + position;
+  FreeHitbox newfree (newpos, other.negbox, other.posbox, rotation*other.rotation);
+  
+  return newbox.collide(newfree);
+}
+
+bool FreeHitbox::contains_noedge(vec3 point) {
+  point = transform_in(point);
+  return negbox.x < point.x and point.x < posbox.x
+     and negbox.y < point.y and point.y < posbox.y
+     and negbox.z < point.z and point.z < posbox.z;
+}
+
+bool FreeHitbox::contains(vec3 point) {
+  point = transform_in(point);
+  return negbox.x <= point.x and point.x <= posbox.x
+     and negbox.y <= point.y and point.y <= posbox.y
+     and negbox.z <= point.z and point.z <= posbox.z;
+}
+
+bool FreeHitbox::contains(Hitbox other) {
+  return other.contains(*this);
+}
+
+bool FreeHitbox::contains(FreeHitbox other) {
+  Hitbox newbox (position, negbox, posbox);
+  vec3 newpos = rotation * (other.position - position) + position;
+  FreeHitbox newfree (newpos, other.negbox, other.posbox, rotation*other.rotation);
+  
+  return newbox.contains(newfree);
+}
+
+
+
 
 
 Entity::Entity(World* nworld, vec3 pos, vec3 hitbox1, vec3 hitbox2):
@@ -104,14 +312,7 @@ void Entity::drop_ticks() {
 void Entity::get_nearby_entities(vector<DisplayEntity*>* colliders) {
   ivec3 chunk = ivec3(position)/world->chunksize - ivec3(position.x<0, position.y<0, position.z<0);
   //std::map<ivec3,Tile*>::iterator it = world->tiles.find(chunk);
-  for (Tile* tile : world->tiles) {
-    if (glm::length(vec3(tile->pos-chunk)) <= 1.5) {
-      //print (kvpair.first);
-      for (DisplayEntity* e : tile->entities) {
-        colliders->push_back(e);
-      }
-    }
-  }
+  
 }
 
 
@@ -120,18 +321,7 @@ void Entity::find_colliders(vector<Collider*>* colliders) {
   ivec3 chunk = ivec3(position)/world->chunksize - ivec3(position.x<0, position.y<0, position.z<0);
   //std::map<ivec3,Tile*>::iterator it = world->tiles.find(chunk);
   vector<FallingBlockEntity*> entities;
-  for (Tile* tile : world->tiles) {
-    if (glm::length(vec3(tile->pos-chunk)) <= 1.5) {
-      //print (kvpair.first);
-      for (FallingBlockEntity* e : tile->block_entities) {
-        if (e != this and colliding(e)) {
-          colliders->push_back(e);
-        }
-      }
-    }
-  }
-  
-    colliders->push_back(world);
+  colliders->push_back(world);
 }
 
 void Entity::tick() {
@@ -860,549 +1050,6 @@ DisplayEntity::~DisplayEntity() {
     limb->render_index = RenderIndex::npos;
     delete limb;
   }
-}
-
-
-
-
-
-NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, string name, vec3 newblockpos,
-  vector<DisplayEntity*> newlimbs):
-  DisplayEntity(nworld, starting_pos, hitbox1, hitbox2, loadblock(name), newblockpos, newlimbs), nametype(name), pointing(0) {
-  //block->rotate(1, 1);
-}
-
-NamedEntity::NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, string name, vec3 newblockpos):
-  DisplayEntity(nworld, starting_pos, hitbox1, hitbox2, loadblock(name), newblockpos), nametype(name), pointing(0) {
-  //block->rotate(1, 1);
-}
-
-NamedEntity::NamedEntity(World* nworld, istream& ifile): DisplayEntity(nworld, ifile) {
-  
-}
-
-Block* NamedEntity::loadblock(string name) {
-  std::ifstream ifile(entitystorage->blocks[name], ios::binary);
-  if (!ifile.good()) {
-    cout << "file error code with " << name << " -- s9d8f0s98d0f9s80f98sd0" << endl;
-    game->hard_crash(29348023948029834);
-  }
-  int size;
-  ifile >> size;
-  box2 = vec3(size-1.2f,size-1.2f,size-1.2f);
-  char buff;
-  ifile.read(&buff,1);
-  Block* nblock = new Block();
-  // nblock->set_parent(nullptr, &block, ivec3(0,0,0), size);
-  nblock->from_file(ifile);
-  return nblock;
-}
-
-void NamedEntity::on_timestep(double deltatime) {
-  DisplayEntity::on_timestep(deltatime);
-  return;
-  vec3 dist_to_player = world->player->position - (position + box2 / 2.0f);
-  double lon =  atan2(dist_to_player.z, dist_to_player.x);
-  //double lat = atan2(dist_to_player.y, vec2(dist_to_player.x, dist_to_player.z).length());
-  //cout << angle << ' ' << pointing << endl;
-  // if (angle < 0) {
-  //   angle += 4;
-  // }
-  angle.x += float(rand()%10-5)/100;
-  return;
-  //angle.y = lat;
-  
-  float dist = glm::length(dist_to_player);
-  dist_to_player /= dist;
-  if (consts[4]) {
-    vel.x += 0.5 * dist_to_player.x;
-    vel.z += 0.5 * dist_to_player.z;
-  } else {
-    vel.x += 0.1 * dist_to_player.x;
-    vel.z += 0.1 * dist_to_player.z;
-  }
-  if (consts[4] and (consts[0] or consts[2] or consts[3] or consts[5])) {
-    vel.y = 20;
-  }
-  if (colliding(world->player)) {
-    world->player->health -= 1;
-    world->player->vel += (dist_to_player + vec3(0,1,0)) * 5.0f;
-    vel -= (dist_to_player + vec3(0,1,0)) * 3.0f;
-  }
-  if (health <= 0) {
-    for (int x = 0; x < block.block->scale; x ++) {
-      for (int y = 0; y < block.block->scale; y ++) {
-        for (int z = 0; z < block.block->scale; z ++) {
-          Pixel* pix = block.block->get_global(x, y, z, 1)->pixel;
-          if (pix->value != 0) {
-            world->set(position.x+x, position.y+y, position.z+z, pix->value, pix->direction);
-          }
-        }
-      }
-    }
-    alive = false;
-  }
-}
-
-
-
-FallingBlockEntity::FallingBlockEntity(World* nworld, BlockGroup* newgroup, Pixel* start_pix): DisplayEntity(nworld, vec3(0,0,0), vec3(0,0,0),
-vec3(1,1,1), nullptr, vec3(0,0,0)), group(newgroup), item(nullptr) {
-  immune = true;
-  unordered_set<Pixel*> pixels;
-  unordered_set<Pixel*> last_pixels;
-  unordered_set<Pixel*> new_pixels;
-  
-  const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
-  last_pixels.emplace(start_pix);
-  
-  ivec3 start_pos = start_pix->parbl->globalpos;
-  
-  ivec3 lower_bound = start_pos;
-  ivec3 upper_bound = start_pos;
-  
-  while (last_pixels.size() > 0) {
-    for (Pixel* pix : last_pixels) {
-      pixels.emplace(pix);
-    }
-    
-    for (Pixel* pix : last_pixels) {
-      ivec3 pos = pix->parbl->globalpos;
-      
-      for (ivec3 dir : dir_array) {
-        ivec3 sidepos = pos + pix->parbl->scale * dir;
-        Block* block = world->get_global(sidepos.x, sidepos.y, sidepos.z, pix->parbl->scale);
-        if (block != nullptr) {
-          for (Pixel* sidepix : block->iter_side(-dir)) {
-            if ((sidepix->group == pix->group) and pixels.count(sidepix) == 0) {
-              if (sidepos.x < lower_bound.x) lower_bound.x = sidepos.x;
-              if (sidepos.y < lower_bound.y) lower_bound.y = sidepos.y;
-              if (sidepos.z < lower_bound.z) lower_bound.z = sidepos.z;
-              if (sidepos.x > upper_bound.x) upper_bound.x = sidepos.x;
-              if (sidepos.y > upper_bound.y) upper_bound.y = sidepos.y;
-              if (sidepos.z > upper_bound.z) upper_bound.z = sidepos.z;
-              new_pixels.emplace(sidepix);
-            }
-          }
-        }
-      }
-    }
-    
-    last_pixels.swap(new_pixels);
-    new_pixels.clear();
-  }
-  
-  position = lower_bound;
-  box2 = upper_bound - lower_bound;
-  
-  int scale = 1;
-  while (box2.x >= scale or box2.y >= scale or box2.z >= scale) {
-    scale *= 2;
-  }
-  
-  block.block = new Block(new Pixel(0));
-  // block.block->set_parent(nullptr, &block, ivec3(0,0,0), scale);
-  density = 0;
-  
-  for (Pixel* pix : pixels) {
-    ivec3 pos = pix->parbl->globalpos;
-    ivec3 localpos = pos - lower_bound;
-    
-    density += blocks->blocks[pix->value]->material->density;
-    
-    block.set(ivec4(localpos.x, localpos.y, localpos.z, pix->parbl->scale), pix->value, pix->direction); // tofix joints
-    Pixel* blockpix = block.get_global(localpos.x, localpos.y, localpos.z, pix->parbl->scale)->pixel;
-    //blockpix->group = pix->group;
-    for (int i = 0; i < 6; i ++) {
-      blockpix->joints[i] = pix->joints[i];
-      pix->joints[i] = 0;
-    }
-  }
-  
-  density /= group->size;
-  density = -1;
-  
-  for (Pixel* pix : pixels) {
-    ivec3 pos = pix->parbl->globalpos;
-    ivec3 localpos = pos - lower_bound;
-    
-    
-    world->set(ivec4(pos.x, pos.y, pos.z, pix->parbl->scale), 0, 0);
-  }
-  
-  
-}
-
-
-FallingBlockEntity::FallingBlockEntity(World* nworld, istream& ifile): DisplayEntity(nworld, ifile), item(ifile) {
-  int scale;
-  ifile >> final >> scale;
-  string str;
-  getline(ifile, str, ':');
-  block.block = new Block();
-  // block.block->set_parent(nullptr, &block, ivec3(0,0,0), scale);
-  block.block->from_file(ifile);
-  // string buff;
-  // int scale;
-  // ifile >> scale;
-  // getline(ifile, buff, ':');
-  // group->block = Block::from_file(ifile, 0, 0, 0, scale, nullptr, nullptr);
-}
-
-void FallingBlockEntity::to_file(ostream& ofile) {
-  DisplayEntity::to_file(ofile);
-  item.to_file(ofile);
-  ofile << final << ' ' << block.block->scale << endl << ':';
-  block.block->to_file(ofile);
-}
-
-void FallingBlockEntity::on_timestep(double deltatime) {
-  DisplayEntity::on_timestep(deltatime);
-  if (consts[4]) {
-    //map<BlockGroup*,vector<Pixel*>> pixels;
-    vector<Pixel*> pixels;
-    // map<BlockGroup*,Pixel*> groups;
-    for (Pixel* pix : block.block->iter()) {
-      if (pix->value != 0) {
-        ivec3 pos = pix->parbl->globalpos;
-        ivec3 globalpos = ivec3(position) + pos;
-        world->set(ivec4(globalpos.x, globalpos.y, globalpos.z, pix->parbl->scale), pix->value, pix->direction);// tofix joints
-        Pixel* worldpix = world->get_global(globalpos.x, globalpos.y, globalpos.z, pix->parbl->scale)->pixel;
-        //worldpix->group = pix->group;
-        // for (int i = 0; i < 6; i ++) {
-        //   worldpix->joints[i] = pix->joints[i];
-        // }
-        //pix->group->recalculate_flag = true;
-        // groups[pix->group] = worldpix;
-        //pix->group = nullptr;
-        pixels.push_back(world->get_global(globalpos.x, globalpos.y, globalpos.z, pix->parbl->scale)->pixel);
-      }
-    }
-    
-    // for (pair<BlockGroup*,Pixel*> kvpair : groups) {
-    //   cout << "recalcualting "<< endl;
-    //   kvpair.first->recalculate_all(kvpair.second);
-    // }
-    // if (final) {
-    //   for (map<BlockGroup*,vector<Pixel*>>::iterator kvpair = pixels.begin(); kvpair != pixels.end(); kvpair ++) {
-    //     BlockGroup* group = new BlockGroup(world, kvpair->second);
-    //     group->item = kvpair->first->item;
-    //   }
-    // }
-    BlockGroup* group = new BlockGroup(world, pixels);
-    alive = false;
-  }
-}
-    
-Block * FallingBlockEntity::get_global(int x, int y, int z, int size) {
-  ivec3 index(x,y,z);
-  //print (index);
-  index -= ivec3(box1-axis_gap);
-  //print (position);
-  //print (index);
-  int scale = block.block->scale;
-  if ( index.x >= 0 and index.x < scale and index.y >= 0 and index.y < scale and index.z >= 0 and index.z < scale ) {
-    return block.block->get_global(index.x, index.y, index.z,size);
-  } else {
-    return nullptr;
-  }
-}
-
-vec3 FallingBlockEntity::get_position() const {
-  return position;
-}
-
-void FallingBlockEntity::calc_constraints() {
-    float axis_gap = 0.2;
-    
-    vec3 coords_array[3] = {{0,1,1}, {1,0,1}, {1,1,0}};
-    vec3 dir_array[3] =    {{1,0,0}, {0,1,0}, {0,0,1}};
-    
-    vec3 newpos(position);
-    
-    bool new_consts[7] = {0,0,0,0,0,0,0};
-    
-    //box2 = vec3(0,0,0);
-    
-    //this system works by creating a slice of blocks that define each side of collision. the sides all share either the most positive point or the most negative point
-    //the shlice is tested to see if any blocks are int it (2) and if there are blocks, the players location is rounded to outside the block (3)
-    //axis gap make sure a side detects the collision of blocks head on before the side detectors sense the blocks. Each slice is moved out from the player by axis_gap
-    //cout << "----------------------------------" << endl;
-    //print(position);
-    if (block.block == nullptr) {
-      return;
-    }
-    
-    in_water = false;
-    
-    for (Pixel* pix : block.block->iter()) {
-      if (!pix->is_air(0,0,0)) {
-        int bx, by, bz;
-        ivec3 pos = pix->parbl->globalpos;
-        bx = pos.x;
-        by = pos.y;
-        bz = pos.z;
-        
-        Block* inblock = world->get_global(position.x+bx, position.y+by, position.z+bz, 1);
-        if (inblock != nullptr and inblock->pixel->value == 7) {
-          in_water = true;
-        }
-        
-        vec3 block_box1(bx+axis_gap, by+axis_gap, bz+axis_gap);
-        vec3 block_box2(bx+pix->parbl->scale-axis_gap-1, by+pix->parbl->scale-axis_gap-1, bz+pix->parbl->scale-axis_gap-1);
-        for (int axis = 0; axis < 3; axis ++) {
-          vec3 coords = coords_array[axis];
-          vec3 dir = dir_array[axis];
-          
-          // pos is the positive point of the hitbox rounded up to the nearest block. neg is the negative most point rounded down
-          vec3 neg = floor( position + block_box1 - axis_gap*dir );// + vec3(0,1,0);
-          vec3 pos = ceil( position + block_box2 + axis_gap*dir );
-          //cout << '-' << endl;
-          // print(neg);
-          // print(pos);
-          Block* side;
-          int gx, gy, gz;
-          
-          //positive side
-          //pos2 is the other point for the face
-          gx = bx+int(dir.x)*pix->parbl->scale;
-          gy = by+int(dir.y)*pix->parbl->scale;
-          gz = bz+int(dir.z)*pix->parbl->scale;
-          //cout << gx << ' ' << gy << ' ' << gz << endl;
-          side = block.block->get_global(gx, gy, gz, pix->parbl->scale);
-          bool out_bounds = gx >= block.block->scale or gy >= block.block->scale or gz >= block.block->scale;
-          //cout << out_bounds << endl;
-          if (side == nullptr or out_bounds or side->is_air(-dir.x, -dir.y, -dir.z)) {
-            vec3 pos2 = pos*dir + neg*coords;
-            bool constraint = false;
-            //cout << "pos2 ";
-            //print(pos2);
-            //cout << pos2.x << ' ' << pos.x+1 << ' ' << pos2.y << ' ' << pos.y+1 << ' ' << pos2.z << ' ' << pos.z+1 << endl;
-            for (int x = (int)pos2.x; x < pos.x+1; x ++) {
-              for (int y = (int)pos2.y; y < pos.y+1; y ++) {
-                for (int z = (int)pos2.z; z < pos.z+1; z ++) {
-                  Block* pix = world->get_global(x,y,z,1);
-                  bool new_const = is_solid_block(pix);
-                  if (new_const) {
-                    Material* mat = blocks->blocks[pix->pixel->value]->material;
-                    if (mat_consts[axis] == nullptr or mat_consts[axis]->toughness < mat->toughness) {
-                      mat_consts[axis] = mat;
-                    }
-                  }
-                  constraint = constraint or new_const;
-                }
-              }
-            }
-            new_consts[axis] = new_consts[axis] or constraint;
-            if (constraint) {
-              //cout << "move pos" << endl;
-              newpos[axis] = floor(position[axis] + block_box2[axis] + axis_gap) - block_box2[axis] - axis_gap;
-            }
-          }
-          
-          gx = bx-int(dir.x)*pix->parbl->scale;
-          gy = by-int(dir.y)*pix->parbl->scale;
-          gz = bz-int(dir.z)*pix->parbl->scale;
-          //cout << gx << ' ' << gy << ' ' << gz << endl;
-          side = block.block->get_global(gx, gy, gz, pix->parbl->scale);
-          out_bounds = gx < 0 or gy < 0 or gz < 0;
-          if (side == nullptr or out_bounds or side->is_air(dir.x, dir.y, dir.z)) {
-            vec3 neg2 = neg*dir + pos*coords;
-            //cout << "neg2 ";
-            //print(neg2);
-            bool constraint = false;
-            for (int x = (int)neg.x; x < neg2.x+1; x ++) {
-              for (int y = (int)neg.y; y < neg2.y+1; y ++) {
-                for (int z = (int)neg.z; z < neg2.z+1; z ++) {
-                  Block* pix = world->get_global(x,y,z,1);
-                  bool new_const = is_solid_block(pix);
-                  if (new_const) {
-                    Material* mat = blocks->blocks[pix->pixel->value]->material;
-                    if (mat_consts[axis] == nullptr or mat_consts[axis]->toughness < mat->toughness) {
-                      mat_consts[axis] = mat;
-                    }
-                  }
-                  constraint = constraint or new_const;
-                }
-              }
-            }
-            new_consts[axis+3] = new_consts[axis+3] or constraint;
-            if (constraint) {
-              //cout << "move neg" << endl;
-              newpos[axis] = ceil(position[axis] + block_box1[axis] - axis_gap) - block_box1[axis] + axis_gap;
-            }
-          }
-        }
-      }
-    }
-    
-    
-    
-    for (DisplayEntity* limb : limbs) {
-      vec3 limbpos = limb->position;
-      limb->position += position;
-      limb->calc_constraints();
-      vec3 diff = limb->position - position - limbpos;
-      //print (diff);
-      newpos += diff;
-      limb->position = limbpos;
-      for (int i = 0; i < 7; i ++) {
-        new_consts[i] = new_consts[i] or limb->consts[i];
-      }
-    }
-    
-    for (int i = 0; i < 7; i ++) {
-        consts[i] = old_consts[i] or new_consts[i];
-        old_consts[i] = new_consts[i];
-    }
-    
-    position = newpos;
-}
-
-
-
-
-void FallingBlockEntity::render(RenderVecs* allvecs) {
-  // vecs.clear();
-  // block->all([=] (Pixel* pix) {
-  //   pix->set_render_flag();
-  //   pix->render_index = pair<int,int>(1,0);
-  // });
-  // block->render(&vecs, int(position.x), int(position.y), int(position.z));
-  //
-  /*
-  
-  if (render_flag) {
-    vecs.clear();
-    for (Pixel* pix : block.block->iter()) {
-      pix->render_index = RenderIndex::npos;
-      pix->parbl->set_render_flag();
-      pix->sunlight = lightmax;
-    }
-    bool faces[] = {true,true,true,true,true,true};
-    block.block->render(&vecs, &vecs, 0xff, true);
-    for (int i = 0; i < vecs.num_verts; i++) {
-      vecs.verts[i*3+0] += blockpos.x;
-      vecs.verts[i*3+1] += blockpos.y;
-      vecs.verts[i*3+2] += blockpos.z;
-    }
-    render_flag = false;
-  }
-  
-  MemVecs translated;
-  translated.add(&vecs);
-  //cout << 't' << translated.num_verts << endl;
-  
-  //cout << 'y' << translated.num_verts << endl;
-  
-  for (int i = 0; i < translated.num_verts/6; i ++) {
-    vec3 totalpos (0,0,0);
-    for (int j = 0; j < 6; j ++) {
-      int index = i*6+j;
-      totalpos.x += translated.verts[index*3+0];
-      totalpos.y += translated.verts[index*3+1];
-      totalpos.z += translated.verts[index*3+2];
-    }
-    totalpos /= 6.0f;
-    // = vec3(translated.verts[i*6*3+0], translated.verts[i*6*3+1], translated.verts[i*6*3+2]) + 0.5f;
-    //cout << totalpos.x << ' ' << totalpos.y << ' ' << totalpos.z << ' ' << position.x <<  ' ' << position.y << ' ' << position.x << endl;
-    
-    totalpos += position;
-    
-    ivec3 worldpos = ivec3(totalpos) - ivec3(totalpos.x < 0, totalpos.y < 0, totalpos.x < 0);
-    //cout << worldpos.x << ' ' << worldpos.y << ' ' << worldpos.z << endl;
-    Block* block = world->get_global(worldpos.x, worldpos.y, worldpos.z, 1);
-    if (block != nullptr) {
-      Pixel* pix = block->pixel;
-      for (int j = 0; j < 6; j ++) {
-        int index = (i*6+j)*2;
-        translated.light[index+0] = translated.light[index+0] * pix->sunlight/lightmax;
-        translated.light[index+1] = pix->blocklight/lightmax;
-        if (pix->blocklight == 0) {
-          //cout << totalpos.x << ' ' << totalpos.y << ' ' << totalpos.z << ' ' << position.x <<  ' ' << position.y << ' ' << position.x << endl;
-        }
-        //cout << pix->blocklight/lightmax << endl;
-      }
-    }
-    
-  }
-  
-  for (int i = 0; i < translated.num_verts; i++) {
-    translated.verts[i*3+0] += position.x;
-    translated.verts[i*3+1] += position.y;
-    translated.verts[i*3+2] += position.z;
-  }
-  
-  
-  if (render_index.isnull()) {
-    render_index = allvecs->add(&translated);
-  } else {
-    allvecs->edit(render_index, &translated); //ERR: passes problemic vector? segfault deep in allvecs.edit, where translated.verts is added on
-  }*/
-}
-
-
-
-void FallingBlockEntity::calc_light(vec3 offset, vec2 angle) {
-  //cout << 105 << endl;
-  vector<ivec3> new_lit_blocks;
-  
-  
-  for (Pixel* pix : block.block->iter()) {
-    //cout << "loop" << pix << ' ' << int(pix->value) << endl;
-    //cout << pix->blocklight << endl;
-    ivec3 blockpos = pix->parbl->globalpos;
-    ivec3 gpos (position + vec3(blockpos));
-    Block* b = world->get_global(gpos.x, gpos.y, gpos.z, 1);
-    if (b != nullptr) {
-      Pixel* worldpix = b->pixel;
-      ivec3 wpixpos = worldpix->parbl->globalpos;
-      bool exists = false;
-      if (find(lit_blocks.begin(), lit_blocks.end(), wpixpos) != lit_blocks.end()) {
-        worldpix->entitylight = 0;
-        //worldpix->render_update();
-        exists = true;
-      }
-      if (pix->value != 0 and pix->blocklight > 0) {
-        worldpix->entitylight = pix->blocklight;
-        new_lit_blocks.push_back(wpixpos);
-        //cout << "set lit block" << endl;
-        if (!exists) {
-          //cout << "light update " << endl;
-          worldpix->parbl->set_light_flag();
-        }
-        // /cout << worldpix << endl;
-      }
-    }
-  }
-  
-  for (ivec3 pos : lit_blocks) {
-    if (find(new_lit_blocks.begin(), new_lit_blocks.end(), pos) == new_lit_blocks.end()) {
-      Block* block = world->get_global(pos.x, pos.y, pos.z, 1);
-      if (block != nullptr) {
-        block->pixel->entitylight = 0;
-        block->set_light_flag();
-      }
-    }
-  }
-  
-  lit_blocks.swap(new_lit_blocks);
-}
-
-
-
-EntityStorage::EntityStorage() {
-  vector<string> paths;
-  get_files_folder("resources/data/entities/blockfiles", &paths);
-  for (string path : paths) {
-    ifstream ifile(path);
-    std::stringstream ss(path);
-    string name;
-    std::getline(ss, name, '.');
-    blocks[name] = "resources/data/entities/blockfiles/" + path;
-    //cout << "loaded " << name << " from file" << endl;
-  }
-  cout << "loaded " << paths.size() << " entities from file" << endl;
 }
 
 #endif

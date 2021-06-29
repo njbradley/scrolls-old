@@ -8,6 +8,70 @@
 #include "items.h"
 #include "rendervec.h"
 
+// Class that represents a rectangular prism, with a position, minimum, and maximum point.
+// the position is not that useful here, it is mostly needed for entities and freehitboxes
+class Hitbox { public:
+  vec3 position;
+  vec3 negbox;
+  vec3 posbox;
+  
+  Hitbox(vec3 pos, vec3 nbox, vec3 pbox);
+  
+  void points(vec3* points);
+  vec3 local_center();
+  vec3 global_center();
+  
+  vec3 transform_in(vec3 pos);
+  vec3 transform_in_dir(vec3 pos);
+  vec3 transform_out(vec3 pos);
+  vec3 transform_out_dir(vec3 pos);
+  
+  // boxes collide when they overlap, so bordering cubes are not colliding
+  bool collide(Hitbox other);
+  bool collide(FreeHitbox other);
+  
+  bool contains_noedge(vec3 point);
+  bool contains(vec3 point);
+  // to be contained, all the points in the other box cant be outside the box
+  // but they can be on the border.
+  bool contains(Hitbox other);
+  bool contains(FreeHitbox other);
+  
+  friend ostream& operator<<(ostream& ofile, const Hitbox& hitbox);
+  
+  static Hitbox boundingbox_points(vec3 pos, vec3* points, int num);
+};
+
+// hitbox that is rotated freely.
+// the position is the rotation point
+class FreeHitbox : public Hitbox { public:
+  quat rotation;
+  
+  FreeHitbox(Hitbox box, quat rot);
+  FreeHitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot);
+  
+  void points(vec3* points);
+  Hitbox boundingbox();
+  vec3 dirx();
+  vec3 diry();
+  vec3 dirz();
+  vec3 global_center();
+  
+  vec3 transform_in(vec3 pos);
+  vec3 transform_in_dir(vec3 pos);
+  vec3 transform_out(vec3 pos);
+  vec3 transform_out_dir(vec3 pos);
+  
+  
+  bool collide(Hitbox other);
+  bool collide(FreeHitbox other);
+  
+  bool contains_noedge(vec3 point);
+  bool contains(vec3 point);
+  
+  bool contains(Hitbox other);
+  bool contains(FreeHitbox other);
+};
 
 class Entity { public:
     static constexpr float axis_gap = 0.2f;
@@ -125,42 +189,5 @@ class Player: public DisplayEntity {
     void update_held_light();
 		void render_ui(MemVecs * uivecs);
 };
-
-class NamedEntity: public DisplayEntity {
-public:
-  string nametype;
-  int pointing;
-  NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, string name, vec3 newblockpos,
-  vector<DisplayEntity*> limbs);
-  NamedEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, string name, vec3 newblockpos);
-  NamedEntity(World* nworld, istream& ifile);
-  Block* loadblock(string name);
-  void on_timestep(double deltatime);
-};
-
-class FallingBlockEntity: public DisplayEntity, public Collider {
-public:
-  BlockGroup* group;
-  vector<ivec3> lit_blocks;
-  bool final = false;
-  Item item;
-  FallingBlockEntity(World* nworld, BlockGroup* newgroup, Pixel* start_pix);
-  FallingBlockEntity(World* nworld, istream& ifile);
-  void calc_constraints();
-  Block * get_global(int,int,int,int);
-  vec3 get_position() const;
-  void on_timestep(double deltatime);
-  virtual void calc_light(vec3 offset, vec2 ang);
-  virtual void render(RenderVecs* allvecs);
-  virtual void to_file(ostream& ofile);
-  //virtual void to_file(ostream& ofile);
-};
-
-class EntityStorage { public:
-  std::map<string,string> blocks;
-  EntityStorage();
-};
-
-extern EntityStorage* entitystorage;
 
 #endif

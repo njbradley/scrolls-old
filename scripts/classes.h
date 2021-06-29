@@ -108,6 +108,8 @@ class Material;
 class Recipe;
 class Item;
 class BlockData;
+class Hitbox;
+class FreeHitbox;
 class Entity;
 class DisplayEntity;
 class FallingBlockEntity;

@@ -24,8 +24,6 @@ class Tile {
 		bool lightflag = true;
 		bool fully_loaded = false;
 		bool done_reading = false;
-		vector<DisplayEntity*> entities;
-		vector<FallingBlockEntity*> block_entities;
 		Tile(ivec3 position, World* world, istream& ifile);
 		Tile(ivec3 position, World* world);
 		~Tile();

@@ -4,9 +4,10 @@
 #include "commands.h"
 #include "world.h"
 #include "blocks.h"
-#include "mobs.h"
 #include "blockdata.h"
 #include "tiles.h"
+#include "entity.h"
+#include "items.h"
 
 template <typename Tret> CommandFunc<Tret> CommandNullFunc() {
 	return CommandFunc<Tret>([] (Program* program) {Tret val; return val;});
@@ -599,18 +600,6 @@ Command::Command(Program* newprogram, istream& ifile): program(newprogram), func
 Program::Program(World* nworld, ostream* newout, ostream* newerrout): world(nworld), out(newout), errout(newerrout),
 worldsummon([] (Program* program, vec3 pos, string entityname) {
 	DisplayEntity* entity;
-	entity = new Pig(program->world, pos);
-	if (entityname == "pig") entity = new Pig(program->world, pos);
-	else if (entityname == "skeleton") entity = new Skeleton(program->world, pos);
-  else if (entityname == "ent") entity = new Ent(program->world, pos);
-	else if (entityname == "glofly") entity = new Glofly(program->world, pos);
-	else if (entityname == "ghost") entity = new Ghost(program->world, pos);
-	else if (mobstorage->mobdata.find(entityname) != mobstorage->mobdata.end()) {
-		entity = new Mob(program->world, pos, entityname);
-	} else {
-		*program->errout << "ERR: entity name '" << entityname << "' is not valid " << endl;
-		return;
-	}
 	program->world->summon(entity);
 }),
 worldsetblock([] (Program* program, ivec3 pos, string blockname, int direction) {
@@ -636,9 +625,7 @@ vec3toivec3([] (Program* program, vec3 val) {
 	return ivec3(val);
 }),
 killall([] (Program* program) {
-	for (Tile* tile : program->world->tiles) {
-		tile->entities.clear();
-	}
+	
 }),
 give([] (Program* program, string item, int amount) {
 	program->world->player->inven.add(ItemStack(Item(itemstorage->items[item]), amount));

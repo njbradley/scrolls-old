@@ -32,7 +32,6 @@ using namespace glm;
 #include "multithreading.h"
 
 #include "cross-platform.h"
-#include "mobs.h"
 #include "commands.h"
 
 #include "classes.h"
@@ -682,8 +681,6 @@ int main( int numargs, const char** args)
 	
 	
 	
-	
-	//Entity* test = new NamedEntity(vec3(0.5, 50, 0), "test");
 	
 	
 	double lastTime = glfwGetTime();

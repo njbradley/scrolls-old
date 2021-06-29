@@ -442,11 +442,6 @@ void World::timestep() {
   timestep_clock ++;
   int i = 0;
   
-  for (Tile* tile : tiles) {
-      tile->timestep();
-      mobcount += tile->entities.size() + tile->block_entities.size();
-    i ++;
-  }
   
 }
 
@@ -568,7 +563,7 @@ void World::summon(DisplayEntity* entity) {
   );
   Tile* tile = tileat(pos);
   if (tile != nullptr) {
-    tile->entities.push_back(entity);
+    
   }
 }
 
