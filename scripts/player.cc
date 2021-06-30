@@ -283,15 +283,19 @@ void Player::right_mouse(double deltatime) {
 				ivec3 blockpos = block->globalpos + dir;//SAFEFLOOR3(hitpos) + dir;
 				if (shifting) {
 					world->set_global(blockpos, 1, 0, 0);
-					Block* airblock = world->get_global(blockpos.x, blockpos.y, blockpos.z, 1);
-					if (airblock != nullptr and airblock->pixel->value == 0) {
+					Block* airblock = world->get_global(blockpos.x, blockpos.y, blockpos.z, 2);
+					if (airblock != nullptr) {
+						Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f));
+						FreeBlock* freeblock = new FreeBlock(newbox);
+						freeblock->set_pixel(new Pixel(1));
+						airblock->add_freeblock(freeblock);
 						// FreeBlock* freeblock = new FreeBlock(vec3(airblock->globalpos), quat(1, 0, 0, 0));
 						// freeblock->set_parent(nullptr, airblock->world, ivec3(0,0,0), 1);
 						// freeblock->set_pixel(new Pixel(1));
 						// airblock->set_freeblock(freeblock);
 						//
-						// placing_freeblock = freeblock;
-						// placing_block = airblock;
+						placing_freeblock = freeblock;
+						placing_block = airblock;
 					}
 				} else {
 					block->set_global(blockpos, 1, 1, 0);
@@ -310,22 +314,28 @@ void Player::right_mouse(double deltatime) {
 		}
 	} else {
 		float dist = (placing_pointing.y - angle.y) * 6.0f;
-		cout << dist << endl;
+		vec2 dist2 = (placing_pointing - angle) * 6.0f;
+		
 		if (placing_freeblock == nullptr and dist > 0.05) {
-			// Pixel pix = *placing_block->pixel;
-			// placing_block->pixel->set(0, 0);
-			// FreeBlock* freeblock = new FreeBlock(vec3(placing_block->globalpos), quat(1, 0, 0, 0));
-			// freeblock->set_parent(nullptr, placing_block->world, ivec3(0,0,0), 1);
-			// freeblock->set_pixel(new Pixel(pix));
-			// placing_block->set_freeblock(freeblock);
+			Pixel pix = *placing_block->pixel;
+			placing_block->pixel->set(0, 0);
+			placing_block = placing_block->get_global(blockpos, 2);
+			Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f));
+			FreeBlock* freeblock = new FreeBlock(newbox);
+			freeblock->set_pixel(new Pixel(1));
+			placing_block->add_freeblock(freeblock);
 			//
-			// placing_freeblock = freeblock;
+			placing_freeblock = freeblock;
 		}
 		if (placing_freeblock != nullptr) {
-			quat newrot = glm::angleAxis(dist, vec3(placing_dir));
-			cout << "settting " << placing_freeblock << ' ' << placing_dir << endl;
-			// placing_freeblock->set_rotation(newrot);
-			placing_block->set_render_flag();
+			//quat newrot = glm::angleAxis(dist, vec3(placing_dir));
+			//cout << "settting " << placing_freeblock << ' ' << placing_dir << endl;
+			Hitbox newbox = placing_freeblock->box;
+			//newbox.rotation = newrot;
+			newbox.position += vec3(dist2.x, 0, dist2.y);
+			placing_freeblock->set_box(newbox);
+			//placing_freeblock->set_rotation(newrot);
+			// placing_block->set_render_flag();
 		}
 	}
 	return;

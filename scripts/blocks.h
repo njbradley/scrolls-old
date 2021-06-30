@@ -23,11 +23,12 @@ extern const uint8 lightmax;
 // a block can also be "floating", when it is not on the standard xyz grid
 // in that case, globalpos is no longer global, it is local to the group of blocks
 // in the same axis.
+// freeblock is another child that is "floading". it is also half the scale of the parent,
 //
 
 class Block: public Collider { public:
 	ivec3 parentpos;
-	ivec3 globalpos;
+	ivec3 globalpos; // should be called localpos, but i really dont want to change everything
 	bool render_flag = true;
 	bool light_flag = true;
 	int scale;
@@ -68,8 +69,8 @@ class Block: public Collider { public:
 	void set_child(ivec3 pos, Block* block);
 	Block* swap_child(ivec3 pos, Block* block);
 	
-	void set_freeblock(FreeBlock* nfreeblock);
-	bool can_set_freeblock(FreeBlock* nfreeblock);
+	void add_freeblock(FreeBlock* freeblock);
+	void remove_freeblock(FreeBlock* freeblock);
 	// sets the pixel of this block
 	// set_pixel deletes the current pixel, swap_pixel
 	// returns it
@@ -93,7 +94,9 @@ class Block: public Collider { public:
 	quat getrotation() const;
 	// local
 	Hitbox local_hitbox();
+	Hitbox local_freebox();
 	Hitbox hitbox();
+	Hitbox freebox();
 	// travels the tree to find the requested size and pos.
 	// calls to world if it reaches the top
 	Block* get_global(int x, int y, int z, int w);
@@ -142,14 +145,20 @@ class Block: public Collider { public:
 	static void read_pix_val(istream& ifile, char* type, unsigned int* val);
 };
 
+// Freeblocks: a freeblock is a block that is not on the grid, shifted in the middle
+// of a block or rotated.
 class FreeBlock : public Block { public:
 	Hitbox box;
 	Block* highparent;
 	
 	FreeBlock(Hitbox newbox);
+	FreeBlock(Block block, Hitbox newbox);
+	void add_parent(Block* nparent);
+	void remove_parent(Block* nparent);
 	void set_parent(Block* nparent);
 	void set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale);
 	void expand(ivec3 dir);
+	void move(vec3 amount);
 	void set_box(Hitbox newbox);
 	bool try_set_box(Hitbox newbox);
 };

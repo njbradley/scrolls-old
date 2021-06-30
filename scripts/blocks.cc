@@ -62,6 +62,7 @@ int children_inc(Block** children, int i) {
 //      .....
 #define CHILDREN_LOOP(varname) int varname = children_begin(children); varname < csize3; varname = children_inc(children, varname)
 
+#define FREECHILDREN_LOOP(varname) FreeBlock* varname = freeblock; varname != nullptr; varname = varname->freeblock
 
 Block::Block(): continues(false), pixel(nullptr) {
   // for (int i = 0; i < csize3; i ++) {
@@ -159,23 +160,26 @@ Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ISPIXEL)
   return old;
 }
 
-void Block::set_freeblock(FreeBlock* nfreeblock) {
-  int i = 0;
-  // while (i < 8 and freeblocks[i] == nullptr) i ++;
-  // freeblocks[i] = nfreeblock;
-  // freeblocks[i]->set_parent(this);
-  set_render_flag();
-  set_light_flag();
+
+void Block::add_freeblock(FreeBlock* newfree) {
+  FreeBlock** freedest = &freeblock;
+  while (*freedest != nullptr) {
+    freedest = &(*freedest)->freeblock;
+  }
+  
+  *freedest = newfree;
+  newfree->set_parent(this, world, ivec3(0,0,0), scale/2);
 }
 
-// bool Block::expand_freeblock(FreeBlock* nfreeblock) {
-//   if (pixel->value == 0 or pixel->value == 7) {
-//     freeblock = nfreeblock;
-//     return true;
-//   }
-//   return false;
-// }
-
+void Block::remove_freeblock(FreeBlock* newfree) {
+  FreeBlock** freedest = &freeblock;
+  while (*freedest != nullptr and *freedest != newfree) {
+    freedest = &(*freedest)->freeblock;
+  }
+  if (*freedest != nullptr) {
+    *freedest = (*freedest)->freeblock;
+  }
+}
 
 
 Block* Block::get(ivec3 pos) {
@@ -207,9 +211,7 @@ int Block::indexof(int x, int y, int z) const {
 }
 
 quat Block::getrotation() const {
-  quat rot(1,0,0,0);
-  // cout << rot.w << endl;
-  // cout << ((float*)&rot)[0] << ((float*)&rot)[1] << ((float*)&rot)[2] << ((float*)&rot)[3] << endl;
+  quat rot (1,0,0,0);
   FreeBlock* free = freecontainer;
   while (free != nullptr) {
     rot = rot * free->box.rotation;
@@ -232,11 +234,23 @@ Hitbox Block::local_hitbox() {
   return Hitbox(vec3(0,0,0), globalpos, globalpos + scale);
 }
 
+Hitbox Block::local_freebox() {
+  return Hitbox(vec3(0,0,0), vec3(globalpos) - scale/2.0f, vec3(globalpos) + scale*3/2.0f);
+}
+
 Hitbox Block::hitbox() {
   if (freecontainer == nullptr) {
     return local_hitbox();
   } else {
     return freecontainer->box.transform_out(local_hitbox());
+  }
+}
+
+Hitbox Block::freebox() {
+  if (freecontainer == nullptr) {
+    return local_freebox();
+  } else {
+    return freecontainer->box.transform_out(local_freebox());
   }
 }
 
@@ -443,13 +457,14 @@ Block::Block(istream& ifile): continues(false), pixel(nullptr) {
 }
 
 void Block::set_render_flag() {
-  if (locked) return;
-  render_flag = true;
-  Block* curblock = parent;
+  // if (locked) return;
+  // render_flag = true;
+  Block* curblock = this;
   while (curblock != nullptr and !curblock->render_flag and !curblock->locked) {
     curblock->render_flag = true;
     if (curblock->parent == nullptr and curblock->freecontainer != nullptr) {
-      curblock = curblock->freecontainer;
+      cout << 466 << ' ' << curblock << endl;
+      curblock = curblock->freecontainer->highparent;
     } else {
       curblock = curblock->parent;
     }
@@ -463,9 +478,9 @@ void Block::set_all_render_flags() {
       children[i]->set_all_render_flags();
     }
   }
-  // for (FREECHILDREN_LOOP(i)) {
-  //   freeblocks[i]->freecontainer->set_all_render_flags();
-  // }
+  for (FREECHILDREN_LOOP(free)) {
+    free->set_all_render_flags();
+  }
 }
 
 void Block::set_light_flag() {
@@ -491,9 +506,10 @@ void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool re
       }
     } else {
       pixel->render(vecs, transvecs, faces, render_null);
-      // for (FREECHILDREN_LOOP(i)) {
-      //   freeblocks[i]->render(vecs, transvecs, faces, render_null);
-      // }
+    }
+    for (FREECHILDREN_LOOP(free)) {
+      cout << "rendering free " << free << endl;
+      free->render(vecs, transvecs, faces, render_null);
     }
   }
 }
@@ -507,9 +523,9 @@ void Block::lighting_update()  {
       }
     } else {
       pixel->lighting_update();
-      // for (FREECHILDREN_LOOP(i)) {
-      //   freeblocks[i]->lighting_update();
-      // }
+      for (FREECHILDREN_LOOP(free)) {
+        free->lighting_update();
+      }
     }
   }
 }
@@ -768,14 +784,62 @@ FreeBlock::FreeBlock(Hitbox newbox): Block(), box(newbox) {
   
 }
 
+FreeBlock::FreeBlock(Block block, Hitbox newbox): Block(block), box(newbox) {
+  
+}
+
 void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale) {
   highparent = nparent;
   Block::set_parent(nullptr, nworld, this, ppos, nscale);
 }
 
-void FreeBlock::set_parent(Block* nparent) {
-  highparent = nparent;
+void FreeBlock::move(vec3 amount) {
+  Hitbox newbox = box;
+  newbox.position += amount;
+  set_box(newbox);
 }
+  
+void FreeBlock::set_box(Hitbox newbox) {
+  ivec3 intpos = ivec3(newbox.position);
+  
+  if (!highparent->freebox().contains(newbox)) {
+    ivec3 dir (0,0,0);
+    for (int x = -1; x < 2; x ++) {
+      for (int y = -1; y < 2; y ++) {
+        for (int z = -1; z < 2; z ++) {
+          Hitbox freebox = highparent->freebox();
+          freebox.position += vec3(x, y, z) * float(scale*2);
+          if (freebox.contains(newbox)) {
+            dir = ivec3(x, y, z);
+            break;
+          }
+        }
+      }
+    }
+    
+    Block* newparent = get_global(highparent->globalpos + dir * scale * 2, scale*2);
+    if (dir == ivec3(0,0,0) and newparent != nullptr) { // Todo what happens when freeblock leave loaded chunks
+      while (newparent->scale > scale*2) {
+        newparent->subdivide();
+        newparent = newparent->get_global(highparent->globalpos + dir * scale * 2, scale*2);
+      }
+      
+      highparent->remove_freeblock(this);
+      newparent->add_freeblock(this);
+    }
+  }
+  box = newbox;
+  cout << parent << ' ' << freecontainer << '-' << this << endl;
+  cout << " set_box " << render_flag << ' ' << highparent->render_flag << endl;
+  render_flag = false;
+  set_render_flag();
+  cout << " set_box " << render_flag << ' ' << highparent->render_flag << endl;
+  for (Pixel* pix : iter()) {
+    pix->parbl->set_render_flag();
+  }
+}
+    
+    
 
 void FreeBlock::expand(ivec3 dir) {
   // cout << "expand " << this << ' ' << dir << ' ' << globalpos << ' ' << scale << endl;
@@ -862,14 +926,6 @@ void FreeBlock::expand(ivec3 dir) {
   // unlock();
   // set_render_flag();
   // set_light_flag();
-}
-
-
-void FreeBlock::set_box(Hitbox newbox) {
-  box = newbox;
-  for (Pixel* pix : iter()) {
-    pix->parbl->set_render_flag();
-  }
 }
 
 bool FreeBlock::try_set_box(Hitbox box) {
