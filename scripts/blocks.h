@@ -9,6 +9,7 @@
 
 #include "collider.h"
 #include "rendervec.h"
+#include "entity.h"
 
 extern const uint8 lightmax;
 
@@ -90,6 +91,9 @@ class Block: public Collider { public:
 	// returns the floating point global pos
 	vec3 fglobalpos() const;
 	quat getrotation() const;
+	// local
+	Hitbox local_hitbox();
+	Hitbox hitbox();
 	// travels the tree to find the requested size and pos.
 	// calls to world if it reaches the top
 	Block* get_global(int x, int y, int z, int w);
@@ -139,25 +143,15 @@ class Block: public Collider { public:
 };
 
 class FreeBlock : public Block { public:
-	vec3 offset;
-	quat rotation;
+	Hitbox box;
 	Block* highparent;
 	
-	FreeBlock(vec3 newoffset = vec3(0,0,0), quat newrotation = quat(0,0,0,1));
+	FreeBlock(Hitbox newbox);
 	void set_parent(Block* nparent);
 	void set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale);
 	void expand(ivec3 dir);
-	void set_rotation(quat newrot);
-	void set_position(vec3 newpos);
-	bool try_set_location(vec3 newpos, quat newrot);
-	vec3 transform_into(vec3 pos) const;
-	ivec3 transformi_into(ivec3 pos) const;
-	vec3 transform_into_dir(vec3 dir) const;
-	ivec3 transformi_into_dir(ivec3 dir) const;
-	vec3 transform_out(vec3 pos) const;
-	ivec3 transformi_out(ivec3 pos) const;
-	vec3 transform_out_dir(vec3 dir) const;
-	ivec3 transformi_out_dir(ivec3 dir) const;
+	void set_box(Hitbox newbox);
+	bool try_set_box(Hitbox newbox);
 };
 
 class Pixel { public:
@@ -203,21 +197,6 @@ class Pixel { public:
   // every face, and rotates everything to direction rotation
   // from origin
   static void rotate_to_origin(int* mats, int* dirs, int rotation);
-};
-
-
-class BlockContainer: public Container { public:
-	Block* block;
-	bool allocated;
-	
-	BlockContainer(Block* b);
-	BlockContainer(int scale);
-	~BlockContainer();
-	vec3 get_position() const;
-	Block* get_global(int x, int y, int z, int size);
-  void set(ivec4 pos, char val, int direction, int joints[6] = nullptr);
-	void set_global(ivec3 pos, int w, int val, int direction, int joints[6] = nullptr);
-	void block_update(ivec3 pos){}
 };
 
     

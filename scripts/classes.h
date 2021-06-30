@@ -86,6 +86,7 @@ public:
 
 ostream& operator<<(ostream& out, ivec3 pos);
 ostream& operator<<(ostream& out, vec3 pos);
+ostream& operator<<(ostream& out, quat rot);
 
 int dir_to_index(ivec3 dir);
 

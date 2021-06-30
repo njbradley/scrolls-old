@@ -84,6 +84,11 @@ ostream& operator<<(ostream& out, vec3 pos) {
 	return out;
 }
 
+ostream& operator<<(ostream& out, quat rot) {
+	out << rot.w << ',' << rot.x << ',' << rot.y << ',' << rot.z;
+	return out;
+}
+
 int dir_to_index(ivec3 dir) {
 	for (int i = 0; i < 6; i ++) {
 		if (dir_array[i] == dir) {

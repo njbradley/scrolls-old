@@ -26,58 +26,83 @@ void print(vec3 v) {
 
 
 
-Hitbox::Hitbox(vec3 pos, vec3 nbox, vec3 pbox): position(pos), negbox(nbox), posbox(pbox) {
+
+
+Hitbox::Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot): position(pos), negbox(nbox), posbox(pbox), rotation(rot) {
   
 }
 
 void Hitbox::points(vec3* points) {
   for (int i = 0; i < 8; i ++) {
-    points[i] = position + posbox * vec3(i/4,i/2%2,i%2) + negbox * vec3(1-i/4, 1-i/2%2, 1-i%2);
+    points[i] = transform_out(size() * vec3(i/4,i/2%2,i%2));
   }
 }
 
+Hitbox Hitbox::boundingbox() {
+  vec3 pointarr[8];
+  points(pointarr);
+  return boundingbox_points(position, pointarr, 8);
+}
+
+vec3 Hitbox::size() {
+  return posbox - negbox;
+}
+
 vec3 Hitbox::local_center() {
-  return (negbox + posbox) / 2.0f;
+  return size() / 2.0f;
 }
 
 vec3 Hitbox::global_center() {
   return transform_out(local_center());
 }
 
+vec3 Hitbox::point1() {
+  return transform_out(vec3(0,0,0));
+}
+
+vec3 Hitbox::point2() {
+  return transform_out(size());
+}
+
+vec3 Hitbox::dirx() {
+  return transform_out(vec3(1,0,0));
+}
+
+vec3 Hitbox::diry() {
+  return transform_out(vec3(0,1,0));
+}
+
+vec3 Hitbox::dirz() {
+  return transform_out(vec3(0,0,1));
+}
+
+
 vec3 Hitbox::transform_in(vec3 pos) {
-  return pos - position;
+  return glm::inverse(rotation) * (pos - position) - negbox;
 }
 
 vec3 Hitbox::transform_in_dir(vec3 dir) {
-  return dir;
+  return glm::inverse(rotation) * dir;
 }
 
 quat Hitbox::transform_in(quat rot) {
-  return rot;
+  return glm::inverse(rotation) * rot;
 }
 
 vec3 Hitbox::transform_out(vec3 pos) {
-  return pos + position;
+  return rotation * (pos + negbox) + position;
 }
 
-vec3 Hitbox::transform_out_dir(vec3 pos) {
-  return pos;
+vec3 Hitbox::transform_out_dir(vec3 dir) {
+  return rotation * dir;
 }
 
 quat Hitbox::transform_out(quat rot) {
-  return rot;
+  return rotation * rot;
 }
 
 Hitbox Hitbox::transform_in(Hitbox box) {
   return Hitbox(
-    transform_in(box.position),
-    box.negbox,
-    box.posbox
-  );
-}
-
-FreeHitbox Hitbox::transform_in(FreeHitbox box) {
-  return FreeHitbox(
     transform_in(box.position),
     box.negbox,
     box.posbox,
@@ -89,14 +114,6 @@ Hitbox Hitbox::transform_out(Hitbox box) {
   return Hitbox(
     transform_out(box.position),
     box.negbox,
-    box.posbox
-  );
-}
-
-FreeHitbox Hitbox::transform_out(FreeHitbox box) {
-  return FreeHitbox(
-    transform_out(box.position),
-    box.negbox,
     box.posbox,
     transform_out(box.rotation)
   );
@@ -104,15 +121,7 @@ FreeHitbox Hitbox::transform_out(FreeHitbox box) {
 
 bool Hitbox::collide(Hitbox other) {
   vec3 otherpos = transform_in(other.global_center());
-  otherpos = glm::min(glm::max(otherpos, negbox), posbox);
-  otherpos = transform_out(otherpos);
-  
-  return other.contains_noedge(otherpos);
-}
-  
-bool Hitbox::collide(FreeHitbox other) {
-  vec3 otherpos = transform_in(other.global_center());
-  otherpos = glm::min(glm::max(otherpos, negbox), posbox);
+  otherpos = glm::min(glm::max(otherpos, vec3(0,0,0)), size());
   otherpos = transform_out(otherpos);
   
   return other.contains_noedge(otherpos);
@@ -120,16 +129,16 @@ bool Hitbox::collide(FreeHitbox other) {
 
 bool Hitbox::contains_noedge(vec3 point) {
   point = transform_in(point);
-  return negbox.x < point.x and point.x < posbox.x
-     and negbox.y < point.y and point.y < posbox.y
-     and negbox.z < point.z and point.z < posbox.z;
+  return 0 < point.x and point.x < size().x
+     and 0 < point.y and point.y < size().y
+     and 0 < point.z and point.z < size().z;
 }
 
 bool Hitbox::contains(vec3 point) {
   point = transform_in(point);
-  return negbox.x <= point.x and point.x <= posbox.x
-     and negbox.y <= point.y and point.y <= posbox.y
-     and negbox.z <= point.z and point.z <= posbox.z;
+  return 0 <= point.x and point.x <= size().x
+     and 0 <= point.y and point.y <= size().y
+     and 0 <= point.z and point.z <= size().z;
 }
 
 bool Hitbox::contains(Hitbox other) {
@@ -145,17 +154,10 @@ bool Hitbox::contains(Hitbox other) {
   return true;
 }
 
-bool Hitbox::contains(FreeHitbox other) {
-  vec3 otherpoints[8];
-  other.points(otherpoints);
-  
-  for (int i = 0; i < 8; i ++) {
-    if (!contains(otherpoints[i])) {
-      return false;
-    }
-  }
-  
-  return true;
+ostream& operator<<(ostream& ofile, const Hitbox& hitbox) {
+  ofile << "Hitbox(pos=" << hitbox.position << " negbox=" << hitbox.negbox << " posbox=" << hitbox.posbox
+  << " rot=" << hitbox.rotation << ")";
+  return ofile;
 }
 
 Hitbox Hitbox::boundingbox_points(vec3 position, vec3* points, int num) {
@@ -169,147 +171,6 @@ Hitbox Hitbox::boundingbox_points(vec3 position, vec3* points, int num) {
   
   return Hitbox(position, min, max);
 }
-
-ostream& operator<<(ostream& ofile, const Hitbox& hitbox) {
-  ofile << "Hitbox(pos=" << hitbox.position << " negbox=" << hitbox.negbox << " posbox=" << hitbox.posbox << ")";
-  return ofile;
-}
-
-
-
-
-FreeHitbox::FreeHitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot): Hitbox(pos, nbox, pbox), rotation(rot) {
-  
-}
-
-FreeHitbox::FreeHitbox(Hitbox box, quat rot): Hitbox(box), rotation(rot) {
-  
-}
-
-void FreeHitbox::points(vec3* points) {
-  for (int i = 0; i < 8; i ++) {
-    points[i] = position + rotation * (posbox * vec3(i/4,i/2%2,i%2)) + rotation * (negbox * vec3(1-i/4, 1-i/2%2, 1-i%2));
-  }
-}
-
-Hitbox FreeHitbox::boundingbox() {
-  vec3 pointarr[8];
-  points(pointarr);
-  return boundingbox_points(position, pointarr, 8);
-}
-
-vec3 FreeHitbox::global_center() {
-  return transform_out(local_center());
-}
-
-vec3 FreeHitbox::dirx() {
-  return rotation * vec3(1,0,0);
-}
-
-vec3 FreeHitbox::diry() {
-  return rotation * vec3(0,1,0);
-}
-
-vec3 FreeHitbox::dirz() {
-  return rotation * vec3(0,0,1);
-}
-
-vec3 FreeHitbox::transform_in(vec3 pos) {
-  return glm::inverse(rotation) * (pos - position);
-}
-
-vec3 FreeHitbox::transform_in_dir(vec3 dir) {
-  return glm::inverse(rotation) * dir;
-}
-
-quat FreeHitbox::transform_in(quat rot) {
-  return glm::inverse(rotation) * rot;
-}
-
-vec3 FreeHitbox::transform_out(vec3 pos) {
-  return rotation * pos + position;
-}
-
-vec3 FreeHitbox::transform_out_dir(vec3 dir) {
-  return rotation * dir;
-}
-
-quat FreeHitbox::transform_out(quat rot) {
-  return rotation * rot;
-}
-
-FreeHitbox FreeHitbox::transform_in(Hitbox box) {
-  return FreeHitbox(
-    transform_in(box.position),
-    box.negbox,
-    box.posbox,
-    transform_in(quat(1,0,0,0))
-  );
-}
-
-FreeHitbox FreeHitbox::transform_in(FreeHitbox box) {
-  return FreeHitbox(
-    transform_in(box.position),
-    box.negbox,
-    box.posbox,
-    transform_in(box.rotation)
-  );
-}
-
-FreeHitbox FreeHitbox::transform_out(Hitbox box) {
-  return FreeHitbox(
-    transform_out(box.position),
-    box.negbox,
-    box.posbox,
-    transform_out(quat(1,0,0,0))
-  );
-}
-
-FreeHitbox FreeHitbox::transform_out(FreeHitbox box) {
-  return FreeHitbox(
-    transform_out(box.position),
-    box.negbox,
-    box.posbox,
-    transform_out(box.rotation)
-  );
-}
-
-bool FreeHitbox::collide(Hitbox other) {
-  return other.collide(*this);
-}
-  
-bool FreeHitbox::collide(FreeHitbox other) {
-  Hitbox newbox = transform_in(Hitbox(position, negbox, posbox));
-  FreeHitbox newfree = transform_in(other);
-  return newbox.collide(newfree);
-}
-
-bool FreeHitbox::contains_noedge(vec3 point) {
-  point = transform_in(point);
-  return negbox.x < point.x and point.x < posbox.x
-     and negbox.y < point.y and point.y < posbox.y
-     and negbox.z < point.z and point.z < posbox.z;
-}
-
-bool FreeHitbox::contains(vec3 point) {
-  point = transform_in(point);
-  return negbox.x <= point.x and point.x <= posbox.x
-     and negbox.y <= point.y and point.y <= posbox.y
-     and negbox.z <= point.z and point.z <= posbox.z;
-}
-
-bool FreeHitbox::contains(Hitbox other) {
-  return other.contains(*this);
-}
-
-bool FreeHitbox::contains(FreeHitbox other) {
-  Hitbox newbox (position, negbox, posbox);
-  FreeHitbox newfree = transform_in(other);
-  
-  return newbox.contains(newfree);
-}
-
-
 
 
 
@@ -923,6 +784,68 @@ bool Entity::colliding(const Entity* other) {
 void Entity::kill() {
   
 }
+
+
+
+
+
+
+
+
+
+
+BlockContainer::BlockContainer(Block* b): block(b), allocated(false) {
+	block->set_parent(nullptr, this, nullptr, ivec3(0,0,0), b->scale);
+}
+
+BlockContainer::BlockContainer(int scale): allocated(true) {
+  block = new Block();
+	block->set_parent(nullptr, this, nullptr, ivec3(0,0,0), scale);
+}
+
+BlockContainer::~BlockContainer() {
+  if (allocated) {
+    delete block;
+  }
+}
+
+vec3 BlockContainer::get_position() const {
+	return block->get_position();
+}
+
+Block* BlockContainer::get_global(int x, int y, int z, int size) {
+	if (x >= 0 and y >= 0 and z >= 0 and x < block->scale and y < block->scale and z < block->scale) {
+		return block->get_global(x, y, z, size);
+	} else {
+		return nullptr;
+	}
+}
+
+void BlockContainer::set(ivec4 pos, char val, int direction, int newjoints[6]) {
+  // Block* testblock;
+  // while ((testblock = get_global(pos.x, pos.y, pos.z, pos.w)) == nullptr) {
+  //   Pixel* pix = new Pixel(0, 0, 0, 0, block->scale * csize, nullptr, nullptr);
+  //   Chunk* chunk = pix->subdivide();
+  //   chunk->blocks[0][0][0] = block;
+  //   block->parent = chunk;
+  //   block = chunk;
+  //   pix->del(true);
+  //   delete pix;
+  // }
+  
+  block->set_global(pos, pos.w, val, direction, newjoints);
+}
+
+void BlockContainer::set_global(ivec3 pos, int w, int val, int direction, int newjoints[6]) {
+  block->set_global(pos, w, val, direction, newjoints);
+}
+
+
+
+
+
+
+
 
 
 

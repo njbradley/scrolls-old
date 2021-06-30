@@ -269,10 +269,10 @@ BlockTouchSideIter::BlockTouchSideIter(Block* block, ivec3 dir) {
       
       free = true;
       freeiter = FreeBlockIter(block->world,
-        block->freecontainer->transform_out(position),
-        block->freecontainer->transform_out_dir(dx),
-        block->freecontainer->transform_out_dir(dy),
-        block->freecontainer->transform_out_dir(norm),
+        block->freecontainer->box.transform_out(position),
+        block->freecontainer->box.transform_out_dir(dx),
+        block->freecontainer->box.transform_out_dir(dy),
+        block->freecontainer->box.transform_out_dir(norm),
         vec3(block->scale, block->scale, 0.1f)
       );
     } else {

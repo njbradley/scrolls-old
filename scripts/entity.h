@@ -4,22 +4,28 @@
 #include "classes.h"
 
 #include "collider.h"
-#include "blocks.h"
 #include "items.h"
 #include "rendervec.h"
 
 // Class that represents a rectangular prism, with a position, minimum, and maximum point.
-// the position is not that useful here, it is mostly needed for entities and freehitboxes
 class Hitbox { public:
   vec3 position;
   vec3 negbox;
   vec3 posbox;
+  quat rotation;
   
-  Hitbox(vec3 pos, vec3 nbox, vec3 pbox);
+  Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot = quat(1,0,0,0));
   
   void points(vec3* points);
+  vec3 point1();
+  vec3 point2();
+  vec3 size();
   vec3 local_center();
   vec3 global_center();
+  Hitbox boundingbox();
+  vec3 dirx();
+  vec3 diry();
+  vec3 dirz();
   
   vec3 transform_in(vec3 pos);
   quat transform_in(quat rot);
@@ -29,20 +35,16 @@ class Hitbox { public:
   vec3 transform_out_dir(vec3 pos);
   
   Hitbox transform_in(Hitbox box);
-  FreeHitbox transform_in(FreeHitbox box);
   Hitbox transform_out(Hitbox box);
-  FreeHitbox transform_out(FreeHitbox box);
   
   // boxes collide when they overlap, so bordering cubes are not colliding
   bool collide(Hitbox other);
-  bool collide(FreeHitbox other);
   
   bool contains_noedge(vec3 point);
   bool contains(vec3 point);
   // to be contained, all the points in the other box cant be outside the box
   // but they can be on the border.
   bool contains(Hitbox other);
-  bool contains(FreeHitbox other);
   
   friend ostream& operator<<(ostream& ofile, const Hitbox& hitbox);
   
@@ -57,24 +59,20 @@ class FreeHitbox : public Hitbox { public:
   FreeHitbox(Hitbox box, quat rot);
   FreeHitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot);
   
-  void points(vec3* points);
-  Hitbox boundingbox();
-  vec3 dirx();
-  vec3 diry();
-  vec3 dirz();
-  vec3 global_center();
+  virtual void points(vec3* points);
+  virtual vec3 global_center();
   
-  vec3 transform_in(vec3 pos);
-  quat transform_in(quat rot);
-  vec3 transform_in_dir(vec3 pos);
-  vec3 transform_out(vec3 pos);
-  quat transform_out(quat rot);
-  vec3 transform_out_dir(vec3 pos);
+  virtual vec3 transform_in(vec3 pos);
+  virtual quat transform_in(quat rot);
+  virtual vec3 transform_in_dir(vec3 pos);
+  virtual vec3 transform_out(vec3 pos);
+  virtual quat transform_out(quat rot);
+  virtual vec3 transform_out_dir(vec3 pos);
   
-  FreeHitbox transform_in(Hitbox box);
-  FreeHitbox transform_in(FreeHitbox box);
-  FreeHitbox transform_out(Hitbox box);
-  FreeHitbox transform_out(FreeHitbox box);
+  virtual FreeHitbox transform_in(Hitbox box);
+  virtual FreeHitbox transform_in(FreeHitbox box);
+  virtual FreeHitbox transform_out(Hitbox box);
+  virtual FreeHitbox transform_out(FreeHitbox box);
   
   bool collide(Hitbox other);
   bool collide(FreeHitbox other);
@@ -133,6 +131,19 @@ class Entity { public:
     virtual void kill();
 };
 
+class BlockContainer: public Container { public:
+	Block* block;
+	bool allocated;
+	
+	BlockContainer(Block* b);
+	BlockContainer(int scale);
+	~BlockContainer();
+	vec3 get_position() const;
+	Block* get_global(int x, int y, int z, int size);
+  void set(ivec4 pos, char val, int direction, int joints[6] = nullptr);
+	void set_global(ivec3 pos, int w, int val, int direction, int joints[6] = nullptr);
+	void block_update(ivec3 pos){}
+};
 
 class DisplayEntity: public Entity {
 public:
