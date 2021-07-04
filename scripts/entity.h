@@ -51,39 +51,6 @@ class Hitbox { public:
   static Hitbox boundingbox_points(vec3 pos, vec3* points, int num);
 };
 
-// hitbox that is rotated freely.
-// the position is the rotation point
-class FreeHitbox : public Hitbox { public:
-  quat rotation;
-  
-  FreeHitbox(Hitbox box, quat rot);
-  FreeHitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot);
-  
-  virtual void points(vec3* points);
-  virtual vec3 global_center();
-  
-  virtual vec3 transform_in(vec3 pos);
-  virtual quat transform_in(quat rot);
-  virtual vec3 transform_in_dir(vec3 pos);
-  virtual vec3 transform_out(vec3 pos);
-  virtual quat transform_out(quat rot);
-  virtual vec3 transform_out_dir(vec3 pos);
-  
-  virtual FreeHitbox transform_in(Hitbox box);
-  virtual FreeHitbox transform_in(FreeHitbox box);
-  virtual FreeHitbox transform_out(Hitbox box);
-  virtual FreeHitbox transform_out(FreeHitbox box);
-  
-  bool collide(Hitbox other);
-  bool collide(FreeHitbox other);
-  
-  bool contains_noedge(vec3 point);
-  bool contains(vec3 point);
-  
-  bool contains(Hitbox other);
-  bool contains(FreeHitbox other);
-};
-
 class Entity { public:
     static constexpr float axis_gap = 0.2f;
     vec3 position;

@@ -29,8 +29,8 @@ extern const uint8 lightmax;
 class Block: public Collider { public:
 	ivec3 parentpos;
 	ivec3 globalpos; // should be called localpos, but i really dont want to change everything
-	bool render_flag = true;
-	bool light_flag = true;
+	bool render_flag = false;
+	bool light_flag = false;
 	int scale;
 	Block* parent = nullptr;
 	Container* world;
@@ -140,6 +140,9 @@ class Block: public Collider { public:
 	int get_blocklight(ivec3 dir);
 	Block* raycast(vec3* pos, vec3 dir, double time);
 	vec3 get_position() const;
+	bool collide(Hitbox newbox, FreeBlock* ignore);
+	bool collide(Hitbox newbox, Block* block, FreeBlock* ignore);
+	bool collide_free(Hitbox newbox, Block* block, FreeBlock* ignore);
 	
 	static void write_pix_val(ostream& ofile, char type, unsigned int val);
 	static void read_pix_val(istream& ifile, char* type, unsigned int* val);
@@ -161,6 +164,7 @@ class FreeBlock : public Block { public:
 	void move(vec3 amount);
 	void set_box(Hitbox newbox);
 	bool try_set_box(Hitbox newbox);
+	
 };
 
 class Pixel { public:

@@ -364,7 +364,10 @@ void MainGame::gametick() {
 			cout << "njbradley is king" << endl;
 		} else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 			if (debugblock != nullptr) {
-				debugblock->parbl->set_light_flag();
+				Block* block = debugblock->parbl;
+				cout << block << ' ' << block->render_flag << ' ' << block->pixel->value << ' ' << block->pixel->render_index.index << endl;
+				
+				//debugblock->parbl->set_render_flag();
 			}
 			// ivec3 ppos(world->player->position);
 			// world->set(ppos.x, ppos.y, ppos.z, -1);

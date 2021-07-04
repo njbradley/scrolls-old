@@ -285,6 +285,8 @@ void Player::right_mouse(double deltatime) {
 					world->set_global(blockpos, 1, 0, 0);
 					Block* airblock = world->get_global(blockpos.x, blockpos.y, blockpos.z, 2);
 					if (airblock != nullptr) {
+						cout << "freeblock" << endl;
+						// Hitbox newbox (vec3(0,0,0), vec3(blockpos) - 0.5f, vec3(blockpos) + 0.5f);
 						Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f));
 						FreeBlock* freeblock = new FreeBlock(newbox);
 						freeblock->set_pixel(new Pixel(1));
@@ -298,8 +300,10 @@ void Player::right_mouse(double deltatime) {
 						placing_block = airblock;
 					}
 				} else {
+					cout << "normal" << endl;
 					block->set_global(blockpos, 1, 1, 0);
 					placing_block = block->get_global(blockpos, 1);
+					game->debugblock = placing_block->pixel;
 					// world->get_global(ox, oy, oz, 1)->set_global(ivec3(ox+dx, oy+dy, oz+dz), 1, 1, 0);
 				}
 				placing_dir = dir;
@@ -317,23 +321,27 @@ void Player::right_mouse(double deltatime) {
 		vec2 dist2 = (placing_pointing - angle) * 6.0f;
 		
 		if (placing_freeblock == nullptr and dist > 0.05) {
+			cout << "freeblock" << endl;
 			Pixel pix = *placing_block->pixel;
 			placing_block->pixel->set(0, 0);
+			ivec3 blockpos = placing_block->globalpos;
 			placing_block = placing_block->get_global(blockpos, 2);
+			// Hitbox newbox (vec3(0,0,0), vec3(blockpos) - 0.5f, vec3(blockpos) + 0.5f);
 			Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f));
 			FreeBlock* freeblock = new FreeBlock(newbox);
 			freeblock->set_pixel(new Pixel(1));
 			placing_block->add_freeblock(freeblock);
+			cout << "freescale " << freeblock->scale << endl;
 			//
 			placing_freeblock = freeblock;
 		}
 		if (placing_freeblock != nullptr) {
-			//quat newrot = glm::angleAxis(dist, vec3(placing_dir));
+			quat newrot = glm::angleAxis(dist, vec3(placing_dir));
 			//cout << "settting " << placing_freeblock << ' ' << placing_dir << endl;
 			Hitbox newbox = placing_freeblock->box;
-			//newbox.rotation = newrot;
-			newbox.position += vec3(dist2.x, 0, dist2.y);
-			placing_freeblock->set_box(newbox);
+			newbox.rotation = newrot;
+			// newbox.position += vec3(dist2.x, 0, dist2.y);
+			placing_freeblock->try_set_box(newbox);
 			//placing_freeblock->set_rotation(newrot);
 			// placing_block->set_render_flag();
 		}
@@ -468,6 +476,24 @@ void Player::right_mouse(double deltatime) {
 }
 
 void Player::left_mouse(double deltatime) {
+	
+	if (timeout <= 0) {
+		
+		vec3 hitpos;
+		ivec3 dir;
+		Block* block;
+		raycast(&block, &dir, &hitpos);
+		
+		ivec3 pos (hitpos);
+		
+		world->set_global(pos, 1, 0, 0);
+		game->debugblock = world->get_global(pos.x, pos.y-1, pos.z, 1)->pixel;
+		cout << game->debugblock->parbl->render_flag << '-' << endl;
+		timeout = 0.5;
+	}
+	/*
+	
+	
 	vec3 hitpos;
 	Pixel* pix;
 	DisplayEntity* target_entity;
@@ -618,7 +644,7 @@ void Player::left_mouse(double deltatime) {
 		if (total_attack_recharge <= 0) {
 			total_attack_recharge = 0.2;
 		}
-	}
+	}*/
 }
 
 void Player::die() {
