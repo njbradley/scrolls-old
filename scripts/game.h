@@ -25,6 +25,7 @@ extern Settings* settings;
 extern GraphicsContext* graphics;
 extern AudioContext* audio;
 extern ThreadManager* threadmanager;
+extern PluginManager* pluginmanager;
 
 class Game { public:
 	bool playing = true;

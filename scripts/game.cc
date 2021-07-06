@@ -16,6 +16,7 @@
 #include "ui.h"
 #include "blockgroups.h"
 #include "glue.h"
+#include "plugins.h"
 
 
 
@@ -93,6 +94,7 @@ MainGame::MainGame() {
 	
 	min_ms_per_frame = 1000.0/settings->max_fps;
 	
+	pluginmanager = new PluginManager();
 	matstorage = new MaterialStorage();
 	blocks = new BlockStorage();
 	connstorage = new ConnectorStorage();
@@ -148,6 +150,7 @@ MainGame::~MainGame() {
 	delete blocks;
 	delete recipestorage;
 	delete matstorage;
+	delete pluginmanager;
 	
 	delete threadmanager;
 	delete audio;
@@ -735,6 +738,7 @@ Settings* settings = nullptr;
 GraphicsContext* graphics = nullptr;
 AudioContext* audio = nullptr;
 ThreadManager* threadmanager = nullptr;
+PluginManager* pluginmanager = nullptr;
 
 
 

@@ -159,6 +159,8 @@ class ServerGame;
 class GroupConnection;
 class ConnectorData;
 class ConnectorStorage;
+class Plugin;
+class PluginManager;
 template <typename T> class CommandConst;
 template <typename T> class CommandVar;
 template <typename T, typename ... Tparams> class CommandMethod;
