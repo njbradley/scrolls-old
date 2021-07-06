@@ -15,6 +15,7 @@ class Hitbox { public:
   quat rotation;
   
   Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot = quat(1,0,0,0));
+  Hitbox();
   
   void points(vec3* points);
   vec3 point1();
@@ -26,6 +27,8 @@ class Hitbox { public:
   vec3 dirx();
   vec3 diry();
   vec3 dirz();
+  
+  vec3 in_bounds(vec3 pos);
   
   vec3 transform_in(vec3 pos);
   quat transform_in(quat rot);

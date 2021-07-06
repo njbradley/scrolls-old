@@ -135,6 +135,10 @@ position(pos), dirx(dx), diry(dy), dirz(dz), dims(ndims) {
 	}
 }
 
+FreeBlockIter::FreeBlockIter(Collider* nworld, Hitbox box):
+FreeBlockIter(nworld, box.point1(), box.dirx(), box.diry(), box.dirz(), box.size()) {
+  
+}
 
 Pixel* FreeBlockIter::iterator::operator*() {
   // cout << "-- Used " << pix->parbl->globalpos << ' ' << pix->parbl->scale << endl;

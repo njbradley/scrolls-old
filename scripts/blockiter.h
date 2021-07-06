@@ -44,6 +44,7 @@ class FreeBlockIter { public:
     friend bool operator!=(const iterator& iter1, const iterator& iter2);
   };
 	FreeBlockIter(Collider* world, vec3 pos, vec3 dx, vec3 dy, vec3 dz, vec3 ndims);
+  FreeBlockIter(Collider* world, Hitbox box);
 	FreeBlockIter() {};
   iterator begin();
   iterator end();

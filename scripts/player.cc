@@ -339,9 +339,10 @@ void Player::right_mouse(double deltatime) {
 			quat newrot = glm::angleAxis(dist, vec3(placing_dir));
 			//cout << "settting " << placing_freeblock << ' ' << placing_dir << endl;
 			Hitbox newbox = placing_freeblock->box;
-			newbox.rotation = newrot;
+			// newbox.rotation = newrot;
 			// newbox.position += vec3(dist2.x, 0, dist2.y);
-			placing_freeblock->try_set_box(newbox);
+			cout << " rotation stuff " << newrot << ' ' << newbox.rotation << ' ' << newrot * glm::inverse(newbox.rotation) << endl;
+			placing_freeblock->move(vec3(0,0,0), newrot * glm::inverse(newbox.rotation));
 			//placing_freeblock->set_rotation(newrot);
 			// placing_block->set_render_flag();
 		}

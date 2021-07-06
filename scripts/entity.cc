@@ -32,6 +32,10 @@ Hitbox::Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot): position(pos), negbox(
   
 }
 
+Hitbox::Hitbox(): Hitbox(vec3(0,0,0), vec3(0,0,0), vec3(0,0,0)) {
+  
+}
+
 void Hitbox::points(vec3* points) {
   for (int i = 0; i < 8; i ++) {
     points[i] = transform_out(size() * vec3(i/4,i/2%2,i%2));
@@ -65,17 +69,20 @@ vec3 Hitbox::point2() {
 }
 
 vec3 Hitbox::dirx() {
-  return transform_out(vec3(1,0,0));
+  return transform_out_dir(vec3(1,0,0));
 }
 
 vec3 Hitbox::diry() {
-  return transform_out(vec3(0,1,0));
+  return transform_out_dir(vec3(0,1,0));
 }
 
 vec3 Hitbox::dirz() {
-  return transform_out(vec3(0,0,1));
+  return transform_out_dir(vec3(0,0,1));
 }
 
+vec3 Hitbox::in_bounds(vec3 pos) {
+  return glm::min(glm::max(pos, vec3(0,0,0)), size());
+}
 
 vec3 Hitbox::transform_in(vec3 pos) {
   return glm::inverse(rotation) * (pos - position) - negbox;
