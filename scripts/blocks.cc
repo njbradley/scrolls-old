@@ -522,7 +522,6 @@ void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool re
       pixel->render(vecs, transvecs, faces, render_null);
     }
     for (FREECHILDREN_LOOP(free)) {
-      cout << "rendering free " << free << endl;
       free->render(vecs, transvecs, faces, render_null);
     }
   }
@@ -780,7 +779,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
               cout << ' ' << offblock << offblock->globalpos << ' ' << offblock->scale << endl;
               for (FreeBlock* freeblock = offblock->freeblock; freeblock != nullptr; freeblock = freeblock->freeblock) {
                 cout << "freeblock " << freeblock << endl;
-                if (freeblock->box.collide(linebox)) {
+                if (freeblock->box.collide(linebox, 0)) {
                   cout << " going into free block" << endl;
                   vec3 start = freeblock->box.transform_in(*pos);
                   vec3 newdir = freeblock->box.transform_in(dir);
@@ -853,13 +852,13 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
   return curblock;
 }
 
-bool Block::collide(Hitbox newbox, Hitbox* boxhit, FreeBlock* ignore) {
+bool Block::collide(Hitbox newbox, Hitbox* boxhit, float deltatime, FreeBlock* ignore) {
   for (int x = -1; x < 2; x ++) {
     for (int y = -1; y < 2; y ++) {
       for (int z = -1; z < 2; z ++) {
         ivec3 off (x,y,z);
         Block* block = get_global(globalpos + off * scale, scale);
-        if (collide(newbox, block, boxhit, ignore)) {
+        if (collide(newbox, block, boxhit, deltatime, ignore)) {
           return true;
         }
       }
@@ -868,11 +867,11 @@ bool Block::collide(Hitbox newbox, Hitbox* boxhit, FreeBlock* ignore) {
   return false;
 }
 
-bool Block::collide_free(Hitbox newbox, Block* block, Hitbox* boxhit, FreeBlock* ignore) {
+bool Block::collide_free(Hitbox newbox, Block* block, Hitbox* boxhit, float deltatime, FreeBlock* ignore) {
   while (block != nullptr) {
     for (FreeBlock* free = block->freeblock; free != nullptr; free = free->freeblock) {
       if (free != ignore) {
-        if (collide(newbox, free, boxhit, ignore)) {
+        if (collide(newbox, free, boxhit, deltatime, ignore)) {
           return true;
         }
       }
@@ -882,30 +881,38 @@ bool Block::collide_free(Hitbox newbox, Block* block, Hitbox* boxhit, FreeBlock*
   return false;
 }
 
-bool Block::collide(Hitbox newbox, Block* block, Hitbox* boxhit, FreeBlock* ignore) {
+bool Block::collide(Hitbox newbox, Block* block, Hitbox* boxhit, float deltatime, FreeBlock* ignore) {
   if (block == nullptr) {
     return false;
   }
   
   if (block->continues) {
     for (int i = 0; i < csize3; i ++) {
-      if (collide(newbox, block->children[i], boxhit, ignore)) {
+      if (collide(newbox, block->children[i], boxhit, deltatime, ignore)) {
         return true;
       }
     }
   } else if (block->pixel->value != 0) {
-    if (block->hitbox().collide(newbox)) {
+    if (block->hitbox().collide(newbox, deltatime)) {
       *boxhit = block->hitbox();
       return true;
     }
   }
   
-  if (collide_free(newbox, block, boxhit, ignore)) {
+  if (collide_free(newbox, block, boxhit, deltatime, ignore)) {
     return true;
   }
   return false;
 }
   
+vec3 Block::force(vec3 amount) {
+  if (freecontainer != nullptr) {
+    // freecontainer->move(amount);
+    return vec3(0,0,0);
+  }
+  return amount;
+}
+
 
 
 
@@ -924,35 +931,32 @@ void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int ns
 }
 
 void FreeBlock::move(vec3 amount, quat rot) {
-  cout << "moving " << amount << ' ' << rot << endl;
   Hitbox newbox = box;
-  newbox.position += amount;
-  newbox.rotation *= rot;
+  newbox.velocity = amount;
+  newbox.angular_vel = rot;
   Hitbox boxhit;
-  if (highparent->collide(newbox, &boxhit, this)) {
-    // amount /= 2;
-    // rot /= 2;
-    newbox.position -= amount;
-    newbox.rotation *= glm::inverse(rot);
-    // for (int i = 0; i < 8; i ++) {
-    //   amount /= 2;
-    //   rot /= 2;
-    //   if (highparent->collide(newbox, &boxhit, this)) {
-    //     newbox.position -= amount;
-    //     newbox.rotation *= glm::inverse(rot);
-    //   } else {
-    //     newbox.position += amount;
-    //     newbox.rotation *= rot;
-    //   }
-    // }
-    
+  if (highparent->collide(newbox, &boxhit, 1, this)) {
+    float col_time = -1;
+    if (newbox.collide(boxhit, 1, &col_time)) {
+      cout << "collide " << ' ' << col_time << ' ' << boxhit << endl;
+      newbox.position += amount * col_time;
+      newbox.rotation += rot * col_time;
+    } else {
+      cout << "BRUD " << endl;
+    }
+  } else {
+    newbox.position += amount;
+    newbox.rotation += rot;
   }
+  newbox.velocity = box.velocity;
+  newbox.angular_vel = box.angular_vel;
+  cout << " newbox " << newbox << endl;
   set_box(newbox);
 }
   
 bool FreeBlock::try_set_box(Hitbox newbox) {
   Hitbox boxhit;
-  if (highparent->collide(newbox, &boxhit, this)) {
+  if (highparent->collide(newbox, &boxhit, 1, this)) {
     return false;
   }
   set_box(newbox);
@@ -988,11 +992,8 @@ void FreeBlock::set_box(Hitbox newbox) {
     }
   }
   box = newbox;
-  cout << parent << ' ' << freecontainer << '-' << this << endl;
-  cout << " set_box " << render_flag << ' ' << highparent->render_flag << endl;
   render_flag = false;
   set_render_flag();
-  cout << " set_box " << render_flag << ' ' << highparent->render_flag << endl;
   for (Pixel* pix : iter()) {
     pix->parbl->set_render_flag();
   }

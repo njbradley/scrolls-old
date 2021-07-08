@@ -28,7 +28,8 @@ void print(vec3 v) {
 
 
 
-Hitbox::Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot): position(pos), negbox(nbox), posbox(pbox), rotation(rot) {
+Hitbox::Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot, vec3 vel, quat angvel):
+position(pos), negbox(nbox), posbox(pbox), rotation(rot), velocity(vel), angular_vel(angvel) {
   
 }
 
@@ -36,79 +37,79 @@ Hitbox::Hitbox(): Hitbox(vec3(0,0,0), vec3(0,0,0), vec3(0,0,0)) {
   
 }
 
-void Hitbox::points(vec3* points) {
+void Hitbox::points(vec3* points) const {
   for (int i = 0; i < 8; i ++) {
     points[i] = transform_out(size() * vec3(i/4,i/2%2,i%2));
   }
 }
 
-Hitbox Hitbox::boundingbox() {
+Hitbox Hitbox::boundingbox() const {
   vec3 pointarr[8];
   points(pointarr);
   return boundingbox_points(position, pointarr, 8);
 }
 
-vec3 Hitbox::size() {
+vec3 Hitbox::size() const {
   return posbox - negbox;
 }
 
-vec3 Hitbox::local_center() {
+vec3 Hitbox::local_center() const {
   return size() / 2.0f;
 }
 
-vec3 Hitbox::global_center() {
+vec3 Hitbox::global_center() const {
   return transform_out(local_center());
 }
 
-vec3 Hitbox::point1() {
+vec3 Hitbox::point1() const {
   return transform_out(vec3(0,0,0));
 }
 
-vec3 Hitbox::point2() {
+vec3 Hitbox::point2() const {
   return transform_out(size());
 }
 
-vec3 Hitbox::dirx() {
+vec3 Hitbox::dirx() const {
   return transform_out_dir(vec3(1,0,0));
 }
 
-vec3 Hitbox::diry() {
+vec3 Hitbox::diry() const {
   return transform_out_dir(vec3(0,1,0));
 }
 
-vec3 Hitbox::dirz() {
+vec3 Hitbox::dirz() const {
   return transform_out_dir(vec3(0,0,1));
 }
 
-vec3 Hitbox::in_bounds(vec3 pos) {
+vec3 Hitbox::in_bounds(vec3 pos) const {
   return glm::min(glm::max(pos, vec3(0,0,0)), size());
 }
 
-vec3 Hitbox::transform_in(vec3 pos) {
+vec3 Hitbox::transform_in(vec3 pos) const {
   return glm::inverse(rotation) * (pos - position) - negbox;
 }
 
-vec3 Hitbox::transform_in_dir(vec3 dir) {
+vec3 Hitbox::transform_in_dir(vec3 dir) const {
   return glm::inverse(rotation) * dir;
 }
 
-quat Hitbox::transform_in(quat rot) {
+quat Hitbox::transform_in(quat rot) const {
   return glm::inverse(rotation) * rot;
 }
 
-vec3 Hitbox::transform_out(vec3 pos) {
+vec3 Hitbox::transform_out(vec3 pos) const {
   return rotation * (pos + negbox) + position;
 }
 
-vec3 Hitbox::transform_out_dir(vec3 dir) {
+vec3 Hitbox::transform_out_dir(vec3 dir) const {
   return rotation * dir;
 }
 
-quat Hitbox::transform_out(quat rot) {
+quat Hitbox::transform_out(quat rot) const {
   return rotation * rot;
 }
 
-Hitbox Hitbox::transform_in(Hitbox box) {
+Hitbox Hitbox::transform_in(Hitbox box) const {
   return Hitbox(
     transform_in(box.position),
     box.negbox,
@@ -117,7 +118,7 @@ Hitbox Hitbox::transform_in(Hitbox box) {
   );
 }
 
-Hitbox Hitbox::transform_out(Hitbox box) {
+Hitbox Hitbox::transform_out(Hitbox box) const {
   return Hitbox(
     transform_out(box.position),
     box.negbox,
@@ -126,29 +127,89 @@ Hitbox Hitbox::transform_out(Hitbox box) {
   );
 }
 
-bool Hitbox::collide(Hitbox other) {
-  vec3 otherpos = transform_in(other.global_center());
-  otherpos = glm::min(glm::max(otherpos, vec3(0,0,0)), size());
-  otherpos = transform_out(otherpos);
-  
-  return other.contains_noedge(otherpos);
+float Hitbox::axis_projection(vec3 axis) const {
+  return std::abs(glm::dot(transform_out_dir(size() * vec3(1,0,0)), axis))
+       + std::abs(glm::dot(transform_out_dir(size() * vec3(0,1,0)), axis))
+       + std::abs(glm::dot(transform_out_dir(size() * vec3(0,0,1)), axis));
 }
 
-bool Hitbox::contains_noedge(vec3 point) {
+bool Hitbox::collide(Hitbox other, float deltatime, float* col_time) const {
+  /// using separating axis theorem:
+  // https://www.jkh.me/files/tutorials/Separating%20Axis%20Theorem%20for%20Oriented%20Bounding%20Boxes.pdf
+  
+  vec3 axes[] = {
+    dirx(), diry(), dirz(), other.dirx(), other.diry(), other.dirz(),
+    glm::cross(dirx(), other.dirx()), glm::cross(dirx(), other.diry()), glm::cross(dirx(), other.dirz()),
+    glm::cross(diry(), other.dirx()), glm::cross(diry(), other.diry()), glm::cross(diry(), other.dirz()),
+    glm::cross(dirz(), other.dirx()), glm::cross(dirz(), other.diry()), glm::cross(dirz(), other.dirz()),
+  };
+  
+  vec3 tvec = global_center() - other.global_center(); // vec to other box
+  
+  // if (glm::length(tvec) >= (glm::length(size()) + glm::length(other.size())) / 2.0f) {
+  //   return false;
+  // }
+  if (glm::length(tvec) < (std::min(std::min(size().x, size().y), size().z)
+      + std::min(std::min(other.size().x, other.size().y), other.size().z)) / 2.0f) {
+    return true;
+  }
+  
+  bool collides = true;
+  float maxtime = 0;
+  
+  // cout << "T " << tvec << endl;
+  for (vec3 axis : axes) {
+    if (glm::length(axis) > 0) {
+      axis = axis / glm::length(axis);
+      // cout << "Axis: " << axis << endl;
+      float aproj = axis_projection(axis);
+      float bproj = other.axis_projection(axis);
+      float tproj = std::abs(glm::dot(tvec, axis));
+      // cout << aproj << ' ' << bproj << ' ' << tproj << endl;
+      float overlap = tproj - (aproj + bproj) / 2.0f;
+      if (overlap >= 0) {
+        collides = false;
+        
+        float avelproj = glm::dot(axis, velocity);
+        float bvelproj = glm::dot(axis, other.velocity);
+        if (glm::dot(axis, tvec) > 0) {
+          avelproj = -avelproj;
+        } else {
+          bvelproj = -bvelproj;
+        }
+        if (avelproj + bvelproj != 0) {
+          float time = overlap / (avelproj + bvelproj);
+          if (time > maxtime) {
+            maxtime = time;
+          }
+        }
+      }
+    }
+  }
+  
+  if (col_time != nullptr) {
+    *col_time = maxtime;
+    return collides or (maxtime >= 0 and maxtime <= deltatime);
+  }
+  
+  return collides;
+}
+
+bool Hitbox::contains_noedge(vec3 point) const {
   point = transform_in(point);
   return 0 < point.x and point.x < size().x
      and 0 < point.y and point.y < size().y
      and 0 < point.z and point.z < size().z;
 }
 
-bool Hitbox::contains(vec3 point) {
+bool Hitbox::contains(vec3 point) const {
   point = transform_in(point);
   return 0 <= point.x and point.x <= size().x
      and 0 <= point.y and point.y <= size().y
      and 0 <= point.z and point.z <= size().z;
 }
 
-bool Hitbox::contains(Hitbox other) {
+bool Hitbox::contains(Hitbox other) const {
   vec3 otherpoints[8];
   other.points(otherpoints);
   

@@ -13,41 +13,46 @@ class Hitbox { public:
   vec3 negbox;
   vec3 posbox;
   quat rotation;
+  vec3 velocity;
+  quat angular_vel;
   
-  Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot = quat(1,0,0,0));
+  Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot = quat(1,0,0,0), vec3 vel = vec3(0,0,0), quat angvel = quat(1,0,0,0));
   Hitbox();
   
-  void points(vec3* points);
-  vec3 point1();
-  vec3 point2();
-  vec3 size();
-  vec3 local_center();
-  vec3 global_center();
-  Hitbox boundingbox();
-  vec3 dirx();
-  vec3 diry();
-  vec3 dirz();
+  void points(vec3* points) const;
+  vec3 point1() const;
+  vec3 point2() const;
+  vec3 size() const;
+  vec3 local_center() const;
+  vec3 global_center() const;
+  Hitbox boundingbox() const;
+  vec3 dirx() const;
+  vec3 diry() const;
+  vec3 dirz() const;
   
-  vec3 in_bounds(vec3 pos);
+  vec3 in_bounds(vec3 pos) const;
   
-  vec3 transform_in(vec3 pos);
-  quat transform_in(quat rot);
-  vec3 transform_in_dir(vec3 pos);
-  vec3 transform_out(vec3 pos);
-  quat transform_out(quat rot);
-  vec3 transform_out_dir(vec3 pos);
+  vec3 transform_in(vec3 pos) const;
+  quat transform_in(quat rot) const;
+  vec3 transform_in_dir(vec3 pos) const;
+  vec3 transform_out(vec3 pos) const;
+  quat transform_out(quat rot) const;
+  vec3 transform_out_dir(vec3 pos) const;
   
-  Hitbox transform_in(Hitbox box);
-  Hitbox transform_out(Hitbox box);
+  Hitbox transform_in(Hitbox box) const;
+  Hitbox transform_out(Hitbox box) const;
   
   // boxes collide when they overlap, so bordering cubes are not colliding
-  bool collide(Hitbox other);
+  float axis_projection(vec3 axis) const;
+  bool collide(Hitbox other, float deltatime, float* coltime = nullptr) const;
   
-  bool contains_noedge(vec3 point);
-  bool contains(vec3 point);
+  bool contains_noedge(vec3 point) const;
+  bool contains(vec3 point) const;
   // to be contained, all the points in the other box cant be outside the box
   // but they can be on the border.
-  bool contains(Hitbox other);
+  bool contains(Hitbox other) const;
+  
+  void timestep(float deltatime);
   
   friend ostream& operator<<(ostream& ofile, const Hitbox& hitbox);
   

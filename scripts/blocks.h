@@ -140,9 +140,11 @@ class Block: public Collider { public:
 	int get_blocklight(ivec3 dir);
 	Block* raycast(vec3* pos, vec3 dir, double time);
 	vec3 get_position() const;
-	bool collide(Hitbox newbox, Hitbox* boxhit, FreeBlock* ignore);
-	bool collide(Hitbox newbox, Block* block, Hitbox* boxhit, FreeBlock* ignore);
-	bool collide_free(Hitbox newbox, Block* block, Hitbox* boxhit, FreeBlock* ignore);
+	bool collide(Hitbox newbox, Hitbox* boxhit, float deltatime, FreeBlock* ignore);
+	bool collide(Hitbox newbox, Block* block, Hitbox* boxhit, float deltatime, FreeBlock* ignore);
+	bool collide_free(Hitbox newbox, Block* block, Hitbox* boxhit, float deltatime, FreeBlock* ignore);
+	
+	vec3 force(vec3 amount);
 	
 	static void write_pix_val(ostream& ofile, char type, unsigned int val);
 	static void read_pix_val(istream& ifile, char* type, unsigned int* val);
@@ -153,6 +155,10 @@ class Block: public Collider { public:
 class FreeBlock : public Block { public:
 	Hitbox box;
 	Block* highparent;
+	vec3 velocity;
+	quat anglularvel;
+	bool consts[6] = {false, false, false, false, false, false};
+	vec3 customconsts[8];
 	
 	FreeBlock(Hitbox newbox);
 	FreeBlock(Block block, Hitbox newbox);

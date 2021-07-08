@@ -341,7 +341,6 @@ void Player::right_mouse(double deltatime) {
 			Hitbox newbox = placing_freeblock->box;
 			// newbox.rotation = newrot;
 			// newbox.position += vec3(dist2.x, 0, dist2.y);
-			cout << " rotation stuff " << newrot << ' ' << newbox.rotation << ' ' << newrot * glm::inverse(newbox.rotation) << endl;
 			placing_freeblock->move(vec3(0,0,0), newrot * glm::inverse(newbox.rotation));
 			//placing_freeblock->set_rotation(newrot);
 			// placing_block->set_render_flag();
