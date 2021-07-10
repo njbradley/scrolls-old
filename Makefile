@@ -2,7 +2,8 @@
 CXX := g++
 CXXFLAGS := -std=c++17 -DGLEW_STATIC -I scripts/
 LIBS := -lglew32s -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32
-LDFLAGS := -rdynamic
+LDFLAGS :=
+DLLFLAGS :=
 ifeq ($(BUILD),RELEASE)
 OPT := -O3
 else
@@ -13,12 +14,18 @@ endif
 ifeq ($(PLAT),MAC)
 LIBS := -lglfw -framework CoreVideo -framework OpenGL -framework IOKit -lGLEW -lopenal -lalut -ldl
 DLLSUFFIX :=.so
+LDFLAGS := -rdynamic
+DLLFLAGS := -fPIC
 else
 ifeq ($(PLAT),LINUX)
 LIBS := -lGLEW -lGL -pthread -lglfw -lopenal -lalut -lboost_system -ldl
 DLLSUFFIX :=.so
+LDFLAGS := -rdynamic
+DLLFLAGS := -fPIC
 else
 LIBS := -lglew32 -lopenal -lalut -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32 -lboost_system-mt -lWs2_32 -ldwarfstack -ldbghelp
+DLLFLAGS := -lmain -L build/
+LDFLAGS := -Wl,--out-implib,build/libmain.a,--export-all-symbols
 EXESUFFIX :=.exe
 DLLSUFFIX :=.dll
 endif
@@ -50,7 +57,7 @@ $(MAINS): build/%.o : scripts/%.cc $(DEPS)
 # 	$(CXX) -c -o build/$@ scripts/$< $(OPT) $(CXXFLAGS)
 
 $(TARGETS): % : build/%.o $(OBJ)
-	$(CXX) -o $@$(EXESUFFIX) $^ $(OPT) $(CXXFLAGS) $(LIBS) $(LDFLAGS)
+	$(CXX) -o bin/$@$(EXESUFFIX) $^ $(OPT) $(CXXFLAGS) $(LIBS) $(LDFLAGS)
 
-scrolls:
-	$(CXX) -shared -o resources/plugins/scrolls$(DLLSUFFIX) scripts/scrolls/scrolls.cc -fPIC $(CXXFLAGS) $(LIBS) $(LDFLAGS)
+scrolls: scrolls/scrolls.cc $(DEPS)
+	$(CXX) -shared -o resources/plugins/scrolls$(DLLSUFFIX) scrolls/scrolls.cc $(DLLFLAGS) $(CXXFLAGS) $(LIBS)

@@ -4,7 +4,7 @@
 #include "classes.h"
 
 #ifdef _WIN32
-#include <basetsd.h>
+#include <libloaderapi.h>
 #endif
 
 class Plugin { public:
