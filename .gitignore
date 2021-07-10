@@ -4,7 +4,6 @@
 saves
 command.bat
 dump*.txt
-build/
 .DS_Store
 crash-reports/
 /scripts/stb/
