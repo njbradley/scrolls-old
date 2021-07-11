@@ -761,11 +761,33 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
   cout << linebox << ' ' << linebox.boundingbox() << endl;
   
   FreeBlockIter freeiter(world, linebox.boundingbox());
-  cout << freeiter.dirx << ' ' << freeiter.dims << endl;
   
   double best_time = timeleft;
   
-  for (Block* block : freeiter.bases) {
+  for (int i = 0; i < freeiter.num_bases; i ++) {
+    Block* block = freeiter.bases[i];
+    cout << block << ' ' << block->globalpos << ' ' << block->scale << ' ' << endl;
+  }
+  
+  cout << freeiter.bases[0]->hitbox().contains(linebox) << endl;
+  int num = 0;
+  int total = 0;
+  cout << "START "<< endl;
+  long start = clock();
+  for (Block* block : CollidingZoneIter(freeiter.bases[0])) {
+    if (block->parent == nullptr) {
+      cout << num << endl;
+      num = 0;
+    }
+    num ++;
+    total ++;
+    // cout << block << ' ' << block->globalpos << ' ' << block->scale << endl;
+  }
+  cout << num << endl;
+  cout << clock() - start << ' ' << total << " times " << endl;
+  
+  /*
+    
     Block* parblock = block;
     cout << "STARTING " << block << endl;
     while (parblock != nullptr) {
@@ -848,7 +870,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
       parblock = parblock->parent;
     }
   }
-  
+  */
   return curblock;
 }
 

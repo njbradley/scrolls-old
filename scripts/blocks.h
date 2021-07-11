@@ -58,7 +58,7 @@ class Block: public Collider { public:
 	// prevents setting render flags from going up,
 	// and from render and lighting updates from going down
 	// Important: not enough for true thread safety, only
-	// minimal protection if you know the flags are not set
+	// minimal protection
 	void lock();
 	void unlock();
 	// sets the parent of this block (only call for toplevel blocks)
