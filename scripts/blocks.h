@@ -125,6 +125,8 @@ class Block: public Collider { public:
 	void set_light_flag();
 	void set_all_render_flags();
 	
+	void timestep(float deltatime);
+	
 	void render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null);
 	void lighting_update();
 	
@@ -159,6 +161,8 @@ class FreeBlock : public Block { public:
 	quat anglularvel;
 	bool consts[6] = {false, false, false, false, false, false};
 	vec3 customconsts[8];
+	float maxtime = -1;
+	Hitbox maxbox;
 	
 	FreeBlock(Hitbox newbox);
 	FreeBlock(Block block, Hitbox newbox);
@@ -170,6 +174,8 @@ class FreeBlock : public Block { public:
 	void move(vec3 amount, quat rot);
 	void set_box(Hitbox newbox);
 	bool try_set_box(Hitbox newbox);
+	void timestep_freeblock(float deltatime, Block* block);
+	void timestep(float deltatime);
 };
 
 class Pixel { public:

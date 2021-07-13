@@ -44,31 +44,6 @@ class FreeBlockIter { public:
   iterator begin();
   iterator end();
 };
-
-class CollidingZoneIter { public:
-  static constexpr ivec3 start_pos = ivec3(0,0,0);
-  static constexpr ivec3 end_pos = ivec3(csize,csize,csize)-1;
-  Block* base;
-  ivec3 blockcenter;
-  int blockscale;
-	ivec3 (*increment_func)(ivec3 pos, ivec3 startpos, ivec3 endpos);
-  class iterator { public:
-    CollidingZoneIter* parent;
-    Block* block;
-    ivec3 baseoffset;
-    Block* operator*();
-    iterator operator++();
-    bool colliding(Block*);
-    void increment();
-    void increment_base();
-    void increment_up();
-    void get_to_val();
-    friend bool operator!=(const iterator& iter1, const iterator& iter2);
-  };
-  CollidingZoneIter(Block* nblock);
-  iterator begin();
-  iterator end();
-};
   
 
 class BlockTouchSideIter { public:

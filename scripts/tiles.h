@@ -27,7 +27,7 @@ class Tile {
 		Tile(ivec3 position, World* world, istream& ifile);
 		Tile(ivec3 position, World* world);
 		~Tile();
-		void timestep();
+		void timestep(float deltatime);
 		void drop_ticks();
 		void render(RenderVecs* vecs, RenderVecs* transvecs);
 		void save();

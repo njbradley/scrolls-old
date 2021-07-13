@@ -511,6 +511,25 @@ void Block::set_light_flag() {
   }
 }
 
+void Block::timestep(float deltatime) {
+  if (freecontainer != nullptr) {
+    freecontainer->timestep(deltatime);
+    return;
+  }
+  
+  if (freeblock != nullptr) {
+    freeblock->timestep(deltatime);
+  }
+  
+  if (continues) {
+    for (int i = 0; i < csize3; i ++) {
+      children[i]->timestep(deltatime);
+    }
+  }
+}
+
+
+
 void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
   if (render_flag and !locked) {
     render_flag = false;
@@ -767,26 +786,6 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
   for (int i = 0; i < freeiter.num_bases; i ++) {
     Block* block = freeiter.bases[i];
     cout << block << ' ' << block->globalpos << ' ' << block->scale << ' ' << endl;
-  }
-  
-  cout << freeiter.bases[0]->hitbox().contains(linebox) << endl;
-  int num = 0;
-  int total = 0;
-  cout << "START "<< endl;
-  long start = clock();
-  for (Block* block : CollidingZoneIter(freeiter.bases[0])) {
-    if (block->parent == nullptr) {
-      cout << num << endl;
-      num = 0;
-    }
-    num ++;
-    total ++;
-    // cout << block << ' ' << block->globalpos << ' ' << block->scale << endl;
-  }
-  cout << num << endl;
-  cout << clock() - start << ' ' << total << " times " << endl;
-  
-  /*
     
     Block* parblock = block;
     cout << "STARTING " << block << endl;
@@ -870,7 +869,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
       parblock = parblock->parent;
     }
   }
-  */
+  
   return curblock;
 }
 
@@ -951,6 +950,58 @@ void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int ns
   highparent = nparent;
   Block::set_parent(nullptr, nworld, this, ppos, nscale);
 }
+
+void FreeBlock::timestep_freeblock(float deltatime, Block* block) {
+  float coltime = deltatime;
+  
+  if (block->freebox().collide(box, deltatime)) {
+    if (block->freeblock != nullptr and block->freeblock->box.collide(box, deltatime, &coltime)) {
+      if (coltime < maxtime) {
+        maxtime = coltime;
+        maxbox = block->freeblock->box;
+      }
+      if (coltime < block->freeblock->maxtime) {
+        block->freeblock->maxtime = coltime;
+        block->freeblock->maxbox = box;
+      }
+    }
+    
+    if (block->continues) {
+      for (int i = 0; i < csize3; i ++) {
+        timestep_freeblock(deltatime, block->children[i]);
+      }
+    }
+  }
+}
+
+void FreeBlock::timestep(float deltatime) {
+  maxtime = deltatime;
+  maxbox = Hitbox();
+  
+  // freeblock -> world collisisions
+  float coltime = deltatime;
+  FreeBlockIter freeiter (highparent, box);
+  for (int i = 0; i < freeiter.num_bases; i ++) {
+    for (Pixel* pix : freeiter.bases[i]->iter()) {
+      if (pix->parbl->hitbox().collide(box, deltatime, &coltime) and coltime < maxtime) {
+        maxtime = coltime;
+      }
+    }
+  }
+  
+  // freeblock -> freeblock collisiions
+  for (int x = -1; x < 2; x ++) {
+    for (int y = -1; y < 2; y ++) {
+      for (int z = -1; z < 2; z ++) {
+        Block* block = highparent->get_global(highparent->globalpos + ivec3(x,y,z) * highparent->scale, highparent->scale);
+        timestep_freeblock(deltatime, block);
+      }
+    }
+  }
+  
+  box.timestep(maxtime);
+}
+  
 
 void FreeBlock::move(vec3 amount, quat rot) {
   Hitbox newbox = box;

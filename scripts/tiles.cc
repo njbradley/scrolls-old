@@ -149,11 +149,11 @@ void Tile::save() {
   chunk->to_file(ofile);
 }
 
-void Tile::timestep() {
-  if (deleting) {
+void Tile::timestep(float deltatime) {
+  if (deleting or !fully_loaded) {
     return;
   }
-  // ERR: started deleting while this function was running
+  chunk->timestep(deltatime);
 }
 
 void Tile::drop_ticks() {

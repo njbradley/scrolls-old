@@ -364,6 +364,13 @@ void World::timestep() {
     player->timestep();
   }
   
+  for (Tile* tile : tiles) {
+    tile->timestep(dt);
+  }
+  
+  
+  
+  
   daytime += dt;
   if (daytime > 2000) {
     daytime -= 2000;

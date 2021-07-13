@@ -222,6 +222,11 @@ bool Hitbox::contains(Hitbox other) const {
   return true;
 }
 
+void Hitbox::timestep(float deltatime) {
+  position += velocity * deltatime;
+  rotation += angular_vel * deltatime;
+}
+
 ostream& operator<<(ostream& ofile, const Hitbox& hitbox) {
   ofile << "Hitbox(pos=" << hitbox.position << " negbox=" << hitbox.negbox << " posbox=" << hitbox.posbox
   << " rot=" << hitbox.rotation << ")";
