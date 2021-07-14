@@ -153,7 +153,9 @@ void Tile::timestep(float deltatime) {
   if (deleting or !fully_loaded) {
     return;
   }
-  chunk->timestep(deltatime);
+  for (FreeBlock* free = allfreeblocks; free != nullptr; free = free->allfreeblocks) {
+    free->timestep(deltatime);
+  }
 }
 
 void Tile::drop_ticks() {
@@ -184,7 +186,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
     vector<BlockGroup*> groups;
     
     chunk = new Block();
-    chunk->set_parent(world, pos, chunksize);
+    chunk->set_parent(this, pos, chunksize);
     chunk->from_file(ifile);
     
     const ivec3 dir_array[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
@@ -200,7 +202,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
 
 Tile::Tile(ivec3 position, World* nworld, istream& ifile): pos(position), world(nworld), chunksize(nworld->chunksize), deleting(false) {
   chunk = new Block();
-  chunk->set_parent(world, position, chunksize);
+  chunk->set_parent(this, position, chunksize);
   chunk->from_file(ifile);
   
   const ivec3 dir_array[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
@@ -260,38 +262,37 @@ char Tile::gen_block(ostream& ofile, int gx, int gy, int gz, int scale) {
     }
   }
 }
-/*
 
-char World::gen_block(ostream& ofile, ChunkLoader* loader, int gx, int gy, int gz, int scale) {
-  if (scale == 1) {
-    char val = loader->gen_func(gx, gy, gz);
-    ofile << val;
-    return val;
-  } else {
-    stringstream ss;
-    ss << '{';
-    char val = gen_block(ss, loader, gx, gy, gz, scale/2);
-    bool all_same = val != -1;
-    for (int x = 0; x < csize; x ++) {
-      for (int y = 0; y < csize; y ++) {
-        for (int z = 0; z < csize; z ++) {
-          if (x > 0 or y > 0 or z > 0) {
-            char newval = gen_block(ss, loader, gx+x*(scale/2), gy+y*(scale/2), gz+z*(scale/2), scale/2);
-            all_same = all_same and newval == val;
-          }
-        }
-      }
-    }
-    if (all_same) {
-      ofile << val;
-      return -1;
-    } else {
-      ss << '}';
-      ofile << ss.rdbuf();
-      return 0xff;
+
+Block* Tile::get_global(int x,int y,int z,int scale) {
+  return world->get_global(x,y,z,scale);
+}
+
+vec3 Tile::get_position() const {
+  return pos * World::chunksize;
+}
+
+void Tile::block_update(ivec3 pos) {
+  world->block_update(pos);
+}
+
+void Tile::set_global(ivec3 pos, int w, int val, int direc, int joints[6]) {
+  world->set_global(pos, w, val, direc, joints);
+}
+
+void Tile::add_freeblock(FreeBlock* freeblock) {
+  freeblock->allfreeblocks = allfreeblocks;
+  allfreeblocks = freeblock;
+}
+
+void Tile::remove_freeblock(FreeBlock* freeblock) {
+  FreeBlock** free = &allfreeblocks;
+  while (*free != nullptr) {
+    if (*free == freeblock) {
+      *free = (*free)->allfreeblocks;
+      return;
     }
   }
 }
-*/
 
 #endif

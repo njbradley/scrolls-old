@@ -14,17 +14,20 @@
 extern const uint8 lightmax;
 
 
-// The main class of the octree. Has three states:
+// Blocks are the main structural class of the world, they create a three dimentional tree, where each node
+// has 8 (or more, change csize) children. The scale of a block is the side length, so each child
+// is half the scale of their parent.
 //
-// pixel type: This is where the block is an end of the tree, and it
-//   has a value. continues is false, and pixel points to a pixel.
+// The tree structure means that large blocks of the same type (like air) can be consolodated to a larger
+// block and save on memory usage
 //
+// There are two states that a block can be in:
 //
-// a block can also be "floating", when it is not on the standard xyz grid
-// in that case, globalpos is no longer global, it is local to the group of blocks
-// in the same axis.
-// freeblock is another child that is "floading". it is also half the scale of the parent,
+// Pixel type (continues = false): a leaf node in the tree, meaning it is a block. has a pointer to a
+// pixel object, and the children array is not used
 //
+// Chunk type (continues = true): an internal node that has 8 children. Has to have a scale larger than
+// 1 and the pixel pointer isn't used
 
 class Block: public Collider { public:
 	ivec3 parentpos;
@@ -37,7 +40,7 @@ class Block: public Collider { public:
 	FreeBlock* freecontainer = nullptr;
 	bool continues;
 	bool locked = false;
-	FreeBlock* freeblock = nullptr;
+	FreeBlock* freechild = nullptr;
 	union {
 		Pixel* pixel;
 		Block* children[csize3];
@@ -69,8 +72,8 @@ class Block: public Collider { public:
 	void set_child(ivec3 pos, Block* block);
 	Block* swap_child(ivec3 pos, Block* block);
 	
-	void add_freeblock(FreeBlock* freeblock);
-	void remove_freeblock(FreeBlock* freeblock);
+	void add_freechild(FreeBlock* freeblock);
+	void remove_freechild(FreeBlock* freeblock);
 	// sets the pixel of this block
 	// set_pixel deletes the current pixel, swap_pixel
 	// returns it
@@ -152,17 +155,46 @@ class Block: public Collider { public:
 	static void read_pix_val(istream& ifile, char* type, unsigned int* val);
 };
 
-// Freeblocks: a freeblock is a block that is not on the grid, shifted in the middle
-// of a block or rotated.
+// FreeBlocks are blocks not grid alligned
+// They behave similar to normal blocks, they have a parent that is double their
+// scale, and the parent and child are linked with pointers.
+//
+// A freeblock is a child
+// when it falls in the bounding cube twice the scale of the parent block.
+// This means that these bounding boxes (called freeboxes in the code) overlap,
+// but this is so that a freeblock is never straddling an edge, there will always be
+// a parent that fully contains any freeblock
+//
+// 																					         V-- this overlap of freeboxes between blocks next to each other
+// (------)															(-------(---------)-------)     means that a child freeblock will always be fully
+// ( |==| )	<-- freebox (extends 				(   |===(====|====)===|   )    contained in at least one parent block (cause even
+// ( |==| )			scale/2 from all faces)	(   |   (    |    )   |   )    if a cube is rotated to create the largest bounding
+// (--^---)															(   |   (    |    )   |   )    box, it is still less than the parents size, which
+//    |																	(   |===(====|====)===|   )    is how big the overlap is)
+// normal block													(-------(---------)-------)
+//
+// Freeblocks are stored in a block with the freeblock attribute, which points to a child.
+// Freeblocks can't be inside freeblocks (no nesting), so instead the freeblock attr on freeblocks
+// is used to make a linked list of all freeblocks in the normal parent block.
+//
+// [Parent block] -> [freeblock] -> [other freeblock] -> nullptr
+//   (scale 4)					(scale 2)				(scale 1)
+// these two freeblocks are both in parentblock, and have separate rotations/positions
+//
+// In addition, to speed up collisions, a second linked list is maintained through all freeblocks
+// inside a tile. This is done with the allfreeblocks pointer.
+
+
 class FreeBlock : public Block { public:
 	Hitbox box;
-	Block* highparent;
+	Block* highparent = nullptr;
 	vec3 velocity;
 	quat anglularvel;
 	bool consts[6] = {false, false, false, false, false, false};
 	vec3 customconsts[8];
 	float maxtime = -1;
 	Hitbox maxbox;
+	FreeBlock* allfreeblocks = nullptr;
 	
 	FreeBlock(Hitbox newbox);
 	FreeBlock(Block block, Hitbox newbox);

@@ -62,7 +62,7 @@ int children_inc(Block** children, int i) {
 //      .....
 #define CHILDREN_LOOP(varname) int varname = children_begin(children); varname < csize3; varname = children_inc(children, varname)
 
-#define FREECHILDREN_LOOP(varname) FreeBlock* varname = freeblock; varname != nullptr; varname = varname->freeblock
+#define FREECHILDREN_LOOP(varname) FreeBlock* varname = freechild; varname != nullptr; varname = varname->freechild
 
 Block::Block(): continues(false), pixel(nullptr) {
   // for (int i = 0; i < csize3; i ++) {
@@ -91,8 +91,8 @@ Block::~Block() {
     }
     delete pixel;
   }
-  if (freeblock != nullptr) {
-    delete freeblock;
+  if (freechild != nullptr) {
+    delete freechild;
   }
 }
 
@@ -170,23 +170,23 @@ Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ISPIXEL)
 }
 
 
-void Block::add_freeblock(FreeBlock* newfree) {
-  FreeBlock** freedest = &freeblock;
+void Block::add_freechild(FreeBlock* newfree) {
+  FreeBlock** freedest = &freechild;
   while (*freedest != nullptr) {
-    freedest = &(*freedest)->freeblock;
+    freedest = &(*freedest)->freechild;
   }
   
   *freedest = newfree;
   newfree->set_parent(this, world, ivec3(0,0,0), scale/2);
 }
 
-void Block::remove_freeblock(FreeBlock* newfree) {
-  FreeBlock** freedest = &freeblock;
+void Block::remove_freechild(FreeBlock* newfree) {
+  FreeBlock** freedest = &freechild;
   while (*freedest != nullptr and *freedest != newfree) {
-    freedest = &(*freedest)->freeblock;
+    freedest = &(*freedest)->freechild;
   }
   if (*freedest != nullptr) {
-    *freedest = (*freedest)->freeblock;
+    *freedest = (*freedest)->freechild;
   }
 }
 
@@ -313,9 +313,9 @@ Block* Block::get_global(vec3 pos, int w, vec3 dir) {
     curblock = curblock->get(SAFEFLOOR3(rem));
   }
   
-  // for (int i = 0; i < csize3 and curblock->freeblocks[i] != nullptr; i ++) {
-  //   FreeBlock* freeblock = curblock->freeblocks[i]->freecontainer;
-  //   Block* block = freeblock->get_local(freeblock->box.transform_into(pos), w, freeblock->box.transform_into_dir(dir));
+  // for (int i = 0; i < csize3 and curblock->freechilds[i] != nullptr; i ++) {
+  //   FreeBlock* freechild = curblock->freechilds[i]->freecontainer;
+  //   Block* block = freechild->get_local(freechild->box.transform_into(pos), w, freechild->box.transform_into_dir(dir));
   //   if (block != nullptr) {
   //     return block;
   //   }
@@ -517,8 +517,8 @@ void Block::timestep(float deltatime) {
     return;
   }
   
-  if (freeblock != nullptr) {
-    freeblock->timestep(deltatime);
+  if (freechild != nullptr) {
+    freechild->timestep(deltatime);
   }
   
   if (continues) {
@@ -798,7 +798,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
             Block* offblock = parblock->get_global(parblock->globalpos + off * parblock->scale, parblock->scale);
             if (offblock != nullptr and offblock->scale == parblock->scale) {
               cout << ' ' << offblock << offblock->globalpos << ' ' << offblock->scale << endl;
-              for (FreeBlock* freeblock = offblock->freeblock; freeblock != nullptr; freeblock = freeblock->freeblock) {
+              for (FreeBlock* freeblock = offblock->freechild; freeblock != nullptr; freeblock = freeblock->freechild) {
                 cout << "freeblock " << freeblock << endl;
                 if (freeblock->box.collide(linebox, 0)) {
                   cout << " going into free block" << endl;
@@ -847,7 +847,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
                   
                   if (ray_valid and dt < timeleft) {
                     vec3 newpos = start + newdir * (dt + 0.001f);
-                    Block* startblock = curblock->freeblock->get_local(SAFEFLOOR3(newpos), 1);
+                    Block* startblock = curblock->freechild->get_local(SAFEFLOOR3(newpos), 1);
                     // cout << " startblock " << startblock << ' ' << SAFEFLOOR3(newpos) << ' ' << newpos << ' ' << dt << endl;
                     cout << "Before " << start << ' ' << newpos << endl;
                     Block* result = startblock->raycast(&newpos, newdir, timeleft - dt);
@@ -855,7 +855,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
                     cout << "After " << newpos << endl;
                     // cout << " result " << result << endl;
                     if (result != nullptr and time < best_time) {
-                      *pos = curblock->freeblock->box.transform_out(newpos);
+                      *pos = curblock->freechild->box.transform_out(newpos);
                       curblock = result;
                       best_time = time;
                     }
@@ -890,7 +890,7 @@ bool Block::collide(Hitbox newbox, Hitbox* boxhit, float deltatime, FreeBlock* i
 
 bool Block::collide_free(Hitbox newbox, Block* block, Hitbox* boxhit, float deltatime, FreeBlock* ignore) {
   while (block != nullptr) {
-    for (FreeBlock* free = block->freeblock; free != nullptr; free = free->freeblock) {
+    for (FreeBlock* free = block->freechild; free != nullptr; free = free->freechild) {
       if (free != ignore) {
         if (collide(newbox, free, boxhit, deltatime, ignore)) {
           return true;
@@ -947,6 +947,10 @@ FreeBlock::FreeBlock(Block block, Hitbox newbox): Block(block), box(newbox) {
 }
 
 void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale) {
+  if (highparent == nullptr or nparent == nullptr or highparent->world != nparent->world) {
+    if (highparent != nullptr) highparent->world->remove_freeblock(this);
+    if (nparent != nullptr) nparent->world->add_freeblock(this);
+  }
   highparent = nparent;
   Block::set_parent(nullptr, nworld, this, ppos, nscale);
 }
@@ -955,14 +959,14 @@ void FreeBlock::timestep_freeblock(float deltatime, Block* block) {
   float coltime = deltatime;
   
   if (block->freebox().collide(box, deltatime)) {
-    if (block->freeblock != nullptr and block->freeblock->box.collide(box, deltatime, &coltime)) {
+    if (block->freechild != nullptr and block->freechild->box.collide(box, deltatime, &coltime)) {
       if (coltime < maxtime) {
         maxtime = coltime;
-        maxbox = block->freeblock->box;
+        maxbox = block->freechild->box;
       }
-      if (coltime < block->freeblock->maxtime) {
-        block->freeblock->maxtime = coltime;
-        block->freeblock->maxbox = box;
+      if (coltime < block->freechild->maxtime) {
+        block->freechild->maxtime = coltime;
+        block->freechild->maxbox = box;
       }
     }
     
@@ -975,6 +979,7 @@ void FreeBlock::timestep_freeblock(float deltatime, Block* block) {
 }
 
 void FreeBlock::timestep(float deltatime) {
+  return;
   maxtime = deltatime;
   maxbox = Hitbox();
   
@@ -1060,8 +1065,8 @@ void FreeBlock::set_box(Hitbox newbox) {
         newparent = newparent->get_global(highparent->globalpos + dir * scale * 2, scale*2);
       }
       
-      highparent->remove_freeblock(this);
-      newparent->add_freeblock(this);
+      highparent->remove_freechild(this);
+      newparent->add_freechild(this);
     }
   }
   box = newbox;
@@ -1114,7 +1119,7 @@ void FreeBlock::expand(ivec3 dir) {
   // for (Pixel* pix : myiter) {
   //   pix->parbl->set_render_flag();
   //   pix->parbl->set_light_flag();
-  //   // pix->parbl->freeblock = this;
+  //   // pix->parbl->freechild = this;
   // }
   //
   // cout << "bouta divide" << endl;
@@ -1464,9 +1469,9 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
     for (int i = 0; i < 6; i ++) {
       ivec3 dir = dir_array[i];
       // Block* block = parbl->get_global((vec3(gpos) + parbl->scale/2.0f) + vec3(dir) * (parbl->scale/2.0f), parbl->scale, dir);
-      Block* block = parbl->get_global(gpos + dir * parbl->scale, parbl->scale);
+      // Block* block = parbl->get_global(gpos + dir * parbl->scale, parbl->scale);
       renderdata.type.faces[i].tex = 0;
-      if (block != nullptr and parbl->is_air(dir, value)) {
+      if (parbl->is_air(dir, value)) {
         renderdata.type.faces[i].tex = mat[i];
         renderdata.type.faces[i].rot = dirs[i];
         renderdata.type.faces[i].blocklight = parbl->get_blocklight(dir);

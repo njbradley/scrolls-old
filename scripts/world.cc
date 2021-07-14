@@ -364,10 +364,16 @@ void World::timestep() {
     player->timestep();
   }
   
+  static double total_time = 0;
+  static int num_times = 0;
+  double start = glfwGetTime();
   for (Tile* tile : tiles) {
     tile->timestep(dt);
   }
+  total_time += glfwGetTime() - start;
+  num_times ++;
   
+  // cout << total_time / num_times << ' ' << num_times << endl;
   
   
   

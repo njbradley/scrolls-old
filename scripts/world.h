@@ -75,7 +75,7 @@ public:
 
 extern int view_dist;
 
-class World: public Container {
+class World: public Collider {
     vector<ivec3> loading_chunks;
     vector<ivec3> deleting_chunks;
     unordered_set<ivec3,ivec3_hash> block_updates;

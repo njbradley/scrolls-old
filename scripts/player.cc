@@ -290,7 +290,7 @@ void Player::right_mouse(double deltatime) {
 						Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f));
 						FreeBlock* freeblock = new FreeBlock(newbox);
 						freeblock->set_pixel(new Pixel(1));
-						airblock->add_freeblock(freeblock);
+						airblock->add_freechild(freeblock);
 						// FreeBlock* freeblock = new FreeBlock(vec3(airblock->globalpos), quat(1, 0, 0, 0));
 						// freeblock->set_parent(nullptr, airblock->world, ivec3(0,0,0), 1);
 						// freeblock->set_pixel(new Pixel(1));
@@ -330,7 +330,7 @@ void Player::right_mouse(double deltatime) {
 			Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f));
 			FreeBlock* freeblock = new FreeBlock(newbox);
 			freeblock->set_pixel(new Pixel(1));
-			placing_block->add_freeblock(freeblock);
+			placing_block->add_freechild(freeblock);
 			cout << "freescale " << freeblock->scale << endl;
 			//
 			placing_freeblock = freeblock;

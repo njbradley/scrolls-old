@@ -59,6 +59,30 @@ class Hitbox { public:
   static Hitbox boundingbox_points(vec3 pos, vec3* points, int num);
 };
 
+class ImpactManifold { public:
+  Hitbox box1;
+  Hitbox box2;
+  vec3 hitpoints[4];
+  int num_hitpoints;
+  float time;
+  
+  ImpactManifold();
+  ImpactManifold(Hitbox nbox1, Hitbox nbox2);
+  
+  operator bool();
+  
+  Hitbox newbox1();
+  Hitbox newbox2();
+};
+
+class ImpactPlan { public:
+  vector<ImpactManifold> impacts;
+  
+  ImpactPlan();
+  
+  
+};
+
 class Entity { public:
     static constexpr float axis_gap = 0.2f;
     vec3 position;
@@ -117,7 +141,9 @@ class BlockContainer: public Container { public:
 	Block* get_global(int x, int y, int z, int size);
   void set(ivec4 pos, char val, int direction, int joints[6] = nullptr);
 	void set_global(ivec3 pos, int w, int val, int direction, int joints[6] = nullptr);
-	void block_update(ivec3 pos){}
+	void block_update(ivec3 pos) {}
+  void add_freeblock(FreeBlock* freeblock) {}
+  void remove_freeblock(FreeBlock* freeblock) {}
 };
 
 class DisplayEntity: public Entity {

@@ -921,8 +921,6 @@ void BlockContainer::set_global(ivec3 pos, int w, int val, int direction, int ne
 
 
 
-
-
 DisplayEntity::DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 newblockpos, vector<DisplayEntity*> newlimbs):
 Entity(nworld, starting_pos, hitbox1, hitbox2), block(newblock), render_index(-1), render_flag(true), limbs(newlimbs), blockpos(newblockpos), dead_falling(false) {
   // int size = block.block->scale;

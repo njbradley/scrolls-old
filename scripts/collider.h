@@ -3,17 +3,6 @@
 
 #include "classes.h"
 
-class Axes {
-	vec3 offset = vec3(0,0,0);
-	quat rotation = quat(0,0,0,1);
-	
-	Axes(vec3 newoff = vec3(0,0,0), quat newrot = quat(0,0,0,1));
-	vec3 transform(vec3 pos) const;
-	ivec3 transformi(ivec3 pos) const;
-	vec3 reverse(vec3 pos) const;
-	ivec3 reversei(ivec3 pos) const;
-};
-
 struct Collider {
   virtual Block * get_global(int x,int y,int z,int scale) = 0;
 	virtual Block* get_global(ivec3 pos, int scale) {return get_global(pos.x, pos.y, pos.z, scale);}
@@ -31,6 +20,8 @@ struct Collider {
 class Container : public Collider { public:
 	virtual void block_update(ivec3 pos) = 0;
 	virtual void set_global(ivec3 pos, int w, int val, int direc, int joints[6] = nullptr) = 0;
+	virtual void add_freeblock(FreeBlock* freeblock) = 0;
+	virtual void remove_freeblock(FreeBlock* freeblock) = 0;
 };
 
 
