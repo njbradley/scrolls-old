@@ -671,7 +671,9 @@ int Block::get_blocklight(ivec3 dir) {
 }
 
 bool Block::is_air(ivec3 dir, char otherval) {
+  dkout << "Block isair " << endl;
   for (const Pixel* pix : iter_touching_side(dir)) {
+    dkout << pix->parbl << ' ' << pix->parbl->globalpos << ' ' << pix->parbl->scale << ' ' << pix->parbl->freecontainer << endl;
     bool isair = (pix->value == 0 or (blocks->blocks[pix->value]->transparent and otherval != pix->value));
     if (isair) {
       return true;
@@ -778,7 +780,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
   
   Hitbox linebox (startpos, vec3(0,0,0), vec3(starttime, 0, 0), rot);
   cout << linebox << ' ' << linebox.boundingbox() << endl;
-  
+  return curblock;
   FreeBlockIter freeiter(world, linebox.boundingbox());
   
   double best_time = timeleft;
@@ -999,7 +1001,10 @@ void FreeBlock::timestep(float deltatime) {
     for (int y = -1; y < 2; y ++) {
       for (int z = -1; z < 2; z ++) {
         Block* block = highparent->get_global(highparent->globalpos + ivec3(x,y,z) * highparent->scale, highparent->scale);
-        timestep_freeblock(deltatime, block);
+        if (block != nullptr and world != block->world) {
+          
+        }
+        // timestep_freeblock(deltatime, block);
       }
     }
   }

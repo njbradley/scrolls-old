@@ -48,6 +48,7 @@ typedef unsigned int uint;
 #define SAFEFLOOR3(a) ( ivec3(SAFEFLOOR((a).x), SAFEFLOOR((a).y), SAFEFLOOR((a).z)) )
 
 #define ERR(msg) throw std::runtime_error(string(msg) + "\n" + __PRETTY_FUNCTION__ + ": " + __FILE__ + " Line " + std::to_string(__LINE__));
+#define dkout if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS) cout
 
 void wait();
 void print(vec3 v);

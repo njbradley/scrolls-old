@@ -319,7 +319,7 @@ void Player::right_mouse(double deltatime) {
 	} else {
 		float dist = (placing_pointing.y - angle.y) * 6.0f;
 		vec2 dist2 = (placing_pointing - angle) * 6.0f;
-		
+		return;
 		if (placing_freeblock == nullptr and dist > 0.05) {
 			cout << "freeblock" << endl;
 			Pixel pix = *placing_block->pixel;
