@@ -488,7 +488,7 @@ void Player::left_mouse(double deltatime) {
 		
 		world->set_global(pos, 1, 0, 0);
 		game->debugblock = world->get_global(pos.x, pos.y-1, pos.z, 1)->pixel;
-		cout << game->debugblock->parbl->render_flag << '-' << endl;
+		cout << game->debugblock->parbl->flags << '-' << endl;
 		timeout = 0.5;
 	}
 	/*

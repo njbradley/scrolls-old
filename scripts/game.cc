@@ -18,6 +18,7 @@
 #include "glue.h"
 #include "plugins.h"
 
+#include <bitset>
 
 
 
@@ -368,9 +369,8 @@ void MainGame::gametick() {
 		} else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 			if (debugblock != nullptr) {
 				Block* block = debugblock->parbl;
-				cout << block << ' ' << block->render_flag << ' ' << block->pixel->value << ' ' << block->pixel->render_index.index << endl;
-				
-				//debugblock->parbl->set_render_flag();
+				cout << block << ' ' << std::bitset<8>(block->flags) << ' ' << block->pixel->value << ' ' << block->pixel->render_index.index << endl;
+				//debugblock->parbl->set_flag(RENDER_FLAG);
 			}
 			// ivec3 ppos(world->player->position);
 			// world->set(ppos.x, ppos.y, ppos.z, -1);
@@ -396,7 +396,7 @@ void MainGame::gametick() {
 					cout << "Block " << block << endl;
 					ivec3 pos;
 					cout << " position " << block->globalpos << " local " << block->parentpos << endl;
-					cout << " flags light " << block->light_flag << " render " << block->render_flag << endl;
+					cout << " flags " << std::bitset<8>(block->flags) << endl;
 					cout << " scale " << block->scale << endl;
 					cout << endl;
 					block = block->parent;
@@ -558,7 +558,7 @@ void MainGame::print_debug() {
 		debugstream << "tracking block " << debugblock << " at " << debugblock->parbl->globalpos << endl;
 		debugstream << " type:" << name << " char:" << int(debugblock->value) << " scale:" << debugblock->parbl->scale << endl;
 		debugstream << " direction:" << int(debugblock->direction) << " render_index:" << debugblock->render_index.index << endl;
-		debugstream << " flags: light " << debugblock->parbl->light_flag << " render " << debugblock->parbl->render_flag << endl;
+		debugstream << " flags: " << std::bitset<8>(debugblock->parbl->flags) << endl;
 		debugstream << " parent coords: " << debugblock->parbl->parentpos << endl;
 		debugstream << " physics_group:" << debugblock->group << ' ' << "light " << debugblock->blocklight << ' ' << debugblock->sunlight << endl;
 		debugstream << " joints ";

@@ -13,6 +13,8 @@
 
 extern const uint8 lightmax;
 
+#define RENDER_FLAG 0b1
+#define LIGHT_FLAG 0b10
 
 // Blocks are the main structural class of the world, they create a three dimentional tree, where each node
 // has 8 (or more, change csize) children. The scale of a block is the side length, so each child
@@ -32,8 +34,7 @@ extern const uint8 lightmax;
 class Block: public Collider { public:
 	ivec3 parentpos;
 	ivec3 globalpos; // should be called localpos, but i really dont want to change everything
-	bool render_flag = false;
-	bool light_flag = false;
+	uint8 flags = 0b00000000;
 	int scale;
 	Block* parent = nullptr;
 	Container* world;
@@ -124,9 +125,10 @@ class Block: public Collider { public:
 	void to_file(ostream& ofile) const;
 	void from_file(istream& ifile);
 	// sets the render/light flags all up to top node
-	void set_render_flag();
-	void set_light_flag();
-	void set_all_render_flags();
+	void set_flag(uint8 flag);
+	// void set_render_flag();
+	// void set_light_flag();
+	void set_all_flags(uint8 flag);
 	
 	void timestep(float deltatime);
 	

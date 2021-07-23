@@ -515,12 +515,12 @@ bool World::render() {
     
     player->render(&glvecs);
     
-    if (playertile != nullptr and playertile->chunk->render_flag and !playertile->lightflag) {
+    if (playertile != nullptr and playertile->chunk->flags & RENDER_FLAG and !playertile->lightflag) {
       playertile->render(&glvecs, &transparent_glvecs);
       changed = true;
     } else {
       for (Tile* tile : tiles) {
-        changed = changed or (tile->chunk->render_flag and tile->fully_loaded);
+        changed = changed or (tile->chunk->flags & RENDER_FLAG and tile->fully_loaded);
         if (changed) {
           tile->render(&glvecs, &transparent_glvecs);
           break;
@@ -529,7 +529,7 @@ bool World::render() {
       if (!changed) {
         for (Tile* tile : tiles) {
           if (!tile->lightflag) {
-            changed = changed or (tile->chunk->render_flag);
+            changed = changed or (tile->chunk->flags & RENDER_FLAG);
             tile->render(&glvecs, &transparent_glvecs);
             if (changed) {
               break;

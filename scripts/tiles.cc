@@ -36,8 +36,7 @@ void Tile::lighting_update() {
       if (tile != nullptr) {
         // cout << "side update" << endl;
         for (Pixel* pix : tile->chunk->iter_side(-dir)) {
-          pix->parbl->set_render_flag();
-          pix->parbl->set_light_flag();
+          pix->parbl->set_flag(RENDER_FLAG | LIGHT_FLAG);
         }
         //tile->lighting_update();
       }
@@ -59,7 +58,7 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
           if (tile != nullptr) {
             cout << "side update 2" << endl;
             for (Pixel* pix : tile->chunk->iter_side(-dir)) {
-              pix->parbl->set_render_flag();
+              pix->parbl->set_flag(RENDER_FLAG | LIGHT_FLAG);
             }
           }
         }
@@ -118,7 +117,7 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
         }
         
         if (changed) {
-          chunk->set_all_render_flags();
+          chunk->set_all_flags(RENDER_FLAG);
         }
       }
       //cout << world << endl;

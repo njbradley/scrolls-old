@@ -127,8 +127,7 @@ void Block::set_parent(Block* nparent, Container* nworld, FreeBlock* freecont, i
       children[i]->set_parent(this, world, freecontainer, posof(i), scale / csize);
     }
   }
-  set_render_flag();
-  set_light_flag();
+  set_flag(RENDER_FLAG | LIGHT_FLAG);
 }
 
 void Block::set_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
@@ -156,16 +155,14 @@ void Block::set_pixel(Pixel* pix) {
     delete pixel;
   }
   pixel = pix;
-  set_render_flag();
-  set_light_flag();
+  set_flag(RENDER_FLAG | LIGHT_FLAG);
 }
 
 Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ISPIXEL)
   pix->set_block(this);
   Pixel* old = pixel;
   pixel = pix;
-  set_render_flag();
-  set_light_flag();
+  set_flag(RENDER_FLAG | LIGHT_FLAG);
   return old;
 }
 
@@ -422,8 +419,7 @@ void Block::subdivide() { ASSERT(!continues)
     set_child(posof(i), new Block(new Pixel(pix->value, pix->direction)));
   }
   unlock();
-  set_render_flag();
-  set_light_flag();
+  set_flag(RENDER_FLAG | LIGHT_FLAG);
 }
 
 void Block::join() { ASSERT(ISCHUNK)
@@ -470,14 +466,13 @@ Block::Block(istream& ifile): continues(false), pixel(nullptr) {
   from_file(ifile);
 }
 
-void Block::set_render_flag() {
-  // if (locked) return;
-  // render_flag = true;
+void Block::set_flag(uint8 flag) {
   Block* curblock = this;
-  while (curblock != nullptr/* and !curblock->render_flag*/ and !curblock->locked) {
-    curblock->render_flag = true;
+  while (curblock != nullptr and !(curblock->flags & flag) and !curblock->locked) {
+    dkout << " flag setting " << curblock << ' ' << curblock->globalpos << ' ' << curblock->scale << ' ' << int(curblock->flags);
+    curblock->flags |= flag;
+    dkout << ' ' << int(curblock->flags) << endl;
     if (curblock->parent == nullptr and curblock->freecontainer != nullptr) {
-      cout << 466 << ' ' << curblock << endl;
       curblock = curblock->freecontainer->highparent;
     } else {
       curblock = curblock->parent;
@@ -485,29 +480,15 @@ void Block::set_render_flag() {
   }
 }
 
-void Block::set_all_render_flags() {
-  render_flag = true;
+void Block::set_all_flags(uint8 flag) {
+  flags |= flag;
   if (continues) {
     for (CHILDREN_LOOP(i)) {
-      children[i]->set_all_render_flags();
+      children[i]->set_all_flags(flags);
     }
   }
   for (FREECHILDREN_LOOP(free)) {
-    free->set_all_render_flags();
-  }
-}
-
-void Block::set_light_flag() {
-  if (locked) return;
-  light_flag = true;
-  Block* curblock = parent;
-  while (curblock != nullptr and !curblock->light_flag and !curblock->locked) {
-    curblock->light_flag = true;
-    if (curblock->parent == nullptr and curblock->freecontainer != nullptr) {
-      curblock = curblock->freecontainer;
-    } else {
-      curblock = curblock->parent;
-    }
+    free->set_all_flags(flags);
   }
 }
 
@@ -531,8 +512,10 @@ void Block::timestep(float deltatime) {
 
 
 void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
-  if (render_flag and !locked) {
-    render_flag = false;
+  if (flags & RENDER_FLAG and !locked) {
+    dkout << "RENDERING " << int(flags) << ' ' << this << ' ' << globalpos << ' ' << scale << endl;
+    flags &= ~RENDER_FLAG;
+    dkout << "  NOW " << int(flags) << endl;
     if (continues) {
       for (CHILDREN_LOOP(i)) {
         children[i]->render(vecs, transvecs, faces, render_null);
@@ -547,8 +530,8 @@ void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool re
 }
 
 void Block::lighting_update()  {
-  if (light_flag and !locked) {
-    light_flag = false;
+  if (flags & LIGHT_FLAG and !locked) {
+    flags &= ~LIGHT_FLAG;
     if (continues) {
       for (CHILDREN_LOOP(i)) {
         children[i]->lighting_update();
@@ -1075,10 +1058,10 @@ void FreeBlock::set_box(Hitbox newbox) {
     }
   }
   box = newbox;
-  render_flag = false;
-  set_render_flag();
+  flags &= ~RENDER_FLAG;
+  set_flag(RENDER_FLAG);
   for (Pixel* pix : iter()) {
-    pix->parbl->set_render_flag();
+    pix->parbl->set_flag(RENDER_FLAG);
   }
 }
 
@@ -1122,8 +1105,7 @@ void FreeBlock::expand(ivec3 dir) {
   // vec3 dz = box.transform_out_dir(ivec3(0,0,1));
   // FreeBlockIter myiter (world, pos, dx, dy, dz, vec3(scale, scale, scale));
   // for (Pixel* pix : myiter) {
-  //   pix->parbl->set_render_flag();
-  //   pix->parbl->set_light_flag();
+  //   pix->parbl->set_flag(RENDER_FLAG | LIGHT_FLAG);
   //   // pix->parbl->freechild = this;
   // }
   //
@@ -1167,8 +1149,7 @@ void FreeBlock::expand(ivec3 dir) {
   //
   // cout << "done " << endl;
   // unlock();
-  // set_render_flag();
-  // set_light_flag();
+  // set_flag(RENDER_FLAG | LIGHT_FLAG);
 }
 
 
@@ -1265,7 +1246,7 @@ void Pixel::rotate(int axis, int dir) {
       direction = negative[axis*6 +direction];
     }
   }
-  parbl->set_render_flag();
+  parbl->set_flag(RENDER_FLAG);
 }
 
 void Pixel::rotate_uv(GLfloat* uvs, int rot) {
@@ -1664,8 +1645,7 @@ void Pixel::set(int val, int newdirection, int newjoints[6]) {
 }
   
 void Pixel::render_update() {
-  parbl->set_render_flag();
-  parbl->set_light_flag();
+  parbl->set_flag(RENDER_FLAG | LIGHT_FLAG);
 }
 
 void Pixel::random_tick() {
@@ -1787,12 +1767,12 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
           if (tilepos == SAFEDIV(pix->parbl->globalpos, World::chunksize)) {
             next_poses.emplace(pix->parbl->globalpos);
           } else {
-            pix->parbl->set_light_flag();
+            pix->parbl->set_flag(LIGHT_FLAG);
           }
         } else if (tilepos != SAFEDIV(pix->parbl->globalpos, World::chunksize) and dir.y == -1 and pix->sunlight == lightmax) {
-          pix->parbl->set_light_flag();
+          pix->parbl->set_flag(LIGHT_FLAG);
         }
-        if (changed) pix->parbl->set_render_flag();
+        if (changed) pix->parbl->set_flag(RENDER_FLAG);
       }
     }
   }
@@ -1839,10 +1819,10 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
           if (tilepos == SAFEDIV(pix->parbl->globalpos, World::chunksize)) {
             next_poses.emplace(pix->parbl->globalpos);
           } else {
-            pix->parbl->set_light_flag();
+            pix->parbl->set_flag(LIGHT_FLAG);
           }
         }
-        if (changed) pix->parbl->set_render_flag();
+        if (changed) pix->parbl->set_flag(RENDER_FLAG);
       }
     }
     index ++;
@@ -1891,13 +1871,13 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
           if (SAFEMOD(pix->parbl->globalpos, World::chunksize) == tilepos) {
             next_poses.emplace(pix->parbl->globalpos);
           } else {
-            pix->parbl->set_light_flag();
+            pix->parbl->set_flag(LIGHT_FLAG);
           }
         } else if (SAFEMOD(pix->parbl->globalpos, World::chunksize) == tilepos
          and dir.y == -1 and pix->sunlight == lightmax) {
-          pix->parbl->set_light_flag();
+          pix->parbl->set_flag(LIGHT_FLAG);
         }
-        if (changed) pix->parbl->set_render_flag();
+        if (changed) pix->parbl->set_flag(RENDER_FLAG);
       }
     }
   }
@@ -1984,10 +1964,10 @@ void BlockContainer::set_global(ivec3 pos, int w, int val, int direction, int ne
           if (SAFEMOD(pix->parbl->globalpos, World::chunksize) == tilepos) {
             next_poses.emplace(pix->parbl->globalpos);
           } else {
-            pix->parbl->set_light_flag();
+            pix->parbl->set_flag(LIGHT_FLAG);
           }
         }
-        if (changed) pix->parbl->set_render_flag();
+        if (changed) pix->parbl->set_flag(RENDER_FLAG);
       }
     }
     index ++;
