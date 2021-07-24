@@ -28,7 +28,7 @@ Settings::Settings() {
 }
 
 void Settings::load_settings() {
-	ifstream ifile("saves/settings.txt");
+	ifstream ifile(SAVES_PATH "settings.txt");
 	if (ifile.good()) {
 		string name;
 		while (!ifile.eof()) {
@@ -64,7 +64,7 @@ void Settings::load_settings() {
 		}
 	} else {
 		create_dir("saves");
-		ofstream ofile("saves/settings.txt");
+		ofstream ofile(SAVES_PATH "settings.txt");
 		ofile << "fov: 90" << endl;
 		ofile << "fullscreen: true" << endl;
 		ofile << "dims: 1600 900" << endl;
@@ -95,7 +95,6 @@ MainGame::MainGame() {
 	
 	min_ms_per_frame = 1000.0/settings->max_fps;
 	
-	pluginmanager = new PluginManager();
 	matstorage = new MaterialStorage();
 	blocks = new BlockStorage();
 	connstorage = new ConnectorStorage();
@@ -103,10 +102,10 @@ MainGame::MainGame() {
 	recipestorage = new RecipeStorage();
 	
 	
-	ifstream ifile("saves/latest.txt");
+	ifstream ifile(SAVES_PATH "latest.txt");
 	if (!ifile.good()) {
 		create_dir("saves");
-		ofstream ofile("saves/saves.txt");
+		ofstream ofile(SAVES_PATH "saves.txt");
 		ofile << "";
 		world = new World("Starting-World", 12345);
 		graphics->set_world_buffers(world, settings->allocated_memory);
@@ -117,7 +116,7 @@ MainGame::MainGame() {
 			world = new World(latest);
 			graphics->set_world_buffers(world, settings->allocated_memory);
 		} else {
-			ifstream ifile2("saves/saves.txt");
+			ifstream ifile2(SAVES_PATH "saves.txt");
 			ifile2 >> latest;
 			if (latest != "") {
 				world = new World(latest);
@@ -151,7 +150,6 @@ MainGame::~MainGame() {
 	delete blocks;
 	delete recipestorage;
 	delete matstorage;
-	delete pluginmanager;
 	
 	delete threadmanager;
 	delete audio;
@@ -587,7 +585,7 @@ void MainGame::inven_menu() {
 
 void MainGame::level_select_menu() {
 	vector<string> worlds;
-	ifstream ifile("saves/saves.txt");
+	ifstream ifile(SAVES_PATH "saves.txt");
 	string name;
 	while (ifile >> name) {
 		worlds.push_back(name);
@@ -738,7 +736,6 @@ Settings* settings = nullptr;
 GraphicsContext* graphics = nullptr;
 AudioContext* audio = nullptr;
 ThreadManager* threadmanager = nullptr;
-PluginManager* pluginmanager = nullptr;
 
 
 

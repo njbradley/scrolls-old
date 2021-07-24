@@ -154,9 +154,9 @@ clumpyness(0.9), clumpy_group(0), transparent(false) {
       stringstream ss(tex_str);
       vector<string> files;
       if (transparent) {
-        get_files_folder("resources/textures/blocks/transparent/" + std::to_string(minscale), &files);
+        get_files_folder(RESOURCES_PATH "textures/blocks/transparent/" + std::to_string(minscale), &files);
       } else {
-        get_files_folder("resources/textures/blocks/" + std::to_string(minscale), &files);
+        get_files_folder(RESOURCES_PATH "textures/blocks/" + std::to_string(minscale), &files);
       }
       for (int i = 0; i < 6; i ++) {
         string filename;
@@ -201,12 +201,12 @@ void BlockData::do_rcaction(Pixel* pix) {
 
 BlockStorage::BlockStorage() {
     vector<string> block_paths;
-    get_files_folder("resources/data/blocks", &block_paths);
+    get_files_folder(RESOURCES_PATH "data/blocks", &block_paths);
     num_blocks = block_paths.size();
     int i = 0;
     for (string filename : block_paths) {
         i ++;
-        ifstream ifile("resources/data/blocks/" + filename);
+        ifstream ifile(RESOURCES_PATH "data/blocks/" + filename);
         BlockData* data = new BlockData(ifile);
         blocks[(char)i] = data;
         names[data->name] = (char)i;

@@ -39,9 +39,9 @@ bool Recipe::craft(ItemContainer* in, ItemContainer* out) {
 
 RecipeStorage::RecipeStorage() {
 		vector<string> recipe_paths;
-		get_files_folder("resources/data/recipes", &recipe_paths);
+		get_files_folder(RESOURCES_PATH "data/recipes", &recipe_paths);
 		for (string filename : recipe_paths) {
-				ifstream ifile("resources/data/recipes/" + filename);
+				ifstream ifile(RESOURCES_PATH "data/recipes/" + filename);
 				//cout << "loading recipe " << filename << " from file" << endl;
 				recipes.push_back(new Recipe(ifile));
 		}

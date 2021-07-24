@@ -1,6 +1,8 @@
 *.exe
 *.so
 *.dll
+*.o
+*.a
 saves
 command.bat
 dump*.txt

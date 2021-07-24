@@ -109,9 +109,9 @@ double Material::collision_force(Material* other, double sharpness, double force
 
 MaterialStorage::MaterialStorage() {
 	vector<string> paths;
-	get_files_folder("resources/data/materials", &paths);
+	get_files_folder(RESOURCES_PATH "data/materials", &paths);
 	for (string path : paths) {
-		ifstream ifile("resources/data/materials/" + path);
+		ifstream ifile(RESOURCES_PATH "data/materials/" + path);
 		Material* mat = new Material(ifile);
 		materials.emplace(mat->name, mat);
 	}

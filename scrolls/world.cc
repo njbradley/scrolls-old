@@ -166,7 +166,7 @@ commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+
 
 World::World(string oldname): loader(seed), name(oldname),
 commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) - 1) {
-    string path = "saves/" + name + "/worlddata.txt";
+    string path = SAVES_PATH + name + "/worlddata.txt";
     ifstream ifile(path);
     load_data_file(ifile);
     loader.seed = seed;
@@ -224,16 +224,16 @@ void World::save_data_file(ostream& ofile) {
 }
 
 void World::setup_files() {
-    create_dir("saves/" + name);
-    create_dir("saves/" + name + "/chunks");
-    create_dir("saves/" + name + "/groups");
-    ofstream ofile("saves/saves.txt", std::ios::app);
+    create_dir(SAVES_PATH + name);
+    create_dir(SAVES_PATH + name + "/chunks");
+    create_dir(SAVES_PATH + name + "/groups");
+    ofstream ofile(SAVES_PATH "saves.txt", std::ios::app);
     ofile << ' ' << name;
 }
 
 void World::startup() {
     last_time = glfwGetTime();
-    ifstream ifile("saves/" + name + "/player.txt");
+    ifstream ifile(SAVES_PATH + name + "/player.txt");
     if (ifile.good()) {
       player = new Player(this, ifile);
       set_player_vars();
@@ -247,7 +247,7 @@ void World::startup() {
     // sun setup
     
     vector<string> files;
-    get_files_folder("resources/textures/blocks/1", &files);
+    get_files_folder(RESOURCES_PATH "textures/blocks/1", &files);
     for (int i = 0; i < files.size(); i ++) {
       if (files[i] == "sun.bmp") {
         suntexture = i;
@@ -656,7 +656,7 @@ bool World::is_world_closed() {
 }
 
 void World::close_world() {
-    ofstream ofile("saves/" + name + "/player.txt");
+    ofstream ofile(SAVES_PATH + name + "/player.txt");
     player->save_to_file(ofile);
     delete player;
     ofile.close();
@@ -675,10 +675,10 @@ void World::close_world() {
     //     del_chunk(pos, false);
     // }
     cout << "all tiles saved sucessfully: " << tiles.size() << endl;
-    string path = "saves/" + name + "/worlddata.txt";
+    string path = SAVES_PATH + name + "/worlddata.txt";
     ofstream datafile(path);
     save_data_file(datafile);
-    ofstream ofile2("saves/latest.txt");
+    ofstream ofile2(SAVES_PATH "latest.txt");
     ofile2 << name;
 }
 

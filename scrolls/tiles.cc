@@ -135,7 +135,7 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
 
 void Tile::save() {
   stringstream path;
-  path << "saves/" << world->name << "/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
+  path << SAVES_PATH << world->name << "/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
   //cout << "saving '" << path.str() << "' to file\n";
   if (!world->generation) {
     ifstream ifile(path.str());
@@ -170,7 +170,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
       exit(1);
     }
     stringstream path;
-  	path << "saves/" << world->name << "/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
+  	path << SAVES_PATH << world->name << "/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
   	ifstream ifile(path.str(), std::ios::binary);
   	if (!ifile.good()) {
   			//cout << "generating '" << path.str() << "'\n";
@@ -224,7 +224,7 @@ Tile::~Tile() {
 void Tile::generate_chunk(ivec3 pos) {
   //generative_setup_chunk(pos.first, pos.second);
   stringstream path;
-  path << "saves/" << world->name << "/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
+  path << SAVES_PATH << world->name << "/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
   ofstream of(path.str(), std::ios::binary);
   char val = gen_block(of, pos.x*World::chunksize, pos.y*World::chunksize, pos.z*World::chunksize, chunksize);
   of << endl << 0 << endl << 0 << endl;

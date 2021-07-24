@@ -90,7 +90,7 @@ inven(ifile), backpack(ifile) {
 
 void Player::init_block_breaking_vecs() {
 	vector<string> files;
-	get_files_folder("resources/textures/blocks/transparent/1", &files);
+	get_files_folder(RESOURCES_PATH "textures/blocks/transparent/1", &files);
 	block_breaking_tex = 0;
 	for (int i = 0; i < files.size(); i ++) {
 		if (files[i] == "breaking0.png") {

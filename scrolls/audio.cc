@@ -9,7 +9,7 @@
 
 
 Sound::Sound(AudioContext* newcontext, string filename): context(newcontext) {
-	string dataname = "resources/sounds/" + filename;
+	string dataname = RESOURCES_PATH "sounds/" + filename;
 	ifstream ifile(dataname);
 	vector<string> wavfiles;
 	string buff;
@@ -45,7 +45,7 @@ Sound::Sound(AudioContext* newcontext, string filename): context(newcontext) {
 				string dirpath;
 				ifile >> dirpath;
 				vector<string> newfiles;
-				get_files_folder("resources/sounds/" + dirpath, &newfiles);
+				get_files_folder(RESOURCES_PATH "sounds/" + dirpath, &newfiles);
 				for (string path : newfiles) {
 					wavfiles.push_back(dirpath + '/' + path);
 				}
@@ -65,7 +65,7 @@ Sound::Sound(AudioContext* newcontext, string filename): context(newcontext) {
 		alGenBuffers(num_buffers, buffers);
 		
 		for (int i = 0; i < num_buffers; i ++) {
-			string fullname = "resources/sounds/" + wavfiles[i];
+			string fullname = RESOURCES_PATH "sounds/" + wavfiles[i];
 			ALsizei size;
 			ALfloat freq;
 			ALenum format;
@@ -168,7 +168,7 @@ void AudioMainContext::init_context() {
 
 void AudioMainContext::load_sounds() {
 	vector<string> paths;
-	get_files_folder("resources/sounds", &paths);
+	get_files_folder(RESOURCES_PATH "sounds", &paths);
 	for (string path : paths) {
 		if (path.find(".txt") != string::npos) {
 			Sound* sound = new Sound(this, path);

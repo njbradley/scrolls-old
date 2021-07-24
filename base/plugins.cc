@@ -1,16 +1,60 @@
 #ifndef PLUGINS
 #define PLUGINS
 
-#ifdef _WIN32
-#include <libloaderapi.h>
-#else
-#include <dlfcn.h>
-#endif
-
 #include "plugins.h"
 
 #include "cross-platform.h"
 
+
+PluginLib::PluginLib(string path) {
+	handle = LOADLIB(path.c_str());
+	const char* (*func)() = (const char* (*)()) GETADDR(handle, "getbasename");
+	if (func == nullptr) {
+		cout << "Plugin error: [" << path << "]: cannot find function getbasename" << endl;
+	}
+	basename = func();
+	
+	void* (*func2)() = (void* (*)()) GETADDR(handle, "getplugin");
+	if (func2 == nullptr) {
+		cout << "Plugin error: [" << path << "]: cannot find function getplugin" << endl;
+	}
+	getplugin = (void* (*)()) func2();
+}
+
+PluginLib::~PluginLib() {
+	FreeLibrary(handle);
+}
+
+
+
+
+PluginLoader::PluginLoader() {
+	vector<string> paths;
+	get_files_folder("plugins", &paths);
+	for (string path : paths) {
+		plugins.emplace_back(path);
+		cout << "loaded " << path << endl;
+	}
+}
+
+void* (*PluginLoader::getplugin_func(const char* name))() {
+	for (PluginLib& plugin : plugins) {
+		cout << plugin.basename << ' ' << name << endl;
+		if (strcmp(plugin.basename, name) == 0) {
+			cout << " returning func result " << endl;
+			return plugin.getplugin;
+		}
+	}
+	return nullptr;
+}
+
+
+PluginLoader pluginloader;
+
+
+
+
+/*
 Plugin::Plugin(string newname, vector<BlockData*> newblocks): name(newname), blocks(newblocks) {
 	
 }
@@ -39,9 +83,9 @@ void Plugin::close() {
 
 PluginManager::PluginManager() {
 	vector<string> paths;
-	get_files_folder("resources/plugins", &paths);
+	get_files_folder(RESOURCES_PATH "plugins", &paths);
 	for (string path : paths) {
-		load_plugin("resources/plugins/" + path);
+		load_plugin(RESOURCES_PATH "plugins/" + path);
 	}
 }
 
@@ -91,6 +135,6 @@ Plugin* PluginManager::get_plugin(string name) {
 		}
 	}
 	return nullptr;
-}
+}*/
 
 #endif

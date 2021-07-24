@@ -538,9 +538,9 @@ ivec3 TerrainObject::get_nearest_2d(ivec3 pos3d) {
 TerrainObjectMerger::TerrainObjectMerger(TerrainLoader* newparent): parent(newparent) {
 	objs = vector<TerrainObject*> {new Tree(this,0), new Tree(this,10), new Lamp(this), new Cave(this), new BigTree(this), new TallTree(this)};
 	vector<string> files;
-	get_files_folder("resources/data/terrain", &files);
+	get_files_folder(RESOURCES_PATH "data/terrain", &files);
 	for (string file : files) {
-		objs.push_back(new FileTerrain(this, "resources/data/terrain/" + file));
+		objs.push_back(new FileTerrain(this, RESOURCES_PATH "data/terrain/" + file));
 	}
 	cout << "loaded " << files.size() << " terrain objects from file" << endl;
 }

@@ -547,7 +547,7 @@ isgroup(true), glue(nullptr) {
       tex_str = name;
     }
     vector<string> paths;
-    get_files_folder("resources/textures/items", &paths);
+    get_files_folder(RESOURCES_PATH "textures/items", &paths);
     texture = 0;
     for (int i = 0; i < paths.size(); i ++) {
       stringstream ss(paths[i]);
@@ -710,12 +710,12 @@ void ItemStack::trim() {
 
     ItemStorage::ItemStorage() {
         vector<string> image_paths;
-        get_files_folder("resources/textures/items", &image_paths);
+        get_files_folder(RESOURCES_PATH "textures/items", &image_paths);
         total_images = image_paths.size();
         vector<string> block_paths;
-        get_files_folder("resources/data/items", &block_paths);
+        get_files_folder(RESOURCES_PATH "data/items", &block_paths);
         for (string filename : block_paths) {
-            ifstream ifile("resources/data/items/" + filename);
+            ifstream ifile(RESOURCES_PATH "data/items/" + filename);
             //cout << "loading itemdata " << filename << " from file" << endl;
             ItemData* itemdata = new ItemData(ifile);
             items[itemdata->name] = itemdata;

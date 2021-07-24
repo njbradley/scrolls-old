@@ -98,8 +98,8 @@ void GraphicsMainContext::init_glfw() {
 	
 	glGenVertexArrays(1, &uiVertexArrayID);
 	// Create and compile our GLSL program from the shaders
-	programID = LoadShadersGeo( "resources/shaders/block.vs", "resources/shaders/block.fs", "resources/shaders/block.gs" );
-	uiProgram = LoadShaders( "resources/shaders/ui.vs", "resources/shaders/ui.fs" );
+	programID = LoadShadersGeo( RESOURCES_PATH "shaders/block.vs", RESOURCES_PATH "shaders/block.fs", RESOURCES_PATH "shaders/block.gs" );
+	uiProgram = LoadShaders( RESOURCES_PATH "shaders/ui.vs", RESOURCES_PATH "shaders/ui.fs" );
 	
 	
 	pMatID = glGetUniformLocation(programID, "Pmat");
@@ -141,9 +141,9 @@ void GraphicsMainContext::load_textures() {
 	////// get mats from folders
 	//vector<string> block_tex;
 	vector<string> uis;
-	//get_files_folder("resources/blocks", &block_tex);
-	get_files_folder("resources/textures/ui", &uis);
-	ifstream num_blocks_file("resources/textures/blocks/num_blocks.txt");
+	//get_files_folder(RESOURCES_PATH "blocks", &block_tex);
+	get_files_folder(RESOURCES_PATH "textures/ui", &uis);
+	ifstream num_blocks_file(RESOURCES_PATH "textures/blocks/num_blocks.txt");
 	num_blocks_file >> num_blocks;
 	
 	
@@ -157,28 +157,28 @@ void GraphicsMainContext::load_textures() {
 	
 	int size = 1;
 	for (int i = 0; i < num_blocks; i ++) {
-		string block = "resources/textures/blocks/" + std::to_string(size);
+		string block = RESOURCES_PATH "textures/blocks/" + std::to_string(size);
 		block_textures[i] = loadBMP_array_folder(block);
 	}
 	
 	for (int i = 0; i < num_blocks; i ++) {
-		string block = "resources/textures/blocks/transparent/" + std::to_string(size);
+		string block = RESOURCES_PATH "textures/blocks/transparent/" + std::to_string(size);
 		transparent_block_textures[i] = loadBMP_array_folder(block, true);
 	}
 	
 	for( int i = 0; i < uis.size(); i ++) {
-		string ui = "resources/textures/ui/" + uis[i];
+		string ui = RESOURCES_PATH "textures/ui/" + uis[i];
 		ui_names[uis[i]] = i;
 		const char* data = ui.c_str();
 		ui_textures[i] = loadBMP_custom(data, true);
 	}
 	
-	breaking_textures = loadBMP_array_folder("resources/textures/blocks/breaking", true);
-	overlay_textures = loadBMP_array_folder("resources/textures/blocks/overlay", true);
+	breaking_textures = loadBMP_array_folder(RESOURCES_PATH "textures/blocks/breaking", true);
+	overlay_textures = loadBMP_array_folder(RESOURCES_PATH "textures/blocks/overlay", true);
 	int num_edges;
-	edges_textures = loadBMP_array_folder("resources/textures/blocks/edges", true);
+	edges_textures = loadBMP_array_folder(RESOURCES_PATH "textures/blocks/edges", true);
 	
-	ui_textures[num_uis-1] = loadBMP_image_folder("resources/textures/items", true);
+	ui_textures[num_uis-1] = loadBMP_image_folder(RESOURCES_PATH "textures/items", true);
 	ui_names["items.bmp"] = num_uis-1;
 }
 

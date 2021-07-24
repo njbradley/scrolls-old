@@ -94,6 +94,9 @@ int dir_to_index(ivec3 dir);
 //ofstream dfile("debug.txt");
 extern int dloc;
 
+#define RESOURCES_PATH "resources/"
+#define SAVES_PATH RESOURCES_PATH "saves/"
+
 ////////////////// CLASSES ///////////////////////////
 class Block;
 class FreeBlock;
@@ -160,8 +163,9 @@ class ServerGame;
 class GroupConnection;
 class ConnectorData;
 class ConnectorStorage;
-class Plugin;
-class PluginManager;
+class PluginLib;
+class PluginLoader;
+template <typename T> class Plugin;
 template <typename T> class CommandConst;
 template <typename T> class CommandVar;
 template <typename T, typename ... Tparams> class CommandMethod;

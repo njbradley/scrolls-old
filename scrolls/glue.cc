@@ -33,7 +33,7 @@ ConnectorData::ConnectorData(istream& ifile) {
       tex_str = name;
     }
     vector<string> paths;
-    get_files_folder("resources/textures/blocks/edges", &paths);
+    get_files_folder(RESOURCES_PATH "textures/blocks/edges", &paths);
     tex_index = 0;
     for (int i = 0; i < paths.size(); i ++) {
       stringstream ss(paths[i]);
@@ -48,9 +48,9 @@ ConnectorData::ConnectorData(istream& ifile) {
 
 ConnectorStorage::ConnectorStorage() {
 	vector<string> block_paths;
-	get_files_folder("resources/data/connectors", &block_paths);
+	get_files_folder(RESOURCES_PATH "data/connectors", &block_paths);
 	for (string filename : block_paths) {
-			ifstream ifile("resources/data/connectors/" + filename);
+			ifstream ifile(RESOURCES_PATH "data/connectors/" + filename);
 			ConnectorData* conn = new ConnectorData(ifile);
 			connectors[conn->name] = conn;
 	}
