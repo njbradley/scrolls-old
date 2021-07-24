@@ -1,7 +1,7 @@
-TARGET := base
-SCROLLSDEPS :=
-ISDLL := FALSE
-EXTRALIBS :=
+TARGET := dwarfdebug
+SCROLLSDEPS := base
+ISDLL := TRUE
+EXTRALIBS := -ldwarfstack
 
 SOURCES := $(wildcard *.cc)
 HEADERS := $(wildcard *.h) $(wildcard $(patsubst %,../%/*.h, $(SCROLLSDEPS)))

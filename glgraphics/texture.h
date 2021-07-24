@@ -1,7 +1,7 @@
 #ifndef TEXTURE
 #define TEXTURE
 
-#include "classes.h"
+#include "base/classes.h"
 
 GLuint loadBMP_custom(const char * imagepath, bool transparency);
 

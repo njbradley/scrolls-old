@@ -8,11 +8,13 @@
 #define LIBHANDLE HMODULE
 #define LOADLIB(X) LoadLibrary(X)
 #define GETADDR(HAND, X) GetProcAddress(HAND, X)
+#define DLLSUFFIX ".dll"
 #else
 #include <dlfcn.h>
 #define LIBHANDLE void*
 #define LOADLIB(X) dlopen(X, RTLD_NOW | RTLD_GLOBAL)
 #define GETADDR(HAND, X) dlsym(HAND, X)
+#define DLLSUFFIX ".so"
 #endif
 
 
@@ -21,6 +23,7 @@ class PluginLib { public:
 	LIBHANDLE handle;
 	const char* basename;
 	void* (*getplugin)();
+	string dirname;
 	
 	PluginLib(string path);
 	
@@ -28,9 +31,10 @@ class PluginLib { public:
 };
 
 class PluginLoader { public:
-	vector<PluginLib> plugins;
+	vector<PluginLib*> plugins;
 	
 	PluginLoader();
+	~PluginLoader();
 	
 	void* (*getplugin_func(const char* name))();
 };
@@ -41,19 +45,40 @@ template <typename PluginType>
 class Plugin { public:
 	PluginType* pointer;
 	
-	template <typename ... Args, std::enable_if_t<std::is_constructible<PluginType, Args...>::value, int> = 0>
+	template <typename PType = PluginType, typename ... Args,
+			std::enable_if_t<std::is_constructible<PType, Args...>::value and !std::is_abstract<PType>::value, int> = 0>
 	Plugin(Args ... args) {
+		cout << "Loading plugin ..." << endl;
 		PluginType* (*getfunc)(Args...) = (PluginType* (*)(Args...)) pluginloader.getplugin_func(PluginType::basename);
 		
 		if (getfunc == nullptr) {
+			cout << " used default" << endl;
 			pointer = new PluginType(args...);
 		} else {
+			cout << " loaded from plugin" << endl;
+			pointer = getfunc(args...);
+		}
+	}
+	
+	template <typename PType = PluginType, typename ... Args,
+			std::enable_if_t<std::is_abstract<PType>::value, int> = 0>
+	Plugin(Args ... args) {
+		cout << "Loading plugin with no default! ..." << endl;
+		PluginType* (*getfunc)(Args...) = (PluginType* (*)(Args...)) pluginloader.getplugin_func(PluginType::basename);
+		
+		if (getfunc == nullptr) {
+			cout << " AAAAAAA " << endl;
+			pointer = nullptr;
+		} else {
+			cout << " loaded from plugin" << endl;
 			pointer = getfunc(args...);
 		}
 	}
 	
 	~Plugin() {
-		delete pointer;
+		if (pointer != nullptr) {
+			delete pointer;
+		}
 	}
 	
 	PluginType* operator->() {
@@ -88,39 +113,5 @@ struct PluginGetCtorArgs<Type* (*)(Args...)> {
 
 
 
-
-/*
-class Plugin { public:
-	short id;
-	string name;
-	vector<BlockData*> blocks;
-	
-	PluginManager* manager;
-	
-#ifdef _WIN32
-	HMODULE handle;
-#else
-	void* handle;
-#endif
-	
-	Plugin(string newname, vector<BlockData*> newblocks);
-	Plugin(string newname);
-	virtual ~Plugin();
-	
-	virtual void init();
-	virtual void link();
-	virtual void close();
-};
-
-class PluginManager { public:
-	vector<Plugin*> plugins;
-	
-	PluginManager();
-	~PluginManager();
-	void load_plugin(string path);
-	void close_plugin(Plugin* plugin);
-	Plugin* get_plugin(short id);
-	Plugin* get_plugin(string name);
-};*/
 
 #endif

@@ -232,7 +232,7 @@ void World::setup_files() {
 }
 
 void World::startup() {
-    last_time = glfwGetTime();
+    last_time = getTime();
     ifstream ifile(SAVES_PATH + name + "/player.txt");
     if (ifile.good()) {
       player = new Player(this, ifile);
@@ -242,7 +242,7 @@ void World::startup() {
     }
     lighting_flag = true;
     cout << "loading chunks from file" << endl;
-    gen_start_time = glfwGetTime();
+    gen_start_time = getTime();
     
     // sun setup
     
@@ -335,7 +335,7 @@ void World::load_nearby_chunks() {
     }
     
     if (!loaded_chunks and threadmanager->load_queue.empty() and initial_generation) {
-      cout << "Initial generation finished: " << glfwGetTime() - gen_start_time << 's' << endl;
+      cout << "Initial generation finished: " << getTime() - gen_start_time << 's' << endl;
       initial_generation = false;
     }
   }
@@ -355,7 +355,7 @@ void World::add_tile(Tile* tile) {
 }
 
 void World::timestep() {
-  double now = glfwGetTime();
+  double now = getTime();
   double dt = now - last_time;
   last_time = now;
   
@@ -366,11 +366,11 @@ void World::timestep() {
   
   static double total_time = 0;
   static int num_times = 0;
-  double start = glfwGetTime();
+  double start = getTime();
   for (Tile* tile : tiles) {
     tile->timestep(dt);
   }
-  total_time += glfwGetTime() - start;
+  total_time += getTime() - start;
   num_times ++;
   
   // cout << total_time / num_times << ' ' << num_times << endl;
@@ -508,7 +508,7 @@ bool World::render() {
       lighting_flag = false;
     }
     bool changed = false;
-    double start = glfwGetTime();
+    double start = getTime();
     ivec3 ppos(player->position);
     ppos = ppos / chunksize - ivec3(ppos.x < 0, ppos.y < 0, ppos.z < 0);
     Tile* playertile = tileat(ppos);

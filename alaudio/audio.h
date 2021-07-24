@@ -1,7 +1,8 @@
 #ifndef AUDIO_PREDEF
 #define AUDIO_PREDEF
 
-#include "classes.h"
+#include "base/classes.h"
+#include "base/audio.h"
 
 #include <AL/al.h>
 #include <AL/alc.h>
@@ -37,11 +38,13 @@ class PlayingSound { public:
 	void repeat(bool newval);
 };
 
-class AudioContext { public:
+class AudioMainContext : public AudioContext { public:
 	ALCdevice* device;
 	ALCcontext* context;
 	
-	Entity* listener = nullptr;
+	vec3* listenerpos;
+	vec3* listenervel;
+	vec2* listenerdir;
 	
 	map<string,Sound*> library;
 	vector<PlayingSound*> onetime_sounds;
@@ -50,30 +53,15 @@ class AudioContext { public:
 	ALuint source;
 	ALuint buffer;
 	
-	virtual ~AudioContext() {};
-	
-	virtual void init_context() = 0;
-	virtual void load_sounds() = 0;
-	
-	virtual PlayingSound* play_sound(string name, vec3 pos, float gain = 1, float pitch = 1) = 0;
-	virtual void play_onetime(PlayingSound* sound) = 0;
-	virtual void play_repeat(PlayingSound* sound) = 0;
-	
-	virtual void tick() = 0;
-	virtual void check_sounds() = 0;
-	
-	virtual void status(stringstream& debugstream) = 0;
-	void geterr();
-};
-
-class AudioMainContext : public AudioContext { public:
 	AudioMainContext();
 	virtual ~AudioMainContext();
 	
 	virtual void init_context();
 	virtual void load_sounds();
 	
-	virtual PlayingSound* play_sound(string name, vec3 pos, float gain = 1, float pitch = 1);
+	virtual void set_listener(vec3* pos, vec3* vel, vec2* dir);
+	
+	virtual void play_sound(string name, vec3 pos, float gain = 1, float pitch = 1);
 	virtual void play_onetime(PlayingSound* sound);
 	virtual void play_repeat(PlayingSound* sound);
 	
@@ -81,6 +69,7 @@ class AudioMainContext : public AudioContext { public:
 	virtual void check_sounds();
 	
 	virtual void status(stringstream& debugstream);
+	virtual void geterr();
 };
 
 class AudioNullContext : public AudioContext { public:
@@ -90,9 +79,9 @@ class AudioNullContext : public AudioContext { public:
 	virtual void init_context() {}
 	virtual void load_sounds() {}
 	
-	virtual PlayingSound* play_sound(string name, vec3 pos, float gain = 1, float pitch = 1) {return nullptr;}
-	virtual void play_onetime(PlayingSound* sound) {}
-	virtual void play_repeat(PlayingSound* sound) {}
+	virtual void play_sound(string name, vec3 pos, float gain = 1, float pitch = 1) {}
+	// virtual void play_onetime(PlayingSound* sound) {}
+	// virtual void play_repeat(PlayingSound* sound) {}
 	
 	virtual void tick() {}
 	virtual void check_sounds() {}

@@ -159,9 +159,9 @@ void LoadingThread::operator()() {
 			bool sucess;
 			ivec3 pos = parent->load_queue.pop_front(&sucess);
 			if (sucess) {
-				double start = glfwGetTime();
+				double start = getTime();
 				Tile* tile = new Tile(pos, world);
-				double mid = glfwGetTime();
+				double mid = getTime();
 				world->add_tile(tile);
 				//for (int i = 0; i < 5; i ++) {
 					tile->lighting_update();
@@ -213,7 +213,7 @@ void DeletingThread::operator()() {
 
 
 RenderingThread::RenderingThread(GLFWwindow* nwindow, ThreadManager* newparent): window(nwindow), parent(newparent) {
-	start_time = glfwGetTime();
+	start_time = getTime();
 	
 }
 
@@ -229,7 +229,7 @@ void RenderingThread::operator()() {
 			if (busy and parent->rendering and world != nullptr and !world->initial_generation) {
 				times ++;
 				if (times > 5) {
-					cout << "rendered done " << glfwGetTime() - start_time << endl;
+					cout << "rendered done " << getTime() - start_time << endl;
 					busy = false;
 				}
 			}
@@ -249,11 +249,11 @@ TickThread::TickThread(GLFWwindow* nwindow, ThreadManager* newparent): window(nw
 void TickThread::operator()() {
 	//glfwMakeContextCurrent(window);
 	while (parent->render_running) {
-		double start_time = glfwGetTime();
+		double start_time = getTime();
 		if (game != nullptr and world != nullptr) {
 			world->tick();
 		}
-		ms = (glfwGetTime() - start_time) * 1000;
+		ms = (getTime() - start_time) * 1000;
 		parent->tick_ms = ms;
 		if (ms < 50) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(50 - ms));

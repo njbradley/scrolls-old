@@ -683,7 +683,7 @@ void Player::mouse_button() {
 void Player::computeMatricesFromInputs(){
 
 	// glfwGetTime is called only once, the first time this function is called
-	static double lastTime = glfwGetTime();
+	static double lastTime = getTime();
 	
 	Block* camerablock = world->get_global(int(position.x), int(position.y), int(position.z), 1);
 	if (camerablock != 0) {
@@ -696,7 +696,7 @@ void Player::computeMatricesFromInputs(){
 	
 	
 	// Compute time difference between current and last frame
-	double currentTime = glfwGetTime();
+	double currentTime = getTime();
 	float deltaTime = float(currentTime - lastTime);
 	
 	if (attack_recharge > 0) {

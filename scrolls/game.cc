@@ -168,7 +168,7 @@ MainGame::~MainGame() {
 
 
 void MainGame::setup_gameloop() {
-	lastTime = glfwGetTime();
+	lastTime = getTime();
 	currentTime = lastTime;
 	lastFrameTime = lastTime;
 	nbFrames = 0;
@@ -186,18 +186,18 @@ void MainGame::setup_gameloop() {
 
 void MainGame::gametick() {
 	
-	double begin = glfwGetTime();
+	double begin = getTime();
 	if (menu == nullptr) {
 		world->player->computeMatricesFromInputs();
 		world->timestep();
 		//test->timestep(world);
 	}
-	double time = glfwGetTime() - begin;
+	double time = getTime() - begin;
 	if (dologtime and time > 0.001) {
 		cout << "timestep " << time << endl;
 	}
 	
-	begin = glfwGetTime();
+	begin = getTime();
 	debugstream.str("");
 	if (debug_visible) {
 		print_debug();
@@ -228,7 +228,7 @@ void MainGame::gametick() {
 	
 	// Measure speed
 	lastFrameTime = currentTime;
-	currentTime = glfwGetTime();
+	currentTime = getTime();
 	//cout << lastFrameTime << ' ' << currentTime << endl;
 	double ms = (currentTime-lastFrameTime)*1000;
 	if (debug_visible) {
@@ -264,7 +264,7 @@ void MainGame::gametick() {
 		slow_tick = 0;
 	}
 	
-	time = glfwGetTime() - begin;
+	time = getTime() - begin;
 	if (dologtime and time > 0.001) {
 		cout << "debug " << time << endl;
 	}
@@ -274,32 +274,32 @@ void MainGame::gametick() {
 	if (!settings->framerate_sync and sleep_needed > 0) {
 		
 		double time = lastFrameTime + min_ms_per_frame/1000.0;
-		double newtime = glfwGetTime();
+		double newtime = getTime();
 		std::this_thread::sleep_for(std::chrono::milliseconds(int(min_ms_per_frame-ms)));
 	}
 	
-	double total = glfwGetTime() - lastFrameTime;
+	double total = getTime() - lastFrameTime;
 	
 	if (debug_visible) {
 		debugstream << "------ total time -----" << endl;
 		debugstream << "total time " << total*1000 << endl;
 	}
-	currentTime = glfwGetTime();
+	currentTime = getTime();
 	
 	
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//-----------------------------------------------------FIRST DRAW CALL-------------------------------------------------------------------------------------------------------------------------//
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
-	double start = glfwGetTime();
+	double start = getTime();
 	
 	// world->glvecs.writelock.lock();
 	// world->transparent_glvecs.writelock.lock();
-	time = glfwGetTime() - start;
+	time = getTime() - start;
 	if (dologtime and time > 0.001) {
 		cout << "unlocking took " << time << endl;
 	}
-	start = glfwGetTime();
+	start = getTime();
 	
 	
 	graphics->block_draw_call(world->player, world->sunlight, &world->glvecs, &world->transparent_glvecs);
@@ -309,7 +309,7 @@ void MainGame::gametick() {
 	// world->glvecs.writelock.unlock();
 	// world->transparent_glvecs.writelock.unlock();
 	
-	double all = glfwGetTime() - start;
+	double all = getTime() - start;
 	if (dologtime and all > 0.001) {
 		cout << all << " render time" << endl;
 	}
@@ -321,24 +321,24 @@ void MainGame::gametick() {
 	graphics->ui_draw_call(world->player, &debugstream);
 	// Swap buffers
 	
-	time = glfwGetTime() - begin;
+	time = getTime() - begin;
 	if (dologtime and time > 0.001) {
 		cout << "ui " << time << endl;
 	}
 	
-	begin = glfwGetTime();
+	begin = getTime();
 	world->glvecs.sync();
 	world->transparent_glvecs.sync();
 	
-	preswap_time = glfwGetTime() - afterswap_time;
-	// cout << glfwGetTime() - begin << endl;
+	preswap_time = getTime() - afterswap_time;
+	// cout << getTime() - begin << endl;
 	graphics->swap();
-	time = glfwGetTime() - begin;
+	time = getTime() - begin;
 	if (dologtime and time > 0.001) {
 		cout << "swap " << time << endl;
 	}
 	
-	afterswap_time = glfwGetTime();
+	afterswap_time = getTime();
 	
 	audio->tick();
 	
@@ -374,10 +374,10 @@ void MainGame::gametick() {
 			// world->set(ppos.x, ppos.y, ppos.z, -1);
 			// world->glvecs.clean_flag = true;
 			// world->transparent_glvecs.clean_flag = true;
-			// double s = glfwGetTime();
+			// double s = getTime();
 			// world->glvecs.clean();
 			// world->transparent_glvecs.clean();
-			// double t = glfwGetTime() - s;
+			// double t = getTime() - s;
 			// cout << "time: " << t << endl;
 		} else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
 			world->player->spectator = true;
@@ -401,12 +401,12 @@ void MainGame::gametick() {
 				}
 			}
 		} else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS) {
-			double begin = glfwGetTime();
+			double begin = getTime();
 			ivec3 pos(world->player->position);
 			for (int i = 0; i < 1000000; i ++) {
 				Block* block = world->get_global(pos.x, pos.y, pos.z, 1);
 			}
-			cout << "1 mil get_global time: " << glfwGetTime() - begin << endl;
+			cout << "1 mil get_global time: " << getTime() - begin << endl;
 		} else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
 			dump_buffers();
 			dump_emptys();

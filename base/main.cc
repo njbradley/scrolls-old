@@ -1,68 +1,25 @@
-// Include standard headers
-#include <stdio.h>
-#include <stdlib.h>
-#include <sstream>
-#include <chrono>
-#include <thread>
-#include <iomanip>
-//#include <boost/asio.hpp>
-
-using std::stringstream;
-
-//#include <nvwa/debug_new.h>
-
-// Include GLEW
-#include <GL/glew.h>
-
-// Include GLFW
-#include <GLFW/glfw3.h>
-
-// Include GLM
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-using namespace glm;
-
-#include "shader.h"
-#include "texture.h"
-#include "entity.h"
-#include "menu.h"
-#include "world.h"
-#include "blockdata.h"
-#include "tiles.h"
-#include "blocks.h"
-#include "items.h"
-#include "crafting.h"
-#include "terrain.h"
-#include "blockgroups.h"
-#include "multithreading.h"
-#include "commands.h"
-#include "materials.h"
-#include "ui.h"
-#include "text.h"
-#include "graphics.h"
 #include "game.h"
-#include "audio.h"
-
-
 #include "cross-platform.h"
-
-#include <future>
+#include "debug.h"
 
 
 int main( void )
 {
+	logger->log(5) << "Starting game! " << endl;
 	
-	setup_backtrace();
+	for (int i = 0; i < 100000000; i ++) {
+		
+	}
 	
-	game = new MainGame();
-	
+	debugger->setup_backtrace();
+	return 0;
 	game->setup_gameloop();
 	while (game->playing) {
 		game->gametick();
 	}
 	
-	
-	delete game;
+	logger->log(3) << " ending game" << endl;
+	return 0;
 }
 
 

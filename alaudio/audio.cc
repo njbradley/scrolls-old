@@ -1,9 +1,5 @@
-#ifndef AUDIO
-#define AUDIO
-
 #include "audio.h"
-#include "cross-platform.h"
-#include "entity.h"
+#include "base/cross-platform.h"
 
 #include <stdlib.h>
 
@@ -110,7 +106,7 @@ PlayingSound::~PlayingSound() {
 }
 
 void PlayingSound::play() {
-	start_time = glfwGetTime();
+	start_time = getTime();
 	alSourcePlay(source);
 }
 
@@ -144,8 +140,14 @@ void PlayingSound::repeat(bool newval) {
 AudioMainContext::AudioMainContext() {
 	init_context();
 	load_sounds();
-	cout << AL_REFERENCE_DISTANCE << ' ' << AL_MAX_DISTANCE << ' ' << AL_ROLLOFF_FACTOR << endl;
 }
+
+void AudioMainContext::set_listener(vec3* pos, vec3* vel, vec2* dir) {
+	listenerpos = pos;
+	listenervel = vel;
+	listenerdir = dir;
+}
+
 
 void AudioMainContext::init_context() {
 	
@@ -178,15 +180,15 @@ void AudioMainContext::load_sounds() {
 	cout << "loaded in " << paths.size() << " sound files " << endl;
 }
 
-PlayingSound* AudioMainContext::play_sound(string name, vec3 pos, float gain, float pitch) {
-	if (device != nullptr and name != "null" and listener != nullptr and glm::length(pos - listener->position) < library[name]->range) {
+void AudioMainContext::play_sound(string name, vec3 pos, float gain, float pitch) {
+	if (device != nullptr and name != "null" and listenerpos != nullptr and glm::length(pos - *listenerpos) < library[name]->range) {
 		PlayingSound* newsound = new PlayingSound(library[name], pos);
 		newsound->gain(gain);
 		newsound->pitch(pitch);
 		play_onetime(newsound);
-		return newsound;
+		//return newsound;
 	}
-	return nullptr;
+	//return nullptr;
 }
 
 void AudioMainContext::play_onetime(PlayingSound* sound) {
@@ -206,21 +208,21 @@ void AudioMainContext::play_repeat(PlayingSound* sound) {
 void AudioMainContext::tick() {
 	if (device != nullptr) {
 		check_sounds();
-		if (listener != nullptr) {
+		if (listenerpos != nullptr) {
 			vec3 direction (
-				cos(listener->angle.y) * sin(listener->angle.x),
-				sin(listener->angle.y),
-				cos(listener->angle.y) * cos(listener->angle.x)
+				cos(listenerdir->y) * sin(listenerdir->x),
+				sin(listenerdir->y),
+				cos(listenerdir->y) * cos(listenerdir->x)
 			);
 			vec3 right (
-				sin(listener->angle.x - 3.14f/2.0f),
+				sin(listenerdir->x - 3.14f/2.0f),
 				0,
-				cos(listener->angle.x - 3.14f/2.0f)
+				cos(listenerdir->x - 3.14f/2.0f)
 			);
 			vec3 up = glm::cross(right, direction);
 			ALfloat listenerOri[] = { direction.x, direction.y, direction.z, up.x, up.y, up.z };
-			alListener3f(AL_POSITION, listener->position.x, listener->position.y, listener->position.z); geterr();
-			alListener3f(AL_VELOCITY, listener->vel.x, listener->vel.y, listener->vel.z); geterr();
+			alListener3f(AL_POSITION, listenerpos->x, listenerpos->y, listenerpos->z); geterr();
+			alListener3f(AL_VELOCITY, listenervel->x, listenervel->y, listenervel->z); geterr();
 			alListenerfv(AL_ORIENTATION, listenerOri); geterr();
 		}
 	}
@@ -228,7 +230,7 @@ void AudioMainContext::tick() {
 
 void AudioMainContext::check_sounds() {
 	if (device != nullptr) {
-		double time = glfwGetTime();
+		double time = getTime();
 		for (int i = onetime_sounds.size() - 1; i >= 0; i --) {
 			PlayingSound* sound = onetime_sounds[i];
 			if (sound->start_time + sound->sound->duration < time) {
@@ -248,7 +250,7 @@ void AudioMainContext::status(stringstream& debugstream) {
 	debugstream << onetime_sounds.size() << " sounds playing" << endl;
 }
 
-void AudioContext::geterr() {
+void AudioMainContext::geterr() {
 	ALCenum error;
 	error = alGetError();
 	if (error != AL_NO_ERROR) {
@@ -272,4 +274,6 @@ AudioMainContext::~AudioMainContext() {
 	}
 }
 
-#endif
+
+
+EXPORT_PLUGIN(AudioMainContext);

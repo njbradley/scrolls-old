@@ -1,18 +1,16 @@
 #ifndef GRAPHICS_PREDEF
 #define GRAPHICS_PREDEF
 
-#include "classes.h"
+#include "base/classes.h"
+#include "base/graphics.h"
 
-class GraphicsContext { public:
+class GraphicsMainContext : public GraphicsContext { public:
 	Settings* settings;
 	//GLFWwindow* window;
 	GLuint VertexArrayID;
 	GLuint uiVertexArrayID;
 	GLuint programID;
 	GLuint uiProgram;
-	
-	vec3 clearcolor;
-	int view_distance;
 	
 	int num_blocks;
 	int num_uis;
@@ -38,7 +36,7 @@ class GraphicsContext { public:
 	GLuint pMatID;
 	GLuint mvMatID;
 	GLuint TextureID;
-	GLuint uiTextureID = 8969;
+	GLuint uiTextureID;
 	GLuint viewdistID;
 	GLuint clearcolorID;
 	GLuint sunlightID;
@@ -51,17 +49,6 @@ class GraphicsContext { public:
 	GLuint triquery_result;
 	bool triquery_recieved = true;
 	
-	virtual void set_world_buffers(World* world, int mem) = 0;
-	virtual void init_glfw() = 0;
-	virtual void load_textures() = 0;
-	virtual void block_draw_call(Player* player, vec3 sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) = 0;
-	virtual void make_ui_buffer(Player* player, string debugstream) = 0;
-	virtual void ui_draw_call(Player* player, std::stringstream* debugstream) = 0;
-	virtual void swap() = 0;
-	virtual ~GraphicsContext() {}
-};
-
-class GraphicsMainContext : public GraphicsContext { public:
 	GraphicsMainContext(Settings* newsettings);
 	virtual void set_world_buffers(World* world, int mem);
 	virtual void init_glfw();

@@ -252,7 +252,7 @@ world(nworld), position(pos), box1(hitbox1), box2(hitbox2), alive(true), immune(
 {
     angle = vec2(0,0);
     vel = vec3(0,0,0);
-    lastTime = glfwGetTime();
+    lastTime = getTime();
     for (int i = 0; i < 7; i ++) {
         consts[i] = false;
         old_consts[i] = false;
@@ -262,7 +262,7 @@ world(nworld), position(pos), box1(hitbox1), box2(hitbox2), alive(true), immune(
 void Entity::timestep() {
         
     // Compute time difference between current and last frame
-    float currentTime(glfwGetTime());
+    float currentTime(getTime());
     deltaTime = (currentTime - lastTime);
     
     on_timestep(deltaTime);
@@ -318,7 +318,7 @@ void Entity::timestep() {
 }
 
 void Entity::drop_ticks() {
-	lastTime = glfwGetTime();
+	lastTime = getTime();
 }
 
 void Entity::get_nearby_entities(vector<DisplayEntity*>* colliders) {

@@ -634,17 +634,17 @@ int TerrainLoader::get_height(ivec2 pos) {
 char TerrainLoader::gen_func(ivec3 pos) {
 	//get_height(ivec2(pos.x, pos.z));
 	//return pos.y < 96;
-	// double start = glfwGetTime();
+	// double start = getTime();
 	char objval = objmerger.gen_func(pos);
-	// cout << glfwGetTime() - start << " objs " << endl;
+	// cout << getTime() - start << " objs " << endl;
 	char val;
 	if (objval != -1) {
 		val = objval;
 	} else {
 		//cout << "start gen func" << endl;
-		// start = glfwGetTime();
+		// start = getTime();
 		val = get_base(pos).gen_func(pos);
-		// cout << glfwGetTime() - start << " base " << endl;
+		// cout << getTime() - start << " base " << endl;
 		//cout << "end gen func" << endl;
 	}
 	if (val == 0 and pos.y < 96) {
