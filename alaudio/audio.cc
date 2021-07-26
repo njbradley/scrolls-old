@@ -1,12 +1,13 @@
 #include "audio.h"
 #include "base/cross-platform.h"
+#include "base/libraries.h"
 
 #include <stdlib.h>
 
 
 Sound::Sound(AudioContext* newcontext, string filename): context(newcontext) {
-	string dataname = RESOURCES_PATH "sounds/" + filename;
-	ifstream ifile(dataname);
+	string parentdir = filename.substr(0, filename.find_last_of('/')) + '/';
+	ifstream ifile(filename);
 	vector<string> wavfiles;
 	string buff;
   ifile >> buff;
@@ -24,26 +25,25 @@ Sound::Sound(AudioContext* newcontext, string filename): context(newcontext) {
       } else if (varname == "file") {
 				string path;
 				ifile >> path;
-				wavfiles.push_back(path);
+				wavfiles.push_back(PathLib::find_path("sounds/" + path));
 			} else if (varname == "files") {
 				string path;
 				char lett;
 				ifile >> lett >> path;
 				while (path.back() != ']') {
-					wavfiles.push_back(path);
+					wavfiles.push_back(PathLib::find_path("sounds/" + path));
 					ifile >> path;
 				}
 				if (path != "]") {
 					path.pop_back();
-					wavfiles.push_back(path);
+					wavfiles.push_back(PathLib::find_path("sounds/" + path));
 				}
 			} else if (varname == "dir") {
 				string dirpath;
 				ifile >> dirpath;
-				vector<string> newfiles;
-				get_files_folder(RESOURCES_PATH "sounds/" + dirpath, &newfiles);
+				PathLib newfiles ("sounds/" + dirpath);
 				for (string path : newfiles) {
-					wavfiles.push_back(dirpath + '/' + path);
+					wavfiles.push_back(path);
 				}
 			}
       getline(ifile, buff, ':');
@@ -51,7 +51,7 @@ Sound::Sound(AudioContext* newcontext, string filename): context(newcontext) {
     }
 		
 		if (wavfiles.size() == 0) {
-			wavfiles.push_back(name + ".wav");
+			wavfiles.push_back(PathLib::find_path(name + ".wav"));
 		}
 		
 		duration = 0;
@@ -61,7 +61,7 @@ Sound::Sound(AudioContext* newcontext, string filename): context(newcontext) {
 		alGenBuffers(num_buffers, buffers);
 		
 		for (int i = 0; i < num_buffers; i ++) {
-			string fullname = RESOURCES_PATH "sounds/" + wavfiles[i];
+			string fullname = wavfiles[i];
 			ALsizei size;
 			ALfloat freq;
 			ALenum format;
@@ -137,19 +137,19 @@ void PlayingSound::repeat(bool newval) {
 
 
 
-AudioMainContext::AudioMainContext() {
+ALAudioContext::ALAudioContext() {
 	init_context();
 	load_sounds();
 }
 
-void AudioMainContext::set_listener(vec3* pos, vec3* vel, vec2* dir) {
+void ALAudioContext::set_listener(vec3* pos, vec3* vel, vec2* dir) {
 	listenerpos = pos;
 	listenervel = vel;
 	listenerdir = dir;
 }
 
 
-void AudioMainContext::init_context() {
+void ALAudioContext::init_context() {
 	
 	device = alcOpenDevice(NULL);
 	if (device != nullptr) {
@@ -168,9 +168,8 @@ void AudioMainContext::init_context() {
 	}
 }
 
-void AudioMainContext::load_sounds() {
-	vector<string> paths;
-	get_files_folder(RESOURCES_PATH "sounds", &paths);
+void ALAudioContext::load_sounds() {
+	PathLib paths("sounds");
 	for (string path : paths) {
 		if (path.find(".txt") != string::npos) {
 			Sound* sound = new Sound(this, path);
@@ -180,7 +179,7 @@ void AudioMainContext::load_sounds() {
 	cout << "loaded in " << paths.size() << " sound files " << endl;
 }
 
-void AudioMainContext::play_sound(string name, vec3 pos, float gain, float pitch) {
+void ALAudioContext::play_sound(string name, vec3 pos, float gain, float pitch) {
 	if (device != nullptr and name != "null" and listenerpos != nullptr and glm::length(pos - *listenerpos) < library[name]->range) {
 		PlayingSound* newsound = new PlayingSound(library[name], pos);
 		newsound->gain(gain);
@@ -191,21 +190,21 @@ void AudioMainContext::play_sound(string name, vec3 pos, float gain, float pitch
 	//return nullptr;
 }
 
-void AudioMainContext::play_onetime(PlayingSound* sound) {
+void ALAudioContext::play_onetime(PlayingSound* sound) {
 	if (device != nullptr) {
 		sound->play();
 		onetime_sounds.push_back(sound);
 	}
 }
 
-void AudioMainContext::play_repeat(PlayingSound* sound) {
+void ALAudioContext::play_repeat(PlayingSound* sound) {
 	if (device != nullptr) {
 		sound->play();
 		repeat_sounds.push_back(sound);
 	}
 }
 
-void AudioMainContext::tick() {
+void ALAudioContext::tick() {
 	if (device != nullptr) {
 		check_sounds();
 		if (listenerpos != nullptr) {
@@ -228,7 +227,7 @@ void AudioMainContext::tick() {
 	}
 }
 
-void AudioMainContext::check_sounds() {
+void ALAudioContext::check_sounds() {
 	if (device != nullptr) {
 		double time = getTime();
 		for (int i = onetime_sounds.size() - 1; i >= 0; i --) {
@@ -241,7 +240,7 @@ void AudioMainContext::check_sounds() {
 	}
 }
 
-void AudioMainContext::status(stringstream& debugstream) {
+void ALAudioContext::status(stringstream& debugstream) {
 	debugstream << "----- audio status --------" << endl;
 	for (PlayingSound* sound : onetime_sounds) {
 		debugstream << sound->sound->name << ' ';
@@ -250,7 +249,7 @@ void AudioMainContext::status(stringstream& debugstream) {
 	debugstream << onetime_sounds.size() << " sounds playing" << endl;
 }
 
-void AudioMainContext::geterr() {
+void ALAudioContext::geterr() {
 	ALCenum error;
 	error = alGetError();
 	if (error != AL_NO_ERROR) {
@@ -259,7 +258,7 @@ void AudioMainContext::geterr() {
 }
 
 
-AudioMainContext::~AudioMainContext() {
+ALAudioContext::~ALAudioContext() {
 	for (PlayingSound* sound : onetime_sounds) {
 		delete sound;
 	}
@@ -276,4 +275,4 @@ AudioMainContext::~AudioMainContext() {
 
 
 
-EXPORT_PLUGIN(AudioMainContext);
+EXPORT_PLUGIN(ALAudioContext);

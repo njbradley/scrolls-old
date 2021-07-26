@@ -2,30 +2,32 @@
 #define GRAPHICS
 
 #include "graphics.h"
-
-#include "world.h"
-#include "entity.h"
-#include "blocks.h"
-#include "ui.h"
-#include "text.h"
-#include "shader.h"
-#include "texture.h"
-#include "menu.h"
-#include "cross-platform.h"
-#include "game.h"
+#include "rendervecs.h"
 
 
-GraphicsMainContext::GraphicsMainContext(Settings* newsettings) {
-	settings = newsettings;
-	init_glfw();
+
+GLGraphicsContext::GLGraphicsContext(): blocktex("textures/blocks"), transblocktex("textures/blocks/transparent"), uitex("textures/ui") {
+	init_graphics();
 	load_textures();
 }
 
-void GraphicsMainContext::set_world_buffers(World* world, int allocated_memory) {
-	world->set_buffers(vertexbuffer, databuffer, allocated_memory);
+GLGraphicsContext::~GLGraphicsContext() {
+	glDeleteBuffers(1, &vertexbuffer);
+	glDeleteBuffers(1, &databuffer);
+	
+	glDeleteBuffers(1, &uibuffer);
+	
+	glDeleteProgram(block_program);
+	glDeleteProgram(ui_program);
+	
+	glDeleteTextures(1, &blocktex_id);
+	glDeleteTextures(1, &transblocktex_id);
+	glDeleteTextures(uitex_id.size(), &uitex_id.front());
+	glDeleteVertexArrays(1, &block_vertexid);
+	glDeleteVertexArrays(1, &ui_vertexid);
 }
 
-void GraphicsMainContext::init_glfw() {
+void GLGraphicsContext::init_graphics() {
 	
 	// Initialise GLFW
 	if( !glfwInit() )
@@ -50,8 +52,6 @@ void GraphicsMainContext::init_glfw() {
 		window = glfwCreateWindow( screen_x, screen_y, "Scrolls - An Adventure Game", nullptr, nullptr);
 	}
 	glfwSetWindowPos(window, 100, 40);
-	
-	//launch_threads(window);
 	
 	if( window == NULL ){
 		fprintf( stderr, "Failed to open GLFW window.\n" );
@@ -94,9 +94,9 @@ void GraphicsMainContext::init_glfw() {
 	// Cull triangles which normal is not towards the camera
 	glEnable(GL_CULL_FACE);
 	// glDisable(GL_CULL_FACE);
-	glGenVertexArrays(1, &VertexArrayID);
+	glGenVertexArrays(1, &block_vertexid);
 	
-	glGenVertexArrays(1, &uiVertexArrayID);
+	glGenVertexArrays(1, &ui_vertexid);
 	// Create and compile our GLSL program from the shaders
 	programID = LoadShadersGeo( RESOURCES_PATH "shaders/block.vs", RESOURCES_PATH "shaders/block.fs", RESOURCES_PATH "shaders/block.gs" );
 	uiProgram = LoadShaders( RESOURCES_PATH "shaders/ui.vs", RESOURCES_PATH "shaders/ui.fs" );
@@ -104,7 +104,7 @@ void GraphicsMainContext::init_glfw() {
 	
 	pMatID = glGetUniformLocation(programID, "Pmat");
 	mvMatID = glGetUniformLocation(programID, "MVmat");
-	TextureID  = glGetUniformLocation(programID, "myTextureSampler");
+	blockTextureID  = glGetUniformLocation(programID, "myTextureSampler");
 	uiTextureID  = glGetUniformLocation(uiProgram, "myTextureSampler");
 	viewdistID = glGetUniformLocation(programID, "view_distance");
 	clearcolorID = glGetUniformLocation(programID, "clear_color");
@@ -114,118 +114,104 @@ void GraphicsMainContext::init_glfw() {
 	overlayTexID = glGetUniformLocation(programID, "overlayTex");
 	edgesTexID = glGetUniformLocation(programID, "edgesTex");
 	
-	glBindVertexArray(uiVertexArrayID);
+	glBindVertexArray(ui_vertexid);
+	glGenBuffers(1, &uibuffer);
 	
-	GLuint uibuffs[3];
-	glGenBuffers(3, uibuffs);
-	vertex_ui_buffer = uibuffs[0];
-	uv_ui_buffer = uibuffs[1];
-	mat_ui_buffer = uibuffs[2];
-	//glGenBuffers(1, &mat_ui_buffer);
-	//glGenBuffers(1, &mat_ui_buffer);
-	//glGenBuffers(1, &mat_ui_buffer);
-	
-	
-	
-	glBindVertexArray(VertexArrayID);
-	
+	glBindVertexArray(block_vertexid);
 	GLuint blockbuffs[2];
 	glGenBuffers(2, blockbuffs);
 	vertexbuffer = blockbuffs[0];
 	databuffer = blockbuffs[1];
 	
-	glGenQueries(1, &triquery);
 }
 
-void GraphicsMainContext::load_textures() {
-	////// get mats from folders
-	//vector<string> block_tex;
-	vector<string> uis;
-	//get_files_folder(RESOURCES_PATH "blocks", &block_tex);
-	get_files_folder(RESOURCES_PATH "textures/ui", &uis);
-	ifstream num_blocks_file(RESOURCES_PATH "textures/blocks/num_blocks.txt");
-	num_blocks_file >> num_blocks;
-	
-	
-	num_uis = uis.size() + 1;
-	
-	block_textures.resize(num_blocks);
-	transparent_block_textures.resize(num_blocks);
-	ui_textures.resize(num_uis);
-	
-	// Load the texture
-	
-	int size = 1;
-	for (int i = 0; i < num_blocks; i ++) {
-		string block = RESOURCES_PATH "textures/blocks/" + std::to_string(size);
-		block_textures[i] = loadBMP_array_folder(block);
-	}
-	
-	for (int i = 0; i < num_blocks; i ++) {
-		string block = RESOURCES_PATH "textures/blocks/transparent/" + std::to_string(size);
-		transparent_block_textures[i] = loadBMP_array_folder(block, true);
-	}
-	
-	for( int i = 0; i < uis.size(); i ++) {
-		string ui = RESOURCES_PATH "textures/ui/" + uis[i];
-		ui_names[uis[i]] = i;
-		const char* data = ui.c_str();
-		ui_textures[i] = loadBMP_custom(data, true);
-	}
-	
-	breaking_textures = loadBMP_array_folder(RESOURCES_PATH "textures/blocks/breaking", true);
-	overlay_textures = loadBMP_array_folder(RESOURCES_PATH "textures/blocks/overlay", true);
-	int num_edges;
-	edges_textures = loadBMP_array_folder(RESOURCES_PATH "textures/blocks/edges", true);
-	
-	ui_textures[num_uis-1] = loadBMP_image_folder(RESOURCES_PATH "textures/items", true);
-	ui_names["items.bmp"] = num_uis-1;
+void GLGraphicsContext::set_camera(vec3* pos, vec2* rot) {
+	camera_pos = pos;
+	camera_rot = rot;
 }
 
+const PathLib* GLGraphicsContext::block_textures() const {
+	return &blocktex;
+}
 
+const PathLib* GLGraphicsContext::trans_block_textures() const {
+	return &transblocktex;
+}
 
-void GraphicsMainContext::block_draw_call(Player* player, vec3 sunlightdir, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) {
-	if (game->debug_visible and triquery_recieved) {
-		//glBeginQuery(GL_PRIMITIVES_GENERATED, triquery);
+const PathLib* GLGraphicsContext::ui_textures() const {
+	return &uitex;
+}
+
+void GLGraphicsContext::load_textures() {
+	
+	blocktex_id = loadBMP_array_folder(block_textures(), false);
+	transblocktex_id = loadBMP_array_folder(trans_block_textures(), true);
+	
+	int i = 0;
+	for (PathLib::iterator iter = ui_textures()->begin(); iter != ui_textures()->end(); iter ++) {
+		uitex_id.push_back(loadBMP_custom(iter->c_str()));
 	}
+}
+	
+	
+
+void GLGraphicsContext::block_draw_call() {
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 	glDepthMask(GL_TRUE);
 	
-	// Clear the screen
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
-	
-	
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	//-----------------------------------------------------FIRST DRAW CALL-------------------------------------------------------------------------------------------------------------------------//
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
-	glBindVertexArray(VertexArrayID);
+	glBindVertexArray(block_vertexid);
 	
 	// Use our shader
-	glUseProgram(programID);
+	glUseProgram(block_program);
 	
-	// Compute the MVP matrix from keyboard and mouse input
-	glm::mat4 ProjectionMatrix = player->getProjectionMatrix();
-	glm::mat4 ViewMatrix = player->getViewMatrix();
-	glm::mat4 ModelMatrix = glm::mat4(1.0);
-	glm::mat4 P = ProjectionMatrix;
-	glm::mat4 MV = ViewMatrix * ModelMatrix;
-	sunlightdir = vec3(MV * vec4(sunlightdir.x, sunlightdir.y, sunlightdir.z, 0));
-	float sunlight = glm::length(sunlightdir);
-	// Send our transformation to the currently bound shader,
-	// in the "MVP" uniform
+	vec3 direction(
+		cos(camera_rot->y) * sin(camera_rot->x),
+		sin(camera_rot->y),
+		cos(camera_rot->y) * cos(camera_rot->x)
+	);
+	
+	vec3 right = glm::vec3(
+		sin(camera_rot->x - 3.14f/2.0f),
+		0,
+		cos(camera_rot->x - 3.14f/2.0f)
+	);
+	vec3 forward = -glm::vec3(
+		-cos(camera_rot->x - 3.14f/2.0f),
+		0,
+		sin(camera_rot->x - 3.14f/2.0f)
+	);
+	
+	vec3 up = glm::cross( right, forward );
+	
+	
+	// Projection matrix : 45 Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+	glm::mat4 projectionMatrix = glm::perspective(glm::radians(FoV), aspect_ratio, 0.1f, 1000.0f);
+	glm::mat4 viewMatrix = glm::lookAt(*camera_pos, *camera_pos + direction, up);
+	
+	glm::mat4 modelMatrix = glm::mat4(1.0);
+	glm::mat4 P = projectionMatrix;
+	glm::mat4 MV = viewMatrix * modelMatrix;
+	
 	glUniformMatrix4fv(pMatID, 1, GL_FALSE, &P[0][0]);
 	glUniformMatrix4fv(mvMatID, 1, GL_FALSE, &MV[0][0]);
+	
+	sunlightdir = vec3(MV * vec4(0, -1, 0, 0));
+	float sunlight = 1;
+	// Send our transformation to the currently bound shader,
+	// in the "MVP" uniform
+	
+	vec3 clearcolor = vec3(1, 0, 1);
+	
 	glUniform3f(clearcolorID, clearcolor.x, clearcolor.y, clearcolor.z);
 	glClearColor(clearcolor.x * sunlight, clearcolor.y * sunlight, clearcolor.z * sunlight, 0.0f);
 	glUniform1i(viewdistID, view_distance);
 	glUniform3f(sunlightID, sunlightdir.x, sunlightdir.y, sunlightdir.z);
 	glUniform3f(suncolorID, world->suncolor.x, world->suncolor.y, world->suncolor.z);
 	
-	
-	// 1rst attribute buffer : vertices
+	//// Vertex attribures : position, rotation, and scale
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 	glEnableVertexAttribArray(2);
@@ -233,204 +219,68 @@ void GraphicsMainContext::block_draw_call(Player* player, vec3 sunlightdir, Asyn
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderPosData), (void*) offsetof(RenderPosPart, pos));
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderPosData), (void*) offsetof(RenderPosPart, rot));
 	glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(RenderPosData), (void*) offsetof(RenderPosPart, scale));
-	// cout << sizeof(RenderPosData) << ' ' << (void*) offsetof(RenderPosPart, pos) << ' ' <<
-	// (void*) offsetof(RenderPosPart, scale) << ' ' << (void*) offsetof(RenderPosPart, rot) << endl;
 	
+	// Face data
 	glBindBuffer(GL_ARRAY_BUFFER, databuffer);
 	for (int i = 0; i < 6; i ++) {
 		glEnableVertexAttribArray(3+i);
 		glVertexAttribIPointer(3+i, 2, GL_UNSIGNED_INT, sizeof(RenderTypeData), (void*) (offsetof(RenderTypeData, faces) + i * sizeof(RenderFaceData)));
-		// cout << 3+i << ' ' << sizeof(RenderTypeData) << ' ' << (void*) (offsetof(RenderTypeData, faces) + i * sizeof(RenderFaceData)) << endl;
 	}
 	
-	int breakingTex = num_blocks;
-	glActiveTexture(GL_TEXTURE0+breakingTex);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, breaking_textures);
-	glUniform1i(breakingTexID, breakingTex);
-	int overlayTex = num_blocks+1;
-	glActiveTexture(GL_TEXTURE0+overlayTex);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, overlay_textures);
-	glUniform1i(overlayTexID, overlayTex);
-	int edgesTex = num_blocks+2;
-	glActiveTexture(GL_TEXTURE0+edgesTex);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, edges_textures);
-	glUniform1i(edgesTexID, edgesTex);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, blocktex_id);
+	glUniform1i(blockTextureID, 0);
 	
-	int ids[num_blocks];
-	for (int i = 0; i < num_blocks; i ++) {
-		ids[i] = i;
-		glActiveTexture(GL_TEXTURE0+i);
-		glBindTexture(GL_TEXTURE_2D_ARRAY, block_textures[i]);
-	}
-	glUniform1iv(TextureID, num_blocks, ids);
+	glDrawArrays(GL_POINTS, blockvecs->offset, blockvecs->num_verts);
 	
-	glDrawArrays(GL_POINTS, 0, glvecs->num_verts); // 12*3 indices starting at 0 -> 12 triangles
-	
-	
+	/// Transparent blocks
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	//glDisable(GL_CULL_FACE);
 	
-	for (int i = 0; i < num_blocks; i ++) {
-		ids[i] = i;
-		glActiveTexture(GL_TEXTURE0+i);
-		glBindTexture(GL_TEXTURE_2D_ARRAY, transparent_block_textures[i]);
-	}
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, transblocktex_id);
+	glUniform1i(blockTextureID, 0);
 	
-	glUniform1iv(TextureID, num_blocks, ids);
-	
-	
-	glDrawArrays(GL_POINTS, transparent_glvecs->offset, transparent_glvecs->num_verts);
-	
+	glDrawArrays(GL_POINTS, transvecs->offset, transvecs->num_verts);
 	
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(2);
 	glDisableVertexAttribArray(3);
-	
-	if (false and game->debug_visible) {
-		if (triquery_recieved) {
-			triquery_recieved = false;
-			glEndQuery(GL_PRIMITIVES_GENERATED);
-		} else {
-			GLuint ready;
-			glGetQueryObjectuiv(triquery, GL_QUERY_RESULT_AVAILABLE, &ready);
-			if (ready == GL_TRUE) {
-				triquery_recieved = true;
-				glGetQueryObjectuiv(triquery, GL_QUERY_RESULT, &triquery_result);
-			}
-		}
-	}
 }
-
-void GraphicsMainContext::make_ui_buffer(Player* player, string debugstream) {
-	MemVecs vecs;
-	if (last_num_ui_verts != 0) {
-		vecs.verts.reserve(last_num_ui_verts*3);
-		vecs.uvs.reserve(last_num_ui_verts*2);
-		vecs.mats.reserve(last_num_ui_verts);
-	}
-	//if (game->debug_visible) {
-		render_debug(&vecs, debugstream);
-	//} else {
-	//	render_debug(&vecs, "");
-	//}
-	player->render_ui(&vecs);
-	if (menu != nullptr) {
-		menu->render(window, world, player, &vecs);
-	}
-	int num_verts = vecs.num_verts;
-	last_num_ui_verts = num_verts;
 	
-	num_ui_tris = num_verts/3;
+void GLGraphicsContext::ui_draw_call() {
+	glBindBuffer(GL_ARRAY_BUFFER, uibuffer);
+	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), uivecs->data(), GL_STATIC_DRAW);
 	
-	GLfloat i = 0.0f;
-	GLint j = 0;
-	//cout << sizeof(i) << ' ' << sizeof(j) << endl;
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_ui_buffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(i)*3, &vecs.verts.front(), GL_STATIC_DRAW);
-	
-	glBindBuffer(GL_ARRAY_BUFFER, uv_ui_buffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(i)*2, &vecs.uvs.front(), GL_STATIC_DRAW);
-	
-	glBindBuffer(GL_ARRAY_BUFFER, mat_ui_buffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), &vecs.mats.front(), GL_STATIC_DRAW);
-}
-
-void GraphicsMainContext::ui_draw_call(Player* player, std::stringstream* debugstream) {
-	
-	glDisable(GL_DEPTH_TEST);
-	glDepthMask(GL_FALSE);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	
-	
-	glBindVertexArray(uiVertexArrayID);
-	//*
-	glUseProgram(uiProgram);
-	
-	make_ui_buffer(player, debugstream->str());
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+	glBindBuffer(GL_ARRAY_BUFFER, uibuffer);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*5, (void*) (sizeof(GLfloat)*1));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*5, (void*) (sizeof(GLfloat)*3));
+	glVertexAttribIPointer(2, 1, GL_INT, sizeof(GLfloat)*5, (void*) (0));
 	
 	int uv_ids[num_uis];
 	
 	for (int i = 0; i < num_uis; i ++) {
 		uv_ids[i] = i;
 		glActiveTexture(GL_TEXTURE0+i);
-		glBindTexture(GL_TEXTURE_2D, ui_textures[i]);
+		glBindTexture(GL_TEXTURE_2D, uitex_id[i]);
 	}
 	
 	glUniform1iv(uiTextureID, num_uis, uv_ids);
 	
-	// 1rst attribute buffer : vertices
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_ui_buffer);
-	glVertexAttribPointer(
-		0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-		3,                  // size
-		GL_FLOAT,           // type
-		GL_FALSE,           // normalized?
-		0,                  // stride
-		(void*)0            // array buffer offset
-	);
-	
-	// 2nd attribute buffer : UVs
-	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, uv_ui_buffer);
-	glVertexAttribPointer(
-		1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-		2,                                // size : U+V => 2
-		GL_FLOAT,                         // type
-		GL_FALSE,                         // normalized?
-		0,                                // stride
-		(void*)0                          // array buffer offset
-	);
-	
-	glEnableVertexAttribArray(2);
-	glBindBuffer(GL_ARRAY_BUFFER, mat_ui_buffer);
-	glVertexAttribIPointer(
-		2,                                // attribute. No particular reason for 2, but must match the layout in the shader.
-		1,                                // size : 1
-		GL_INT,                         // type
-														 // normalized?
-		0,                                // stride
-		(void*)0                          // array buffer offset
-	);
-	
-	// Draw the triangle !
-	glDrawArrays(GL_TRIANGLES, 0, num_ui_tris*3); // 12*3 indices starting at 0 -> 12 triangles
+	glDrawArrays(GL_TRIANGLES, 0, uivecs->num_verts); // 12*3 indices starting at 0 -> 12 triangles
 	
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(2);
-	
-	
-	// disable transparency
-	//*/
-	// Swap buffers
 }
 
-void GraphicsMainContext::swap() {
+void GLGraphicsContext::swap() {
 	glfwSwapBuffers(window);
 	glfwPollEvents();
-}
-
-GraphicsMainContext::~GraphicsMainContext() {
-	
-	glDeleteBuffers(1, &vertexbuffer);
-	glDeleteBuffers(1, &databuffer);
-	
-	glDeleteBuffers(1, &vertex_ui_buffer);
-	glDeleteBuffers(1, &uv_ui_buffer);
-	glDeleteBuffers(1, &mat_ui_buffer);
-	
-	glDeleteQueries(1, &triquery);
-	
-	glDeleteProgram(programID);
-	glDeleteProgram(uiProgram);
-	
-	glDeleteTextures(1, &TextureID);
-	glDeleteVertexArrays(1, &VertexArrayID);
-	glDeleteVertexArrays(1, &uiVertexArrayID);
 }
 
 

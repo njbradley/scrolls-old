@@ -1,4 +1,0 @@
-audio hit {
-	:file: hit.wav
-	:range: 15
-}

@@ -7,5 +7,8 @@ class DwarfDebugger: public Debugger { public:
 	virtual void setup_backtrace();
 };
 
+class CoolLogger: public Logger { public:
+	virtual ostream& log(int page);
+};
 
 #endif

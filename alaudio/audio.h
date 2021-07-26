@@ -38,7 +38,7 @@ class PlayingSound { public:
 	void repeat(bool newval);
 };
 
-class AudioMainContext : public AudioContext { public:
+class ALAudioContext : public AudioContext { public:
 	ALCdevice* device;
 	ALCcontext* context;
 	
@@ -53,8 +53,8 @@ class AudioMainContext : public AudioContext { public:
 	ALuint source;
 	ALuint buffer;
 	
-	AudioMainContext();
-	virtual ~AudioMainContext();
+	ALAudioContext();
+	virtual ~ALAudioContext();
 	
 	virtual void init_context();
 	virtual void load_sounds();

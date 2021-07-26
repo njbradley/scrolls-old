@@ -78,8 +78,11 @@ ostream& operator<<(ostream& out, quat rot);
 class Game;
 class PluginLib;
 class PluginLoader;
+class PathLib;
 template <typename T> class Plugin;
-
+class UIRect;
+class UIObj;
+class UIVecs;
 class Block;
 class FreeBlock;
 class BlockContainer;

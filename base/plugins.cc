@@ -14,17 +14,16 @@ PluginLib::PluginLib(string path) {
 	if (!handle) {
 		cout << "Plugin error: [" << path << "]: cannot open dll" << endl;
 	}
-	const char* (*func)() = (const char* (*)()) GETADDR(handle, "getbasename");
-	if (func == nullptr) {
-		cout << "Plugin error: [" << path << "]: cannot find function getbasename" << endl;
+	
+	PluginDef* plugindefs = (PluginDef*) GETADDR(handle, "plugins");
+	if (plugindefs == nullptr) {
+		cout << "Plugin error: [" << path << "]: cannot find plugins" << endl;
 	}
-	basename = func();
-	cout << " basename " << basename << ' ' << (void*) basename << endl;
-	void* (*func2)() = (void* (*)()) GETADDR(handle, "getplugin");
-	if (func2 == nullptr) {
-		cout << "Plugin error: [" << path << "]: cannot find function getplugin" << endl;
+	
+	while (plugindefs->basename != nullptr) {
+		plugins.push_back(*plugindefs);
+		plugindefs ++;
 	}
-	getplugin = (void* (*)()) func2();
 }
 
 PluginLib::~PluginLib() {
@@ -52,10 +51,12 @@ PluginLoader::~PluginLoader() {
 	}
 }
 
-void* (*PluginLoader::getplugin_func(const char* name))() {
-	for (PluginLib* plugin : plugins) {
-		if (strcmp(plugin->basename, name) == 0) {
-			return plugin->getplugin;
+void* PluginLoader::getplugin_func(const char* name) {
+	for (PluginLib* pluginlib : plugins) {
+		for (PluginDef plugindef : pluginlib->plugins) {
+			if (strcmp(plugindef.basename, name) == 0) {
+				return plugindef.getplugin;
+			}
 		}
 	}
 	return nullptr;

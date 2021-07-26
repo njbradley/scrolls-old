@@ -1,41 +1,31 @@
 #ifndef GRAPHICS_PREDEF
 #define GRAPHICS_PREDEF
 
-#include "base/classes.h"
+#include "classes.h"
 #include "base/graphics.h"
+#include "base/libraries.h"
 
-class GraphicsMainContext : public GraphicsContext { public:
-	Settings* settings;
-	//GLFWwindow* window;
-	GLuint VertexArrayID;
-	GLuint uiVertexArrayID;
-	GLuint programID;
-	GLuint uiProgram;
+class GLGraphicsContext : public GraphicsContext { public:
+	GLuint block_vertexid;
+	GLuint ui_vertexid;
+	GLuint block_program;
+	GLuint ui_program;
 	
-	int num_blocks;
-	int num_uis;
-	
-	int last_num_ui_verts = 0;
-	int num_ui_tris;
-	int num_tris;
-	
-	vector<GLuint> block_textures;
-	vector<GLuint> transparent_block_textures;
+	GLuint blocktex_id;
+	GLuint transblocktex_id;
 	GLuint breaking_textures;
 	GLuint overlay_textures;
 	GLuint edges_textures;
-	vector<GLuint> ui_textures;
+	vector<GLuint> uitex_id;
 	
 	GLuint vertexbuffer;
 	GLuint databuffer;
 	
-	GLuint vertex_ui_buffer;
-	GLuint uv_ui_buffer;
-	GLuint mat_ui_buffer;
+	GLuint uibuffer;
 	
 	GLuint pMatID;
 	GLuint mvMatID;
-	GLuint TextureID;
+	GLuint blockTextureID;
 	GLuint uiTextureID;
 	GLuint viewdistID;
 	GLuint clearcolorID;
@@ -45,20 +35,30 @@ class GraphicsMainContext : public GraphicsContext { public:
 	GLuint overlayTexID;
 	GLuint edgesTexID;
 	
-	GLuint triquery;
-	GLuint triquery_result;
-	bool triquery_recieved = true;
+	PathLib blocktex;
+	PathLib transblocktex;
+	PathLib uitex;
 	
-	GraphicsMainContext(Settings* newsettings);
-	virtual void set_world_buffers(World* world, int mem);
-	virtual void init_glfw();
-	virtual void load_textures();
-	virtual void block_draw_call(Player* player, vec3 sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs);
-	virtual void make_ui_buffer(Player* player, string debugstream);
-	virtual void ui_draw_call(Player* player, std::stringstream* debugstream);
+	vec3* camera_pos;
+	vec2* camera_rot;
+	
+	GLGraphicsContext();
+	~GLGraphicsContext();
+	
+	virtual void set_camera(vec3* pos, vec2* rot);
+	
+	virtual const PathLib* block_textures() const;
+	virtual const PathLib* trans_block_textures() const;
+	virtual const PathLib* ui_textures() const;
+	
+	void init_graphics();
+	void load_textures();
+	
+	virtual void block_draw_call();
+	virtual void ui_draw_call();
 	virtual void swap();
-	virtual ~GraphicsMainContext();
 };
+
 
 class GraphicsNullContext : public GraphicsContext { public:
 	virtual void set_world_buffers(World* world, int mem) {}

@@ -11,18 +11,18 @@ endif
 
 
 ifeq ($(PLAT),MAC)
-LIBS := -lglfw -framework CoreVideo -framework OpenGL -framework IOKit -lGLEW -ldl
+LIBS := -ldl
 DLLSUFFIX :=.so
 LDFLAGS := -rdynamic
 DLLFLAGS := -shared -fPIC
 else
 ifeq ($(PLAT),LINUX)
-LIBS := -lGLEW -lGL -pthread -lglfw -lboost_system -ldl
+LIBS := -pthread -lboost_system -ldl
 DLLSUFFIX :=.so
 LDFLAGS := -rdynamic
 DLLFLAGS := -shared -fPIC
 else
-LIBS := -lglew32 -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32 -lboost_system-mt -lWs2_32 -ldbghelp $(patsubst %,-l%, $(SCROLLSDEPS)) $(patsubst %,-L../%/, $(SCROLLSDEPS))
+LIBS := -lmingw32 -luser32 -lgdi32 -lshell32 -lboost_system-mt -lWs2_32 -ldbghelp $(patsubst %,-l%, $(SCROLLSDEPS)) $(patsubst %,-L../%/, $(SCROLLSDEPS))
 DLLFLAGS := -shared -Wl,--out-implib,lib$(TARGET).a
 LDFLAGS := -Wl,--out-implib,lib$(TARGET).a,--export-all-symbols
 EXESUFFIX :=.exe

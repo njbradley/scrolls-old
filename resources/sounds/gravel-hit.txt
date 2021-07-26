@@ -1,8 +1,0 @@
-audio gravel-hit {
-	:dir: gravel-hit
-}
-
-:::::
-Attribution:
-https://freesound.org/people/test_sound/sounds/464264/
-by test_sound on freesound.org
