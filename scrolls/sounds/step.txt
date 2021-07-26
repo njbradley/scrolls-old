@@ -1,0 +1,4 @@
+audio step {
+	:dir: steps
+	:range: 20
+}
