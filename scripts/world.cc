@@ -266,7 +266,6 @@ void World::spawn_player() {
     spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
   }
   player = new Player(this, vec3(spawnpos));
-  player->spectator = true;
   player->autojump = true;
   player->health = 10;
   player->max_health = 10;
