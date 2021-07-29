@@ -1,4 +1,5 @@
 #include "rendervecs.h"
+#include "base/ui.h"
 
 void AsyncGLVecs::set_destination(GLVecsDestination* dest) {
   destination = dest;
@@ -102,15 +103,15 @@ void GLUIVecs::add(UIRect rect) {
   GLfloat id;
   *(GLint*)&id = rect.id;
   
-  int x1 = rect.position.x;
-  int y1 = rect.position.y;
-  int x2 = rect.position.x + rect.size.x;
-  int y2 = rect.position.y + rect.size.y;
+  GLfloat x1 = rect.position.x;
+  GLfloat y1 = rect.position.y;
+  GLfloat x2 = rect.position.x + rect.size.x;
+  GLfloat y2 = rect.position.y + rect.size.y;
   
-  int uvx1 = rect.uvpos.x;
-  int uvy1 = rect.uvpos.y;
-  int uvx2 = rect.uvpos.x + rect.uvsize.x;
-  int uvy2 = rect.uvpos.y + rect.uvsize.y;
+  GLfloat uvx1 = rect.uvpos.x;
+  GLfloat uvy1 = rect.uvpos.y;
+  GLfloat uvx2 = rect.uvpos.x + rect.uvsize.x;
+  GLfloat uvy2 = rect.uvpos.y + rect.uvsize.y;
   
   GLfloat newdata[] = {
     id, x1, y1, uvx1, uvy2,
@@ -122,7 +123,7 @@ void GLUIVecs::add(UIRect rect) {
     id, x1, y1, uvx1, uvy1,
   };
   
-  datavec.insert(data.end(), newdata, newdata + 30);
+  datavec.insert(datavec.end(), newdata, newdata + 30);
 }
 
 void GLUIVecs::clear() {
@@ -132,5 +133,5 @@ void GLUIVecs::clear() {
 
 
 void* GLUIVecs::data() {
-  return (void*) datavec.begin();
+  return (void*) &datavec.front();
 }

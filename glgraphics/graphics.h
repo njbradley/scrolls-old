@@ -1,11 +1,13 @@
-#ifndef GRAPHICS_PREDEF
-#define GRAPHICS_PREDEF
+#ifndef GL_GRAPHICS_PREDEF
+#define GL_GRAPHICS_PREDEF
 
 #include "classes.h"
 #include "base/graphics.h"
 #include "base/libraries.h"
 
 class GLGraphicsContext : public GraphicsContext { public:
+	GLFWwindow* window;
+	
 	GLuint block_vertexid;
 	GLuint ui_vertexid;
 	GLuint block_program;

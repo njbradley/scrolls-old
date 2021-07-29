@@ -1,6 +1,3 @@
-#ifndef TEXTURE
-#define TEXTURE
-
 #include "texture.h"
 
 #include <stdio.h>
@@ -62,7 +59,7 @@ GLuint loadBMP_image_folder(const PathLib* img_paths, bool transparency) {
 		exit(1);
 	}
 	int width, height, nrChannels;
-	unsigned char* img_data = stbi_load((dirpath + "/" + img_paths->getpath(0)).c_str(), &width, &height, &nrChannels, 0);
+	unsigned char* img_data = stbi_load((img_paths->getpath(0)).c_str(), &width, &height, &nrChannels, 0);
 	unsigned char all_data[width*height*nrChannels*img_paths->size()];
 	for (int i = 0; i < width*height*nrChannels; i ++) {
 		all_data[i] = img_data[i];
@@ -71,7 +68,7 @@ GLuint loadBMP_image_folder(const PathLib* img_paths, bool transparency) {
 	
 	for (int i = 1; i < img_paths->size(); i ++) {
 		int newwidth, newheight, newnrChannels;
-		img_data = stbi_load((dirpath + "/" + img_paths->getpath(i)).c_str(), &newwidth, &newheight, &newnrChannels, 0);
+		img_data = stbi_load((img_paths->getpath(i)).c_str(), &newwidth, &newheight, &newnrChannels, 0);
 		if (newwidth != width or newheight != newheight or newnrChannels != nrChannels) {
 			cout << "error in load_image_folder, image sizes are not the same" << endl;
 			exit(2);
@@ -118,13 +115,13 @@ GLuint loadBMP_image_folder(const PathLib* img_paths, bool transparency) {
 	return textureID;
 }
 
-GLuint loadBMP_array_folder(const PathLib* img_paths, bool transparency = false, GLint colorformat = 0) {
+GLuint loadBMP_array_folder(const PathLib* img_paths, bool transparency, GLint colorformat) {
 	
 	if (img_paths->size() < 0) {
 		exit(1);
 	}
 	int width, height, nrChannels;
-	unsigned char* img_data = stbi_load((dirpath + "/" + img_paths->getpath(0)).c_str(), &width, &height, &nrChannels, transparency ? 4 : 3);
+	unsigned char* img_data = stbi_load((img_paths->getpath(0)).c_str(), &width, &height, &nrChannels, transparency ? 4 : 3);
 	nrChannels = transparency ? 4 : 3;
 	unsigned char* all_data = new unsigned char[width*height*nrChannels*img_paths->size()];
 	for (int i = 0; i < width*height*nrChannels; i ++) {
@@ -134,7 +131,7 @@ GLuint loadBMP_array_folder(const PathLib* img_paths, bool transparency = false,
 	
 	for (int i = 1; i < img_paths->size(); i ++) {
 		int newwidth, newheight, newnrChannels;
-		img_data = stbi_load((dirpath + "/" + img_paths->getpath(i)).c_str(), &newwidth, &newheight, &newnrChannels, transparency ? 4 : 3);
+		img_data = stbi_load((img_paths->getpath(i)).c_str(), &newwidth, &newheight, &newnrChannels, transparency ? 4 : 3);
 		if (newwidth != width or newheight != newheight) {
 			cout << "error in load_array_folder, image sizes are not the same" << endl;
 			exit(2);
@@ -220,5 +217,3 @@ GLuint loadBMP_array_custom(const char * imagepath){
 	// Return the ID of the texture we just created
 	return textureID;
 }
-
-#endif

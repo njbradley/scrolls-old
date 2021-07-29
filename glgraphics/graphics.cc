@@ -1,10 +1,8 @@
-#ifndef GRAPHICS
-#define GRAPHICS
-
 #include "graphics.h"
 #include "rendervecs.h"
-
-
+#include "base/settings.h"
+#include "shader.h"
+#include "texture.h"
 
 GLGraphicsContext::GLGraphicsContext(): blocktex("textures/blocks"), transblocktex("textures/blocks/transparent"), uitex("textures/ui") {
 	init_graphics();
@@ -45,11 +43,12 @@ void GLGraphicsContext::init_graphics() {
 	
 	if (settings->fullscreen) {
 		const GLFWvidmode* return_struct = glfwGetVideoMode( glfwGetPrimaryMonitor() );
-		set_screen_dims(return_struct->width, return_struct->height);
-		window = glfwCreateWindow( screen_x, screen_y, "Scrolls - An Adventure Game", glfwGetPrimaryMonitor(), nullptr);
+		settings->screen_dims = ivec2(return_struct->width, return_struct->height);
+		//set_screen_dims(return_struct->width, return_struct->height);
+		window = glfwCreateWindow( settings->screen_dims.x, settings->screen_dims.y, "Scrolls - An Adventure Game", glfwGetPrimaryMonitor(), nullptr);
 	} else {
 		// Open a window and create its OpenGL context
-		window = glfwCreateWindow( screen_x, screen_y, "Scrolls - An Adventure Game", nullptr, nullptr);
+		window = glfwCreateWindow( settings->screen_dims.x, settings->screen_dims.y, "Scrolls - An Adventure Game", nullptr, nullptr);
 	}
 	glfwSetWindowPos(window, 100, 40);
 	
@@ -80,10 +79,10 @@ void GLGraphicsContext::init_graphics() {
 	
   // Set the mouse at the center of the screen
   glfwPollEvents();
-  glfwSetCursorPos(window, screen_x/2, screen_y/2);
+  glfwSetCursorPos(window, settings->screen_dims.x/2, settings->screen_dims.y/2);
 
 	// Dark blue background
-	clearcolor = vec3(0.4f, 0.7f, 1.0f);
+	vec3 clearcolor = vec3(0.4f, 0.7f, 1.0f);
 	glClearColor(clearcolor.x, clearcolor.y, clearcolor.z, 0.0f);
 	
 	// Enable depth test
@@ -98,21 +97,21 @@ void GLGraphicsContext::init_graphics() {
 	
 	glGenVertexArrays(1, &ui_vertexid);
 	// Create and compile our GLSL program from the shaders
-	programID = LoadShadersGeo( RESOURCES_PATH "shaders/block.vs", RESOURCES_PATH "shaders/block.fs", RESOURCES_PATH "shaders/block.gs" );
-	uiProgram = LoadShaders( RESOURCES_PATH "shaders/ui.vs", RESOURCES_PATH "shaders/ui.fs" );
+	block_program = LoadShadersGeo( RESOURCES_PATH "shaders/block.vs", RESOURCES_PATH "shaders/block.fs", RESOURCES_PATH "shaders/block.gs" );
+	ui_program = LoadShaders( RESOURCES_PATH "shaders/ui.vs", RESOURCES_PATH "shaders/ui.fs" );
 	
 	
-	pMatID = glGetUniformLocation(programID, "Pmat");
-	mvMatID = glGetUniformLocation(programID, "MVmat");
-	blockTextureID  = glGetUniformLocation(programID, "myTextureSampler");
-	uiTextureID  = glGetUniformLocation(uiProgram, "myTextureSampler");
-	viewdistID = glGetUniformLocation(programID, "view_distance");
-	clearcolorID = glGetUniformLocation(programID, "clear_color");
-	sunlightID = glGetUniformLocation(programID, "sunlight");
-	suncolorID = glGetUniformLocation(programID, "suncolor");
-	breakingTexID = glGetUniformLocation(programID, "breakingTex");
-	overlayTexID = glGetUniformLocation(programID, "overlayTex");
-	edgesTexID = glGetUniformLocation(programID, "edgesTex");
+	pMatID = glGetUniformLocation(block_program, "Pmat");
+	mvMatID = glGetUniformLocation(block_program, "MVmat");
+	blockTextureID  = glGetUniformLocation(block_program, "myTextureSampler");
+	uiTextureID  = glGetUniformLocation(ui_program, "myTextureSampler");
+	viewdistID = glGetUniformLocation(block_program, "view_distance");
+	clearcolorID = glGetUniformLocation(block_program, "clear_color");
+	sunlightID = glGetUniformLocation(block_program, "sunlight");
+	suncolorID = glGetUniformLocation(block_program, "suncolor");
+	breakingTexID = glGetUniformLocation(block_program, "breakingTex");
+	overlayTexID = glGetUniformLocation(block_program, "overlayTex");
+	edgesTexID = glGetUniformLocation(block_program, "edgesTex");
 	
 	glBindVertexArray(ui_vertexid);
 	glGenBuffers(1, &uibuffer);
@@ -148,8 +147,8 @@ void GLGraphicsContext::load_textures() {
 	transblocktex_id = loadBMP_array_folder(trans_block_textures(), true);
 	
 	int i = 0;
-	for (PathLib::iterator iter = ui_textures()->begin(); iter != ui_textures()->end(); iter ++) {
-		uitex_id.push_back(loadBMP_custom(iter->c_str()));
+	for (PathLib::const_iterator iter = ui_textures()->begin(); iter != ui_textures()->end(); iter ++) {
+		uitex_id.push_back(loadBMP_custom(iter->c_str(), true));
 	}
 }
 	
@@ -188,7 +187,7 @@ void GLGraphicsContext::block_draw_call() {
 	
 	
 	// Projection matrix : 45 Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-	glm::mat4 projectionMatrix = glm::perspective(glm::radians(FoV), aspect_ratio, 0.1f, 1000.0f);
+	glm::mat4 projectionMatrix = glm::perspective(glm::radians(settings->fov), (float) settings->aspect_ratio(), 0.1f, 1000.0f);
 	glm::mat4 viewMatrix = glm::lookAt(*camera_pos, *camera_pos + direction, up);
 	
 	glm::mat4 modelMatrix = glm::mat4(1.0);
@@ -198,18 +197,18 @@ void GLGraphicsContext::block_draw_call() {
 	glUniformMatrix4fv(pMatID, 1, GL_FALSE, &P[0][0]);
 	glUniformMatrix4fv(mvMatID, 1, GL_FALSE, &MV[0][0]);
 	
-	sunlightdir = vec3(MV * vec4(0, -1, 0, 0));
+	ivec3 sunlightdir = vec3(MV * vec4(0, -1, 0, 0));
 	float sunlight = 1;
 	// Send our transformation to the currently bound shader,
 	// in the "MVP" uniform
 	
 	vec3 clearcolor = vec3(1, 0, 1);
-	
+	vec3 suncolor = vec3(1,1,1);
 	glUniform3f(clearcolorID, clearcolor.x, clearcolor.y, clearcolor.z);
 	glClearColor(clearcolor.x * sunlight, clearcolor.y * sunlight, clearcolor.z * sunlight, 0.0f);
-	glUniform1i(viewdistID, view_distance);
+	glUniform1i(viewdistID, settings->view_dist * 64);
 	glUniform3f(sunlightID, sunlightdir.x, sunlightdir.y, sunlightdir.z);
-	glUniform3f(suncolorID, world->suncolor.x, world->suncolor.y, world->suncolor.z);
+	glUniform3f(suncolorID, suncolor.x, suncolor.y, suncolor.z);
 	
 	//// Vertex attribures : position, rotation, and scale
 	glEnableVertexAttribArray(0);
@@ -251,7 +250,7 @@ void GLGraphicsContext::block_draw_call() {
 	
 void GLGraphicsContext::ui_draw_call() {
 	glBindBuffer(GL_ARRAY_BUFFER, uibuffer);
-	glBufferData(GL_ARRAY_BUFFER, num_verts*sizeof(j), uivecs->data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, uivecs->num_verts * sizeof(GLfloat), uivecs->data(), GL_STATIC_DRAW);
 	
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -261,15 +260,15 @@ void GLGraphicsContext::ui_draw_call() {
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*5, (void*) (sizeof(GLfloat)*3));
 	glVertexAttribIPointer(2, 1, GL_INT, sizeof(GLfloat)*5, (void*) (0));
 	
-	int uv_ids[num_uis];
+	int uv_ids[uitex_id.size()];
 	
-	for (int i = 0; i < num_uis; i ++) {
+	for (int i = 0; i < uitex_id.size(); i ++) {
 		uv_ids[i] = i;
 		glActiveTexture(GL_TEXTURE0+i);
 		glBindTexture(GL_TEXTURE_2D, uitex_id[i]);
 	}
 	
-	glUniform1iv(uiTextureID, num_uis, uv_ids);
+	glUniform1iv(uiTextureID, uitex_id.size(), uv_ids);
 	
 	glDrawArrays(GL_TRIANGLES, 0, uivecs->num_verts); // 12*3 indices starting at 0 -> 12 triangles
 	
@@ -284,4 +283,5 @@ void GLGraphicsContext::swap() {
 }
 
 
-#endif
+
+EXPORT_PLUGINS(GLGraphicsContext, AsyncGLVecs, GLUIVecs);

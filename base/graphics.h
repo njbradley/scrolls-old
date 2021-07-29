@@ -4,6 +4,7 @@
 #include "classes.h"
 #include "plugins.h"
 
+
 class GraphicsContext { public:
 	PLUGIN_HEAD(GraphicsContext, ());
 	

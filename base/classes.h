@@ -79,7 +79,6 @@ class Game;
 class PluginLib;
 class PluginLoader;
 class PathLib;
-template <typename T> class Plugin;
 class UIRect;
 class UIObj;
 class UIVecs;
@@ -153,7 +152,6 @@ template <typename T, typename ... Tparams> class CommandMethod;
 
 //////////////////////// GLOBAL VARIABLES ////////////////////////
 
-extern Plugin<Game> game;
 
 
 #endif

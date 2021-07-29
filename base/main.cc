@@ -1,17 +1,26 @@
+#include "audio.h"
+#include "debug.h"
+#include "graphics.h"
+#include "settings.h"
 #include "game.h"
 #include "cross-platform.h"
 #include "debug.h"
+#include "rendervecs.h"
 
 
 int main( void )
 {
+	
+	logger.init();
+	debugger.init();
+	debugger->setup_backtrace();
+	settings.init();
+	audio.init();
+	graphics.init();
+	game.init();
+	
 	logger->log(5) << "Starting game! " << endl;
 	
-	for (int i = 0; i < 100000000; i ++) {
-		
-	}
-	
-	debugger->setup_backtrace();
 	return 0;
 	game->setup_gameloop();
 	while (game->playing) {
