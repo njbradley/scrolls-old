@@ -49,7 +49,7 @@ class PluginLoader { public:
 	PluginLoader();
 	~PluginLoader();
 	
-	void* getplugin_func(const char* name);
+	void* getplugin_func(const char* name, void* skip_to = nullptr);
 };
 
 extern PluginLoader pluginloader;
@@ -107,6 +107,51 @@ class Plugin<PluginType, PluginLoad_NOW> : public BasePlugin<PluginType> { publi
 
 template <typename Ptype>
 using PluginNow = Plugin<Ptype, PluginLoad_NOW>;
+
+template <PluginType>
+class BasePluginList { public:
+	vector<PluginType*> pointers;
+	
+	template <typename Ptype = PluginType, typename ... Args,
+		std::enable_if_t<std::is_invocable<typename Ptype::ctor_func, Args...>::value, int> = 0>
+	void init(Args ... args) {
+		
+		void* funcptr = pluginloader.getplugin_func(Ptype::basename);
+		
+		if constexpr (!std::is_abstract<Ptype>::value) {
+			pointer = new Ptype(args...);
+		}
+		
+		while (funcptr != nullptr) {
+			Ptype* (*getfunc)() = (Ptype* (*) ()) funcptr;
+			pointers.push_back(getfunc(args...));
+			funcptr = pluginloader.getplugin_func(Ptype::basename, funcptr);
+		}
+	}
+	
+	PluginType* operator[](int index) {
+		return pointers[index];
+	}
+};
+
+
+template <typename PluginType, PluginLoadOrder order = PluginLoad_LATER>
+class PluginList : public BasePluginList<PluginType> { public:
+	PluginList() { }
+};
+
+template <typename PluginType>
+class PluginList<PluginType, PluginLoad_NOW> : public BasePluginList<PluginType> { public:
+	template <typename ... Args>
+	PluginList(Args ... args) {
+		load(args...);
+	}
+};
+
+
+
+
+
 
 template <typename Func>
 struct PluginGetCtorArgs {
