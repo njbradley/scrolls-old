@@ -10,11 +10,6 @@
 #include <math.h>
 
 
-constexpr double merge_threshold = 0.2;
-const int chunksize = World::chunksize;
-
-
-
 int poshash(int seed, ivec3 pos, int myseed) {
 	return hash4(seed, pos.x, pos.y, pos.z, myseed);
 }
@@ -22,6 +17,54 @@ int poshash(int seed, ivec3 pos, int myseed) {
 double poshashfloat(int seed, ivec3 pos, int myseed) {
 	return randfloat(seed, pos.x, pos.y, pos.z, myseed);
 }
+
+
+
+template <ivec3 offset, ivec3 scale>
+class Rect : public TerrainShape { public:
+	ShapeResult collide(ivec4 pos) {
+		bool containing = true;
+		for (int axis = 0; axis < 3; axis ++) {
+			if (pos[axis] - offset[axis] > scale[axis]
+				or offset[axis] - pos[axis] > pos.w) {
+				return SHAPE_OUTSIDE;
+			}
+			if (offset[axis] > pos[axis] or pos[axis] + pos.w > offset[axis] + scale[axis]) {
+				containing = false;
+			}
+		}
+		return containing ? SHAPE_INSIDE : SHAPE_INTERSECT;
+	}
+};
+
+template <typename ShapeType>
+class Invert : public TerrainShape { public:
+	ShapeResult collide(ivec4 pos) {
+		ShapeResult result = ShapeType().collide(pos)
+		if (result == SHAPE_OUTSIDE) {
+			return SHAPE_INSIDE;
+		}
+		if (result == SHAPE_INSIDE) {
+			return SHAPE_OUTSIDE;
+		}
+		return result;
+	}
+};
+
+
+
+template <ivec3 scale, int heightscale, ivec3 offset = ivec3(0,0,0)>
+class Perlin2D { public:
+	ShapeResult collide(ivec4 pos) {
+		double perlinval = scaled_perlin(
+
+
+
+
+
+/*
+constexpr double merge_threshold = 0.2;
+const int chunksize = World::chunksize;
 
 
 
@@ -34,7 +77,7 @@ ivec3 TerrainObjectPlacer::get_nearest_3d(TerrainLoader* loader, ivec3 pos, ivec
 		hash4(loader->seed, rounded.x,rounded.y,rounded.z,layer+2),
 		hash4(loader->seed, rounded.x,rounded.y,rounded.z,layer+3)) % gap;
 	ivec3 nearest = offset - pos%radius;
-	ivec3 in_bounds = ivec3(nearest.x < size.x, nearest.y < size.y, nearest.z < size.z);
+	ivec3 in_bounds = ivec3(nearest.x < size.x, nearest.y < 	size.y, nearest.z < size.z);
 	nearest = nearest * in_bounds + (1 - in_bounds);
 	return nearest;
 }

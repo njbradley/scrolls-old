@@ -3,6 +3,56 @@
 
 #include "classes.h"
 
+#define BLOCK_DIVIDE -2
+#define BLOCK_VOID -1
+
+enum ShapeResult {
+	SHAPE_OUTSIDE,
+	SHAPE_INSIDE,
+	SHAPE_INTERSECTS
+};
+
+class TerrainShape { public:
+	virtual ShapeResult collide(ivec4 pos) = 0;
+};
+
+class TerrainGenerator { public:
+	virtual int gen_func(ivec4 pos) = 0;
+};
+
+template <typename ShapeType, typename Generator>
+class TerrainObject : public TerrainGenerator { public:
+	virtual int gen_func(ivec4 pos);
+};
+
+template <typename ... Objs>
+class TerrainObjectGroup : public TerrainGenerator { public:
+	virtual int gen_func(ivec4 pos);
+};
+
+class TerrainLoader { public:
+	Block* block;
+	ivec3 offset;
+	
+	vector<TerrainGenerator*> generators;
+	
+	TerrainLoader(ivec3 off);
+};
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class HeightMap { public:
 	virtual int get_height(TerrainLoader* loader, ivec2 pos) = 0;
