@@ -2,29 +2,6 @@
 #define WORLD_PREDEF
 
 #include "classes.h"
-#include <iostream>
-#include <functional>
-#include <cmath>
-#include <fstream>
-#include <sstream>
-#include <thread>
-
-#include <GL/glew.h>
-#include <map>
-#include <unordered_map>
-#include "rendervec.h"
-#include "terrain.h"
-#include "collider.h"
-#include "commands.h"
-#include <future>
-#include <thread>
-#include <mutex>
-#include <atomic>
-//#include <shared_mutex>
-#include <unordered_set>
-
-using std::unordered_set;
-using std::unordered_map;
   
 
 class TileMap {
@@ -70,10 +47,47 @@ public:
   
   void status(ostream& ofile);
 };
+  
 
 
 
-extern int view_dist;
+class World: public Collider { public:
+  PLUGIN_HEAD(World, (string name));
+  
+  static const int chunksize = 64;
+  
+  string name;
+  int seed;
+  int difficulty = 1;
+  double worldtime = 0;
+  bool generation = true;
+  bool saving = true;
+  
+  TileMap tiles;
+  Plugin<TerrainLoader> terrainloader;
+  
+  set<ivec3,ivec3_comparator> loading_chunks;
+  set<ivec3,ivec3_comparator> deleting_chunks;
+  
+  World(string name);
+  virtual ~World();
+  
+  string path(string file = "");
+  
+  void setup_files();
+  void read_config(istream& ifile);
+  void write_config(ostream& ofile);
+  void startup();
+  void spawn_player();
+  void set_player_vars();
+  
+  vec3 get_position() const;
+  bool render();
+  void timestep();
+  void tick();
+  void drop_ticks();
+  
+  void block_update(ivec3);
 
 class World: public Collider {
     vector<ivec3> loading_chunks;
@@ -112,26 +126,7 @@ class World: public Collider {
         bool initial_generation = true;
         double gen_start_time;
 				
-        static const int chunksize = 64;
         
-        World(string newname, int newseed);
-        World(string oldname);
-        World(string newname, istream& datafile);
-        void set_buffers(GLuint verts, GLuint datas, int start_size);
-        vec3 get_position() const;
-        void load_data_file(istream& ifile);
-        void save_data_file(ostream& ofile);
-        void setup_files();
-        void startup();
-        void spawn_player();
-        void set_player_vars();
-        bool render();
-        void timestep();
-        void tick();
-        void drop_ticks();
-        void block_update(int,int,int);
-        void block_update(ivec3);
-        void aftertick(std::function<void(World*)> func);
         void light_update(int,int,int);
         void update_lighting();
         void load_nearby_chunks();

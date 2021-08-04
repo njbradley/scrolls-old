@@ -4,6 +4,23 @@
 #include "classes.h"
 #include "plugins.h"
 
+struct ViewParams {
+	double view_distance;
+	vec3 clear_color;
+	vec3 sun_color;
+	vec3 sun_direction;
+};
+
+class ViewBox { public:
+  PLUGIN_HEAD(ViewBox, ());
+  
+	ViewParams params;
+	
+	ViewBox();
+	virtual ~ViewBox() {}
+	
+	void timestep(double deltatime, double worldtime);
+};
 
 class GraphicsContext { public:
 	PLUGIN_HEAD(GraphicsContext, ());
@@ -11,6 +28,8 @@ class GraphicsContext { public:
 	Plugin<RenderVecs> blockvecs;
 	Plugin<RenderVecs> transvecs;
 	Plugin<UIVecs> uivecs;
+	
+	Plugin<ViewBox> viewbox;
 	
 	virtual ~GraphicsContext() {}
 	
@@ -24,7 +43,6 @@ class GraphicsContext { public:
 	virtual void ui_draw_call() = 0;
 	virtual void swap() = 0;
 };
-
 
 extern Plugin<GraphicsContext> graphics;
 

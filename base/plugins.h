@@ -54,11 +54,6 @@ class PluginLoader { public:
 
 extern PluginLoader pluginloader;
 
-enum PluginLoadOrder {
-	PluginLoad_NOW,
-	PluginLoad_LATER
-};
-
 template <typename PluginType>
 class BasePlugin { public:
 	PluginType* pointer = nullptr;
@@ -92,23 +87,20 @@ class BasePlugin { public:
 	}
 };
 
-template <typename PluginType, PluginLoadOrder order = PluginLoad_LATER>
+template <typename PluginType>
 class Plugin : public BasePlugin<PluginType> { public:
 	Plugin() { }
 };
 
 template <typename PluginType>
-class Plugin<PluginType, PluginLoad_NOW> : public BasePlugin<PluginType> { public:
+class PluginNow : public BasePlugin<PluginType> { public:
 	template <typename ... Args>
-	Plugin(Args ... args) {
+	PluginNow(Args ... args) {
 		load(args...);
 	}
 };
 
-template <typename Ptype>
-using PluginNow = Plugin<Ptype, PluginLoad_NOW>;
-
-template <PluginType>
+template <typename PluginType>
 class BasePluginList { public:
 	vector<PluginType*> pointers;
 	
@@ -119,7 +111,7 @@ class BasePluginList { public:
 		void* funcptr = pluginloader.getplugin_func(Ptype::basename);
 		
 		if constexpr (!std::is_abstract<Ptype>::value) {
-			pointer = new Ptype(args...);
+			pointers.push_back(new Ptype(args...));
 		}
 		
 		while (funcptr != nullptr) {
@@ -132,18 +124,31 @@ class BasePluginList { public:
 	PluginType* operator[](int index) {
 		return pointers[index];
 	}
+	
+	size_t size() const {
+		return pointers.size();
+	}
+	
+	using iterator = typename vector<PluginType*>::const_iterator;
+	
+	iterator begin() const {
+		return pointers.begin();
+	}
+	iterator end() const {
+		return pointers.end();
+	}
 };
 
 
-template <typename PluginType, PluginLoadOrder order = PluginLoad_LATER>
+template <typename PluginType>
 class PluginList : public BasePluginList<PluginType> { public:
 	PluginList() { }
 };
 
 template <typename PluginType>
-class PluginList<PluginType, PluginLoad_NOW> : public BasePluginList<PluginType> { public:
+class PluginListNow : public BasePluginList<PluginType> { public:
 	template <typename ... Args>
-	PluginList(Args ... args) {
+	PluginListNow(Args ... args) {
 		load(args...);
 	}
 };

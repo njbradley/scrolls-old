@@ -23,6 +23,8 @@ class GLGraphicsContext : public GraphicsContext { public:
 	GLuint vertexbuffer;
 	GLuint databuffer;
 	
+	GLVecsDestination glvecsdest;
+	
 	GLuint uibuffer;
 	
 	GLuint pMatID;

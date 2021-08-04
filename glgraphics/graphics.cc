@@ -202,13 +202,15 @@ void GLGraphicsContext::block_draw_call() {
 	// Send our transformation to the currently bound shader,
 	// in the "MVP" uniform
 	
-	vec3 clearcolor = vec3(1, 0, 1);
+	vec3 clearcolor = viewbox.params.clear_color;
 	vec3 suncolor = vec3(1,1,1);
 	glUniform3f(clearcolorID, clearcolor.x, clearcolor.y, clearcolor.z);
 	glClearColor(clearcolor.x * sunlight, clearcolor.y * sunlight, clearcolor.z * sunlight, 0.0f);
-	glUniform1i(viewdistID, settings->view_dist * 64);
-	glUniform3f(sunlightID, sunlightdir.x, sunlightdir.y, sunlightdir.z);
-	glUniform3f(suncolorID, suncolor.x, suncolor.y, suncolor.z);
+	glUniform1i(viewdistID, viewbox.params.view_distance);
+	
+	
+	glUniform3f(sunlightID, viewbox.params.sun_direction.x, viewbox.params.sun_direction.y, viewbox.params.sun_direction.z);
+	glUniform3f(suncolorID, viewbox.params.sun_color.x, viewbox.params.sun_color.y, viewbox.params.sun_color.z);
 	
 	//// Vertex attribures : position, rotation, and scale
 	glEnableVertexAttribArray(0);

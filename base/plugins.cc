@@ -57,13 +57,13 @@ PluginLoader::~PluginLoader() {
 }
 
 void* PluginLoader::getplugin_func(const char* name, void* skip_to) {
-	bool skip = skip_to != nullptr
+	bool skip = skip_to != nullptr;
 	for (PluginLib* pluginlib : plugins) {
 		for (PluginDef plugindef : pluginlib->plugins) {
 			if (!skip and strcmp(plugindef.basename, name) == 0) {
 				return plugindef.getplugin;
 			}
-			skip = skip and plugindef != skip_to;
+			skip = skip and plugindef.getplugin != skip_to;
 		}
 	}
 	return nullptr;

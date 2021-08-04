@@ -158,104 +158,91 @@ void TileMap::status(ostream& ofile) {
 }
 
 
-World::World(string newname, int newseed): loader(seed), seed(newseed), name(newname),
-commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) - 1) {
-    setup_files();
-    startup();
-}
-
 World::World(string oldname): loader(seed), name(oldname),
-commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) - 1) {
-    string path = SAVES_PATH + name + "/worlddata.txt";
-    ifstream ifile(path);
+tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) - 1) {
+    ifstream ifile(path("worlddata.txt"));
     load_data_file(ifile);
-    loader.seed = seed;
     startup();
 }
 
-World::World(string newname, istream& datafile): loader(seed), name(newname),
-commandprogram(this,&cout,&cout), tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) - 1) {
-  load_data_file(datafile);
+
+string World::path(string filename) const {
+  return SAVES_PATH + name + '/' + filename;
 }
 
-void World::set_buffers(GLuint verts, GLuint datas, int start_size) {
-  vecs_dest.set_buffers(verts, datas, start_size);
-  glvecs.set_destination(&vecs_dest);
-  transparent_glvecs.set_destination_offset(&vecs_dest, start_size - start_size * 0.1);
-}
 
-void World::load_data_file(istream& ifile) {
-    string buff;
+void World::load_config(istream& ifile) {
+  string buff;
+  getline(ifile, buff);
+  getline(ifile,buff,':');
+  while ( !ifile.eof() and buff != "end" ) {
+    if (buff == "seed") {
+      ifile >> seed;
+    }
+    if (buff == "daytime") {
+      ifile >> daytime;
+    }
+    if (buff == "difficulty") {
+      ifile >> difficulty;
+    }
+    if (buff == "generation") {
+      string gen;
+      ifile >> gen;
+      generation = gen == "on";
+    }
+    if (buff == "saving") {
+      string sav;
+      ifile >> sav;
+      saving = sav == "on";
+    }
     getline(ifile, buff);
     getline(ifile,buff,':');
-    while ( !ifile.eof() and buff != "end" ) {
-        if (buff == "seed") {
-            ifile >> seed;
-        }
-        if (buff == "daytime") {
-          ifile >> daytime;
-        }
-        if (buff == "difficulty") {
-          ifile >> difficulty;
-        }
-        if (buff == "generation") {
-          string gen;
-          ifile >> gen;
-          generation = gen == "on";
-        }
-        if (buff == "saving") {
-          string sav;
-          ifile >> sav;
-          saving = sav == "on";
-        }
-        getline(ifile, buff);
-        getline(ifile,buff,':');
-    }
+  }
 }
 
-void World::save_data_file(ostream& ofile) {
-    ofile << "Scrolls data file of world '" + name + "'\n";
-    ofile << "seed:" << seed << endl;
-    ofile << "difficulty:" << difficulty << endl;
-    ofile << "daytime:" << daytime << endl;
-    ofile << "generation:" << (generation ? "on" : "off") << endl;
-    ofile << "saving:" << (saving ? "on" : "off") << endl;
-    ofile << "end:" << endl;
+void World::save_config(ostream& ofile) {
+  ofile << "Scrolls data file of world '" + name + "'\n";
+  ofile << "seed:" << seed << endl;
+  ofile << "difficulty:" << difficulty << endl;
+  ofile << "daytime:" << daytime << endl;
+  ofile << "generation:" << (generation ? "on" : "off") << endl;
+  ofile << "saving:" << (saving ? "on" : "off") << endl;
+  ofile << "end:" << endl;
 }
 
 void World::setup_files() {
-    create_dir(SAVES_PATH + name);
-    create_dir(SAVES_PATH + name + "/chunks");
-    create_dir(SAVES_PATH + name + "/groups");
+    create_dir(path());
+    create_dir(path("chunks"));
+    create_dir(path("groups"));
     ofstream ofile(SAVES_PATH "saves.txt", std::ios::app);
     ofile << ' ' << name;
 }
 
 void World::startup() {
-    last_time = getTime();
-    ifstream ifile(SAVES_PATH + name + "/player.txt");
-    if (ifile.good()) {
-      player = new Player(this, ifile);
-      set_player_vars();
-    } else {
-      spawn_player();
+  last_time = getTime();
+  ifstream ifile(path("player.txt"));
+  if (ifile.good()) {
+    player = new Player(this, ifile);
+    set_player_vars();
+  } else {
+    spawn_player();
+  }
+  lighting_flag = true;
+  cout << "loading chunks from file" << endl;
+  gen_start_time = getTime();
+  
+  // sun setup
+  
+  vector<string> files;
+  get_files_folder(RESOURCES_PATH "textures/blocks/1", &files);
+  for (int i = 0; i < files.size(); i ++) {
+    if (files[i] == "sun.bmp") {
+      suntexture = i;
     }
-    lighting_flag = true;
-    cout << "loading chunks from file" << endl;
-    gen_start_time = getTime();
-    
-    // sun setup
-    
-    vector<string> files;
-    get_files_folder(RESOURCES_PATH "textures/blocks/1", &files);
-    for (int i = 0; i < files.size(); i ++) {
-      if (files[i] == "sun.bmp") {
-        suntexture = i;
-      }
-      if (files[i] == "moon.bmp") {
-        moontexture = i;
-      }
+    if (files[i] == "moon.bmp") {
+      moontexture = i;
     }
+  }
 }
 
 void World::spawn_player() {
@@ -274,15 +261,8 @@ void World::spawn_player() {
 }
 
 void World::set_player_vars() {
-  CommandVar<vec3> posvar(&player->position);
-  CommandVar<vec3> velvar(&player->vel);
-  commandprogram.vec3vars["me.pos"] = posvar;
-  commandprogram.vec3vars["me.vel"] = velvar;
-  commandprogram.doublevars["me.health"] = CommandVar<double>(&player->health);
-  
-  if (game != nullptr) {
-    audio->listener = player;
-  }
+  audio->set_listener(&player->position, &player->vel, &player->angle);
+  graphics->set_camera(&player->position, &player->angle);
 }
 
 void World::load_nearby_chunks() {
