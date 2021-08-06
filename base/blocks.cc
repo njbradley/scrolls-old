@@ -360,7 +360,7 @@ Block* Block::get_local(vec3 pos, int w, vec3 dir) {
   return curblock;
 }
 
-void Block::set_global(ivec3 pos, int w, int val, int direc, int joints[6]) {
+void Block::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]) {
   
   Block* curblock = this;
   while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale)) {
@@ -1249,8 +1249,8 @@ void Pixel::rotate(int axis, int dir) {
   parbl->set_flag(RENDER_FLAG);
 }
 
-void Pixel::rotate_uv(GLfloat* uvs, int rot) {
-  const GLfloat points[] {uvs[0],uvs[1], uvs[2],uvs[3], uvs[4],uvs[5], uvs[8],uvs[9]};
+void Pixel::rotate_uv(float* uvs, int rot) {
+  const float points[] {uvs[0],uvs[1], uvs[2],uvs[3], uvs[4],uvs[5], uvs[8],uvs[9]};
   const int indexes[] {0,1,2,2,3,0};
   for (int i = 0; i < 6; i ++) {
     int off_index = indexes[i] + rot;
@@ -1329,96 +1329,6 @@ void Pixel::rotate_to_origin(int* mats, int* dirs, int rotation) {
   }
 }
 
-/*
-void Pixel::render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* blocks[6], int index, ivec3 dir, int uv_dir, int minscale, int mat, bool render_null) {
-  GLfloat uvmax = 1.0f;
-  Block* block = blocks[index];
-  
-  
-  
-  if ((block != nullptr and block->is_air(-dir.x, -dir.y, -dir.z, value)) or (block == nullptr and render_null)) {
-    int edges[4] = {0,0,0,0};
-    int overlay = 0;
-    
-    int indexes[6][4] = {
-      {5, 1, 2, 4},
-      {2, 0, 5, 3},
-      {0, 1, 3, 4},
-      {2, 1, 5, 4},
-      {5, 0, 2, 3},
-      {3, 1, 0, 4}
-    };
-    
-    for (int i = 0; i < 4; i ++) {
-      int rot_i = (64 + i - uv_dir) % 4;
-      if (joints[indexes[index][rot_i]] != 0) {
-        edges[i] = joints[indexes[index][rot_i]];
-      }
-    }
-    
-    GLfloat face[] = {x,y,z, x,y,z, x,y,z, x,y,z, x,y,z, x,y,z};
-    
-    GLfloat new_uvs[] = {
-        0.0f, uvmax,
-        uvmax, uvmax,
-        uvmax, 0.0f,
-        uvmax, 0.0f,
-        0.0f, 0.0f,
-        0.0f, uvmax
-    };
-    rotate_uv(new_uvs,uv_dir);
-    
-    float faceblocklight = 0, facesunlight = 1;
-    if (block != nullptr) {
-      faceblocklight = block->get_blocklight(-dir.x, -dir.y, -dir.z) / float(lightmax);
-      facesunlight = block->get_sunlight(-dir.x, -dir.y, -dir.z) / float(lightmax);
-    }
-    
-    for (int i = 0; i < 3; i ++) {
-      int j,k;
-      if (i == 0) {
-        k = (i + 1 < 3) ? i+1 : i-2;
-        j = (i + 2 < 3) ? i+2 : i-1;
-      } else {
-        j = (i + 1 < 3) ? i+1 : i-2;
-        k = (i + 2 < 3) ? i+2 : i-1;
-      }
-      if (dir[i] == 1) {
-        for (int h = 0; h < 6; h ++) {
-          face[h*3+i] += parbl->scale;
-        }
-      }
-      if ((dir[i] == -1 and i > 0) or (i == 0 and dir[i] == 1)) {
-        face[0*3+j] += parbl->scale;
-        face[4*3+j] += parbl->scale;
-        face[5*3+j] += parbl->scale;
-        
-        face[2*3+k] += parbl->scale;
-        face[3*3+k] += parbl->scale;
-        face[4*3+k] += parbl->scale;
-      } else if ((dir[i] == 1 and i > 0) or (i == 0 and dir[i] == -1)) {
-        face[1*3+j] += parbl->scale;
-        face[2*3+j] += parbl->scale;
-        face[3*3+j] += parbl->scale;
-        
-        face[2*3+k] += parbl->scale;
-        face[3*3+k] += parbl->scale;
-        face[4*3+k] += parbl->scale;
-      }
-    }
-    
-    if (dir.y == -1) {
-      facesunlight *= 0.5f;
-    } else if (dir.y == 1) {
-      facesunlight *= 0.9f;
-    } else {
-      facesunlight *= 0.7f;
-    }
-    
-    vecs->add_face(face, new_uvs, facesunlight, faceblocklight, minscale, 0, overlay, edges, mat);
-  }
-}*/
-
 void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
   
   if (render_index.index > -1) {
@@ -1485,75 +1395,6 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
     }
   }
 }
-    
-    
-  /*
-  READ_LOCK;
-  
-  MemVecs vecs;
-  
-  int newscale = parbl->scale;
-  
-  GLfloat x = parbl->globalpos.x;
-  GLfloat y = parbl->globalpos.y;
-  GLfloat z = parbl->globalpos.z;
-  
-  if (value == 0) {
-    erase_render();
-    return;
-  } else {
-    
-    // if (yield) {
-    //   std::this_thread::yield();
-    // }
-    
-    BlockData* blockdata = blocks->blocks[value];
-    
-    GLfloat uv_start = 0.0f;
-    GLfloat uv_end = uv_start + 1.0f;
-    int mat[6];
-    for (int i = 0; i < 6; i ++) {
-      mat[i] = blockdata->texture[i];
-    }
-    int dirs[6] {0,0,0,0,0,0};
-    // if (physicsgroup != nullptr) {
-    //   physicsgroup->custom_textures(mat, dirs, ivec3(gx, gy, gz));
-    // }
-    
-    if (direction != blockdata->default_direction) {
-      rotate_to_origin(mat, dirs, blockdata->default_direction);
-      rotate_from_origin(mat, dirs, direction);
-    }
-     
-    int minscale = blockdata->minscale;
-    int i = 0;
-    
-    Block* blocks[6];
-    
-    for (ivec3 dir : dir_array) {
-      blocks[i] = parbl->get_global(parbl->globalpos+dir*newscale, newscale);
-      i ++;
-    }
-    i = 0;
-    for (ivec3 dir : dir_array) {
-      if ((faces & (1<<i))) {
-        render_face(&vecs, x, y, z, blocks, i, dir, dirs[i], minscale, mat[i], render_null);
-      }
-      i ++;
-    }
-    
-    erase_render();
-    if (vecs.num_verts != 0) {
-      if (blockdata->transparent) {
-        render_index = transvecs->add(&vecs);
-        lastvecs = transvecs;
-      } else {
-        render_index = allvecs->add(&vecs);
-        lastvecs = allvecs;
-      }
-    }
-  }
-}*/
 
 void Pixel::set(int val, int newdirection, int newjoints[6]) {
   WRITE_LOCK;
@@ -1930,7 +1771,7 @@ void BlockContainer::set(ivec4 pos, char val, int direction, int newjoints[6]) {
   block->set_global(pos, pos.w, val, direction, newjoints);
 }
 
-void BlockContainer::set_global(ivec3 pos, int w, int val, int direction, int newjoints[6]) {
+void BlockContainer::set_global(ivec3 pos, int w, Blocktype val, int direction, int newjoints[6]) {
   block->set_global(pos, w, val, direction, newjoints);
 }
 

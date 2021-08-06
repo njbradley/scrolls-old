@@ -474,6 +474,8 @@ void Item::render(MemVecs* vecs, float x, float y, float scale) {
   }
 }
 
+UIRect Item::getuirect() {
+  return 
 
 /////////////////////////////////////// ITEMdada ////////////////////////////////
 

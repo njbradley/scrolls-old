@@ -19,7 +19,7 @@ struct Collider {
 
 class Container : public Collider { public:
 	virtual void block_update(ivec3 pos) = 0;
-	virtual void set_global(ivec3 pos, int w, int val, int direc, int joints[6] = nullptr) = 0;
+	virtual void set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6] = nullptr) = 0;
 	virtual void add_freeblock(FreeBlock* freeblock) = 0;
 	virtual void remove_freeblock(FreeBlock* freeblock) = 0;
 };

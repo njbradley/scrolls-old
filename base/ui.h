@@ -12,7 +12,7 @@ class UIRect { public:
 	
 	UIRect(int nid, vec2 pos = vec2(0,0), vec2 nsize = vec2(1,1), vec2 nuvpos = vec2(0,0), vec2 nuvsize = vec2(1,1)):
 	id(nid), position(pos), size(nsize), uvpos(nuvpos), uvsize(nuvsize) { }
-	UIRect(): id(-1) {};
+	UIRect(): id(0) {};
 };
 
 
@@ -26,6 +26,18 @@ class UIObj { public:
 	// when converting to rects, it should be looped over until
 	// returns false
 	virtual bool to_rects(UIRect* rect) = 0;
+};
+
+
+class TextLine : public UIObj { public:
+	vec2 startpos;
+	string text;
+	
+	UIRect rect;
+	int index = 0;
+	
+	TextLine(string newtext, vec2 pos, float size);
+	virtual bool to_rects(UIRect* rect);
 };
 
 #endif

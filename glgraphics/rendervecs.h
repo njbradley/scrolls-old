@@ -37,11 +37,14 @@ class GLVecsDestination { public:
 
 class GLUIVecs : public UIVecs { public:
   vector<GLfloat> datavec;
+  UIRect* atlas = nullptr;
+  
+  void set_atlas(UIRect* natlas) {atlas = natlas;}
   
   virtual void add(UIRect rect);
   virtual void clear();
   
-  virtual void* data();
+  void* data();
 };
 
 #endif

@@ -8,7 +8,7 @@
 #include <atomic>
 
 #include "collider.h"
-#include "rendervec.h"
+#include "rendervecs.h"
 #include "entity.h"
 
 extern const uint8 lightmax;
@@ -112,7 +112,7 @@ class Block: public Collider { public:
 	Block* get_touching(ivec3 pos, int w, ivec3 dir); //bad
 	// travels the tree, and sets the block specified. does not travel between
 	// freeblocks/baseblocks
-	void set_global(ivec3 pos, int w, int val, int direc = -1, int joints[6] = nullptr);
+	void set_global(ivec3 pos, int w, Blocktype val, int direc = -1, int joints[6] = nullptr);
 	// turns pixel type blocks to chunk type
 	// divide leaves all children as null (use subdivide for
 	// fully initialized children)
@@ -214,7 +214,7 @@ class FreeBlock : public Block { public:
 
 class Pixel { public:
 	Block* parbl;
-	int value;
+	Blocktype value;
 	uint8 direction;
 	uint8 blocklight;
 	uint8 sunlight;
@@ -229,10 +229,9 @@ class Pixel { public:
 	Pixel(Block* newblock, istream& ifile);
 	~Pixel();
 	void set_block(Block* nblock);
-	void render_face(MemVecs* vecs, GLfloat x, GLfloat y, GLfloat z, Block* blocks[6], int index, ivec3 dir, int uv_dir, int minscale, int mat, bool render_null);
 	void rotate(int axis, int dir);
 	void render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null);
-	void set(int val, int direction = -1, int joints[6] = nullptr);
+	void set(Blocktype val, int direction = -1, int joints[6] = nullptr);
 	void render_update();
 	void tick();
 	void random_tick();
@@ -247,7 +246,6 @@ class Pixel { public:
 	BlockGroupIter iter_group(Collider* world, bool (*func)(Pixel* base, Pixel* pix) = nullptr);
 	void to_file(ostream& ofile);
 	
-  static void rotate_uv(GLfloat* uvs, int rot);
   // takes in a glfloat array 12 long and
   // rotates the face rottimes clockwise
   static void rotate_from_origin(int* mats, int* dirs, int rotation);

@@ -5,7 +5,6 @@
 
 #include "collider.h"
 #include "items.h"
-#include "rendervec.h"
 
 // Class that represents a rectangular prism, with a position, minimum, and maximum point.
 class Hitbox { public:
@@ -116,8 +115,6 @@ class Entity { public:
     void drop_ticks();
     bool is_solid_block(Block* block);
     virtual void calc_constraints();
-    void find_colliders(vector<Collider*>* colliders);
-    void get_nearby_entities(vector<DisplayEntity*>* colliders);
     void move(vec3 change, float deltaTime);
     void fall_damage(float velocity, float multiplier);
     void drag(bool do_drag, float deltaTime);
@@ -130,49 +127,7 @@ class Entity { public:
     virtual void kill();
 };
 
-class BlockContainer: public Container { public:
-	Block* block;
-	bool allocated;
-	
-	BlockContainer(Block* b);
-	BlockContainer(int scale);
-	~BlockContainer();
-	vec3 get_position() const;
-	Block* get_global(int x, int y, int z, int size);
-  void set(ivec4 pos, char val, int direction, int joints[6] = nullptr);
-	void set_global(ivec3 pos, int w, int val, int direction, int joints[6] = nullptr);
-	void block_update(ivec3 pos) {}
-  void add_freeblock(FreeBlock* freeblock) {}
-  void remove_freeblock(FreeBlock* freeblock) {}
-};
-
-class DisplayEntity: public Entity {
-public:
-  BlockContainer block;
-  vec3 blockpos;
-  vector<DisplayEntity*> limbs;
-  MemVecs vecs;
-  RenderIndex render_index;
-  bool render_flag;
-  bool dead_falling;
-  int sunlight = 10;
-  int blocklight = 0;
-  int emitted_light = 0;
-  bool emitted_light_flag = false;
-  ivec3 lit_block;
-  DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos,
-    vector<DisplayEntity*> newlimbs);
-  DisplayEntity(World* nworld, vec3 starting_pos, vec3 hitbox1, vec3 hitbox2, Block* newblock, vec3 blockpos);
-  DisplayEntity(World* nworld, istream& ifile);
-  ~DisplayEntity();
-  virtual void render(RenderVecs* allvecs);
-  virtual void calc_light(vec3 offset, vec2 ang);
-  virtual void on_timestep(double deltatime);
-  virtual void to_file(ostream& ofile);
-  //void die();
-};
-
-class Player: public DisplayEntity {
+class Player: public Entity {
 	
 	mat4 ViewMatrix;
 	mat4 ProjectionMatrix;
@@ -180,12 +135,9 @@ class Player: public DisplayEntity {
 	int selitem;
 	double break_progress = 0;
   ivec3 block_breaking;
-  GroupConnection* connection_breaking = nullptr;
+  // GroupConnection* connection_breaking = nullptr;
   double attack_recharge = 0;
   double total_attack_recharge = 0.2;
-  RenderIndex block_breaking_render_index;
-  MemVecs block_breaking_vecs;
-  int block_breaking_tex;
   
   Block* placing_block = nullptr;
   FreeBlock* placing_freeblock = nullptr;
@@ -207,12 +159,11 @@ class Player: public DisplayEntity {
 		mat4 getProjectionMatrix();
 		void right_mouse(double dt);
 		void left_mouse(double dt);
-    void raycast(Pixel** hit, vec3* hitpos, DisplayEntity** entity);
     void raycast(Block** hit, ivec3* dir, vec3* hitpos);
 		void mouse_button();
 		void computeMatricesFromInputs();
     void update_held_light();
-		void render_ui(MemVecs * uivecs);
+		void render_ui(UIVecs* uivecs);
 };
 
 #endif

@@ -111,7 +111,11 @@ Tile* TileMap::del_tile(ivec3 pos) {
   return nullptr;
 }
 
-int TileMap::size() {
+Tile* TileMap::operator[] (ivec3 pos) {
+  return tileat(pos);
+}
+
+size_t TileMap::size() const {
   return num_items;
 }
 
@@ -160,11 +164,14 @@ void TileMap::status(ostream& ofile) {
 
 World::World(string oldname): loader(seed), name(oldname),
 tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) - 1) {
-    ifstream ifile(path("worlddata.txt"));
-    load_data_file(ifile);
-    startup();
+  ifstream ifile(path("worlddata.txt"));
+  load_data_file(ifile);
+  startup();
 }
 
+World::~World() {
+  close_world();
+}
 
 string World::path(string filename) const {
   return SAVES_PATH + name + '/' + filename;
@@ -226,22 +233,6 @@ void World::startup() {
     set_player_vars();
   } else {
     spawn_player();
-  }
-  lighting_flag = true;
-  cout << "loading chunks from file" << endl;
-  gen_start_time = getTime();
-  
-  // sun setup
-  
-  vector<string> files;
-  get_files_folder(RESOURCES_PATH "textures/blocks/1", &files);
-  for (int i = 0; i < files.size(); i ++) {
-    if (files[i] == "sun.bmp") {
-      suntexture = i;
-    }
-    if (files[i] == "moon.bmp") {
-      moontexture = i;
-    }
   }
 }
 
@@ -323,15 +314,6 @@ void World::load_nearby_chunks() {
 
 void World::add_tile(Tile* tile) {
   tiles.add_tile(tile);
-  
-  loadinglock.lock();
-  for (int i = 0; i < loading_chunks.size(); i ++) {
-    if (loading_chunks[i] == tile->pos) {
-      loading_chunks.erase(loading_chunks.begin()+i);
-      break;
-    }
-  }
-  loadinglock.unlock();
 }
 
 void World::timestep() {
@@ -355,8 +337,6 @@ void World::timestep() {
   
   // cout << total_time / num_times << ' ' << num_times << endl;
   
-  
-  
   daytime += dt;
   if (daytime > 2000) {
     daytime -= 2000;
@@ -365,96 +345,10 @@ void World::timestep() {
     daytime += 2000;
   }
   
-  const double min_sun = 0.5;
-  
-  const int sunrise = 450;
-  const int sunset = 1550;
-  const int riseduration = 100;
-  
-  float sunlevel;
-  sunlevel = min_sun;
-  if (daytime > sunrise and daytime < sunrise + riseduration) {
-    sunlevel = float(daytime-sunrise)/riseduration * (1-min_sun) + min_sun;
-  } else if (daytime >= sunrise + riseduration and daytime <= sunset - riseduration) {
-    sunlevel = 1;
-  } else if (daytime > sunset - riseduration and daytime < sunset) {
-    sunlevel = -float(daytime-sunset+riseduration)/riseduration * (1-min_sun) + 1;
-  }
-  
-  vec3 sundirection = vec3(sin(daytime*3.14/1000), -cos(daytime*3.14/1000), 0);
-  
-  RenderData data;
-  data.pos.loc.pos = player->position + sundirection * 1000.0f;
-  data.pos.loc.rot = quat(cos(daytime*3.14/1000/2), 0, 0, sin(daytime*3.14/1000/2));
-  data.pos.loc.scale = 64;
-  
-  for (int i = 0; i < 6; i ++) {
-    data.type.faces[i] = {(uint)suntexture, 0, 0, 20, 20};
-  }
-  
-  if (sunindex.isnull()) {
-    sunindex = glvecs.add(data);
-  } else {
-    glvecs.edit(sunindex, data);
-  }
-  
-  data.pos.loc.pos = player->position - sundirection * 1000.0f;
-  data.pos.loc.rot = quat(cos(daytime*3.14/1000/2 + 3.14), 0, 0, sin(daytime*3.14/1000/2 + 3.14));
-  data.pos.loc.scale = 64;
-  
-  for (int i = 0; i < 6; i ++) {
-    data.type.faces[i] = {(uint)moontexture, 0, 0, 20, 20};
-  }
-  
-  if (moonindex.isnull()) {
-    moonindex = glvecs.add(data);
-  } else {
-    glvecs.edit(moonindex, data);
-  }
-  
-  sunlight = sundirection;
-  
-  float eveningTime = (daytime < 1000 ? daytime - sunrise : sunset - daytime) / riseduration;
-  vec3 skycolor;
-  if (eveningTime > 1) {
-    skycolor = vec3(0.4f, 0.7f, 1.0f);
-    suncolor = vec3(1,1,1);
-  } else if (eveningTime < 0) {
-    skycolor = vec3(0, 0, 0);
-    suncolor = vec3(0.6,0.8,1);
-  } else {
-    float lateEvening = std::min(eveningTime, 0.2f) * 5;
-    skycolor = vec3(1 - eveningTime*0.6f, 0.2f + eveningTime*0.5f, eveningTime) * lateEvening;
-    suncolor = vec3(1, 0.2f + eveningTime*0.8f, eveningTime) * lateEvening + vec3(0.6, 0.8, 1) * (1-lateEvening);
-  }
-  
-  suncolor *= sunlevel;
-  graphics->clearcolor = skycolor * sunlevel;
-  
-  mobcount = 0;
-  timestep_clock ++;
-  int i = 0;
-  
-  
 }
 
-void World::tick() { return;
-  unordered_set<ivec3,ivec3_hash> local_updates;
-  local_updates.swap(block_updates);
-  for (ivec3 pos : local_updates) {
-    
-    tileat_global(pos)->changelock.lock();
-    Block* block = get_global(pos.x, pos.y, pos.z, 1);
-    if (block != nullptr and !block->continues) {
-      block->pixel->tick();
-    }
-    tileat_global(pos)->changelock.unlock();
-  }
+void World::tick() {
   
-  for (int i = 0; i < aftertick_funcs.size(); i ++) {
-    aftertick_funcs[i](this);
-  }
-  aftertick_funcs.clear();
 }
 
 void World::drop_ticks() {
@@ -468,58 +362,47 @@ vec3 World::get_position() const {
   return vec3(0,0,0);
 }
 
-void World::block_update(int x, int y, int z) {
-  block_updates.emplace(ivec3(x,y,z));
-}
 void World::block_update(ivec3 pos) {
   block_updates.emplace(pos);
 }
 
-void World::aftertick(std::function<void(World*)> func) {
-  aftertick_funcs.push_back(func);
-}
-
-void World::light_update(int x, int y, int z) {
-  light_updates.emplace(ivec3(x,y,z));
-}
-
 bool World::render() {
-    if (lighting_flag) {
-      lighting_flag = false;
-    }
-    bool changed = false;
-    double start = getTime();
-    ivec3 ppos(player->position);
-    ppos = ppos / chunksize - ivec3(ppos.x < 0, ppos.y < 0, ppos.z < 0);
-    Tile* playertile = tileat(ppos);
-    
-    player->render(&glvecs);
-    
-    if (playertile != nullptr and playertile->chunk->flags & RENDER_FLAG and !playertile->lightflag) {
-      playertile->render(&glvecs, &transparent_glvecs);
-      changed = true;
-    } else {
-      for (Tile* tile : tiles) {
-        changed = changed or (tile->chunk->flags & RENDER_FLAG and tile->fully_loaded);
-        if (changed) {
-          tile->render(&glvecs, &transparent_glvecs);
-          break;
-        }
+  if (lighting_flag) {
+    lighting_flag = false;
+  }
+  bool changed = false;
+  double start = getTime();
+  ivec3 ppos(player->position);
+  ppos = ppos / chunksize - ivec3(ppos.x < 0, ppos.y < 0, ppos.z < 0);
+  Tile* playertile = tileat(ppos);
+  
+  player->render(&glvecs);
+  
+  if (playertile != nullptr and playertile->chunk->flags & RENDER_FLAG and !playertile->lightflag) {
+    playertile->render(&glvecs, &transparent_glvecs);
+    changed = true;
+  } else {
+    for (Tile* tile : tiles) {
+      changed = changed or (tile->chunk->flags & RENDER_FLAG and tile->fully_loaded);
+      if (changed) {
+        tile->render(&glvecs, &transparent_glvecs);
+        break;
       }
-      if (!changed) {
-        for (Tile* tile : tiles) {
-          if (!tile->lightflag) {
-            changed = changed or (tile->chunk->flags & RENDER_FLAG);
-            tile->render(&glvecs, &transparent_glvecs);
-            if (changed) {
-              break;
-            }
+    }
+    if (!changed) {
+      for (Tile* tile : tiles) {
+        if (!tile->lightflag) {
+          changed = changed or (tile->chunk->flags & RENDER_FLAG);
+          tile->render(&glvecs, &transparent_glvecs);
+          if (changed) {
+            break;
           }
         }
       }
     }
-    
-    return changed;
+  }
+  
+  return changed;
 }
 
 void World::update_lighting() {
@@ -537,7 +420,10 @@ Tile* World::tileat_global(ivec3 pos) {
 }
 
 Block* World::get_global(int x, int y, int z, int scale) {
-  ivec3 pos (x,y,z);
+  return get_global(ivec3(x,y,z), scale);
+}
+
+Block* World::get_global(ivec3 pos, int scale) {
   ivec3 tpos = SAFEDIV(pos, chunksize);
   Tile* tile = tileat(tpos);
   if (tile != nullptr) {
@@ -547,55 +433,17 @@ Block* World::get_global(int x, int y, int z, int scale) {
   return nullptr;
 }
 
-void World::summon(DisplayEntity* entity) {
-  ivec3 pos(entity->position);
-  pos = pos / chunksize - ivec3(
-    int(pos.x<0 and -pos.x%chunksize!=0),
-    int(pos.y<0 and -pos.y%chunksize!=0),
-    int(pos.z<0 and -pos.z%chunksize!=0)
-  );
-  Tile* tile = tileat(pos);
-  if (tile != nullptr) {
-    
-  }
-}
-
-void World::set(ivec4 pos, char val, int direction, int joints[6]) {
-  int px = pos.x/chunksize;
-  int py = pos.y/chunksize;
-  int pz = pos.z/chunksize;
-  if (pos.x < 0 and -pos.x%chunksize != 0) {
-      px --;
-  } if (pos.y < 0 and -pos.y%chunksize != 0) {
-      py --;
-  } if (pos.z < 0 and -pos.z%chunksize != 0) {
-      pz --;
-  }
-  Tile* tile = tileat(ivec3(px, py, pz));
-  
-  int lx = pos.x - px*chunksize;
-  int ly = pos.y - py*chunksize;
-  int lz = pos.z - pz*chunksize;
-  
-  tile->chunk->set_global(ivec3(pos.x, pos.y, pos.z), pos.w, val, direction, joints);
-}
-
-void World::set_global(ivec3 pos, int w, int val, int direction, int joints[6]) {
+void World::set_global(ivec3 pos, int w, Blocktype val, int direction, int joints[6]) {
   ivec3 chunkpos = SAFEDIV(pos, chunksize);
   tileat(chunkpos)->chunk->set_global(pos, w, val, direction, joints);
 }
 
-
-void World::set(int x, int y, int z, char val, int direction, BlockExtra* extras) {
-  set(ivec4(x,y,z,1), val, direction);
-}
-
-char World::get(int x, int y, int z) {
-    Block* block = get_global(x, y, z, 1);
-    if (block == nullptr) {
-      return -1;
-    }
-    return block->pixel->value;
+Blocktype World::get(int x, int y, int z) {
+  Block* block = get_global(x, y, z, 1);
+  if (block == nullptr) {
+    return -1;
+  }
+  return block->pixel->value;
 }
 
 Block* World::raycast(vec3* pos, vec3 dir, double time) {
@@ -606,28 +454,17 @@ Block* World::raycast(vec3* pos, vec3 dir, double time) {
   return b->raycast(pos, dir, time);
 }
 
-void World::save_chunk(ivec3 pos) {
-  if (saving) {
-    tileat(pos)->save();
-  }
-}
-
 void World::del_chunk(ivec3 pos, bool remove_faces) {
   Tile* tile = tiles.del_tile(pos);
   
   if (tile != nullptr) {
     tile->deleting = true;
-    tile->save();
+    if (saving) {
+      tile->save();
+    }
     delete tile;
     
-    deletinglock.lock();
-    for (int i = 0; i < deleting_chunks.size(); i ++) {
-      if (deleting_chunks[i] == pos) {
-        deleting_chunks.erase(deleting_chunks.begin()+i);
-        break;
-      }
-    }
-    deletinglock.unlock();
+    deleting_chunks.erase(pos);
   }
 }
 
@@ -636,30 +473,17 @@ bool World::is_world_closed() {
 }
 
 void World::close_world() {
-    ofstream ofile(SAVES_PATH + name + "/player.txt");
-    player->save_to_file(ofile);
-    delete player;
-    ofile.close();
-    vector<ivec3> poses;
-    
-    // for (Tile* tile : tiles) {
-    //     poses.push_back(tile->pos);
-    // }
-    //
-    // glvecs.ignore = true;
-    // transparent_glvecs.ignore = true;
-    // for (ivec3 pos : poses) {
-    //     tileat(pos)->save();
-    // }
-    // for (ivec3 pos : poses) {
-    //     del_chunk(pos, false);
-    // }
-    cout << "all tiles saved sucessfully: " << tiles.size() << endl;
-    string path = SAVES_PATH + name + "/worlddata.txt";
-    ofstream datafile(path);
-    save_data_file(datafile);
-    ofstream ofile2(SAVES_PATH "latest.txt");
-    ofile2 << name;
+  ofstream ofile(path("player.txt"));
+  player->save_to_file(ofile);
+  delete player;
+  ofile.close();
+  
+  cout << "all tiles saved sucessfully: " << tiles.size() << endl;
+  string path = path("worlddata.txt");
+  ofstream datafile(path);
+  save_data_file(datafile);
+  ofstream ofile2(SAVES_PATH "latest.txt");
+  ofile2 << name;
 }
 
 #endif

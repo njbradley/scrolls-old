@@ -275,7 +275,7 @@ void Tile::block_update(ivec3 pos) {
   world->block_update(pos);
 }
 
-void Tile::set_global(ivec3 pos, int w, int val, int direc, int joints[6]) {
+void Tile::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]) {
   world->set_global(pos, w, val, direc, joints);
 }
 

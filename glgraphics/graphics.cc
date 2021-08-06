@@ -3,6 +3,7 @@
 #include "base/settings.h"
 #include "shader.h"
 #include "texture.h"
+#include "base/ui.h"
 
 GLGraphicsContext::GLGraphicsContext(): blocktex("textures/blocks"), transblocktex("textures/blocks/transparent"), uitex("textures/ui") {
 	init_graphics();
@@ -20,7 +21,7 @@ GLGraphicsContext::~GLGraphicsContext() {
 	
 	glDeleteTextures(1, &blocktex_id);
 	glDeleteTextures(1, &transblocktex_id);
-	glDeleteTextures(uitex_id.size(), &uitex_id.front());
+	glDeleteTextures(1, &uitex_id);
 	glDeleteVertexArrays(1, &block_vertexid);
 	glDeleteVertexArrays(1, &ui_vertexid);
 }
@@ -122,6 +123,10 @@ void GLGraphicsContext::init_graphics() {
 	vertexbuffer = blockbuffs[0];
 	databuffer = blockbuffs[1];
 	
+	int total_size = settings->allocated_memory * 1000000 / sizeof(RenderData);
+	glvecsdest.set_buffers(vertexbuffer, databuffer, total_size);
+	glvecs.set_destination(&glvecsdest);
+	gltransvecs.set_destination_offset(&glvecsdest, total_size - total_size / 10);
 }
 
 void GLGraphicsContext::set_camera(vec3* pos, vec2* rot) {
@@ -141,18 +146,29 @@ const PathLib* GLGraphicsContext::ui_textures() const {
 	return &uitex;
 }
 
+
+RenderVecs* GLGraphicsContext::blockvecs() {
+	return &glvecs;
+}
+
+RenderVecs* GLGraphicsContext::transvecs() {
+	return &gltransvecs;
+}
+
+UIVecs* GLGraphicsContext::uivecs() {
+	return &gluivecs;
+}
+
 void GLGraphicsContext::load_textures() {
 	
 	blocktex_id = loadBMP_array_folder(block_textures(), false);
 	transblocktex_id = loadBMP_array_folder(trans_block_textures(), true);
 	
-	int i = 0;
-	for (PathLib::const_iterator iter = ui_textures()->begin(); iter != ui_textures()->end(); iter ++) {
-		uitex_id.push_back(loadBMP_custom(iter->c_str(), true));
-	}
+	ui_atlas.resize(ui_textures()->size());
+	uitex_id = loadBMP_pack_folder(ui_textures(), &ui_atlas.front(), 1024, 1024);
+	
+	gluivecs.set_atlas(&ui_atlas.front());
 }
-	
-	
 
 void GLGraphicsContext::block_draw_call() {
 	glEnable(GL_DEPTH_TEST);
@@ -202,15 +218,14 @@ void GLGraphicsContext::block_draw_call() {
 	// Send our transformation to the currently bound shader,
 	// in the "MVP" uniform
 	
-	vec3 clearcolor = viewbox.params.clear_color;
-	vec3 suncolor = vec3(1,1,1);
+	vec3 clearcolor = viewbox->params.clear_color;
 	glUniform3f(clearcolorID, clearcolor.x, clearcolor.y, clearcolor.z);
 	glClearColor(clearcolor.x * sunlight, clearcolor.y * sunlight, clearcolor.z * sunlight, 0.0f);
-	glUniform1i(viewdistID, viewbox.params.view_distance);
+	glUniform1i(viewdistID, viewbox->params.view_distance);
 	
 	
-	glUniform3f(sunlightID, viewbox.params.sun_direction.x, viewbox.params.sun_direction.y, viewbox.params.sun_direction.z);
-	glUniform3f(suncolorID, viewbox.params.sun_color.x, viewbox.params.sun_color.y, viewbox.params.sun_color.z);
+	glUniform3f(sunlightID, viewbox->params.sun_direction.x, viewbox->params.sun_direction.y, viewbox->params.sun_direction.z);
+	glUniform3f(suncolorID, viewbox->params.sun_color.x, viewbox->params.sun_color.y, viewbox->params.sun_color.z);
 	
 	//// Vertex attribures : position, rotation, and scale
 	glEnableVertexAttribArray(0);
@@ -232,7 +247,7 @@ void GLGraphicsContext::block_draw_call() {
 	glBindTexture(GL_TEXTURE_2D_ARRAY, blocktex_id);
 	glUniform1i(blockTextureID, 0);
 	
-	glDrawArrays(GL_POINTS, blockvecs->offset, blockvecs->num_verts);
+	glDrawArrays(GL_POINTS, glvecs.offset, glvecs.num_verts);
 	
 	/// Transparent blocks
 	glEnable(GL_BLEND);
@@ -242,7 +257,7 @@ void GLGraphicsContext::block_draw_call() {
 	glBindTexture(GL_TEXTURE_2D_ARRAY, transblocktex_id);
 	glUniform1i(blockTextureID, 0);
 	
-	glDrawArrays(GL_POINTS, transvecs->offset, transvecs->num_verts);
+	glDrawArrays(GL_POINTS, gltransvecs.offset, gltransvecs.num_verts);
 	
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
@@ -252,7 +267,7 @@ void GLGraphicsContext::block_draw_call() {
 	
 void GLGraphicsContext::ui_draw_call() {
 	glBindBuffer(GL_ARRAY_BUFFER, uibuffer);
-	glBufferData(GL_ARRAY_BUFFER, uivecs->num_verts * sizeof(GLfloat), uivecs->data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, gluivecs.num_verts * sizeof(GLfloat), gluivecs.data(), GL_STATIC_DRAW);
 	
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -262,21 +277,17 @@ void GLGraphicsContext::ui_draw_call() {
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*5, (void*) (sizeof(GLfloat)*3));
 	glVertexAttribIPointer(2, 1, GL_INT, sizeof(GLfloat)*5, (void*) (0));
 	
-	int uv_ids[uitex_id.size()];
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, uitex_id);
+	glUniform1i(uiTextureID, 0);
 	
-	for (int i = 0; i < uitex_id.size(); i ++) {
-		uv_ids[i] = i;
-		glActiveTexture(GL_TEXTURE0+i);
-		glBindTexture(GL_TEXTURE_2D, uitex_id[i]);
-	}
-	
-	glUniform1iv(uiTextureID, uitex_id.size(), uv_ids);
-	
-	glDrawArrays(GL_TRIANGLES, 0, uivecs->num_verts); // 12*3 indices starting at 0 -> 12 triangles
+	glDrawArrays(GL_TRIANGLES, 0, gluivecs.num_verts); // 12*3 indices starting at 0 -> 12 triangles
 	
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(2);
+	
+	gluivecs.clear();
 }
 
 void GLGraphicsContext::swap() {
@@ -286,4 +297,4 @@ void GLGraphicsContext::swap() {
 
 
 
-EXPORT_PLUGINS(GLGraphicsContext, AsyncGLVecs, GLUIVecs);
+EXPORT_PLUGINS(GLGraphicsContext);

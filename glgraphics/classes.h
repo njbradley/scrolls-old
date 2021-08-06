@@ -6,4 +6,10 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+
+class AsyncGLVecs;
+class GLUIVecs;
+class GLGraphicsContext;
+class GLVecsDestination;
+
 #endif

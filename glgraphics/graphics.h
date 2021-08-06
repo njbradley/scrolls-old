@@ -5,6 +5,8 @@
 #include "base/graphics.h"
 #include "base/libraries.h"
 
+#include "rendervecs.h"
+
 class GLGraphicsContext : public GraphicsContext { public:
 	GLFWwindow* window;
 	
@@ -18,11 +20,14 @@ class GLGraphicsContext : public GraphicsContext { public:
 	GLuint breaking_textures;
 	GLuint overlay_textures;
 	GLuint edges_textures;
-	vector<GLuint> uitex_id;
+	GLuint uitex_id;
 	
 	GLuint vertexbuffer;
 	GLuint databuffer;
 	
+	AsyncGLVecs glvecs;
+	AsyncGLVecs gltransvecs;
+	GLUIVecs gluivecs;
 	GLVecsDestination glvecsdest;
 	
 	GLuint uibuffer;
@@ -43,6 +48,8 @@ class GLGraphicsContext : public GraphicsContext { public:
 	PathLib transblocktex;
 	PathLib uitex;
 	
+	vector<UIRect> ui_atlas;
+	
 	vec3* camera_pos;
 	vec2* camera_rot;
 	
@@ -55,24 +62,16 @@ class GLGraphicsContext : public GraphicsContext { public:
 	virtual const PathLib* trans_block_textures() const;
 	virtual const PathLib* ui_textures() const;
 	
+	virtual RenderVecs* blockvecs();
+	virtual RenderVecs* transvecs();
+	virtual UIVecs* uivecs();
+	
 	void init_graphics();
 	void load_textures();
 	
 	virtual void block_draw_call();
 	virtual void ui_draw_call();
 	virtual void swap();
-};
-
-
-class GraphicsNullContext : public GraphicsContext { public:
-	virtual void set_world_buffers(World* world, int mem) {}
-	virtual void init_glfw() {}
-	virtual void load_textures() {}
-	virtual void block_draw_call(Player* player, vec3 sunlight, AsyncGLVecs* glvecs, AsyncGLVecs* transparent_glvecs) {}
-	virtual void make_ui_buffer(Player* player, string debugstream) {}
-	virtual void ui_draw_call(Player* player, std::stringstream* debugstream) {}
-	virtual void swap() {}
-	virtual ~GraphicsNullContext() {}
 };
 
 #endif

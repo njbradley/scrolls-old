@@ -11,4 +11,6 @@ GLuint loadBMP_array_folder(const PathLib* img_paths, bool transparency = false,
 
 GLuint loadBMP_array_custom(const char * imagepath);
 
+GLuint loadBMP_pack_folder(const PathLib* img_paths, UIRect* ui_atlas, int max_widths, int max_height);
+
 #endif

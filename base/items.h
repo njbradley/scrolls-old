@@ -50,7 +50,7 @@ public:
   void to_file(ostream& ofile);
   string descript();
   void sharpen(double speed, double force);
-  void render(MemVecs* vecs, float x, float y, float scale = 0.1f);
+  UIRect getrect();
   
   static char ondig_null(World* world, int x, int y, int z);
 };

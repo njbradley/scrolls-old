@@ -52,4 +52,15 @@ double getTime() {
   return std::chrono::duration<double>(std::chrono::steady_clock::now() - startTime).count();
 }
 
+const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
+
+int dir_to_index(ivec3 dir) {
+	for (int i = 0; i < 6; i ++) {
+		if (dir_array[i] == dir) {
+			return i;
+		}
+	}
+	return -1;
+}
+
 #endif

@@ -7,7 +7,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
+#define STB_RECT_PACK_IMPLEMENTATION
+#include "stb/stb_rect_pack.h"
+
 #include "base/libraries.h"
+#include "base/ui.h"
 
 GLuint loadBMP_custom(const char * imagepath, bool transparency){
 	
@@ -173,7 +177,6 @@ GLuint loadBMP_array_folder(const PathLib* img_paths, bool transparency, GLint c
 	return textureID;
 }
 
-
 GLuint loadBMP_array_custom(const char * imagepath){
 	
 	unsigned char * data;
@@ -214,6 +217,66 @@ GLuint loadBMP_array_custom(const char * imagepath){
 	
 	glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
 	
+	// Return the ID of the texture we just created
+	return textureID;
+}
+
+GLuint loadBMP_pack_folder(const PathLib* img_paths, UIRect* ui_atlas, int max_width, int max_height) {
+	stbrp_context context;
+	stbrp_node nodes[max_width];
+	
+	int num_imgs = img_paths->size();
+	
+	stbrp_rect rects[num_imgs];
+	unsigned char* datas[num_imgs];
+	
+	stbrp_init_target(&context, max_width, max_height, nodes, max_width);
+	
+	int i = 0;
+	for (string path : *img_paths) {
+		int width, height, channels;
+	  datas[i] = stbi_load(path.c_str(), &width, &height, &channels, 0);
+		rects[i].w = width;
+		rects[i].h = height;
+		i ++;
+	}
+	
+	stbrp_pack_rects(&context, rects, num_imgs);
+	
+	unsigned char* alldata = new unsigned char[max_width * max_height * 4];
+	
+	for (int i = 0; i < num_imgs; i ++) {
+		int xoff = rects[i].x;
+		int yoff = rects[i].y;
+		ui_atlas[i] = UIRect(i, vec2(0,0), vec2(0,0), vec2(xoff,yoff) / vec2(max_width,max_height),
+				vec2(rects[i].w,rects[i].h) / vec2(max_width,max_height));
+		for (int x = 0; x < rects[i].w; x ++) {
+			for (int y = 0; y < rects[i].h; y ++) {
+				alldata[(x+xoff) * (max_height*4) + (y+yoff) * 4] = datas[i][x * (rects[i].h*4) + y * 4];
+			}
+		}
+		stbi_image_free(datas[i]);
+	}
+	
+	// Create one OpenGL texture
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+	
+	// "Bind" the newly created texture : all future texture functions will modify this texture
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	
+	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, max_width, max_height, 0, GL_BGRA, GL_UNSIGNED_BYTE, alldata);
+	
+	// ... nice trilinear filtering ...
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 3);
+	// ... which requires mipmaps. Generate them automatically.
+	glGenerateMipmap(GL_TEXTURE_2D);
+
 	// Return the ID of the texture we just created
 	return textureID;
 }

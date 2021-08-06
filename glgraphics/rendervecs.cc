@@ -100,6 +100,13 @@ void GLVecsDestination::write(RenderIndex index, RenderData data) {
 void GLUIVecs::add(UIRect rect) {
   num_verts++;
   
+  if (atlas != nullptr) {
+    UIRect atlas_rect = atlas[rect.id];
+    rect.uvpos = atlas_rect.uvpos + rect.uvpos * atlas_rect.uvsize;
+    rect.uvsize = atlas_rect.uvsize * rect.uvsize;
+    rect.id = atlas_rect.id;
+  }
+  
   GLfloat id;
   *(GLint*)&id = rect.id;
   

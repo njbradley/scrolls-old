@@ -74,6 +74,12 @@ ostream& operator<<(ostream& out, quat rot);
 #define csize 2
 #define csize3 8
 
+typedef int Blocktype;
+
+extern const ivec3 dir_array[6];
+int dir_to_index(ivec3 dir);
+
+
 ////////////////// CLASSES ///////////////////////////
 class Game;
 class PluginLib;
@@ -84,7 +90,6 @@ class UIObj;
 class UIVecs;
 class Block;
 class FreeBlock;
-class BlockContainer;
 class BlockIter;
 class ConstBlockIter;
 class BlockTouchIter;
@@ -95,60 +100,29 @@ class Pixel;
 class World;
 class Material;
 class Recipe;
-class Item;
 class BlockData;
 class Hitbox;
 class FreeHitbox;
 class Entity;
-class DisplayEntity;
-class FallingBlockEntity;
 class Player;
 class Settings;
 class RenderIndex;
 class BlockStorage;
 class BlockGroup;
 class UnlinkedGroup;
-class AxleInterface;
-class PipeInterface;
-class AxleGroup;
 class CharArray;
 class Item;
 class ItemData;
 class ItemStorage;
 class ItemContainer;
 class RenderVecs;
-class MemVecs;
-class GLVecs;
-class AsyncGLVecs;
-class GLVecsDestination;
-class BlockExtra;
-class Command;
-class Menu;
-class InventoryMenu;
-class SelectMenu;
-class CraftingMenu;
-class ItemStack;
 class TerrainObject;
-class ChunkLoader;
 class ThreadManager;
 class Tile;
 class TerrainLoader;
 class TerrainObject;
-class Program;
 class GraphicsContext;
 class AudioContext;
-class Sound;
-class PlayingSound;
-class ClientSocketManager;
-class ServerSocketManager;
-class ClientGame;
-class ServerGame;
-class GroupConnection;
-class ConnectorData;
-class ConnectorStorage;
-template <typename T> class CommandConst;
-template <typename T> class CommandVar;
-template <typename T, typename ... Tparams> class CommandMethod;
 
 //////////////////////// GLOBAL VARIABLES ////////////////////////
 

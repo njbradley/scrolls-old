@@ -59,8 +59,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 
 Player::Player(World* newworld, vec3 pos):
-DisplayEntity(newworld, pos, vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7), new Block(new Pixel(0)), vec3(0,0,0)),
-inven(10), backpack(10) { // vec3(-0.8,-3.6,-0.8), vec3(-0.2,0,-0.2)
+Entity(newworld, pos, vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7)),
+inven(10), backpack(10) {
 	glfwSetMouseButtonCallback(window, mouse_button_call);
 	glfwSetScrollCallback(window, scroll_callback);
 	if (newworld == nullptr) {
@@ -182,86 +182,6 @@ void Player::raycast(Block** hit, ivec3* dir, vec3* hitpos) {
 		} else {
 			*dir = SAFEFLOOR3(*hitpos - pointing*0.002f) - SAFEFLOOR3(*hitpos);
 		}
-	}
-}
-
-void Player::raycast(Pixel** hit, vec3* hitpos, DisplayEntity** target_entity) {
-	vec3 v = position;
-	double tiny = 0.00001;
-	vec3 pos = position;
-	Block* target = world->raycast(&pos, pointing, 8);
-	//cout << "ksjdflajsdfklajsd" << endl;
-	vector<DisplayEntity*> entities;
-	get_nearby_entities(&entities);
-	//cout << entities.size() << endl;
-	int bx, by, bz;
-	float dist;
-	if (target != nullptr) {
-		dist = glm::length(position-pos);
-		*hit = target->pixel;
-		*hitpos = pos;
-	} else {
-		dist = -1;
-		*hit = nullptr;
-	}
-	//cout << dist << endl;
-	*target_entity = nullptr;
-	//print(pointing);
-	for (DisplayEntity* entity : entities) {
-		vec3 start = position-entity->position;
-		//cout << entity << endl;
-		//print(start);
-		float dt = 0;
-		float maxdt = -1;
-		bool ray_valid = true;
-		for (int axis = 0; axis < 3 and ray_valid; axis ++) {
-			float mintime;
-			float maxtime;
-			
-			if (start[axis] < entity->box1[axis]) {
-				mintime = (start[axis] - entity->box1[axis]) * -1 / pointing[axis];
-				maxtime = (start[axis] - entity->box2[axis]) * -1 / pointing[axis];
-			} else if (start[axis] > entity->box2[axis]) {
-				mintime = (start[axis] - entity->box2[axis]) * -1 / pointing[axis];
-				maxtime = (start[axis] - entity->box1[axis]) * -1 / pointing[axis];
-			} else {
-				mintime = 0;
-				if (pointing[axis] < 0) {
-					maxtime = (start[axis] - entity->box1[axis]) * -1 / pointing[axis];
-				} else {
-					maxtime = (start[axis] - entity->box2[axis]) * -1 / pointing[axis];
-				}
-			}
-			if (maxdt == -1) {
-				maxdt = maxtime;
-			}
-			if ( mintime < 0 or mintime > maxdt or maxtime < dt) {
-				ray_valid = false;
-				break;
-			} else {
-				if (mintime > dt) {
-					dt = mintime;
-				}
-				if (maxtime < maxdt) {
-					maxdt = maxtime;
-				}
-			}
-		}
-		if (!ray_valid or glm::length(pointing*dt) > 8) {
-			continue;
-		}
-		start += pointing*dt;
-		//if (start.x > 0 and start.x <= entity->box2.x and start.y > 0 and start.y <= entity->box2.y and start.z < 0 and start.z <= entity->box2.z) {
-			
-		//print (start);
-		
-			float newdist = glm::length(pointing*dt);
-			if (dist == -1 or newdist < dist) {
-				dist = newdist;
-				*target_entity = entity;
-				*hitpos = entity->position + start;
-			}
-		//}
 	}
 }
 
@@ -895,7 +815,7 @@ void Player::update_held_light() {
 	}
 }
 
-void Player::render_ui(MemVecs * uivecs) {
+void Player::render_ui(UIVecs* uivecs) {
 	///hearts
 	// float scale = 0.1f;
 	// int i;
