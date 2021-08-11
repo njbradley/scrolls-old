@@ -6,11 +6,8 @@
 #include "items.h"
 #include "world.h"
 #include "tiles.h"
-#include "blockgroups.h"
-#include "materials.h"
 #include "blockdata.h"
 #include "cross-platform.h"
-#include "game.h"
 #include "blocks.h"
 #include "blockiter.h"
 

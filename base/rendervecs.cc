@@ -40,10 +40,7 @@ const RenderIndex RenderIndex::npos(-1);
 
 
 void UIVecs::add(UIObj* obj) {
-	UIRect rect;
-	while (obj->to_rects(&rect)) {
-		add(rect);
-	}
+	obj->render(this);
 }
 
 

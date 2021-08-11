@@ -30,7 +30,29 @@ DLLSUFFIX :=.dll
 endif
 endif
 
+
 ifeq ($(ISDLL), TRUE)
 LDFLAGS := $(DLLFLAGS)
-EXESUFFIX := $(DLLSUFFIX)
+TARGETFILE := $(TARGET)$(DLLSUFFIX)
+else
+TARGETFILE := ../$(TARGET)$(EXESUFFIX)
 endif
+
+
+
+LIBS := $(LIBS) $(EXTRALIBS)
+
+$(TARGET): $(OBJECTS)
+	$(CXX) $(CXXFLAGS) $(OPT) $(OBJECTS) -o $(TARGETFILE) $(LDFLAGS) $(LIBS)
+
+$(OBJECTS): obj/%.o : %.cc $(HEADERS)
+	$(CXX) $(CXXFLAGS) $(OPT) -c $< -o $@
+
+.PHONY: clean setup
+
+setup:
+	mkdir obj
+
+clean:
+	rm -rf obj/*
+	rm -f $(TARGET)

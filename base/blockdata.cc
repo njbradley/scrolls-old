@@ -5,7 +5,7 @@
 
 
 
-void BlockData::set_id(int newid) {
+void BlockData::set_id(Blocktype newid) {
   id = newid;
   if (idref != nullptr) {
     *idref = newid;
@@ -13,24 +13,20 @@ void BlockData::set_id(int newid) {
 }
 
 BlockStorage::BlockStorage() {
-  for (int i = 0; i < blocks.size(); i ++) {
-    blocks[i]->set_id(i+1);
+  for (int i = 0; i < library.size(); i ++) {
+    library[i]->set_id(i+1);
   }
 }
 
-BlockData* BlockStorage::operator[] (int index) {
-  return blocks[index];
-}
-
-BlockData* BlockStorage::operator[] (string name) {
-  for (BlockData* data : blocks) {
-    if (data->name == name) {
-      return data;
-    }
-  }
-  return nullptr;
-}
 
 Plugin<BlockStorage> blockstorage;
+
+Blocktype Block_DIRT;
+Blocktype Block_GRASS;
+Blocktype Block_BARK;
+Blocktype Block_WOOD;
+Blocktype Block_LEAVES;
+Blocktype Block_WATER;
+
 
 #endif

@@ -4,9 +4,9 @@
 #include "materials.h"
 #include "cross-platform.h"
 
-MaterialStorage* matstorage;
+Plugin<MaterialStorage> materialstorage;
 
-Material::Material(istream& ifile): toughness(0), elastic(0), breaksound("null"), hitsound("null"), density(0.5f) {
+/*Material::Material(istream& ifile): toughness(0), elastic(0), breaksound("null"), hitsound("null"), density(0.5f) {
 	string buff;
 	ifile >> buff;
 	if (buff == "material") {
@@ -32,7 +32,7 @@ Material::Material(istream& ifile): toughness(0), elastic(0), breaksound("null")
 	} else {
 		cout << "ERR: this is not a material file" << endl;
 	}
-}
+}*/
 
 double Material::material_score(Material* other) {
 	double score = (toughness - other->toughness);
@@ -106,22 +106,5 @@ double Material::collision_force(Material* other, double sharpness, double force
 }
 
 
-
-MaterialStorage::MaterialStorage() {
-	vector<string> paths;
-	get_files_folder(RESOURCES_PATH "data/materials", &paths);
-	for (string path : paths) {
-		ifstream ifile(RESOURCES_PATH "data/materials/" + path);
-		Material* mat = new Material(ifile);
-		materials.emplace(mat->name, mat);
-	}
-	cout << "sucessfully loaded in " << paths.size() << " material files" << endl;
-}
-
-MaterialStorage::~MaterialStorage() {
-	for (pair<string,Material*> mat : materials) {
-		delete mat.second;
-	}
-}
 
 #endif

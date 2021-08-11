@@ -21,7 +21,7 @@ include ../config.mk
 LIBS := $(LIBS) $(EXTRALIBS)
 
 $(TARGET): $(OBJECTS)
-	$(CXX) $(CXXFLAGS) $(OPT) $(OBJECTS) -o $(TARGET)$(EXESUFFIX) $(LDFLAGS) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(OPT) $(OBJECTS) -o $(TARGETFILE) $(LDFLAGS) $(LIBS)
 
 $(OBJECTS): obj/%.o : %.cc $(HEADERS)
 	$(CXX) $(CXXFLAGS) $(OPT) -c $< -o $@

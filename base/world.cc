@@ -434,16 +434,22 @@ Block* World::get_global(ivec3 pos, int scale) {
 }
 
 void World::set_global(ivec3 pos, int w, Blocktype val, int direction, int joints[6]) {
-  ivec3 chunkpos = SAFEDIV(pos, chunksize);
-  tileat(chunkpos)->chunk->set_global(pos, w, val, direction, joints);
+  Tile* tile = tileat_global(pos);
+  if (tile != nullptr) {
+    tile->chunk->set_global(pos, w, val, direction, joints);
+  }
 }
 
-Blocktype World::get(int x, int y, int z) {
-  Block* block = get_global(x, y, z, 1);
+Blocktype World::get(ivec3 pos) {
+  Block* block = get_global(pos, 1);
   if (block == nullptr) {
     return -1;
   }
   return block->pixel->value;
+}
+
+void World::set(ivec3 pos, Blocktype val) {
+  set_global(pos, 1, val, 0);
 }
 
 Block* World::raycast(vec3* pos, vec3 dir, double time) {

@@ -101,7 +101,8 @@ class World: public Collider { public:
   Block* get_global(ivec3 pos, int scale);
   
   void set_global(ivec3 pos, int w, Blocktype val, int direction, int joints[6] = nullptr);
-  Blocktype get(int x, int y, int z);
+  Blocktype get(ivec3 pos);
+  void set(ivec3 pos, Blocktype val);
   Block* raycast(vec3* pos, vec3 dir, double time);
   void del_chunk(ivec3 pos, bool remove_faces);
   void close_world();

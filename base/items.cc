@@ -11,9 +11,6 @@
 #include "blocks.h"
 #include "blockiter.h"
 #include "entity.h"
-#include "text.h"
-#include "blockgroups.h"
-#include "glue.h"
 
 
 
@@ -88,11 +85,11 @@ bool CharArray::place(World* world, Item* item, ivec3 pos, ivec3 dir) {
     }
     
     
-    if (item->data->isgroup) {
-      BlockGroup* group = new BlockGroup(world, pixels);
-      delete group;
-      //group->item = *item;
-    }
+    // if (item->data->isgroup) {
+    //   BlockGroup* group = new BlockGroup(world, pixels);
+    //   delete group;
+    //   //group->item = *item;
+    // }
     return true;
 }
 
@@ -458,31 +455,29 @@ void Item::sharpen(double speed, double force) {
   }
 }
 
-void Item::render(MemVecs* vecs, float x, float y, float scale) {
+void Item::render(UIVecs* vecs, vec2 pos, float scale) {
   if (isnull) {
-    draw_image_uv(vecs, "items.bmp", x, y, scale, scale*aspect_ratio, 0, 1, 0.0f, 1.0f/itemstorage->total_images);
+    
   } else {
-    draw_image_uv(vecs, "items.bmp", x, y, scale, scale*aspect_ratio, 0, 1, float(data->texture)/itemstorage->total_images, float(data->texture+1)/itemstorage->total_images);
+    vecs.add(UIRect(data->name + ".png", pos, vec2(scale, scale)));
     if (durability < 1) {
-      draw_icon(vecs, 12, x, y, scale, durability*scale*aspect_ratio);
+      vecs.add(UIRect("durability.png", pos, scale * vec2(1, durability)));
+      // draw_icon(vecs, 12, x, y, scale, durability*scale*aspect_ratio);
     }
     int i = 0;
     for (Item& item : addons) {
-      item.render(vecs, x + scale*i*0.3f, y + scale, scale);
+      item.render(vecs, pos + vec2(scale*i*0.3f, scale), scale);
       i ++;
     }
   }
 }
-
-UIRect Item::getuirect() {
-  return 
 
 /////////////////////////////////////// ITEMdada ////////////////////////////////
 
 ItemData::ItemData(string newname, CharArray* arr): name(newname),
 stackable(true), onplace(arr), rcaction("null"), starting_weight(0),
 starting_sharpness(0), starting_reach(0), sharpenable(false), lightlevel(0),
-isgroup(true), glue(nullptr), texture(0) {
+isgroup(true), texture(0) {
   
 }
 
@@ -490,7 +485,7 @@ isgroup(true), glue(nullptr), texture(0) {
 ItemData::ItemData(ifstream & ifile):
 stackable(true), onplace(nullptr), rcaction("null"), starting_weight(0),
 starting_sharpness(0), starting_reach(0), sharpenable(false), lightlevel(0),
-isgroup(true), glue(nullptr) {
+isgroup(true) {
   
   string buff;
   ifile >> buff;
@@ -603,13 +598,14 @@ void ItemStack::to_file(ostream& ofile) {
 }
   
 
-void ItemStack::render(MemVecs* vecs, float x, float y) {
+void ItemStack::render(UIVecs* vecs, vec2 pos) {
   if (unique.size() > 0) {
-    get_unique()->render(vecs, x, y);
+    get_unique()->render(vecs, pos);
   } else {
-    item.render(vecs, x, y);
+    item.render(vecs, pos);
   }
-  draw_text(vecs, std::to_string(count), x+0.02, y+0.02f);
+  TextLine line (std::to_string(count), pos + 0.02f, 0.05f);
+  vecs->add(&line);
 }
 
 bool ItemStack::add(Item newitem) {
@@ -948,12 +944,12 @@ void ItemContainer::make_single(int index) {
   }
 }
 
-void ItemContainer::render(MemVecs* vecs, float x, float y) {
+void ItemContainer::render(UIVecs* vecs, vec2 pos) {
   //draw_image(vecs, "inven_select.bmp", x, y, 1, 0.1f*aspect_ratio);
   for (int i = 0; i < items.size(); i ++) {
-    draw_icon(vecs, 4, x + i*0.1f, y);
+    vecs.add(UIRect("inven_slot.png", pos + vec2(i*0.1,0), vec2(0.1,0.1)));
     if (items[i].item.data != nullptr) {
-      items[i].render(vecs, x + i*0.1f, y+0.02f);
+      items[i].render(vecs, x + vec2(i*0.1f, 0.02f));
     }
   }
 }

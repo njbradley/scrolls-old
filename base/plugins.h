@@ -156,6 +156,29 @@ class PluginListNow : public BasePluginList<PluginType> { public:
 
 
 
+template <typename PluginType>
+class Storage { public:
+	PluginList<PluginType> library;
+	
+	PluginType* get(int index) {
+		return library[index];
+	}
+	
+	PluginType* get(string name) {
+	  for (PluginType* data : library) {
+	    if (data->name == name) {
+	      return data;
+	    }
+	  }
+	  return nullptr;
+	}
+};
+
+
+
+
+
+
 
 
 template <typename Func>
@@ -188,7 +211,7 @@ struct ExportPlugins {
 
 #define PLUGIN_HEAD(X, params) static constexpr const char* basename = #X; \
 	typedef void* (*ctor_func) params;
-
+__VA_ARGS__
 
 #define EXPORT_PLUGINS(...) extern "C" { \
 	ExportPlugins<__VA_ARGS__> plugins; }

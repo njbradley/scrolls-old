@@ -50,6 +50,7 @@ public:
   void to_file(ostream& ofile);
   string descript();
   void sharpen(double speed, double force);
+  void render(UIVecs* vecs, vec2 pos, float scale = 0.1f);
   UIRect getrect();
   
   static char ondig_null(World* world, int x, int y, int z);
@@ -71,7 +72,6 @@ class ItemData {
         Material* material;
         int lightlevel;
         bool isgroup;
-        ConnectorData* glue;
             
         ItemData(ifstream & ifile);
         ItemData(string newname, CharArray* arr);
@@ -86,7 +86,7 @@ public:
   ItemStack(Item,int);
   ItemStack(istream& ifile);
   void to_file(ostream& ofile);
-  void render(MemVecs* vecs, float x, float y);
+  void render(UIVecs* vecs, vec2 pos);
   bool add(Item newitem);
   bool add(ItemStack otherstack);
   Item take();
@@ -123,7 +123,7 @@ class ItemContainer {
         bool contains(ItemStack);
         bool take(ItemStack);
         void make_single(int index);
-        void render(MemVecs* vecs, float x, float y);
+        void render(UIVecs* vecs, vec2 pos);
         void save_to_file(ostream&);
         void clear();
 };

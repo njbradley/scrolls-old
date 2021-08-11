@@ -4,17 +4,12 @@
 #include "blocks.h"
 
 #include <cmath>
-#include "cross-platform.h"
-#include "rendervec.h"
+#include "rendervecs.h"
 #include "blockdata.h"
-#include "tiles.h"
-#include "blockgroups.h"
 #include "world.h"
 #include "entity.h"
-#include "game.h"
-#include "glue.h"
-#include "generative.h"
 #include "blockiter.h"
+#include "debug.h"
 
 const uint8 lightmax = 20;
 
@@ -86,9 +81,9 @@ Block::~Block() {
       delete children[i];
     }
   } else if (pixel != nullptr) {
-    if (game->debugblock == pixel) {
-      game->debugblock = nullptr;
-    }
+    // if (game->debugblock == pixel) {
+    //   game->debugblock = nullptr;
+    // }
     delete pixel;
   }
   if (freechild != nullptr) {
@@ -149,9 +144,9 @@ Block* Block::swap_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
 void Block::set_pixel(Pixel* pix) {
   pix->set_block(this);
   if (pixel != nullptr) {
-    if (game->debugblock == pixel) {
-      game->debugblock = nullptr;
-    }
+    // if (game->debugblock == pixel) {
+    //   game->debugblock = nullptr;
+    // }
     delete pixel;
   }
   pixel = pix;
@@ -400,9 +395,9 @@ void Block::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]
 
 void Block::divide() { ASSERT(!continues)
   if (pixel != nullptr) {
-    if (game->debugblock == pixel) {
-      game->debugblock = nullptr;
-    }
+    // if (game->debugblock == pixel) {
+    //   game->debugblock = nullptr;
+    // }
     delete pixel;
   }
   continues = true;
@@ -469,9 +464,9 @@ Block::Block(istream& ifile): continues(false), pixel(nullptr) {
 void Block::set_flag(uint8 flag) {
   Block* curblock = this;
   while (curblock != nullptr and !(curblock->flags & flag) and !curblock->locked) {
-    dkout << " flag setting " << curblock << ' ' << curblock->globalpos << ' ' << curblock->scale << ' ' << int(curblock->flags);
+    logger->log(9) << " flag setting " << curblock << ' ' << curblock->globalpos << ' ' << curblock->scale << ' ' << int(curblock->flags);
     curblock->flags |= flag;
-    dkout << ' ' << int(curblock->flags) << endl;
+    logger->log(9) << ' ' << int(curblock->flags) << endl;
     if (curblock->parent == nullptr and curblock->freecontainer != nullptr) {
       curblock = curblock->freecontainer->highparent;
     } else {
@@ -513,9 +508,9 @@ void Block::timestep(float deltatime) {
 
 void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
   if (flags & RENDER_FLAG and !locked) {
-    dkout << "RENDERING " << int(flags) << ' ' << this << ' ' << globalpos << ' ' << scale << endl;
+    logger->log(9) << "RENDERING " << int(flags) << ' ' << this << ' ' << globalpos << ' ' << scale << endl;
     flags &= ~RENDER_FLAG;
-    dkout << "  NOW " << int(flags) << endl;
+    logger->log(9) << "  NOW " << int(flags) << endl;
     if (continues) {
       for (CHILDREN_LOOP(i)) {
         children[i]->render(vecs, transvecs, faces, render_null);
@@ -654,10 +649,10 @@ int Block::get_blocklight(ivec3 dir) {
 }
 
 bool Block::is_air(ivec3 dir, char otherval) {
-  dkout << "Block isair " << endl;
+  logger->log(9) << "Block isair " << endl;
   for (const Pixel* pix : iter_touching_side(dir)) {
-    dkout << pix->parbl << ' ' << pix->parbl->globalpos << ' ' << pix->parbl->scale << ' ' << pix->parbl->freecontainer << endl;
-    bool isair = (pix->value == 0 or (blocks->blocks[pix->value]->transparent and otherval != pix->value));
+    logger->log(9) << pix->parbl << ' ' << pix->parbl->globalpos << ' ' << pix->parbl->scale << ' ' << pix->parbl->freecontainer << endl;
+    bool isair = (pix->value == 0 or (blockstorage->get(pix->value)->transparent and otherval != pix->value));
     if (isair) {
       return true;
     }
@@ -667,7 +662,7 @@ bool Block::is_air(ivec3 dir, char otherval) {
 
 bool Block::is_air(int dx, int dy, int dz, char otherval) const {
   for (const Pixel* pix : const_iter_side(ivec3(dx, dy, dz))) {
-    bool isair = (pix->value == 0 or (blocks->blocks[pix->value]->transparent and otherval != pix->value));
+    bool isair = (pix->value == 0 or (blockstorage->get(pix->value)->transparent and otherval != pix->value));
     if (isair) {
       return true;
     }
@@ -1165,11 +1160,11 @@ void FreeBlock::expand(ivec3 dir) {
 Pixel::Pixel(int val, int direct, int njoints[6]):
 value(val) {
   if (value != 0) {
-    if (blocks->blocks.find(value) == blocks->blocks.end()) {
+    if (value >= blockstorage->blocks.size()) {
       cout << "ERR: unknown char code " << int(value) << " (corrupted file?)" << endl;
     }
     if (direct == -1) {
-      direction = blocks->blocks[value]->default_direction;
+      direction = blockstorage->get(value)->default_direction;
     } else {
       direction = direct;
     }
@@ -1213,7 +1208,7 @@ parbl(newblock) {
     if (value == 0) {
       direction = 0;
     } else {
-      direction = blocks->blocks[value]->default_direction;
+      direction = blockstorage->get(value)->default_direction;
     }
   }
   reset_lightlevel();
@@ -1239,7 +1234,7 @@ void Pixel::rotate(int axis, int dir) {
     2, 1, 0, 5, 4, 0,
     4, 0, 2, 1, 3, 5
   };
-  if (value != 0 and blocks->blocks[value]->rotation_enabled) {
+  if (value != 0 and blockstorage->get(value)->rotation_enabled) {
     if (dir == 1) {
       direction = positive[axis*6 +direction];
     } else if (dir == -1) {
@@ -1247,21 +1242,6 @@ void Pixel::rotate(int axis, int dir) {
     }
   }
   parbl->set_flag(RENDER_FLAG);
-}
-
-void Pixel::rotate_uv(float* uvs, int rot) {
-  const float points[] {uvs[0],uvs[1], uvs[2],uvs[3], uvs[4],uvs[5], uvs[8],uvs[9]};
-  const int indexes[] {0,1,2,2,3,0};
-  for (int i = 0; i < 6; i ++) {
-    int off_index = indexes[i] + rot;
-    if (off_index < 0) {
-      off_index += 4;
-    } if (off_index >= 4) {
-      off_index -= 4;
-    }
-    uvs[i*2] = points[off_index*2];
-    uvs[i*2+1] = points[off_index*2+1];
-  }
 }
 
 void Pixel::rotate_from_origin(int* mats, int* dirs, int rotation) {
@@ -1338,7 +1318,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
   
   if (value != 0) {
     ivec3 gpos = parbl->globalpos;
-    BlockData* blockdata = blocks->blocks[value];
+    BlockData* blockdata = blockstorage->get(value);
     RenderData renderdata;
     
     bool exposed = false;
@@ -1359,7 +1339,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
       rotate_from_origin(mat, dirs, direction);
     }
      
-    int minscale = blockdata->minscale;
+    int minscale = 1;//blockdata->minscale;
     int i = 0;
     
     for (int i = 0; i < 6; i ++) {
@@ -1402,8 +1382,8 @@ void Pixel::set(int val, int newdirection, int newjoints[6]) {
   if (val == 0) {
     newdirection = 0;
   } else {
-    if (newdirection == -1 or !blocks->blocks[val]->rotation_enabled) {
-      newdirection = blocks->blocks[val]->default_direction;
+    if (newdirection == -1 or !blockstorage->get(val)->rotation_enabled) {
+      newdirection = blockstorage->get(val)->default_direction;
     }
   }
   
@@ -1419,14 +1399,14 @@ void Pixel::set(int val, int newdirection, int newjoints[6]) {
   
   direction = newdirection;
   
-  BlockGroup* oldgroup = nullptr;
+  // BlockGroup* oldgroup = nullptr;
   
   if (group != nullptr) {
-    oldgroup = group;
-    group->del(this);
+    // oldgroup = group;
+    // group->del(this);
   }
   
-  world->block_update(parbl->globalpos);
+  parbl->world->block_update(parbl->globalpos);
 
   reset_lightlevel();
   render_update();
@@ -1497,12 +1477,12 @@ void Pixel::tick() { // ERR: race condition, render and tick threads race, rende
   return;
   if (value == 0) {
     if (group != nullptr) {
-      group->del(this);
+      // group->del(this);
     }
     group = nullptr;
   } else if (group == nullptr) {
-    BlockGroup* newgroup = new BlockGroup(world);
-    newgroup->spread(this, nullptr, ivec3(0,0,0), 1000);
+    // BlockGroup* newgroup = new BlockGroup(world);
+    // newgroup->spread(this, nullptr, ivec3(0,0,0), 1000);
   }
 }
 
@@ -1553,7 +1533,7 @@ void Pixel::reset_lightlevel() {
   lightsource = 0xff;
   if (value != 0) {
     sunlight = 0;
-    blocklight = blocks->blocks[value]->lightlevel;
+    blocklight = blockstorage->get(value)->lightlevel;
   } else {
     sunlight = 0;
     blocklight = 0;
@@ -1563,7 +1543,7 @@ void Pixel::reset_lightlevel() {
 
 
 void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
-  if ((value != 0 and !blocks->blocks[value]->transparent)) {
+  if ((value != 0 and !blockstorage->get(value)->transparent)) {
     return;
   }
   const int decrement = 1;
@@ -1620,7 +1600,7 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
 }
 
 void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
-  if ((value != 0 and !blocks->blocks[value]->transparent)) {
+  if ((value != 0 and !blockstorage->get(value)->transparent)) {
     return;
   }
   const int decrement = 1;
@@ -1672,7 +1652,7 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
 
 /*
 void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
-  if ((value != 0 and !blocks->blocks[value]->transparent)) {
+  if ((value != 0 and !blockstorage->get(value)->transparent)) {
     return;
   }
   const int decrement = 1;
@@ -1725,7 +1705,7 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
 }
 
 void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
-  if ((value != 0 and !blocks->blocks[value]->transparent)) {
+  if ((value != 0 and !blockstorage->get(value)->transparent)) {
     return;
   }
   const int decrement = 1;
@@ -1861,7 +1841,7 @@ void Pixel::to_file(ostream& of) {
   if (jointval != 0) {
     Block::write_pix_val(of, 0b10, jointval);
   }
-  if (value != 0 and direction != blocks->blocks[value]->default_direction) {
+  if (value != 0 and direction != blockstorage->get(value)->default_direction) {
     Block::write_pix_val(of, 0b01, direction);
   }
   Block::write_pix_val(of, 0b00, value);
