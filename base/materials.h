@@ -4,15 +4,19 @@
 #include "classes.h"
 #include "audio.h"
 
-class Material { public:
-	PLUGIN_HEAD(Material, ());
+struct MaterialParams {
 	string name;
-	double toughness;
-	double elastic;
-	string breaksound;
-	string hitsound;
-	float density;
+	double toughness = 0;
+	double elastic = 0;
+	string breaksound = "null";
+	string hitsound = "null";
+	double density = 0.5;
+};
+
+class Material : public MaterialParams { public:
+	PLUGIN_HEAD(Material, ());
 	
+	Material(MaterialParams&& data): MaterialParams(data) {}
 	// calculates a score based on the outlined impact. The score will be
 	// positive if the other material is stronger. if the score is the same
 	// as the other toughness, the other material breaks
@@ -22,12 +26,13 @@ class Material { public:
 	virtual double collision_force(Material* other, double sharpness, double force);
 };
 
-class MaterialStorage : public Storage<Material> { public:
-	PLUGIN_HEAD(MaterialStorage, ());
-	MaterialStorage() {}
-	virtual ~MaterialStorage() {}
-};
+extern Storage<Material> materialstorage;
 
-extern Plugin<MaterialStorage> materialstorage;
+namespace materials {
+	extern Material dirt;
+	extern Material stone;
+	extern Material leaves;
+	extern Material fist;
+}
 
 #endif

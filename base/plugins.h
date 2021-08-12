@@ -21,38 +21,30 @@
 #endif
 
 
-extern "C" {
+
 
 struct PluginDef {
-	const char* basename;
-	void* getplugin;
+	void* getfunc;
+	struct PluginDef* next;
 };
 
-}
+template <typename Ptype>
+extern PluginDef* plugin_headptr;
 
-
-
-
-class PluginLib { public:
-	LIBHANDLE handle;
-	vector<PluginDef> plugins;
-	string dirname;
-	
-	PluginLib(string path);
-	
-	~PluginLib();
+template <typename Func, typename ... Args>
+struct IsFunction {
+	static const bool value = false;
 };
 
-class PluginLoader { public:
-	vector<PluginLib*> plugins;
-	
-	PluginLoader();
-	~PluginLoader();
-	
-	void* getplugin_func(const char* name, void* skip_to = nullptr);
+template <typename Type, typename ... Args>
+struct IsFunction<Type(*)(Args...),Args...> {
+	static const bool value = true;
 };
 
-extern PluginLoader pluginloader;
+template <typename Type, typename ... Args>
+struct IsFunction<Type(Args...),Args...> {
+	static const bool value = true;
+};
 
 template <typename PluginType>
 class BasePlugin { public:
@@ -65,17 +57,18 @@ class BasePlugin { public:
 	}
 	
 	template <typename Ptype = PluginType, typename ... Args,
-		std::enable_if_t<std::is_invocable<typename Ptype::ctor_func, Args...>::value, int> = 0>
-	void init(Args ... args) {
-		Ptype* (*getfunc)() = (Ptype* (*) ()) pluginloader.getplugin_func(Ptype::basename);
-		
-		if (getfunc == nullptr) {
-			if constexpr (!std::is_abstract<Ptype>::value) {
-				pointer = new Ptype(args...);
-			}
-		} else {
-			pointer = getfunc(args...);
+		std::enable_if_t<IsFunction<typename Ptype::ctor_func, Args...>::value, int> = 0>
+	static Ptype* create(Args ... args) {
+		if (plugin_headptr<Ptype> != nullptr) {
+			typename Ptype::ctor_func getfunc = (typename Ptype::ctor_func) plugin_headptr<Ptype>->getfunc;
+			return getfunc(args...);
 		}
+		return nullptr;
+	}
+	
+	template <typename ... Args>
+	void init(Args ... args) {
+		pointer = create(args...);
 	}
 	
 	PluginType* operator->() {
@@ -96,28 +89,23 @@ template <typename PluginType>
 class PluginNow : public BasePlugin<PluginType> { public:
 	template <typename ... Args>
 	PluginNow(Args ... args) {
-		load(args...);
+		this->init(args...);
 	}
 };
+
 
 template <typename PluginType>
 class BasePluginList { public:
 	vector<PluginType*> pointers;
 	
 	template <typename Ptype = PluginType, typename ... Args,
-		std::enable_if_t<std::is_invocable<typename Ptype::ctor_func, Args...>::value, int> = 0>
+		std::enable_if_t<IsFunction<typename Ptype::ctor_func, Args...>::value, int> = 0>
 	void init(Args ... args) {
-		
-		void* funcptr = pluginloader.getplugin_func(Ptype::basename);
-		
-		if constexpr (!std::is_abstract<Ptype>::value) {
-			pointers.push_back(new Ptype(args...));
-		}
-		
-		while (funcptr != nullptr) {
-			Ptype* (*getfunc)() = (Ptype* (*) ()) funcptr;
+		PluginDef* def = plugin_headptr<World>;
+		while (def != nullptr) {
+			typename Ptype::ctor_func getfunc = (typename Ptype::ctor_func) def->getfunc;
 			pointers.push_back(getfunc(args...));
-			funcptr = pluginloader.getplugin_func(Ptype::basename, funcptr);
+			def = def->next;
 		}
 	}
 	
@@ -149,33 +137,9 @@ template <typename PluginType>
 class PluginListNow : public BasePluginList<PluginType> { public:
 	template <typename ... Args>
 	PluginListNow(Args ... args) {
-		load(args...);
+		this->init(args...);
 	}
 };
-
-
-
-
-template <typename PluginType>
-class Storage { public:
-	PluginList<PluginType> library;
-	
-	PluginType* get(int index) {
-		return library[index];
-	}
-	
-	PluginType* get(string name) {
-	  for (PluginType* data : library) {
-	    if (data->name == name) {
-	      return data;
-	    }
-	  }
-	  return nullptr;
-	}
-};
-
-
-
 
 
 
@@ -183,43 +147,104 @@ class Storage { public:
 
 template <typename Func>
 struct PluginGetCtorArgs {
-	
+
 };
 
-template <typename Type, typename ... Args>
-struct PluginGetCtorArgs<Type* (*)(Args...)> {
+template <typename Btype, typename ... Args>
+struct PluginGetCtorArgs<Btype* (*)(Args...)> {
 	template <typename CType>
 	struct GetFunc {
 		static void* getfunc(Args... args) {
 			return (void*) new CType(args...);
 		}
-		// static constexpr void* ptr = getfunc;
 	};
 };
 
-template <typename X>
-struct PluginGetFuncPtr {
-  using GArgs = typename PluginGetCtorArgs<typename X::ctor_func>::GetFunc<X>;
-  static constexpr void* (*ptr)() = GArgs::getfunc;
+
+
+
+
+
+template <typename Ptype>
+struct ExportPlugin {
+	using BaseType = typename Ptype::Plugin_BaseType;
+	using GArgs = typename PluginGetCtorArgs<typename Ptype::ctor_func>::GetFunc<Ptype>;
+	PluginDef plugindef {(void*)GArgs::getfunc, plugin_headptr<BaseType>};
+	ExportPlugin() {
+		cout << "exporting plugin " << typeid(BaseType).name() << ' ' << typeid(Ptype).name() << ' ' << plugin_headptr<BaseType> << ' ' << &plugin_headptr<BaseType> << endl;
+		plugin_headptr<BaseType> = &plugindef;
+	}
 };
 
-template <typename ... Ptypes>
-struct ExportPlugins {
-  PluginDef plugins[sizeof...(Ptypes)] = {{Ptypes::basename, (void*)PluginGetFuncPtr<Ptypes>::ptr}... };
-  PluginDef terminator = {nullptr, nullptr};
+template <typename Ptype, Ptype* ptr>
+struct ExportPluginSingleton {
+	static_assert(IsFunction<typename Ptype::ctor_func>::value,
+		"ExportPluginSingleton can only be used with objects with no constructor parameters");
+	using BaseType = typename Ptype::Plugin_BaseType;
+	PluginDef plugindef {(void*)&getfunc, plugin_headptr<BaseType>};
+	ExportPluginSingleton() {
+		plugin_headptr<BaseType> = &plugindef;
+	}
+	static BaseType* getfunc() {
+		return ptr;
+	}
 };
 
-#define PLUGIN_HEAD(X, params) static constexpr const char* basename = #X; \
-	typedef void* (*ctor_func) params;
-__VA_ARGS__
-
-#define EXPORT_PLUGINS(...) extern "C" { \
-	ExportPlugins<__VA_ARGS__> plugins; }
-
-#define EXPORT_PLUGIN(X) extern "C" { \
-	ExportPlugins<X> plugins; }
 
 
+
+
+template <typename PluginType>
+class Storage : public BasePluginList<PluginType> { public:
+	using BasePluginList<PluginType>::pointers;
+	using BasePluginList<PluginType>::operator[];
+	
+	PluginType* get(int index) {
+		return pointers[index];
+	}
+	
+	PluginType* get(string name) {
+	  for (PluginType* data : pointers) {
+	    if (data->name == name) {
+	      return data;
+	    }
+	  }
+	  return nullptr;
+	}
+	
+	PluginType* operator[] (string name) {
+		return get(name);
+	}
+};
+
+
+class PluginLib { public:
+	LIBHANDLE handle = nullptr;
+	vector<PluginDef> plugins;
+	string dirname;
+	
+	PluginLib(string path);
+	
+	~PluginLib();
+};
+
+class PluginLoader { public:
+	vector<PluginLib*> plugins;
+	
+	PluginLoader();
+	~PluginLoader();
+};
+
+extern PluginLoader pluginloader;
+
+#define DEFINE_PLUGIN(X) template <> PluginDef* plugin_headptr<X> = nullptr;
+
+#define EXPORT_PLUGIN(X) ExportPlugin<X> _exported_plugin_ ## X;
+
+#define EXPORT_PLUGIN_SINGLETON(X) ExportPluginSingleton<decltype(X),&X> _exported_plugin_singleton_ ## X;
+
+#define PLUGIN_HEAD(X, params) typedef X Plugin_BaseType; \
+	typedef X* (*ctor_func) params;
 
 
 

@@ -652,7 +652,7 @@ bool Block::is_air(ivec3 dir, char otherval) {
   logger->log(9) << "Block isair " << endl;
   for (const Pixel* pix : iter_touching_side(dir)) {
     logger->log(9) << pix->parbl << ' ' << pix->parbl->globalpos << ' ' << pix->parbl->scale << ' ' << pix->parbl->freecontainer << endl;
-    bool isair = (pix->value == 0 or (blockstorage->get(pix->value)->transparent and otherval != pix->value));
+    bool isair = (pix->value == 0 or (blockstorage[pix->value]->transparent and otherval != pix->value));
     if (isair) {
       return true;
     }
@@ -662,7 +662,7 @@ bool Block::is_air(ivec3 dir, char otherval) {
 
 bool Block::is_air(int dx, int dy, int dz, char otherval) const {
   for (const Pixel* pix : const_iter_side(ivec3(dx, dy, dz))) {
-    bool isair = (pix->value == 0 or (blockstorage->get(pix->value)->transparent and otherval != pix->value));
+    bool isair = (pix->value == 0 or (blockstorage[pix->value]->transparent and otherval != pix->value));
     if (isair) {
       return true;
     }
@@ -1160,11 +1160,11 @@ void FreeBlock::expand(ivec3 dir) {
 Pixel::Pixel(int val, int direct, int njoints[6]):
 value(val) {
   if (value != 0) {
-    if (value >= blockstorage->blocks.size()) {
+    if (value >= blockstorage.size()) {
       cout << "ERR: unknown char code " << int(value) << " (corrupted file?)" << endl;
     }
     if (direct == -1) {
-      direction = blockstorage->get(value)->default_direction;
+      direction = blockstorage[value]->default_direction;
     } else {
       direction = direct;
     }
@@ -1208,7 +1208,7 @@ parbl(newblock) {
     if (value == 0) {
       direction = 0;
     } else {
-      direction = blockstorage->get(value)->default_direction;
+      direction = blockstorage[value]->default_direction;
     }
   }
   reset_lightlevel();
@@ -1234,7 +1234,7 @@ void Pixel::rotate(int axis, int dir) {
     2, 1, 0, 5, 4, 0,
     4, 0, 2, 1, 3, 5
   };
-  if (value != 0 and blockstorage->get(value)->rotation_enabled) {
+  if (value != 0 and blockstorage[value]->rotation_enabled) {
     if (dir == 1) {
       direction = positive[axis*6 +direction];
     } else if (dir == -1) {
@@ -1318,7 +1318,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
   
   if (value != 0) {
     ivec3 gpos = parbl->globalpos;
-    BlockData* blockdata = blockstorage->get(value);
+    BlockData* blockdata = blockstorage[value];
     RenderData renderdata;
     
     bool exposed = false;
@@ -1382,8 +1382,8 @@ void Pixel::set(int val, int newdirection, int newjoints[6]) {
   if (val == 0) {
     newdirection = 0;
   } else {
-    if (newdirection == -1 or !blockstorage->get(val)->rotation_enabled) {
-      newdirection = blockstorage->get(val)->default_direction;
+    if (newdirection == -1 or !blockstorage[val]->rotation_enabled) {
+      newdirection = blockstorage[val]->default_direction;
     }
   }
   
@@ -1533,7 +1533,7 @@ void Pixel::reset_lightlevel() {
   lightsource = 0xff;
   if (value != 0) {
     sunlight = 0;
-    blocklight = blockstorage->get(value)->lightlevel;
+    blocklight = blockstorage[value]->lightlevel;
   } else {
     sunlight = 0;
     blocklight = 0;
@@ -1543,7 +1543,7 @@ void Pixel::reset_lightlevel() {
 
 
 void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
-  if ((value != 0 and !blockstorage->get(value)->transparent)) {
+  if ((value != 0 and !blockstorage[value]->transparent)) {
     return;
   }
   const int decrement = 1;
@@ -1600,7 +1600,7 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
 }
 
 void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
-  if ((value != 0 and !blockstorage->get(value)->transparent)) {
+  if ((value != 0 and !blockstorage[value]->transparent)) {
     return;
   }
   const int decrement = 1;
@@ -1652,7 +1652,7 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
 
 /*
 void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
-  if ((value != 0 and !blockstorage->get(value)->transparent)) {
+  if ((value != 0 and !blockstorage[value]->transparent)) {
     return;
   }
   const int decrement = 1;
@@ -1705,7 +1705,7 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
 }
 
 void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
-  if ((value != 0 and !blockstorage->get(value)->transparent)) {
+  if ((value != 0 and !blockstorage[value]->transparent)) {
     return;
   }
   const int decrement = 1;
@@ -1841,7 +1841,7 @@ void Pixel::to_file(ostream& of) {
   if (jointval != 0) {
     Block::write_pix_val(of, 0b10, jointval);
   }
-  if (value != 0 and direction != blockstorage->get(value)->default_direction) {
+  if (value != 0 and direction != blockstorage[value]->default_direction) {
     Block::write_pix_val(of, 0b01, direction);
   }
   Block::write_pix_val(of, 0b00, value);

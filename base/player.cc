@@ -1,24 +1,17 @@
-#ifndef CONTROLS
-#define CONTROLS
-
-#include "entity.h"
+#include "player.h"
 
 #include "blocks.h"
 #include "blockiter.h"
 #include "items.h"
 #include "blockdata.h"
 #include "world.h"
-#include "menu.h"
-#include "blockgroups.h"
 #include "ui.h"
 #include "cross-platform.h"
-#include "text.h"
 #include "game.h"
 #include "audio.h"
 #include "materials.h"
 #include "tiles.h"
-#include "glue.h"
-
+#include "settings.h"
 
 
 /*
@@ -31,73 +24,34 @@ float verticalAngle = 0.0f;
 // Initial Field of View
 */
 
+Plugin<Controls> controls;
 
 float speed = 80.0f; // 3 units / second
 float mouseSpeed = 0.003f;
-
-bool mouse;
-int button;
-double timeout;
-
-double scroll;
-
-void mouse_button_call(GLFWwindow* window, int nbutton, int action, int mods) {
-	if (action == GLFW_PRESS) {
-		mouse = true;
-		button = nbutton;
-		timeout = 0;
-	} else if (action == GLFW_RELEASE) {
-		mouse = false;
-	}
-}
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-	scroll = yoffset;
-}
 
 
 
 Player::Player(World* newworld, vec3 pos):
 Entity(newworld, pos, vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7)),
 inven(10), backpack(10) {
-	glfwSetMouseButtonCallback(window, mouse_button_call);
-	glfwSetScrollCallback(window, scroll_callback);
 	if (newworld == nullptr) {
 		cout << 61 << endl;
 	}
 	//char arr[] = {1,0,1,0,1,0,1,0}
 	selitem = 0;
 	
-	init_block_breaking_vecs();
 	//inven.add( ItemStack(Item(itemstorage->items["chips"]), 10) );
 	//inven.add( ItemStack(Item(itemstorage->items["crafting"]), 1));
 }
 
 Player::Player(World* newworld, istream& ifile):
-DisplayEntity(newworld, vec3(0,0,0), vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7), new Block(new Pixel(0)), vec3(0,0,0)),
+Entity(newworld, vec3(0,0,0), vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7)),
 inven(ifile), backpack(ifile) {
 	ifile >> selitem;
 	ifile >> position.x >> position.y >> position.z;
 	ifile >> vel.x >> vel.y >> vel.z >> angle.x >> angle.y;
 	ifile >> health >> max_health >> damage_health >> healing_health >> healing_speed;
 	ifile >> flying >> autojump;
-	glfwSetMouseButtonCallback(window, mouse_button_call);
-	glfwSetScrollCallback(window, scroll_callback);
-	update_held_light();
-	init_block_breaking_vecs();
-}
-
-void Player::init_block_breaking_vecs() {
-	vector<string> files;
-	get_files_folder(RESOURCES_PATH "textures/blocks/transparent/1", &files);
-	block_breaking_tex = 0;
-	for (int i = 0; i < files.size(); i ++) {
-		if (files[i] == "breaking0.png") {
-			block_breaking_tex = i;
-		}
-	}
-	block_breaking_render_index = RenderIndex::npos;
 }
 
 void Player::set_block_breaking_vecs(Pixel* pixref, ivec3 hitpos, int level) {/*
@@ -187,7 +141,7 @@ void Player::raycast(Block** hit, ivec3* dir, vec3* hitpos) {
 
 void Player::right_mouse(double deltatime) {
 	//cout << "riht" << endl;
-	bool shifting = glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS;
+	bool shifting = controls->key_pressed(controls->KEY_SHIFT);
 	
 	if (placing_block == nullptr and placing_freeblock == nullptr) {
 		
@@ -223,7 +177,7 @@ void Player::right_mouse(double deltatime) {
 					cout << "normal" << endl;
 					block->set_global(blockpos, 1, 1, 0);
 					placing_block = block->get_global(blockpos, 1);
-					game->debugblock = placing_block->pixel;
+					// game->debugblock = placing_block->pixel;
 					// world->get_global(ox, oy, oz, 1)->set_global(ivec3(ox+dx, oy+dy, oz+dz), 1, 1, 0);
 				}
 				placing_dir = dir;
@@ -407,8 +361,8 @@ void Player::left_mouse(double deltatime) {
 		ivec3 pos (hitpos);
 		
 		world->set_global(pos, 1, 0, 0);
-		game->debugblock = world->get_global(pos.x, pos.y-1, pos.z, 1)->pixel;
-		cout << game->debugblock->parbl->flags << '-' << endl;
+		// game->debugblock = world->get_global(pos.x, pos.y-1, pos.z, 1)->pixel;
+		// cout << game->debugblock->parbl->flags << '-' << endl;
 		timeout = 0.5;
 	}
 	/*
@@ -568,37 +522,24 @@ void Player::left_mouse(double deltatime) {
 }
 
 void Player::die() {
-	if (audio->listener == this) {
-		audio->listener = nullptr;
-	}
+	audio->set_listener(nullptr, nullptr, nullptr);
 	
-	if (menu == nullptr) {
-		vector<string> options = {"Respawn"};
-		menu = new SelectMenu("You Died", options, [&] (string result) {
-			if (result == "Respawn") {
-				World* w = world;
-				delete world->player;
-				w->spawn_player();
-			} else if (result == "Quit") {
-				cout << "you dead" << endl;
-				game->playing = false;
-			}
-			delete menu;
-			menu = nullptr;
-		});
-	}
+	// if (menu == nullptr) {
+	// 	vector<string> options = {"Respawn"};
+	// 	menu = new SelectMenu("You Died", options, [&] (string result) {
+	// 		if (result == "Respawn") {
+	// 			World* w = world;
+	// 			delete world->player;
+	// 			w->spawn_player();
+	// 		} else if (result == "Quit") {
+	// 			cout << "you dead" << endl;
+	// 			game->playing = false;
+	// 		}
+	// 		delete menu;
+	// 		menu = nullptr;
+	// 	});
+	// }
 }
-
-void Player::mouse_button() {
-	cout << "hello" << endl;
-	if (button == GLFW_MOUSE_BUTTON_LEFT) {
-		
-	} else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-		
-	}
-}
-
-
 
 void Player::computeMatricesFromInputs(){
 
@@ -607,11 +548,11 @@ void Player::computeMatricesFromInputs(){
 	
 	Block* camerablock = world->get_global(int(position.x), int(position.y), int(position.z), 1);
 	if (camerablock != 0) {
-		if (camerablock->pixel->value == 7) {
-			game->set_display_env(vec3(0.2,0.2,0.6), 10);
-		} else {
-			game->set_display_env(vec3(0.4,0.7,1.0), 2000000);
-		}
+		// if (camerablock->pixel->value == 7) {
+		// 	game->set_display_env(vec3(0.2,0.2,0.6), 10);
+		// } else {
+		// 	game->set_display_env(vec3(0.4,0.7,1.0), 2000000);
+		// }
 	}
 	
 	
@@ -623,15 +564,11 @@ void Player::computeMatricesFromInputs(){
 		attack_recharge -= deltaTime;
 	}
 	
-	// Get mouse position
-	double xpos, ypos;
-	glfwGetCursorPos(window, &xpos, &ypos);
-
 	// Reset mouse position for next frame
-	glfwSetCursorPos(window, screen_x/2, screen_y/2);
-
+	controls->mouse_pos(settings->screen_dims/2);
+	
 	// Compute new orientation
-	angle += vec2(mouseSpeed * float(screen_x/2 - xpos ),  mouseSpeed * float( screen_y/2 - ypos ));
+	angle += vec2(float(mouseSpeed) * vec2(settings->screen_dims/2 - controls->mouse_pos()));
 	//cout << horizontalAngle << ' ' << verticalAngle << endl;
 	if (angle.y > 1.55f) {
 		angle.y = 1.55f;
@@ -683,11 +620,11 @@ void Player::computeMatricesFromInputs(){
 	if (!spectator) {
 		// Move forward
 		
-		if (glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS){
+		if (controls->key_pressed(controls->KEY_SHIFT)) {
 			nspeed /= 4;
 		}
 		
-		if (glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS){
+		if (controls->key_pressed('w')){
 			// vec3 dir_const = vec3(1,0,0)*(float)consts[0] + vec3(0,0,1)*(float)consts[2] + vec3(-1,0,0)*(float)consts[3] + vec3(0,0,-1)*(float)consts[5];
 			// if (length(dir_const-forward) < 0.9f and (consts[0] or consts[2] or consts[3] or consts[5]) and autojump and not consts[6]) {
 			// 	vel.y = 6;
@@ -699,21 +636,21 @@ void Player::computeMatricesFromInputs(){
 			stamina_cost += glm::dot(vel, forward);
 		}
 		// Move backward
-		if (glfwGetKey( window, GLFW_KEY_S ) == GLFW_PRESS){
+		if (controls->key_pressed('s')){
 			vel -= forward * deltaTime * nspeed;
 			stamina_cost += glm::dot(vel, -forward);
 		}
 		// Strafe right
-		if (glfwGetKey( window, GLFW_KEY_D ) == GLFW_PRESS){
+		if (controls->key_pressed('d')){
 				vel += right * deltaTime * nspeed;
 				stamina_cost += glm::dot(vel, right);
 		}
 		// Strafe left
-		if (glfwGetKey( window, GLFW_KEY_A ) == GLFW_PRESS){
+		if (controls->key_pressed('a')){
 				vel -= right * deltaTime * nspeed;
 				stamina_cost += glm::dot(vel, -right);
 		}
-		if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS){
+		if (controls->key_pressed(' ')){
 			if (in_water) {
 				vel.y += 3 * deltaTime * nspeed;
 			} else if (consts[4] and vel.y > -10) {
@@ -726,25 +663,25 @@ void Player::computeMatricesFromInputs(){
 		
 		nspeed = 75;
 		
-		if (glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS){
+		if (controls->key_pressed('w')){
 			position += forward * deltaTime * nspeed;
 		}
 		// Move backward
-		if (glfwGetKey( window, GLFW_KEY_S ) == GLFW_PRESS){
+		if (controls->key_pressed('s')){
 			position -= forward * deltaTime * nspeed;
 		}
 		// Strafe right
-		if (glfwGetKey( window, GLFW_KEY_D ) == GLFW_PRESS){
+		if (controls->key_pressed('d')){
 			position += right * deltaTime * nspeed;
 		}
 		// Strafe left
-		if (glfwGetKey( window, GLFW_KEY_A ) == GLFW_PRESS){
+		if (controls->key_pressed('a')){
 			position -= right * deltaTime * nspeed;
 		}
-		if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS){
+		if (controls->key_pressed(' ')){
 			position += up * deltaTime * speed;
 		}
-		if (glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS){
+		if (controls->key_pressed(controls->KEY_SHIFT)){
 			position -= up * deltaTime * speed;
 		}
 	}
@@ -752,18 +689,17 @@ void Player::computeMatricesFromInputs(){
 	use_stamina(stamina_cost/30 * deltaTime);
 	
 	for (int i = 0; i < 10; i ++) {
-		if (glfwGetKey(window, (i != 9) ? GLFW_KEY_1 + i : GLFW_KEY_0)) {
+		if (controls->key_pressed((i != 9) ? '1' + i : '0')) {
 			selitem = i;
-			update_held_light();
 			break;
 		}
 	}
 	
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+	if (controls->mouse_button(0)) {
 		left_mouse(deltaTime);
 		timeout += deltaTime;
 	}
-	else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+	else if (controls->mouse_button(1)) {
 		right_mouse(deltaTime);
 		timeout += deltaTime;
 	} else {
@@ -773,46 +709,18 @@ void Player::computeMatricesFromInputs(){
 	}
 	//mouse = false;
 	
-	
-	
-	if (scroll != 0) {
-		selitem -= scroll;
-		if (selitem < 0) {
-			selitem = 0;
-		} if (selitem > 9) {
-			selitem = 9;
-		}
-		update_held_light();
-		scroll = 0;
-	}
-	
 	if (health <= 0) {
 		die();
 	}
 	
 	
-	float FoV = settings->initialFoV;// - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a callback for this. It's a bit too complicated for this beginner's tutorial, so it's disabled instead.
+	float FoV = settings->fov;// - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a callback for this. It's a bit too complicated for this beginner's tutorial, so it's disabled instead.
 	
 	
 	
 
 	// For the next frame, the "last time" will be "now"
 	lastTime = currentTime;
-}
-
-void Player::update_held_light() {
-	Item* item = inven.get(selitem);
-	if (item->isnull) {
-		if (emitted_light != 0) {
-			emitted_light = 0;
-			emitted_light_flag = true;
-		}
-	} else {
-		if (emitted_light != item->data->lightlevel) {
-			emitted_light = item->data->lightlevel;
-			emitted_light_flag = true;
-		}
-	}
 }
 
 void Player::render_ui(UIVecs* uivecs) {
@@ -827,24 +735,24 @@ void Player::render_ui(UIVecs* uivecs) {
 	// }
 	
 	/// draw empty bar
-	draw_icon(uivecs, 6, -0.5, 1-0.1*aspect_ratio, 0.1, 0.1*aspect_ratio);
-	draw_icon(uivecs, 8, 0.4, 1-0.1*aspect_ratio, 0.1, 0.1*aspect_ratio);
-	draw_icon(uivecs, 7, -0.4, 1-0.1*aspect_ratio, 0.8, 0.1*aspect_ratio);
-	
-	draw_icon(uivecs, 9, -0.45, 1 - 0.1*aspect_ratio, (health - damage_health)/10 * 0.9, 0.1*aspect_ratio);
-	if (damage_health > 0) {
-		draw_icon(uivecs, 10, (health - damage_health)/10 * 0.9 - 0.45, 1 - 0.1*aspect_ratio, damage_health/10 * 0.9, 0.1*aspect_ratio);
-	} else if (healing_health > 0) {
-		draw_icon(uivecs, 11, health/10 * 0.9 - 0.45, 1 - 0.1*aspect_ratio, healing_health/10 * 0.9, 0.1*aspect_ratio);
-	}
-	
-	inven.render(uivecs, -0.5f, -1.0f);
-	draw_text(uivecs, "\\/", -0.45f+selitem*0.1f, -0.85f);
-	Item* sel = inven.get(selitem);
-	if (!sel->isnull) {
-		draw_text(uivecs, sel->descript(), -0.25f, -0.65f);
-	}
-	sel->render(uivecs, 0.75, -1 - 0.5 * (attack_recharge / total_attack_recharge), 0.25);
+	// uivecs->add(UIVecs("
+	//
+	// draw_icon(uivecs, 6, -0.5, 1-0.1*aspect_ratio, 0.1, 0.1*aspect_ratio);
+	// draw_icon(uivecs, 8, 0.4, 1-0.1*aspect_ratio, 0.1, 0.1*aspect_ratio);
+	// draw_icon(uivecs, 7, -0.4, 1-0.1*aspect_ratio, 0.8, 0.1*aspect_ratio);
+	//
+	// draw_icon(uivecs, 9, -0.45, 1 - 0.1*aspect_ratio, (health - damage_health)/10 * 0.9, 0.1*aspect_ratio);
+	// if (damage_health > 0) {1
+	// 	draw_icon(uivecs, 10, (health - damage_health)/10 * 0.9 - 0.45, 1 - 0.1*aspect_ratio, damage_health/10 * 0.9, 0.1*aspect_ratio);
+	// } else if (healing_health > 0) {
+	// 	draw_icon(uivecs, 11, health/10 * 0.9 - 0.45, 1 - 0.1*aspect_ratio, healing_health/10 * 0.9, 0.1*aspect_ratio);
+	// }
+	//
+	// inven.render(uivecs, -0.5f, -1.0f);
+	// draw_text(uivecs, "\\/", -0.45f+selitem*0.1f, -0.85f);
+	// Item* sel = inven.get(selitem);
+	// if (!sel->isnull) {
+	// 	draw_text(uivecs, sel->descript(), -0.25f, -0.65f);
+	// }
+	// sel->render(uivecs, 0.75, -1 - 0.5 * (attack_recharge / total_attack_recharge), 0.25);
 }
-
-#endif

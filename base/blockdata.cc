@@ -2,31 +2,76 @@
 #define BLOCKDATA
 
 #include "blockdata.h"
+#include "graphics.h"
+#include "libraries.h"
+#include "materials.h"
 
+DEFINE_PLUGIN(BlockData);
+DEFINE_PLUGIN(BlockStorage);
+
+BlockData::BlockData(BlockDataParams&& data): BlockDataParams(data) {
+  
+}
 
 
 void BlockData::set_id(Blocktype newid) {
   id = newid;
-  if (idref != nullptr) {
-    *idref = newid;
+  
+  int last = 0;
+  for (int i = 0; i < 6; i ++) {
+    if (texture[i] == 0) {
+      if (texture_names[i] != "") {
+        if (transparent) {
+          last = graphics->trans_block_textures()->getindex(texture_names[i]);
+        } else {
+          last = graphics->block_textures()->getindex(texture_names[i]);
+        }
+      }
+      texture[i] = last;
+    }
   }
 }
 
-BlockStorage::BlockStorage() {
-  for (int i = 0; i < library.size(); i ++) {
-    library[i]->set_id(i+1);
+void BlockStorage::init() {
+  Storage<BlockData>::init();
+  for (int i = 0; i < size(); i ++) {
+    pointers[i]->set_id(i+1);
   }
 }
 
 
-Plugin<BlockStorage> blockstorage;
+BlockStorage blockstorage;
 
-Blocktype Block_DIRT;
-Blocktype Block_GRASS;
-Blocktype Block_BARK;
-Blocktype Block_WOOD;
-Blocktype Block_LEAVES;
-Blocktype Block_WATER;
+namespace blocktypes {
+  BlockData dirt ({
+    .name = "dirt",
+    .material = &materials::dirt,
+    .texture_names = {"dirt.png"},
+  });
+  
+  BlockData grass ({
+    .name = "grass",
+    .material = &materials::dirt,
+    .texture_names = {"grass.png"},
+  });
+  
+  BlockData wood ({
+    .name = "wood",
+    .material = &materials::dirt,
+    .texture_names = {"wood.png"},
+  });
+  
+  BlockData leaves ({
+    .name = "leaves",
+    .material = &materials::leaves,
+    .texture_names = {"leaves.png"},
+  });
+  
+  EXPORT_PLUGIN_SINGLETON(dirt);
+  EXPORT_PLUGIN_SINGLETON(grass);
+  EXPORT_PLUGIN_SINGLETON(wood);
+  EXPORT_PLUGIN_SINGLETON(leaves);
+}
 
 
 #endif

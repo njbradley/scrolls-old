@@ -20,7 +20,7 @@ void get_files_folder(string folder, vector<string> * names, string expr)
     WIN32_FIND_DATA fd;
     HANDLE hFind = ::FindFirstFile(search_path.c_str(), &fd);
     if(hFind != INVALID_HANDLE_VALUE) {
-      if (expr == "*/") {
+      if (expr != "*/") {
         do {
             // read all (real) files in current folder
             // , delete '!' read other 2 default folder . and ..

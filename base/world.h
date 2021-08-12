@@ -2,8 +2,12 @@
 #define WORLD_PREDEF
 
 #include "classes.h"
+#include "plugins.h"
+#include "collider.h"
 
 #include <set>
+#include <mutex>
+#include <atomic>
 
 class TileMap {
   
@@ -66,11 +70,16 @@ class World: public Collider { public:
   bool generation = true;
   bool saving = true;
   
+  double daytime;
+  
   TileMap tiles;
-  Plugin<TerrainLoader> terrainloader;
+  PluginNow<TerrainLoader> terrainloader;
+  
+  Player* player;
   
   std::set<ivec3,ivec3_comparator> loading_chunks;
   std::set<ivec3,ivec3_comparator> deleting_chunks;
+  bool world_closing = false;
   
   World(string name);
   virtual ~World();
@@ -78,8 +87,8 @@ class World: public Collider { public:
   string path(string file = "") const;
   
   void setup_files();
-  void read_config(istream& ifile);
-  void write_config(ostream& ofile);
+  void load_config(istream& ifile);
+  void save_config(ostream& ofile);
   void startup();
   void spawn_player();
   void set_player_vars();
@@ -102,9 +111,10 @@ class World: public Collider { public:
   
   void set_global(ivec3 pos, int w, Blocktype val, int direction, int joints[6] = nullptr);
   Blocktype get(ivec3 pos);
-  void set(ivec3 pos, Blocktype val);
+  void set(ivec3 pos, Blocktype val, int direction = 0);
   Block* raycast(vec3* pos, vec3 dir, double time);
-  void del_chunk(ivec3 pos, bool remove_faces);
+  void add_tile(Tile* tile);
+  void del_tile(ivec3 pos, bool remove_faces);
   void close_world();
   bool is_world_closed();
 };

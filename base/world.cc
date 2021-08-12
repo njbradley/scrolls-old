@@ -1,32 +1,23 @@
 #ifndef WORLD
 #define WORLD
 
-#include <iostream>
-#include <functional>
-#include <cmath>
-#include <fstream>
-#include <sstream>
-#include <thread>
 #include "cross-platform.h"
-#include "rendervec.h"
+#include "rendervecs.h"
 #include "blockdata.h"
 #include "blocks.h"
 #include "world.h"
 #include "tiles.h"
-#include "multithreading.h"
 #include "entity.h"
-#include "blockgroups.h"
-#include "commands.h"
 #include "game.h"
-
-#include <algorithm>
-#include <GL/glew.h>
-#include <map>
-using std::thread;
 #include "terrain.h"
+#include "player.h"
+#include "graphics.h"
+#include "audio.h"
+
+#include <map>
 
 
-
+DEFINE_PLUGIN(World);
 
 
 int view_dist = 3;
@@ -162,10 +153,10 @@ void TileMap::status(ostream& ofile) {
 }
 
 
-World::World(string oldname): loader(seed), name(oldname),
+World::World(string oldname): terrainloader(seed), name(oldname),
 tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) - 1) {
   ifstream ifile(path("worlddata.txt"));
-  load_data_file(ifile);
+  load_config(ifile);
   startup();
 }
 
@@ -226,7 +217,6 @@ void World::setup_files() {
 }
 
 void World::startup() {
-  last_time = getTime();
   ifstream ifile(path("player.txt"));
   if (ifile.good()) {
     player = new Player(this, ifile);
@@ -237,12 +227,12 @@ void World::startup() {
 }
 
 void World::spawn_player() {
-  ivec3 spawnpos(10,loader.get_height(ivec2(10,10))+4,10);
+  ivec3 spawnpos(10,20+4,10);
   int i = 0;
-  while (loader.gen_func(ivec4(spawnpos.x, spawnpos.y, spawnpos.z, 1)) != 0 and i < 100) {
-    i ++;
-    spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
-  }
+  // while (loader.gen_func(ivec4(spawnpos.x, spawnpos.y, spawnpos.z, 1)) != 0 and i < 100) {
+  //   i ++;
+  //   spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
+  // }
   player = new Player(this, vec3(spawnpos));
   player->spectator = true;
   player->autojump = true;
@@ -257,6 +247,7 @@ void World::set_player_vars() {
 }
 
 void World::load_nearby_chunks() {
+  static double start_time = getTime();
   if (!player->spectator) {
     
     bool loaded_chunks = false;
@@ -278,12 +269,11 @@ void World::load_nearby_chunks() {
             for (int z = pz-range; z < pz+range+1; z ++) {
               if (x == px-range or x == px+range or y == py-range or y == py+range or z == pz-range or z == pz+range) {
                 ivec3 pos(x,y,z);
-                if (tileat(pos) == nullptr and num_chunks < max_chunks and std::find(loading_chunks.begin(), loading_chunks.end(), pos) == loading_chunks.end()) {
+                if (tileat(pos) == nullptr and num_chunks < max_chunks and loading_chunks.count(pos) == 0) {
                   loaded_chunks = true;
                   num_chunks ++;
-                  if (threadmanager->add_loading_job(pos)) {
-                    loading_chunks.push_back(pos);
-                  }
+                  tileloader->request_load_tile(pos);
+                  loading_chunks.insert(pos);
                 }
               }
             }
@@ -298,15 +288,15 @@ void World::load_nearby_chunks() {
       ivec3 pos = tile->pos;
       int range = maxrange;
       if (((pos.x < px-range or pos.x > px+range or pos.y < py-range or pos.y > py+range or pos.z < pz-range or pos.z > pz+range)
-      or world_closing) and std::find(deleting_chunks.begin(), deleting_chunks.end(), pos) == deleting_chunks.end()) {
-        if (threadmanager->add_deleting_job(pos)) {
-          deleting_chunks.push_back(pos);
-        }
+      or world_closing) and deleting_chunks.count(pos) == 0) {
+        tileloader->request_del_tile(pos);
+        deleting_chunks.insert(pos);
       }
     }
     
-    if (!loaded_chunks and threadmanager->load_queue.empty() and initial_generation) {
-      cout << "Initial generation finished: " << getTime() - gen_start_time << 's' << endl;
+    static bool initial_generation = true;
+    if (loading_chunks.size() == 0 and initial_generation) {
+      cout << "Initial generation finished: " << getTime() - start_time << 's' << endl;
       initial_generation = false;
     }
   }
@@ -314,9 +304,11 @@ void World::load_nearby_chunks() {
 
 void World::add_tile(Tile* tile) {
   tiles.add_tile(tile);
+  loading_chunks.erase(tile->pos);
 }
 
 void World::timestep() {
+  static double last_time = getTime();
   double now = getTime();
   double dt = now - last_time;
   last_time = now;
@@ -363,29 +355,25 @@ vec3 World::get_position() const {
 }
 
 void World::block_update(ivec3 pos) {
-  block_updates.emplace(pos);
+  // block_updates.emplace(pos);
 }
 
 bool World::render() {
-  if (lighting_flag) {
-    lighting_flag = false;
-  }
   bool changed = false;
   double start = getTime();
   ivec3 ppos(player->position);
   ppos = ppos / chunksize - ivec3(ppos.x < 0, ppos.y < 0, ppos.z < 0);
   Tile* playertile = tileat(ppos);
   
-  player->render(&glvecs);
   
   if (playertile != nullptr and playertile->chunk->flags & RENDER_FLAG and !playertile->lightflag) {
-    playertile->render(&glvecs, &transparent_glvecs);
+    playertile->render(graphics->blockvecs(), graphics->transvecs());
     changed = true;
   } else {
     for (Tile* tile : tiles) {
       changed = changed or (tile->chunk->flags & RENDER_FLAG and tile->fully_loaded);
       if (changed) {
-        tile->render(&glvecs, &transparent_glvecs);
+        tile->render(graphics->blockvecs(), graphics->transvecs());
         break;
       }
     }
@@ -393,7 +381,7 @@ bool World::render() {
       for (Tile* tile : tiles) {
         if (!tile->lightflag) {
           changed = changed or (tile->chunk->flags & RENDER_FLAG);
-          tile->render(&glvecs, &transparent_glvecs);
+          tile->render(graphics->blockvecs(), graphics->transvecs());
           if (changed) {
             break;
           }
@@ -448,8 +436,8 @@ Blocktype World::get(ivec3 pos) {
   return block->pixel->value;
 }
 
-void World::set(ivec3 pos, Blocktype val) {
-  set_global(pos, 1, val, 0);
+void World::set(ivec3 pos, Blocktype val, int direction) {
+  set_global(pos, 1, val, direction);
 }
 
 Block* World::raycast(vec3* pos, vec3 dir, double time) {
@@ -460,7 +448,7 @@ Block* World::raycast(vec3* pos, vec3 dir, double time) {
   return b->raycast(pos, dir, time);
 }
 
-void World::del_chunk(ivec3 pos, bool remove_faces) {
+void World::del_tile(ivec3 pos, bool remove_faces) {
   Tile* tile = tiles.del_tile(pos);
   
   if (tile != nullptr) {
@@ -485,9 +473,8 @@ void World::close_world() {
   ofile.close();
   
   cout << "all tiles saved sucessfully: " << tiles.size() << endl;
-  string path = path("worlddata.txt");
-  ofstream datafile(path);
-  save_data_file(datafile);
+  ofstream datafile(path("worlddata.txt"));
+  save_config(datafile);
   ofstream ofile2(SAVES_PATH "latest.txt");
   ofile2 << name;
 }

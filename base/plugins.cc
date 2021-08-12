@@ -14,25 +14,18 @@ PluginLib::PluginLib(string path) {
 	dirname = path;
 	if (stat(dllpath.c_str(), &info) == 0) {
 		handle = LOADLIB(dllpath.c_str());
+		cout << "loaded " << dllpath << " into address space " << endl;
 		if (!handle) {
 			cout << "Plugin error: [" << path << "]: cannot open dll" << endl;
-		} else {
-			
-			PluginDef* plugindefs = (PluginDef*) GETADDR(handle, "plugins");
-			if (plugindefs == nullptr) {
-				cout << "Plugin error: [" << path << "]: cannot find plugins" << endl;
-			}
-			
-			while (plugindefs->basename != nullptr) {
-				plugins.push_back(*plugindefs);
-				plugindefs ++;
-			}
+			handle = nullptr;
 		}
 	}
 }
 
 PluginLib::~PluginLib() {
-	FREELIB(handle);
+	if (handle != nullptr) {
+		FREELIB(handle);
+	}
 }
 
 
@@ -50,28 +43,13 @@ PluginLoader::PluginLoader() {
 	}
 }
 
+
 PluginLoader::~PluginLoader() {
 	for (PluginLib* plugin : plugins) {
 		delete plugin;
 	}
 }
 
-void* PluginLoader::getplugin_func(const char* name, void* skip_to) {
-	bool skip = skip_to != nullptr;
-	for (PluginLib* pluginlib : plugins) {
-		for (PluginDef plugindef : pluginlib->plugins) {
-			if (!skip and strcmp(plugindef.basename, name) == 0) {
-				return plugindef.getplugin;
-			}
-			skip = skip and plugindef.getplugin != skip_to;
-		}
-	}
-	return nullptr;
-}
-
-
 PluginLoader pluginloader;
-
-
 
 #endif

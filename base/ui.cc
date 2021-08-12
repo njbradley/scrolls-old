@@ -1,7 +1,9 @@
 #include "ui.h"
+#include "rendervecs.h"
+#include "graphics.h"
+#include "libraries.h"
 
-
-UIRect::UIRect(string name, vec2 pos = vec2(0,0), vec2 nsize = vec2(1,1), vec2 nuvpos = vec2(0,0), vec2 nuvsize = vec2(1,1)):
+UIRect::UIRect(string name, vec2 pos, vec2 nsize, vec2 nuvpos, vec2 nuvsize):
 UIRect(graphics->ui_textures()->getindex(name), pos, nsize, nuvpos, nuvsize) {
 	
 }

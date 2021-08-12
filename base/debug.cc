@@ -1,5 +1,8 @@
 #include "debug.h"
 
+DEFINE_PLUGIN(Logger);
+DEFINE_PLUGIN(Debugger);
+
 
 ostream& Logger::log(int page) {
 	cout << "[Page " << page << "]: ";

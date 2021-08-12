@@ -3,6 +3,7 @@
 
 #include "classes.h"
 #include "collider.h"
+#include "plugins.h"
 
 #include <vector>
 #include <mutex>
@@ -27,7 +28,6 @@ class Tile : public Container {
 		bool done_reading = false;
 		FreeBlock* allfreeblocks = nullptr;
 		
-		Tile(ivec3 position, World* world, istream& ifile);
 		Tile(ivec3 position, World* world);
 		~Tile();
 		void timestep(float deltatime);
@@ -36,10 +36,6 @@ class Tile : public Container {
 		void save();
 		void update_lighting();
 		void lighting_update();
-		void generate_chunk(ivec3 pos);
-		char gen_block(ostream& ofile, int gx, int gy, int gz, int scale);
-		void fix_side_groups(std::unordered_map<int,BlockGroup*>& sidegroups);
-		void get_side_groups(std::unordered_map<int,BlockGroup*>& sidegroups, Tile* tile, ivec3 dir);
 		
 		Block* get_global(int x,int y,int z,int scale);
 		vec3 get_position() const;
@@ -48,5 +44,14 @@ class Tile : public Container {
 		void add_freeblock(FreeBlock* freeblock);
 		void remove_freeblock(FreeBlock* freeblock);
 };
+
+class TileLoader { public:
+	PLUGIN_HEAD(TileLoader, ());
+	
+	virtual void request_load_tile(ivec3 pos) = 0;
+	virtual void request_del_tile(ivec3 pos) = 0;
+};
+
+extern Plugin<TileLoader> tileloader;
 
 #endif

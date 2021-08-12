@@ -11,10 +11,10 @@
 #include "blocks.h"
 #include "blockiter.h"
 #include "entity.h"
+#include "graphics.h"
+#include "libraries.h"
 
 
-
-ItemStorage* itemstorage;
 
 //////////////////////////// CHARARRAY ////////////////////////////////////
 
@@ -64,7 +64,7 @@ bool CharArray::place(World* world, Item* item, ivec3 pos, ivec3 dir) {
               int px = i;
               int py = j - (sy/2);
               int pz = k - (sz/2);
-              char worldval = world->get(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy));
+              char worldval = world->get(ivec3(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy)));
               if (worldval != 0 and worldval != 7) {
                 return false;
               }
@@ -77,7 +77,7 @@ bool CharArray::place(World* world, Item* item, ivec3 pos, ivec3 dir) {
                 int px = i;
                 int py = j - (sy/2);
                 int pz = k - (sz/2);
-                world->set(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy), get(i,j,k), direction);
+                world->set(ivec3(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy)), get(i,j,k), direction);
                 
                 pixels.push_back(world->get_global(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy), 1)->pixel);
             }
@@ -121,11 +121,11 @@ Item::Item(istream& ifile) {
     isnull = false;
     if (name == "~") {
       ifile >> name >> sharpness >> weight >> reach;
-      data = itemstorage->items[name];
+      data = itemstorage[name];
       modified = true;
       stackable = false;
     } else {
-      data = itemstorage->items[name];
+      data = itemstorage[name];
       sharpness = data->starting_sharpness;
       weight = data->starting_weight;
       reach = data->starting_reach;
@@ -269,7 +269,7 @@ string Item::descript() {
 // }
 
 double Item::collision(Pixel* pix) {
-  BlockData* blockdata = blocks->blocks[pix->value];
+  BlockData* blockdata = blockstorage[pix->value];
   double force = get_weight();
   Item* head = get_head().first;
   double sharp = get_sharpness();
@@ -277,7 +277,7 @@ double Item::collision(Pixel* pix) {
   if (head == nullptr or head->isnull or !head->data->sharpenable) {
     sharpness = 1;
     force = 1;
-    mat = matstorage->materials["fist"];
+    mat = &materials::fist;
   } else {
     mat = head->data->material;
   }
@@ -344,32 +344,14 @@ void Item::trim() {
 //     sharp = head->sharpness;
 //     force = std::max(get_weight(),1.0);
 //   } else {
-//     mater = matstorage->materials["fist"];
+//     mater = materials::fist;
 //     sharp = 1;
 //     force = 1;
 //   }
-//   BlockData* blockdata = blocks->blocks[val];
+//   BlockData* blockdata = blockstorage[val];
 //   time = blockdata->material->dig_time(mater, sharp, force);
 //   return time;
 // }
-
-bool Item::do_rcaction(World* world) {
-  if (!isnull and data->rcaction != "null") {
-    stringstream ss(data->rcaction);
-    string command;
-    getline(ss, command, '-');
-    if (command == "heal") {
-      double amount, speed;
-      ss >> amount;
-      char lett;
-      ss >> lett;
-      ss >> speed;
-      world->player->heal(amount, speed);
-    }
-    return true;
-  }
-  return false;
-}
 
 void Item::to_file(ostream& ofile) {
   if (data == nullptr) {
@@ -398,8 +380,8 @@ char Item::ondig(World* world, int x, int y, int z) {
 }
 
 char Item::ondig_null(World* world, int x, int y, int z) {
-  char val = world->get(x, y, z);
-  world->set(x, y, z, 0);
+  char val = world->get(ivec3(x, y, z));
+  world->set(ivec3(x, y, z), 0);
   return val;
   /*
   Pixel* pix = world->get_global(x, y, z, 1)->get_pix();
@@ -459,9 +441,9 @@ void Item::render(UIVecs* vecs, vec2 pos, float scale) {
   if (isnull) {
     
   } else {
-    vecs.add(UIRect(data->name + ".png", pos, vec2(scale, scale)));
+    vecs->add(UIRect(data->name + ".png", pos, vec2(scale, scale)));
     if (durability < 1) {
-      vecs.add(UIRect("durability.png", pos, scale * vec2(1, durability)));
+      vecs->add(UIRect("durability.png", pos, scale * vec2(1, durability)));
       // draw_icon(vecs, 12, x, y, scale, durability*scale*aspect_ratio);
     }
     int i = 0;
@@ -474,95 +456,29 @@ void Item::render(UIVecs* vecs, vec2 pos, float scale) {
 
 /////////////////////////////////////// ITEMdada ////////////////////////////////
 
-ItemData::ItemData(string newname, CharArray* arr): name(newname),
-stackable(true), onplace(arr), rcaction("null"), starting_weight(0),
-starting_sharpness(0), starting_reach(0), sharpenable(false), lightlevel(0),
-isgroup(true), texture(0) {
+ItemData::ItemData(ItemDataParams&& params): ItemDataParams(params) {
   
 }
 
-
-ItemData::ItemData(ifstream & ifile):
-stackable(true), onplace(nullptr), rcaction("null"), starting_weight(0),
-starting_sharpness(0), starting_reach(0), sharpenable(false), lightlevel(0),
-isgroup(true) {
+void ItemData::init() {
+  if (block != 0) {
+    onplace = CharArray(new char[1]{(char)block}, 1, 1, 1);
+  }
   
-  string buff;
-  ifile >> buff;
-  if (buff != "item") {
-    cout << "ERR: this file is not a item data file " << endl;
-  } else {
-    string tex_str;
-    ifile >> name;
-    getline(ifile, buff, '{');
-    string varname;
-    getline(ifile, buff, ':');
-    getline(ifile, varname, ':');
-    while (!ifile.eof() and varname != "") {
-      if (varname == "onplace") {
-        onplace = new CharArray(ifile);
-      } else if (varname == "block") {
-        string blockname;
-        ifile >> blockname;
-        char* arr = new char[1];
-        arr[0] = blocks->names[blockname];
-        onplace = new CharArray(arr, 1, 1, 1);
-      } else if (varname == "non_stackable") {
-        stackable = false;
-      } else if (varname == "material") {
-        string matname;
-        ifile >> matname;
-        material = matstorage->materials[matname];
-      } else if (varname == "rcaction") {
-        ifile >> rcaction;
-      } else if (varname == "toughness") {
-        ifile >> toughness;
-      } else if (varname == "gluetype") {
-        string gluetype;
-        ifile >> gluetype;
-        glue = connstorage->connectors[gluetype];
-      } else if (varname == "notgroup") {
-        isgroup = false;
-      } else if (varname == "lightlevel") {
-        ifile >> lightlevel;
-      } else if (varname == "weight") {
-        ifile >> starting_weight;
-        sharpenable = true;
-      } else if (varname == "sharpness") {
-        ifile >> starting_sharpness;
-        sharpenable = true;
-      } else if (varname == "reach") {
-        ifile >> starting_reach;
-        sharpenable = true;
-      } else if (varname == "texture") {
-        ifile >> tex_str;
-      }
-      getline(ifile, buff, ':');
-      getline(ifile, varname, ':');
-    }
-    if (tex_str == "") {
-      tex_str = name;
-    }
-    vector<string> paths;
-    get_files_folder(RESOURCES_PATH "textures/items", &paths);
-    texture = 0;
-    for (int i = 0; i < paths.size(); i ++) {
-      stringstream ss(paths[i]);
-      string filename;
-      getline(ss, filename, '.');
-      if (filename == tex_str) {
-        texture = i;
-      }
-    }
-    //texture = float(tex_id) / paths.size();
-    //cout << tex_id << ' ' << paths.size() << ' ' << texture << endl;
+  if (texture == 0) {
+    texture = graphics->ui_textures()->getindex("items/" + name + ".png");
   }
 }
 
-ItemData::~ItemData() {
-  delete onplace;
+
+void ItemStorage::init() {
+  Storage<ItemData>::init();
+  for (ItemData* data : *this) {
+    data->init();
+  }
 }
 
+ItemStorage itemstorage;
 
 /////////////////////////////////////////////////////////////////////////////////////
 
@@ -704,146 +620,6 @@ void ItemStack::trim() {
   }
 }
 
-/////////////////////////////// ITEMSTRAGE////////////////////////////////////////////////
-
-    ItemStorage::ItemStorage() {
-        vector<string> image_paths;
-        get_files_folder(RESOURCES_PATH "textures/items", &image_paths);
-        total_images = image_paths.size();
-        vector<string> block_paths;
-        get_files_folder(RESOURCES_PATH "data/items", &block_paths);
-        for (string filename : block_paths) {
-            ifstream ifile(RESOURCES_PATH "data/items/" + filename);
-            //cout << "loading itemdata " << filename << " from file" << endl;
-            ItemData* itemdata = new ItemData(ifile);
-            items[itemdata->name] = itemdata;
-        }
-        cout << "loaded " << block_paths.size() << " itemdata files" << endl;
-    }
-
-ItemStorage::~ItemStorage() {
-  for (pair<string,ItemData*> kv : items) {
-    delete kv.second;
-  }
-}
-
-Item ItemStorage::from_group(Pixel* startpix) {
-  BlockGroupIter iter = startpix->iter_group();
-  
-  bool first_pix = true;
-  ivec3 position(0,0,0);
-  ivec3 dims(1,1,1);
-  
-  for (Pixel* pix : iter) {
-    ivec3 pos = pix->parbl->globalpos;
-    if (first_pix) {
-      position = pos;
-      first_pix = false;
-    } else {
-      if (pos.x < position.x) {
-        dims.x += position.x - pos.x;
-        position.x = pos.x;
-      }
-      if (pos.y < position.y) {
-        dims.y += position.y - pos.y;
-        position.y = pos.y;
-      }
-      if (pos.z < position.z) {
-        dims.z += position.z - pos.z;
-        position.z = pos.z;
-      }
-      if (pos.x >= position.x + dims.x) dims.x = pos.x - position.x + 1;
-      if (pos.y >= position.y + dims.y) dims.y = pos.y - position.y + 1;
-      if (pos.z >= position.z + dims.z) dims.z = pos.z - position.z + 1;
-    }
-  }
-  
-  
-  char* data = new char[dims.x * dims.y * dims.z];
-  for (int i = 0; i < dims.x * dims.y * dims.z; i ++) {
-    data[i] = 0;
-  }
-  
-  for (Pixel* pix : iter) {
-    ivec3 pos = pix->parbl->globalpos;
-    ivec3 lpos = pos - position;
-    data[lpos.x*dims.y*dims.z + lpos.y*dims.z + lpos.z] = pix->value;
-  }
-  
-  for (int dirindex = 0; dirindex < 6; dirindex ++) {
-    for (pair<string,ItemData*> kv : items) {
-      CharArray* carray = kv.second->onplace;
-      if (carray != nullptr and carray->sx == dims[(0+dirindex)%3] and carray->sy == dims[(1+dirindex)%3] and carray->sz == dims[(2+dirindex)%3]) {
-        bool matching = true;
-        for (int x = 0; x < carray->sx and matching; x ++) {
-          for (int y = 0; y < carray->sy and matching; y ++) {
-            for (int z = 0; z < carray->sz and matching; z ++) {
-              ivec3 pos (x,y,z);
-              ivec3 npos (
-                (dirindex < 3) ? pos[(0+dirindex)%3] : carray->sx - pos[(0+dirindex)%3] - 1,
-                (dirindex < 3) ? pos[(1+dirindex)%3] : carray->sy - pos[(1+dirindex)%3] - 1,
-                (dirindex < 3) ? pos[(2+dirindex)%3] : carray->sz - pos[(2+dirindex)%3] - 1
-              );
-              if (carray->get(pos.x, pos.y, pos.z) != data[npos.x*carray->sy*carray->sz + npos.y*carray->sz + npos.z]) {
-                matching = false;
-              }
-            }
-          }
-        }
-        
-        if (matching) {
-          delete[] data;
-          return Item(kv.second);
-        }
-      }
-    }
-  }
-  
-  return Item(nullptr);
-  
-  int dirindex = 0;
-  if (dims.y > dims.z and dims.y > dims.x) {
-    dirindex = 1;
-  } else if (dims.z > dims.y and dims.z > dims.x) {
-    dirindex = 2;
-  }
-  
-  string name = std::to_string(rand());
-  
-  CharArray* newarr;
-  if (dirindex == 0) {
-    newarr = new CharArray(data, dims.x, dims.y, dims.z);
-    items[name] = new ItemData(name, newarr);
-    return Item(items[name]);
-  } else {
-    ivec3 newdims(dims[dirindex%3], dims[(dirindex+1)%3], dims[(dirindex+2)%3]);
-    char* rot_data = new char[newdims.x * newdims.y * newdims.z];
-    
-    for (int x = 0; x < newdims.x; x ++) {
-      for (int y = 0; y < newdims.y; y ++) {
-        for (int z = 0; z < newdims.z; z ++) {
-          ivec3 pos (x,y,z);
-          ivec3 npos (
-            (dirindex < 3) ? pos[(0+dirindex)%3] : newdims.x - pos[(0+dirindex)%3] - 1,
-            (dirindex < 3) ? pos[(1+dirindex)%3] : newdims.y - pos[(1+dirindex)%3] - 1,
-            (dirindex < 3) ? pos[(2+dirindex)%3] : newdims.z - pos[(2+dirindex)%3] - 1
-          );
-          char val = data[npos.x*newdims.y*newdims.z + npos.y*newdims.z + npos.z];
-          rot_data[pos.x*newdims.y*newdims.z + pos.y*newdims.z + pos.z] = val;
-        }
-      }
-    }
-    
-    newarr = new CharArray(rot_data, newdims.x, newdims.y, newdims.z);
-    items[name] = new ItemData(name, newarr);
-    delete[] data;
-    return Item(items[name]);
-  }
-  
-  delete[] data;
-  return Item(nullptr);
-}
-
 
 ////////////////////////////////////// ITEMKCINTAINER ///////////////////////////////////
 
@@ -947,9 +723,9 @@ void ItemContainer::make_single(int index) {
 void ItemContainer::render(UIVecs* vecs, vec2 pos) {
   //draw_image(vecs, "inven_select.bmp", x, y, 1, 0.1f*aspect_ratio);
   for (int i = 0; i < items.size(); i ++) {
-    vecs.add(UIRect("inven_slot.png", pos + vec2(i*0.1,0), vec2(0.1,0.1)));
+    vecs->add(UIRect("inven_slot.png", pos + vec2(i*0.1,0), vec2(0.1,0.1)));
     if (items[i].item.data != nullptr) {
-      items[i].render(vecs, x + vec2(i*0.1f, 0.02f));
+      items[i].render(vecs, pos + vec2(i*0.1f, 0.02f));
     }
   }
 }
@@ -967,5 +743,36 @@ void ItemContainer::save_to_file(ostream& ofile) {
   }
   ofile << endl;
 }
+
+
+DEFINE_PLUGIN(ItemData);
+
+namespace items {
+  ItemData dirt ({
+    .name = "dirt",
+    .block = 0,
+  });
+  
+  ItemData wood ({
+    .name = "wood",
+    .block = 1,
+  });
+  
+  ItemData leaves ({
+    .name = "leaves",
+    .block = 2,
+  });
+  
+  EXPORT_PLUGIN_SINGLETON(dirt);
+  EXPORT_PLUGIN_SINGLETON(wood);
+  EXPORT_PLUGIN_SINGLETON(leaves);
+}
+
+
+
+
+
+
+
 
 #endif

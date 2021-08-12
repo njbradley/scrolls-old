@@ -297,4 +297,4 @@ void GLGraphicsContext::swap() {
 
 
 
-EXPORT_PLUGINS(GLGraphicsContext);
+EXPORT_PLUGIN(GLGraphicsContext);

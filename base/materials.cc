@@ -4,35 +4,10 @@
 #include "materials.h"
 #include "cross-platform.h"
 
-Plugin<MaterialStorage> materialstorage;
+DEFINE_PLUGIN(Material);
 
-/*Material::Material(istream& ifile): toughness(0), elastic(0), breaksound("null"), hitsound("null"), density(0.5f) {
-	string buff;
-	ifile >> buff;
-	if (buff == "material") {
-		ifile >> name;
-		string varname;
-		getline(ifile, buff, ':');
-		getline(ifile, varname, ':');
-		while (!ifile.eof() and varname != "") {
-			if (varname == "toughness") {
-				ifile >> toughness;
-			} else if (varname == "elastic") {
-				ifile >> elastic;
-			} else if (varname == "breaksound") {
-				ifile >> breaksound;
-			} else if (varname == "hitsound") {
-				ifile >> hitsound;
-			} else if (varname == "density") {
-				ifile >> density;
-			}
-			getline(ifile, buff, ':');
-			getline(ifile, varname, ':');
-		}
-	} else {
-		cout << "ERR: this is not a material file" << endl;
-	}
-}*/
+Storage<Material> materialstorage;
+
 
 double Material::material_score(Material* other) {
 	double score = (toughness - other->toughness);
@@ -104,6 +79,48 @@ double Material::collision_force(Material* other, double sharpness, double force
 	//cout << force << endl;
 	return force;
 }
+
+
+
+
+namespace materials {
+	Material dirt ({
+		.name = "dirt",
+		.toughness = 1,
+		.elastic = 1,
+		.hitsound = "dirt-hit",
+		.density = 2,
+	});
+	
+	Material stone ({
+		.name = "stone",
+		.toughness = 22,
+		.elastic = 0,
+		.density = 22,
+	});
+	
+	Material leaves ({
+		.name = "dirt",
+		.toughness = 0.5,
+		.elastic = 3,
+		.hitsound = "sand-hit",
+	});
+	
+	Material fist ({
+		.name = "fist",
+		.toughness = 1,
+		.elastic = 1,
+		.hitsound = "sand-hit",
+	});
+	
+	EXPORT_PLUGIN_SINGLETON(dirt);
+	EXPORT_PLUGIN_SINGLETON(stone);
+	EXPORT_PLUGIN_SINGLETON(leaves);
+	EXPORT_PLUGIN_SINGLETON(fist);
+}
+
+
+
 
 
 

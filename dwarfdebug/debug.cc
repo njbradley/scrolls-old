@@ -351,4 +351,5 @@ ostream& CoolLogger::log(int page) {
 
 
 
-EXPORT_PLUGINS(DwarfDebugger, CoolLogger);
+EXPORT_PLUGIN(DwarfDebugger);
+EXPORT_PLUGIN(CoolLogger);

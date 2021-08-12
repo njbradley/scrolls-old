@@ -6,10 +6,10 @@
 #include "blocks.h"
 #include "blockiter.h"
 #include "blockdata.h"
-#include "blockgroups.h"
 #include "world.h"
-#include "generative.h"
 #include "entity.h"
+#include "player.h"
+#include "terrain.h"
 
 //#include <ZipLib/ZipFile.h>
 
@@ -163,50 +163,28 @@ void Tile::drop_ticks() {
 
 
 Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize), deleting(false) {
-	//if (writelock.try_lock_for(std::chrono::seconds(1))) {
-    // dfile << "ntile ";
-    if (world == nullptr) {
-      cout << "error world is null" << endl;
-      exit(1);
-    }
-    stringstream path;
-  	path << SAVES_PATH << world->name << "/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
-  	ifstream ifile(path.str(), std::ios::binary);
-  	if (!ifile.good()) {
-  			//cout << "generating '" << path.str() << "'\n";
-        // dfile << "NTILE" << endl << "gen ";
-  			//chunk = generate(pos);
-        generate_chunk(pos);
-        ifile.open(path.str(), std::ios::binary);
-        // dfile << "GEN " << endl;
-  			//return load_chunk(pos);
-  			//chunk = generate(pos);
-  	}
-    vector<BlockGroup*> groups;
+  if (world == nullptr) {
+    cout << "error world is null" << endl;
+    exit(1);
+  }
+  stringstream path;
+	path << SAVES_PATH << world->name << "/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
+	ifstream ifile(path.str(), std::ios::binary);
+	if (!ifile.good()) {
+			//cout << "generating '" << path.str() << "'\n";
+      // dfile << "NTILE" << endl << "gen ";
+			//chunk = generate(pos);
+      chunk = world->terrainloader->generate_chunk(pos);
+      chunk->set_parent(this, pos, chunksize);
+      // dfile << "GEN " << endl;
+			//return load_chunk(pos);
+			//chunk = generate(pos);
+	} else {
     
     chunk = new Block();
     chunk->set_parent(this, pos, chunksize);
     chunk->from_file(ifile);
-    
-    const ivec3 dir_array[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
-    done_reading = true;
-  	//render_chunk_vectors(pos);
-  	//render(&world->glvecs);
-  //   writelock.unlock();
-  // } else {
-  //   cout << "tile locked when created?" << endl;
-  //   game->crash(1188188839499);
-  // }
-}
-
-Tile::Tile(ivec3 position, World* nworld, istream& ifile): pos(position), world(nworld), chunksize(nworld->chunksize), deleting(false) {
-  chunk = new Block();
-  chunk->set_parent(this, position, chunksize);
-  chunk->from_file(ifile);
-  
-  const ivec3 dir_array[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
-  
-  done_reading = true;
+  }
 }
 
 
@@ -218,48 +196,6 @@ Tile::~Tile() {
   delete chunk;
   // dfile << "DEL" << endl;
   deletelock.unlock();
-}
-
-
-void Tile::generate_chunk(ivec3 pos) {
-  //generative_setup_chunk(pos.first, pos.second);
-  stringstream path;
-  path << SAVES_PATH << world->name << "/chunks/" << pos.x << "x" << pos.y << "y" << pos.z << "z.dat";
-  ofstream of(path.str(), std::ios::binary);
-  char val = gen_block(of, pos.x*World::chunksize, pos.y*World::chunksize, pos.z*World::chunksize, chunksize);
-  of << endl << 0 << endl << 0 << endl;
-  //cout << (int)val << int(char(0xff)) << endl;
-}
-
-char Tile::gen_block(ostream& ofile, int gx, int gy, int gz, int scale) {
-  char val = world->loader.gen_func(ivec4(gx, gy, gz, scale));
-  // cout << int(val) << ' ' << ivec3(gx,gy,gz) << ' ' << scale << endl;
-  if (scale == 1 or val != -1) {
-    Block::write_pix_val(ofile, 0b00, val);
-    return val;
-  } else {
-    stringstream ss;
-    ss << char(0b11000000);
-    char val = gen_block(ss, gx, gy, gz, scale/csize);
-    bool all_same = val != -1;
-    for (int x = 0; x < csize; x ++) {
-      for (int y = 0; y < csize; y ++) {
-        for (int z = 0; z < csize; z ++) {
-          if (x > 0 or y > 0 or z > 0) {
-            char newval = gen_block(ss, gx+x*(scale/csize), gy+y*(scale/csize), gz+z*(scale/csize), scale/csize);
-            all_same = all_same and newval == val;
-          }
-        }
-      }
-    }
-    if (all_same) {
-      Block::write_pix_val(ofile, 0b00, val);
-      return val;
-    } else {
-      ofile << ss.rdbuf();
-      return -1;
-    }
-  }
 }
 
 
@@ -293,5 +229,9 @@ void Tile::remove_freeblock(FreeBlock* freeblock) {
     }
   }
 }
+
+DEFINE_PLUGIN(TileLoader);
+
+Plugin<TileLoader> tileloader;
 
 #endif

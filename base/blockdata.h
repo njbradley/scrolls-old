@@ -4,40 +4,40 @@
 #include "classes.h"
 #include "plugins.h"
 
+struct BlockDataParams {
+  string name;
+  Material* material;
+  int texture[6] = {0,0,0,0,0,0};
+  string texture_names[6];
+  int default_direction = 0;
+  bool rotation_enabled = false;
+  int lightlevel = 0;
+  bool transparent = false;
+};
+  
 
-
-class BlockData { public:
+class BlockData : public BlockDataParams { public:
   PLUGIN_HEAD(BlockData, ());
   
   Blocktype id;
-  Blocktype* idref = nullptr;
-  Material* material;
-  int texture[6];
-  int default_direction = 0;
-  bool rotation_enabled = false;
-  string name;
-  int lightlevel = 0;
-  bool transparent = false;
   
-  BlockData() {}
+  BlockData(BlockDataParams&& data);
   void set_id(Blocktype newid);
   virtual ~BlockData() {}
 };
 
 class BlockStorage : public Storage<BlockData> { public:
-  PLUGIN_HEAD(BlockStorage, ());
-  
-  BlockStorage();
+  void init();
   virtual ~BlockStorage() {}
 };
 
-extern Plugin<BlockStorage> blockstorage;
+extern BlockStorage blockstorage;
 
-extern Blocktype Block_DIRT;
-extern Blocktype Block_GRASS;
-extern Blocktype Block_BARK;
-extern Blocktype Block_WOOD;
-extern Blocktype Block_LEAVES;
-extern Blocktype Block_WATER;
+namespace blocktypes {
+  extern BlockData dirt;
+  extern BlockData grass;
+  extern BlockData wood;
+  extern BlockData leaves;
+}
 
 #endif

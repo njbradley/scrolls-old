@@ -1,6 +1,8 @@
 #include "graphics.h"
 #include "rendervecs.h"
 
+DEFINE_PLUGIN(ViewBox);
+DEFINE_PLUGIN(GraphicsContext);
 
 ViewBox::ViewBox() {
 	params.view_distance = 1000;

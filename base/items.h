@@ -2,6 +2,7 @@
 #define ITEMS_PREDEF
 
 #include "classes.h"
+#include "plugins.h"
 
 #include <map>
 using std::map;
@@ -13,6 +14,7 @@ class CharArray { public:
     int sz;
     CharArray( char* newarr, int x, int y, int z);
     CharArray(ifstream & ifile);
+    CharArray(): arr(nullptr) {}
     ~CharArray();
     char get(int x, int y, int z);
     void set(char val, int x, int y, int z);
@@ -44,7 +46,6 @@ public:
   //void damage(Player* player, BlockData* data, double time);
   //double dig_time(char val);
   double collision(Pixel* pix);
-  bool do_rcaction(World* world);
   char ondig(World* world, int x, int y, int z);
   void trim();
   void to_file(ostream& ofile);
@@ -57,26 +58,34 @@ public:
 };
   
 
-class ItemData {
-    public:
-        int texture;
-        bool stackable;
-        string name;
-        CharArray* onplace;
-        string rcaction;
-        double toughness;
-        double starting_weight;
-        double starting_sharpness;
-        double starting_reach;
-        bool sharpenable;
-        Material* material;
-        int lightlevel;
-        bool isgroup;
-            
-        ItemData(ifstream & ifile);
-        ItemData(string newname, CharArray* arr);
-        ~ItemData();
+struct ItemDataParams {
+  string name;
+  int texture = 0;
+  bool stackable = true;
+  CharArray onplace;
+  Blocktype block = 0;
+  double toughness = 1;
+  double starting_weight = 1;
+  double starting_sharpness = 1;
+  double starting_reach = 1;
+  bool sharpenable = false;
+  Material* material;
+  int lightlevel = 0;
+  bool isgroup = false;
 };
+
+class ItemData : public ItemDataParams { public:
+  PLUGIN_HEAD(ItemData, ());
+  
+  ItemData(ItemDataParams&& params);
+  void init();
+};
+
+class ItemStorage : public Storage<ItemData> { public:
+  void init();
+};
+
+extern ItemStorage itemstorage;
 
 class ItemStack {
 public:
@@ -97,35 +106,34 @@ public:
   void trim();
 };
 
-class ItemStorage { public:
-    map<string,ItemData*> items;
-    int total_images;
-    ItemStorage();
-    ~ItemStorage();
-    Item from_group(Pixel* pix);
+
+
+
+class ItemContainer { public:
+  vector<ItemStack> items;
+  int size;
+  
+  ItemContainer(int newsize);
+  ItemContainer(istream&);
+  ItemContainer(ItemContainer*, ItemContainer*);
+  bool add(ItemStack itemstack);
+  Item* get(int index);
+  Item use(int index);
+  bool contains(ItemStack);
+  bool take(ItemStack);
+  void make_single(int index);
+  void render(UIVecs* vecs, vec2 pos);
+  void save_to_file(ostream&);
+  void clear();
 };
 
-extern ItemStorage* itemstorage;
 
-
-
-class ItemContainer {
-    public:
-        vector<ItemStack> items;
-        int size;
-        
-        ItemContainer(int newsize);
-        ItemContainer(istream&);
-        ItemContainer(ItemContainer*, ItemContainer*);
-        bool add(ItemStack itemstack);
-        Item* get(int index);
-        Item use(int index);
-        bool contains(ItemStack);
-        bool take(ItemStack);
-        void make_single(int index);
-        void render(UIVecs* vecs, vec2 pos);
-        void save_to_file(ostream&);
-        void clear();
+namespace items {
+  extern ItemData dirt;
+  extern ItemData wood;
+  extern ItemData leaves;
 };
+
+
 
 #endif

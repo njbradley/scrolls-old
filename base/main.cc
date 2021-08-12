@@ -10,7 +10,8 @@
 
 int main( void )
 {
-	
+	cout << "Starting " << endl;
+	cout << "logger headptr " << plugin_headptr<Logger> << endl;
 	logger.init();
 	debugger.init();
 	debugger->setup_backtrace();

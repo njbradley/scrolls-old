@@ -10,6 +10,7 @@
 #include "cross-platform.h"
 #include "blocks.h"
 #include "blockiter.h"
+#include "materials.h"
 
 #include <algorithm>
 
@@ -383,7 +384,7 @@ void Entity::calc_constraints() {
                     Block* pix = collider->get_global(x,y,z,1);
                     bool new_const = is_solid_block(pix);
                     if (new_const) {
-                      Material* mat = blocks->blocks[pix->pixel->value]->material;
+                      Material* mat = blockstorage[pix->pixel->value]->material;
                       if (mat_consts[axis] == nullptr or mat_consts[axis]->toughness < mat->toughness) {
                         mat_consts[axis] = mat;
                       }
@@ -411,7 +412,7 @@ void Entity::calc_constraints() {
                       if (!is_solid_block(pix)) {
                         continue;
                       } else {
-                        mat = blocks->blocks[pix->pixel->value]->material;
+                        mat = blockstorage[pix->pixel->value]->material;
                       }
                       constraint = true;
                       for (int yoff = 1; yoff < 3; yoff ++) {
@@ -424,7 +425,7 @@ void Entity::calc_constraints() {
                           constraint = true;
                           break;
                         } else {
-                          mat = blocks->blocks[pix->pixel->value]->material;
+                          mat = blockstorage[pix->pixel->value]->material;
                         }
                       }
                       if (mat != nullptr and (mat_consts[axis+3] == nullptr or mat_consts[axis+3]->toughness < mat->toughness)) {
@@ -447,7 +448,7 @@ void Entity::calc_constraints() {
                     Block* above = collider->get_global(x,y+1,z,1);
                     if (!is_solid_block(above)) {
                       constraint = true;
-                      Material* mat = blocks->blocks[floor->pixel->value]->material;
+                      Material* mat = blockstorage[floor->pixel->value]->material;
                       if (mat_consts[axis+3] == nullptr or mat_consts[axis+3]->toughness < mat->toughness) {
                         mat_consts[axis+3] = mat;
                       }
@@ -493,7 +494,7 @@ void Entity::calc_constraints() {
                       Block* pix = collider->get_global(x,y,z,1);
                       bool new_const = is_solid_block(pix);
                       if (new_const) {
-                        Material* mat = blocks->blocks[pix->pixel->value]->material;
+                        Material* mat = blockstorage[pix->pixel->value]->material;
                         if (mat_consts[axis+3] == nullptr or mat_consts[axis+3]->toughness < mat->toughness) {
                           mat_consts[axis+3] = mat;
                         }
@@ -525,7 +526,7 @@ void Entity::calc_constraints() {
       }
       
       newpos = new_rel_pos + collider->get_position();
-    }
+    //}
     for (int i = 0; i < 7; i ++) {
         if (old_consts[i] and mat_consts[i] == nullptr) {
           mat_consts[i] = old_mat_consts[i];

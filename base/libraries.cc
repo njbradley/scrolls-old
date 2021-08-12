@@ -11,12 +11,15 @@ PathLib::PathLib(string directory) {
 
 void PathLib::load(string directory) {
 	struct stat info;
+	cout << directory << " loading dir " << endl;
 	for (PluginLib* plugins : pluginloader.plugins) {
 		string search_path = plugins->dirname + "/" + directory;
 		if (stat(search_path.c_str(), &info) == 0) {
+			cout << "found match " << search_path << endl;
 			int i = paths.size();
 			get_files_folder(search_path, &paths);
 			for (; i < paths.size(); i ++) {
+				cout << ' ' << paths[i] << endl;
 				paths[i] = search_path + '/' + paths[i];
 			}
 		}
