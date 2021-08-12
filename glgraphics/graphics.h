@@ -7,8 +7,9 @@
 
 #include "rendervecs.h"
 
+extern GLFWwindow* window;
+
 class GLGraphicsContext : public GraphicsContext { public:
-	GLFWwindow* window;
 	
 	GLuint block_vertexid;
 	GLuint ui_vertexid;

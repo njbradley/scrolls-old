@@ -5,6 +5,8 @@
 #include "texture.h"
 #include "base/ui.h"
 
+GLFWwindow* window;
+
 GLGraphicsContext::GLGraphicsContext(): blocktex("textures/blocks"), transblocktex("textures/blocks/transparent"), uitex("textures/ui") {
 	init_graphics();
 	load_textures();
@@ -24,6 +26,8 @@ GLGraphicsContext::~GLGraphicsContext() {
 	glDeleteTextures(1, &uitex_id);
 	glDeleteVertexArrays(1, &block_vertexid);
 	glDeleteVertexArrays(1, &ui_vertexid);
+	
+	glfwTerminate();
 }
 
 void GLGraphicsContext::init_graphics() {
@@ -127,6 +131,12 @@ void GLGraphicsContext::init_graphics() {
 	glvecsdest.set_buffers(vertexbuffer, databuffer, total_size);
 	glvecs.set_destination(&glvecsdest);
 	gltransvecs.set_destination_offset(&glvecsdest, total_size - total_size / 10);
+	
+	if (settings->framerate_sync) {
+		glfwSwapInterval(1);
+	} else {
+		glfwSwapInterval(0);
+	}
 }
 
 void GLGraphicsContext::set_camera(vec3* pos, vec2* rot) {
@@ -291,6 +301,10 @@ void GLGraphicsContext::ui_draw_call() {
 }
 
 void GLGraphicsContext::swap() {
+	
+	glvecs.sync();
+	gltransvecs.sync();
+	
 	glfwSwapBuffers(window);
 	glfwPollEvents();
 }

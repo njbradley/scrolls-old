@@ -7,10 +7,10 @@
 class Controls { public:
 	PLUGIN_HEAD(Controls, ());
 	
-	int KEY_SHIFT;
-	int KEY_CTRL;
-	int KEY_ALT;
-	int KEY_TAB;
+	static const int KEY_SHIFT = 0b1 << 8;
+	static const int KEY_CTRL = 0b1 << 9;
+	static const int KEY_ALT = 0b1 << 10;
+	static const int KEY_TAB = 0b1 << 11;
 	
 	virtual bool key_pressed(int keycode) = 0;
 	virtual bool mouse_button(int button) = 0;

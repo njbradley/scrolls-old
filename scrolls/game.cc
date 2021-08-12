@@ -157,7 +157,6 @@ MainGame::~MainGame() {
 	delete settings;
 	
 	// Close OpenGL window and terminate GLFW
-	glfwTerminate();
 	if (errors) {
 		wait();
 	} else {

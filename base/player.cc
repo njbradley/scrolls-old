@@ -24,6 +24,8 @@ float verticalAngle = 0.0f;
 // Initial Field of View
 */
 
+DEFINE_PLUGIN(Controls);
+
 Plugin<Controls> controls;
 
 float speed = 80.0f; // 3 units / second
