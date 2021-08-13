@@ -58,6 +58,8 @@ void SingleGame::gametick() {
 	
 	if (controls->key_pressed('Q') and controls->key_pressed(controls->KEY_CTRL)) {
 		playing = false;
+	} else if (controls->key_pressed('X')) {
+		exit(1);
 	}
 }
 

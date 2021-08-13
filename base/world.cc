@@ -158,6 +158,7 @@ tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) - 1) {
   ifstream ifile(path("worlddata.txt"));
   load_config(ifile);
   startup();
+  tileloader->begin_serving();
 }
 
 World::~World() {
@@ -470,6 +471,8 @@ bool World::is_world_closed() {
 }
 
 void World::close_world() {
+  tileloader->end_serving();
+  
   ofstream ofile(path("player.txt"));
   player->save_to_file(ofile);
   delete player;

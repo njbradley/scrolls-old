@@ -32,6 +32,19 @@ GLGraphicsContext::~GLGraphicsContext() {
 	glfwTerminate();
 }
 
+void GLAPIENTRY errorCallback( GLenum source,
+                 GLenum type,
+                 GLuint id,
+                 GLenum severity,
+                 GLsizei length,
+                 const GLchar* message,
+                 const void* userParam ) {
+  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+            type, severity, message );
+	exit(1);
+}
+
 void GLGraphicsContext::init_graphics() {
 	
 	// Initialise GLFW
@@ -47,6 +60,7 @@ void GLGraphicsContext::init_graphics() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 	
 	if (settings->fullscreen) {
 		const GLFWvidmode* return_struct = glfwGetVideoMode( glfwGetPrimaryMonitor() );
@@ -76,6 +90,14 @@ void GLGraphicsContext::init_graphics() {
 		getchar();
 		glfwTerminate();
 		return;
+	}
+	
+	glEnable              ( GL_DEBUG_OUTPUT );
+	glDebugMessageCallback( errorCallback, 0 );
+	
+	GLenum err;
+	while((err = glGetError()) != GL_NO_ERROR) {
+		cout << "err: " << std::hex << err << std::dec << endl;
 	}
 	
 	// Ensure we can capture the escape key being pressed below
@@ -213,7 +235,6 @@ void GLGraphicsContext::block_draw_call() {
 	
 	vec3 up = glm::cross( right, forward );
 	
-	
 	// Projection matrix : 45 Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
 	glm::mat4 projectionMatrix = glm::perspective(glm::radians(settings->fov), (float) settings->aspect_ratio(), 0.1f, 1000.0f);
 	glm::mat4 viewMatrix = glm::lookAt(*camera_pos, *camera_pos + direction, up);
@@ -234,7 +255,6 @@ void GLGraphicsContext::block_draw_call() {
 	glUniform3f(clearcolorID, clearcolor.x, clearcolor.y, clearcolor.z);
 	glClearColor(clearcolor.x * sunlight, clearcolor.y * sunlight, clearcolor.z * sunlight, 0.0f);
 	glUniform1i(viewdistID, viewbox->params.view_distance);
-	
 	
 	glUniform3f(sunlightID, viewbox->params.sun_direction.x, viewbox->params.sun_direction.y, viewbox->params.sun_direction.z);
 	glUniform3f(suncolorID, viewbox->params.sun_color.x, viewbox->params.sun_color.y, viewbox->params.sun_color.z);
@@ -291,10 +311,12 @@ void GLGraphicsContext::ui_draw_call() {
 	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, uitex_id);
+	cout << 318 << endl;
 	glUniform1i(uiTextureID, 0);
+	cout << 320 << endl;
 	
 	glDrawArrays(GL_TRIANGLES, 0, gluivecs.num_verts); // 12*3 indices starting at 0 -> 12 triangles
-	
+	cout << 323 << endl;
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(2);
@@ -303,6 +325,11 @@ void GLGraphicsContext::ui_draw_call() {
 }
 
 void GLGraphicsContext::swap() {
+	
+	GLenum err;
+	while((err = glGetError()) != GL_NO_ERROR) {
+		// cout << "err: " << std::hex << err << std::dec << endl;
+	}
 	
 	glvecs.sync();
 	gltransvecs.sync();

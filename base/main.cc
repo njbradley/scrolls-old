@@ -18,7 +18,7 @@ int main( void )
 	cout << "laoder headptr " << plugin_headptr<TileLoader> << endl;
 	logger.init();
 	debugger.init();
-	debugger->setup_backtrace();
+	// debugger->setup_backtrace();
 	settings.init();
 	audio.init();
 	graphics.init();

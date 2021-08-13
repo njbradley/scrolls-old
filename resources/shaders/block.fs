@@ -11,7 +11,7 @@ out vec4 color;
 
 // Values that stay constant for the whole mesh.
 const int num_blocks = 3;
-uniform sampler2DArray myTextureSampler[num_blocks];
+uniform sampler2DArray myTextureSampler;
 uniform sampler2DArray breakingTex;
 uniform sampler2DArray overlayTex;
 uniform sampler2DArray edgesTex;
@@ -22,7 +22,8 @@ uniform vec3 suncolor;
 
 void main() {
 	
-	vec4 tex = texture(myTextureSampler[0], vec3(UV.x, UV.y, tex));
+	
+	vec4 tex = texture(myTextureSampler, vec3(UV.x, UV.y, tex));
 	if (tex.a < 0.05) {
 		discard;
 	}
@@ -42,7 +43,7 @@ void main() {
 	
 	
 	if (true) {
-		vec4 tex = texture(myTextureSampler[0], vec3(UV.x, UV.y, material));
+		vec4 tex = texture(myTextureSampler, vec3(UV.x, UV.y, material));
 		
 		uint edge1 = edges & 0xff;
 		if (edge1 != 0) {

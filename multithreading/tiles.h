@@ -47,10 +47,11 @@ public:
 	World* world;
 	
 	ThreadedTileLoader(World* world);
-	~ThreadedTileLoader();
+	~ThreadedTileLoader() {};
+	void begin_serving();
 	void request_load_tile(ivec3 pos);
 	void request_del_tile(ivec3 pos);
-	void close();
+	void end_serving();
 };
 
 

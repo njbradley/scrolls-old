@@ -31,7 +31,7 @@ int PathLib::add(string path) {
 
 int PathLib::getindex(string path) const {
 	for (int i = 0; i < paths.size(); i ++) {
-		if (path == paths[i] or directory + '/' + path == paths[i]) {
+		if (path == paths[i] or paths[i].substr(paths[i].find_first_of('/')) == '/' + directory + '/' + path) {
 			return i;
 		}
 	}

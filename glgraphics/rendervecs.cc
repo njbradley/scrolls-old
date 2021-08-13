@@ -78,6 +78,7 @@ void GLVecsDestination::set_buffers(GLuint verts, GLuint databuf, int start_size
   vertexbuffer = verts;
   databuffer = databuf;
   size_alloc = start_size;
+  cout << start_size << " start size" << endl;
   glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
   glBufferData(GL_ARRAY_BUFFER, RenderIndex::to_vert_index(start_size)*sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER, databuffer);
@@ -86,6 +87,7 @@ void GLVecsDestination::set_buffers(GLuint verts, GLuint databuf, int start_size
 
 
 void GLVecsDestination::write(RenderIndex index, RenderData data) {
+  // cout << "writing to " << endl;
   glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
   glBufferSubData(GL_ARRAY_BUFFER, index.vert_index()*sizeof(GLfloat), index.vert_size*sizeof(GLfloat), data.pos.data);
   glBindBuffer(GL_ARRAY_BUFFER, databuffer);

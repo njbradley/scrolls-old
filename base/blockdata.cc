@@ -49,25 +49,25 @@ namespace blocktypes {
   BlockData dirt ({
     .name = "dirt",
     .material = &materials::dirt,
-    .texture_names = {"dirt.png"},
+    .texture_names = {"dirt.bmp"},
   });
   
   BlockData grass ({
     .name = "grass",
     .material = &materials::dirt,
-    .texture_names = {"grass.png"},
+    .texture_names = {"grass.bmp"},
   });
   
   BlockData wood ({
     .name = "wood",
     .material = &materials::dirt,
-    .texture_names = {"wood.png"},
+    .texture_names = {"wood.bmp"},
   });
   
   BlockData leaves ({
     .name = "leaves",
     .material = &materials::leaves,
-    .texture_names = {"leaves.png"},
+    .texture_names = {"leaves.bmp"},
   });
   
   EXPORT_PLUGIN_SINGLETON(dirt);

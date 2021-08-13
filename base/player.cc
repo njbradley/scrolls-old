@@ -566,8 +566,6 @@ void Player::computeMatricesFromInputs(){
 		attack_recharge -= deltaTime;
 	}
 	
-	// Reset mouse position for next frame
-	controls->mouse_pos(settings->screen_dims/2);
 	
 	// Compute new orientation
 	angle += vec2(float(mouseSpeed) * vec2(settings->screen_dims/2 - controls->mouse_pos()));
@@ -584,6 +582,9 @@ void Player::computeMatricesFromInputs(){
 	if (angle.x < 0) {
 		angle.x = 6.28;
 	}
+	
+	// Reset mouse position for next frame
+	controls->mouse_pos(settings->screen_dims/2);
 	
 	// Direction : Spherical coordinates to Cartesian coordinates conversion
 	glm::vec3 direction(

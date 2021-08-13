@@ -34,7 +34,6 @@ void Settings::load_settings() {
 				ifile >> view_dist;
 			} else if (name == "alloc_memory") {
 				ifile >> allocated_memory;
-				allocated_memory *= 6;
 			} else if (name == "dims") {
 				ifile >> screen_dims.x >> screen_dims.y;
 			} else if (name == "") {

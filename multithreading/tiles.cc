@@ -35,6 +35,10 @@ bool JobQueue<T>::empty() {
 }
 
 ThreadedTileLoader::ThreadedTileLoader(World* nworld): world(nworld) {
+	
+}
+
+void ThreadedTileLoader::begin_serving() {
 	rendering = false;
 	render_running = true;
 	
@@ -61,7 +65,7 @@ void ThreadedTileLoader::request_del_tile(ivec3 pos) {
 	del_queue.push_back(pos);
 }
 
-ThreadedTileLoader::~ThreadedTileLoader() {
+void ThreadedTileLoader::end_serving() {
 	render_running = false;
 	//cout << "joining rendering thread" << endl;
 	rendering_thread.join();
@@ -151,9 +155,7 @@ RenderingThread::RenderingThread(ThreadedTileLoader* newparent): parent(newparen
 void RenderingThread::operator()() {
 	while (parent->render_running) {
 		bool wait = true;
-		if (parent->rendering) {
-			wait = !parent->world->render();
-		}
+		wait = !parent->world->render();
 		if (wait) {
 			if (busy and parent->rendering and parent->world != nullptr) {
 				times ++;

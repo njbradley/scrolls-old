@@ -48,8 +48,12 @@ class Tile : public Container {
 class TileLoader { public:
 	PLUGIN_HEAD(TileLoader, (World*));
 	
+	virtual void begin_serving() = 0;
+	
 	virtual void request_load_tile(ivec3 pos) = 0;
 	virtual void request_del_tile(ivec3 pos) = 0;
+	
+	virtual void end_serving() = 0;
 };
 
 extern Plugin<TileLoader> tileloader;
