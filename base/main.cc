@@ -6,35 +6,46 @@
 #include "cross-platform.h"
 #include "debug.h"
 #include "rendervecs.h"
+#include "materials.h"
+#include "blockdata.h"
+#include "items.h"
+#include "player.h"
 
 
 int main( void )
 {
 	cout << "Starting " << endl;
-	cout << "logger headptr " << plugin_headptr<Logger> << endl;
+	cout << "laoder headptr " << plugin_headptr<TileLoader> << endl;
 	logger.init();
 	debugger.init();
 	debugger->setup_backtrace();
 	settings.init();
 	audio.init();
 	graphics.init();
+	controls.init();
+	
+	materialstorage.init();
+	blockstorage.init();
+	itemstorage.init();
+	
 	game.init();
 	
 	logger->log(5) << "Starting game! " << endl;
 	
-	return 0;
 	game->setup_gameloop();
 	while (game->playing) {
 		game->gametick();
 	}
 	
 	logger->log(3) << " ending game" << endl;
+	game.close();
+	logger->log(3) << "Completed without errors! " << endl;
 	return 0;
 }
 
 
 /*
-All other scripts in this folder are considered part of the
+All other scripts in this repository are considered part of the
 game and are under this same license
 
 Copyright 2020 Nicholas Bradley. All rights reserved.

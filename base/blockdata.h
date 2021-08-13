@@ -28,6 +28,7 @@ class BlockData : public BlockDataParams { public:
 
 class BlockStorage : public Storage<BlockData> { public:
   void init();
+  BlockData* operator[](int index);
   virtual ~BlockStorage() {}
 };
 

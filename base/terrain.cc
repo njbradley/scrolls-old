@@ -53,6 +53,7 @@ Blocktype TerrainLoader::gen_block(ostream& ofile, int gx, int gy, int gz, int s
 
 Blocktype TerrainLoader::gen_func(ivec3 pos) {
 	if (pos.y > pos.x) {
+		// cout << blocktypes::dirt.id << endl;
 		return blocktypes::dirt.id;
 	}
 	return 0;

@@ -10,6 +10,8 @@ GLFWwindow* window;
 GLGraphicsContext::GLGraphicsContext(): blocktex("textures/blocks"), transblocktex("textures/blocks/transparent"), uitex("textures/ui") {
 	init_graphics();
 	load_textures();
+	
+	cout << GLFW_KEY_Q << ' ' << (int) 'Q' << endl;
 }
 
 GLGraphicsContext::~GLGraphicsContext() {

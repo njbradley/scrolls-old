@@ -119,6 +119,7 @@ class RenderVecs;
 class TerrainObject;
 class ThreadManager;
 class Tile;
+class TileLoader;
 class TerrainLoader;
 class TerrainObject;
 class GraphicsContext;

@@ -25,7 +25,7 @@ class ViewBox { public:
 class GraphicsContext { public:
 	PLUGIN_HEAD(GraphicsContext, ());
 	
-	Plugin<ViewBox> viewbox;
+	PluginNow<ViewBox> viewbox;
 	
 	virtual ~GraphicsContext() {}
 	

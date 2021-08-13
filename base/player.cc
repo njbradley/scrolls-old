@@ -626,7 +626,7 @@ void Player::computeMatricesFromInputs(){
 			nspeed /= 4;
 		}
 		
-		if (controls->key_pressed('w')){
+		if (controls->key_pressed('W')){
 			// vec3 dir_const = vec3(1,0,0)*(float)consts[0] + vec3(0,0,1)*(float)consts[2] + vec3(-1,0,0)*(float)consts[3] + vec3(0,0,-1)*(float)consts[5];
 			// if (length(dir_const-forward) < 0.9f and (consts[0] or consts[2] or consts[3] or consts[5]) and autojump and not consts[6]) {
 			// 	vel.y = 6;
@@ -638,17 +638,17 @@ void Player::computeMatricesFromInputs(){
 			stamina_cost += glm::dot(vel, forward);
 		}
 		// Move backward
-		if (controls->key_pressed('s')){
+		if (controls->key_pressed('S')){
 			vel -= forward * deltaTime * nspeed;
 			stamina_cost += glm::dot(vel, -forward);
 		}
 		// Strafe right
-		if (controls->key_pressed('d')){
+		if (controls->key_pressed('D')){
 				vel += right * deltaTime * nspeed;
 				stamina_cost += glm::dot(vel, right);
 		}
 		// Strafe left
-		if (controls->key_pressed('a')){
+		if (controls->key_pressed('A')){
 				vel -= right * deltaTime * nspeed;
 				stamina_cost += glm::dot(vel, -right);
 		}
@@ -665,19 +665,19 @@ void Player::computeMatricesFromInputs(){
 		
 		nspeed = 75;
 		
-		if (controls->key_pressed('w')){
+		if (controls->key_pressed('W')){
 			position += forward * deltaTime * nspeed;
 		}
 		// Move backward
-		if (controls->key_pressed('s')){
+		if (controls->key_pressed('S')){
 			position -= forward * deltaTime * nspeed;
 		}
 		// Strafe right
-		if (controls->key_pressed('d')){
+		if (controls->key_pressed('D')){
 			position += right * deltaTime * nspeed;
 		}
 		// Strafe left
-		if (controls->key_pressed('a')){
+		if (controls->key_pressed('A')){
 			position -= right * deltaTime * nspeed;
 		}
 		if (controls->key_pressed(' ')){

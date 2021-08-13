@@ -6,6 +6,7 @@
 class PathLib {
 	vector<string> paths;
 public:
+	string directory;
 	PathLib(string directory);
 	PathLib() {};
 	

@@ -47,7 +47,6 @@ void SingleGame::gametick() {
 	
 	world->load_nearby_chunks();
 	
-	world->player->computeMatricesFromInputs();
 	world->timestep();
 	
 	graphics->block_draw_call();
@@ -56,6 +55,10 @@ void SingleGame::gametick() {
 	graphics->ui_draw_call();
 	
 	graphics->swap();
+	
+	if (controls->key_pressed('Q') and controls->key_pressed(controls->KEY_CTRL)) {
+		playing = false;
+	}
 }
 
 EXPORT_PLUGIN(SingleGame);

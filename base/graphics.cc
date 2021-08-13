@@ -4,6 +4,8 @@
 DEFINE_PLUGIN(ViewBox);
 DEFINE_PLUGIN(GraphicsContext);
 
+EXPORT_PLUGIN(ViewBox);
+
 ViewBox::ViewBox() {
 	params.view_distance = 1000;
 	params.clear_color = vec3(1,1,0);

@@ -18,7 +18,7 @@
 
 
 DEFINE_PLUGIN(World);
-
+EXPORT_PLUGIN(World);
 
 int view_dist = 3;
 
@@ -153,7 +153,7 @@ void TileMap::status(ostream& ofile) {
 }
 
 
-World::World(string oldname): terrainloader(seed), name(oldname),
+World::World(string oldname): terrainloader(seed), tileloader(this), name(oldname),
 tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) - 1) {
   ifstream ifile(path("worlddata.txt"));
   load_config(ifile);
@@ -234,7 +234,7 @@ void World::spawn_player() {
   //   spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
   // }
   player = new Player(this, vec3(spawnpos));
-  player->spectator = true;
+  // player->spectator = true;
   player->autojump = true;
   player->health = 10;
   player->max_health = 10;
@@ -303,6 +303,7 @@ void World::load_nearby_chunks() {
 }
 
 void World::add_tile(Tile* tile) {
+  cout << "Adding tile " << tile << ' ' << tile->pos << endl;
   tiles.add_tile(tile);
   loading_chunks.erase(tile->pos);
 }
@@ -316,6 +317,7 @@ void World::timestep() {
   ivec3 chunk(player->position/float(chunksize) - vec3(player->position.x<0, player->position.y<0, player->position.z<0));
   if (tileat(chunk) != nullptr or player->spectator) {
     player->timestep();
+    player->computeMatricesFromInputs();
   }
   
   static double total_time = 0;
@@ -449,6 +451,7 @@ Block* World::raycast(vec3* pos, vec3 dir, double time) {
 }
 
 void World::del_tile(ivec3 pos, bool remove_faces) {
+  cout << "del tile " << pos << endl;
   Tile* tile = tiles.del_tile(pos);
   
   if (tile != nullptr) {
@@ -473,10 +476,20 @@ void World::close_world() {
   ofile.close();
   
   cout << "all tiles saved sucessfully: " << tiles.size() << endl;
+  
+  for (Tile* tile : tiles) {
+    tile->deleting = true;
+    if (saving) {
+      tile->save();
+    }
+    delete tile;
+  }
+  
   ofstream datafile(path("worlddata.txt"));
   save_config(datafile);
   ofstream ofile2(SAVES_PATH "latest.txt");
   ofile2 << name;
 }
+
 
 #endif

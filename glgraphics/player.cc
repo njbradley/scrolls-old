@@ -2,7 +2,10 @@
 #include "graphics.h"
 
 GLControls::GLControls() {
-	
+	KEY_SHIFT = GLFW_KEY_LEFT_SHIFT; 
+	KEY_CTRL = GLFW_KEY_LEFT_CONTROL;
+	KEY_ALT = GLFW_KEY_LEFT_ALT;
+	KEY_TAB = GLFW_KEY_TAB;
 }
 
 

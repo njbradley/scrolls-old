@@ -39,6 +39,9 @@ void BlockStorage::init() {
   }
 }
 
+BlockData* BlockStorage::operator[](int index) {
+  return pointers[index-1];
+}
 
 BlockStorage blockstorage;
 

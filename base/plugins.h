@@ -71,6 +71,13 @@ class BasePlugin { public:
 		pointer = create(args...);
 	}
 	
+	void close() {
+		if (pointer != nullptr) {
+			delete pointer;
+			pointer = nullptr;
+		}
+	}
+	
 	PluginType* operator->() {
 		return pointer;
 	}
@@ -89,6 +96,7 @@ template <typename PluginType>
 class PluginNow : public BasePlugin<PluginType> { public:
 	template <typename ... Args>
 	PluginNow(Args ... args) {
+		cout << "Plugin now init " << typeid(PluginType).name() << endl;
 		this->init(args...);
 	}
 };
@@ -101,7 +109,7 @@ class BasePluginList { public:
 	template <typename Ptype = PluginType, typename ... Args,
 		std::enable_if_t<IsFunction<typename Ptype::ctor_func, Args...>::value, int> = 0>
 	void init(Args ... args) {
-		PluginDef* def = plugin_headptr<World>;
+		PluginDef* def = plugin_headptr<Ptype>;
 		while (def != nullptr) {
 			typename Ptype::ctor_func getfunc = (typename Ptype::ctor_func) def->getfunc;
 			pointers.push_back(getfunc(args...));

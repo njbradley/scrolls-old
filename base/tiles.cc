@@ -232,6 +232,4 @@ void Tile::remove_freeblock(FreeBlock* freeblock) {
 
 DEFINE_PLUGIN(TileLoader);
 
-Plugin<TileLoader> tileloader;
-
 #endif

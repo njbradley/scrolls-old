@@ -46,7 +46,7 @@ class Tile : public Container {
 };
 
 class TileLoader { public:
-	PLUGIN_HEAD(TileLoader, ());
+	PLUGIN_HEAD(TileLoader, (World*));
 	
 	virtual void request_load_tile(ivec3 pos) = 0;
 	virtual void request_del_tile(ivec3 pos) = 0;

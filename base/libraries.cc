@@ -5,21 +5,19 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-PathLib::PathLib(string directory) {
+PathLib::PathLib(string newdirectory): directory(newdirectory) {
 	load(directory);
 }
 
-void PathLib::load(string directory) {
+void PathLib::load(string newdirectory) {
+	directory = newdirectory;
 	struct stat info;
-	cout << directory << " loading dir " << endl;
 	for (PluginLib* plugins : pluginloader.plugins) {
 		string search_path = plugins->dirname + "/" + directory;
 		if (stat(search_path.c_str(), &info) == 0) {
-			cout << "found match " << search_path << endl;
 			int i = paths.size();
 			get_files_folder(search_path, &paths);
 			for (; i < paths.size(); i ++) {
-				cout << ' ' << paths[i] << endl;
 				paths[i] = search_path + '/' + paths[i];
 			}
 		}
@@ -33,7 +31,7 @@ int PathLib::add(string path) {
 
 int PathLib::getindex(string path) const {
 	for (int i = 0; i < paths.size(); i ++) {
-		if (path == paths[i]) {
+		if (path == paths[i] or directory + '/' + path == paths[i]) {
 			return i;
 		}
 	}

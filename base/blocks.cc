@@ -464,9 +464,9 @@ Block::Block(istream& ifile): continues(false), pixel(nullptr) {
 void Block::set_flag(uint8 flag) {
   Block* curblock = this;
   while (curblock != nullptr and !(curblock->flags & flag) and !curblock->locked) {
-    logger->log(9) << " flag setting " << curblock << ' ' << curblock->globalpos << ' ' << curblock->scale << ' ' << int(curblock->flags);
+    // logger->log(9) << " flag setting " << curblock << ' ' << curblock->globalpos << ' ' << curblock->scale << ' ' << int(curblock->flags);
     curblock->flags |= flag;
-    logger->log(9) << ' ' << int(curblock->flags) << endl;
+    // logger->log(9) << ' ' << int(curblock->flags) << endl;
     if (curblock->parent == nullptr and curblock->freecontainer != nullptr) {
       curblock = curblock->freecontainer->highparent;
     } else {
@@ -508,9 +508,9 @@ void Block::timestep(float deltatime) {
 
 void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
   if (flags & RENDER_FLAG and !locked) {
-    logger->log(9) << "RENDERING " << int(flags) << ' ' << this << ' ' << globalpos << ' ' << scale << endl;
+    // logger->log(9) << "RENDERING " << int(flags) << ' ' << this << ' ' << globalpos << ' ' << scale << endl;
     flags &= ~RENDER_FLAG;
-    logger->log(9) << "  NOW " << int(flags) << endl;
+    // logger->log(9) << "  NOW " << int(flags) << endl;
     if (continues) {
       for (CHILDREN_LOOP(i)) {
         children[i]->render(vecs, transvecs, faces, render_null);
@@ -649,9 +649,9 @@ int Block::get_blocklight(ivec3 dir) {
 }
 
 bool Block::is_air(ivec3 dir, char otherval) {
-  logger->log(9) << "Block isair " << endl;
+  // logger->log(9) << "Block isair " << endl;
   for (const Pixel* pix : iter_touching_side(dir)) {
-    logger->log(9) << pix->parbl << ' ' << pix->parbl->globalpos << ' ' << pix->parbl->scale << ' ' << pix->parbl->freecontainer << endl;
+    // logger->log(9) << pix->parbl << ' ' << pix->parbl->globalpos << ' ' << pix->parbl->scale << ' ' << pix->parbl->freecontainer << endl;
     bool isair = (pix->value == 0 or (blockstorage[pix->value]->transparent and otherval != pix->value));
     if (isair) {
       return true;
