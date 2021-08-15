@@ -27,3 +27,11 @@ void TextLine::render(UIVecs* vecs) {
 		}
 	}
 }
+
+
+UIChar::UIChar(char lett, vec2 pos, float fontsize):
+	rect("letters.png", pos, vec2(fontsize, fontsize*2),
+	vec2(((lett - ' ') % 16) / 16.0f, ((lett - ' ') / 16) / 6.0f), vec2(1.0f/16, 1.0f/6)) {
+		
+}
+	

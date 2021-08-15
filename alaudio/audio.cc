@@ -170,6 +170,7 @@ void ALAudioContext::init_context() {
 
 void ALAudioContext::load_sounds() {
 	PathLib paths("sounds");
+	string xx = LibEntry("Sfsd", "sss");
 	for (string path : paths) {
 		if (path.find(".txt") != string::npos) {
 			Sound* sound = new Sound(this, path);

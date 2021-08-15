@@ -345,11 +345,7 @@ void DwarfDebugger::setup_backtrace() {
 #endif
 
 
-ostream& CoolLogger::log(int page) {
-  return Logger::log(page * page);
-}
 
 
 
 EXPORT_PLUGIN(DwarfDebugger);
-EXPORT_PLUGIN(CoolLogger);

@@ -3,6 +3,7 @@
 #include "base/world.h"
 #include "base/player.h"
 #include "base/cross-platform.h"
+#include "base/debug.h"
 
 SingleGame::SingleGame() {
 	
@@ -52,6 +53,7 @@ void SingleGame::gametick() {
 	graphics->block_draw_call();
 	
 	world->player->render_ui(graphics->uivecs());
+	logger->render(graphics->uivecs());
 	graphics->ui_draw_call();
 	
 	graphics->swap();
@@ -60,6 +62,13 @@ void SingleGame::gametick() {
 		playing = false;
 	} else if (controls->key_pressed('X')) {
 		exit(1);
+	}
+	if (controls->key_pressed(controls->KEY_CTRL)) {
+		for (int i = 0; i < 10; i ++) {
+			if (controls->key_pressed('0' + i)) {
+				logger->sel_page = i;
+			}
+		}
 	}
 }
 

@@ -100,14 +100,17 @@ void GLVecsDestination::write(RenderIndex index, RenderData data) {
 
 
 void GLUIVecs::add(UIRect rect) {
-  num_verts++;
+  num_verts += 6;
   
   if (atlas != nullptr) {
     UIRect atlas_rect = atlas[rect.id];
-    rect.uvpos = atlas_rect.uvpos + rect.uvpos * atlas_rect.uvsize;
-    rect.uvsize = atlas_rect.uvsize * rect.uvsize;
+    rect.uvpos = atlas_rect.uvpos + vec2(rect.uvpos.y, rect.uvpos.x) * atlas_rect.uvsize;
+    rect.uvsize = atlas_rect.uvsize * vec2(rect.uvsize.y, rect.uvsize.x);
     rect.id = atlas_rect.id;
   }
+  // rect.uvpos = vec2(0,0);
+  // rect.uvsize = vec2(1,1);
+  
   
   GLfloat id;
   *(GLint*)&id = rect.id;
@@ -122,14 +125,15 @@ void GLUIVecs::add(UIRect rect) {
   GLfloat uvx2 = rect.uvpos.x + rect.uvsize.x;
   GLfloat uvy2 = rect.uvpos.y + rect.uvsize.y;
   
+  
   GLfloat newdata[] = {
-    id, x1, y1, uvx1, uvy2,
-    id, x1, y2, uvx1, uvy2,
-    id, x2, y2, uvx2, uvy2,
+    id, x1, y1, uvx2, uvy1,
+    id, x2, y1, uvx2, uvy2,
+    id, x2, y2, uvx1, uvy2,
     
-    id, x2, y2, uvx2, uvy2,
-    id, x2, y1, uvx2, uvy1,
-    id, x1, y1, uvx1, uvy1,
+    id, x1, y1, uvx2, uvy1,
+    id, x2, y2, uvx1, uvy2,
+    id, x1, y2, uvx1, uvy1,
   };
   
   datavec.insert(datavec.end(), newdata, newdata + 30);

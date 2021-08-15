@@ -37,4 +37,10 @@ class TextLine : public UIObj { public:
 	virtual void render(UIVecs* vecs);
 };
 
+class UIChar { public:
+	UIRect rect;
+	UIChar(char let, vec2 pos, float size);
+	operator UIRect() {return rect;}
+};
+
 #endif

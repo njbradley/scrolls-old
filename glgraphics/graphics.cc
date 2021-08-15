@@ -4,14 +4,13 @@
 #include "shader.h"
 #include "texture.h"
 #include "base/ui.h"
+#include "base/debug.h"
 
 GLFWwindow* window;
 
-GLGraphicsContext::GLGraphicsContext(): blocktex("textures/blocks"), transblocktex("textures/blocks/transparent"), uitex("textures/ui") {
+GLGraphicsContext::GLGraphicsContext(): blocktex("textures/blocks"), transblocktex("textures/transparentblocks"), uitex("textures/ui") {
 	init_graphics();
 	load_textures();
-	
-	cout << GLFW_KEY_Q << ' ' << (int) 'Q' << endl;
 }
 
 GLGraphicsContext::~GLGraphicsContext() {
@@ -298,8 +297,19 @@ void GLGraphicsContext::block_draw_call() {
 }
 	
 void GLGraphicsContext::ui_draw_call() {
+	
+	glDisable(GL_DEPTH_TEST);
+	
+	glDepthMask(GL_FALSE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	
+	glBindVertexArray(ui_vertexid);
+	
+	glUseProgram(ui_program);
+	
 	glBindBuffer(GL_ARRAY_BUFFER, uibuffer);
-	glBufferData(GL_ARRAY_BUFFER, gluivecs.num_verts * sizeof(GLfloat), gluivecs.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, gluivecs.num_verts * 5 * sizeof(GLfloat), gluivecs.data(), GL_STATIC_DRAW);
 	
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -311,12 +321,10 @@ void GLGraphicsContext::ui_draw_call() {
 	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, uitex_id);
-	cout << 318 << endl;
 	glUniform1i(uiTextureID, 0);
-	cout << 320 << endl;
-	
+	// cout << "num " << gluivecs.num_verts << endl;
+	logger->log(3) << "num: " << gluivecs.num_verts << endl;
 	glDrawArrays(GL_TRIANGLES, 0, gluivecs.num_verts); // 12*3 indices starting at 0 -> 12 triangles
-	cout << 323 << endl;
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(2);

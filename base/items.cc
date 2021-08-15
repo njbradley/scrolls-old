@@ -13,6 +13,7 @@
 #include "entity.h"
 #include "graphics.h"
 #include "libraries.h"
+#include "settings.h"
 
 
 
@@ -33,7 +34,7 @@ CharArray::CharArray(ifstream & ifile) {
 }
 
 CharArray::~CharArray() {
-  delete[] arr;
+  // delete[] arr;
 }
 
 char CharArray::get(int x, int y, int z) {
@@ -724,7 +725,7 @@ void ItemContainer::make_single(int index) {
 void ItemContainer::render(UIVecs* vecs, vec2 pos) {
   //draw_image(vecs, "inven_select.bmp", x, y, 1, 0.1f*aspect_ratio);
   for (int i = 0; i < items.size(); i ++) {
-    vecs->add(UIRect("inven_slot.png", pos + vec2(i*0.1,0), vec2(0.1,0.1)));
+    vecs->add(UIRect("inven-slot.png", pos + vec2(i*0.1,0), vec2(0.1,0.1*settings->aspect_ratio())));
     if (items[i].item.data != nullptr) {
       items[i].render(vecs, pos + vec2(i*0.1f, 0.02f));
     }

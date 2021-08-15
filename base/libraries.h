@@ -3,8 +3,17 @@
 
 #include "classes.h"
 
+class LibEntry { public:
+	string dirname;
+	string filename;
+	
+	LibEntry(string dir, string file);
+	bool matches(string path) const;
+	operator string() const;
+};
+
 class PathLib {
-	vector<string> paths;
+	vector<LibEntry> paths;
 public:
 	string directory;
 	PathLib(string directory);
@@ -14,9 +23,9 @@ public:
 	virtual int add(string path);
 	
 	int getindex(string path) const;
-	string getpath(int index) const;
+	LibEntry getpath(int index) const;
 	
-	typedef vector<string>::const_iterator const_iterator;
+	typedef vector<LibEntry>::const_iterator const_iterator;
 	const_iterator begin() const;
 	const_iterator end() const;
 	size_t size() const;

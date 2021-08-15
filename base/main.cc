@@ -15,7 +15,6 @@
 int main( void )
 {
 	cout << "Starting " << endl;
-	cout << "laoder headptr " << plugin_headptr<TileLoader> << endl;
 	logger.init();
 	debugger.init();
 	// debugger->setup_backtrace();
@@ -30,16 +29,18 @@ int main( void )
 	
 	game.init();
 	
-	logger->log(5) << "Starting game! " << endl;
+	logger->log(1) << "Starting game! " << endl;
+	
+	logger->sel_page = 3;
 	
 	game->setup_gameloop();
 	while (game->playing) {
 		game->gametick();
 	}
 	
-	logger->log(3) << " ending game" << endl;
+	logger->log(1) << " ending game" << endl;
 	game.close();
-	logger->log(3) << "Completed without errors! " << endl;
+	logger->log(1) << "Completed without errors! " << endl;
 	return 0;
 }
 

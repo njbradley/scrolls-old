@@ -63,7 +63,7 @@ GLuint loadBMP_image_folder(const PathLib* img_paths, bool transparency) {
 		exit(1);
 	}
 	int width, height, nrChannels;
-	unsigned char* img_data = stbi_load((img_paths->getpath(0)).c_str(), &width, &height, &nrChannels, 0);
+	unsigned char* img_data = stbi_load(string(img_paths->getpath(0)).c_str(), &width, &height, &nrChannels, 0);
 	unsigned char all_data[width*height*nrChannels*img_paths->size()];
 	for (int i = 0; i < width*height*nrChannels; i ++) {
 		all_data[i] = img_data[i];
@@ -72,7 +72,7 @@ GLuint loadBMP_image_folder(const PathLib* img_paths, bool transparency) {
 	
 	for (int i = 1; i < img_paths->size(); i ++) {
 		int newwidth, newheight, newnrChannels;
-		img_data = stbi_load((img_paths->getpath(i)).c_str(), &newwidth, &newheight, &newnrChannels, 0);
+		img_data = stbi_load(string(img_paths->getpath(i)).c_str(), &newwidth, &newheight, &newnrChannels, 0);
 		if (newwidth != width or newheight != newheight or newnrChannels != nrChannels) {
 			cout << "error in load_image_folder, image sizes are not the same" << endl;
 			exit(2);
@@ -125,7 +125,7 @@ GLuint loadBMP_array_folder(const PathLib* img_paths, bool transparency, GLint c
 		exit(1);
 	}
 	int width, height, nrChannels;
-	unsigned char* img_data = stbi_load((img_paths->getpath(0)).c_str(), &width, &height, &nrChannels, transparency ? 4 : 3);
+	unsigned char* img_data = stbi_load(string(img_paths->getpath(0)).c_str(), &width, &height, &nrChannels, transparency ? 4 : 3);
 	nrChannels = transparency ? 4 : 3;
 	unsigned char* all_data = new unsigned char[width*height*nrChannels*img_paths->size()];
 	for (int i = 0; i < width*height*nrChannels; i ++) {
@@ -135,7 +135,7 @@ GLuint loadBMP_array_folder(const PathLib* img_paths, bool transparency, GLint c
 	
 	for (int i = 1; i < img_paths->size(); i ++) {
 		int newwidth, newheight, newnrChannels;
-		img_data = stbi_load((img_paths->getpath(i)).c_str(), &newwidth, &newheight, &newnrChannels, transparency ? 4 : 3);
+		img_data = stbi_load(string(img_paths->getpath(i)).c_str(), &newwidth, &newheight, &newnrChannels, transparency ? 4 : 3);
 		if (newwidth != width or newheight != newheight) {
 			cout << "error in load_array_folder, image sizes are not the same" << endl;
 			exit(2);
@@ -245,14 +245,21 @@ GLuint loadBMP_pack_folder(const PathLib* img_paths, UIRect* ui_atlas, int max_w
 	
 	unsigned char* alldata = new unsigned char[max_width * max_height * 4];
 	
+	for (i = 0; i < max_width * max_height * 4; i ++) {
+		alldata[i] = 255;
+	}
+	
 	for (int i = 0; i < num_imgs; i ++) {
 		int xoff = rects[i].x;
 		int yoff = rects[i].y;
-		ui_atlas[i] = UIRect(i, vec2(0,0), vec2(0,0), vec2(xoff,yoff) / vec2(max_width,max_height),
-				vec2(rects[i].w,rects[i].h) / vec2(max_width,max_height));
+		cout << xoff << ' ' << yoff << endl;
+		ui_atlas[i] = UIRect(0, vec2(0,0), vec2(0,0), vec2(yoff,xoff) / vec2(max_width,max_height),
+				vec2(rects[i].h,rects[i].w) / vec2(max_width,max_height));
 		for (int x = 0; x < rects[i].w; x ++) {
 			for (int y = 0; y < rects[i].h; y ++) {
-				alldata[(x+xoff) * (max_height*4) + (y+yoff) * 4] = datas[i][x * (rects[i].h*4) + y * 4];
+				for (int z = 0; z < 4; z ++) {
+					alldata[(x+xoff) * (max_height*4) + (y+yoff) * 4 + z] = datas[i][y * (rects[i].w*4) + x * 4 + z];
+				}
 			}
 		}
 		stbi_image_free(datas[i]);
@@ -276,7 +283,9 @@ GLuint loadBMP_pack_folder(const PathLib* img_paths, UIRect* ui_atlas, int max_w
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 3);
 	// ... which requires mipmaps. Generate them automatically.
 	glGenerateMipmap(GL_TEXTURE_2D);
-
+	
+	// exit(1);
+	
 	// Return the ID of the texture we just created
 	return textureID;
 }

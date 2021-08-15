@@ -727,6 +727,7 @@ void Player::computeMatricesFromInputs(){
 }
 
 void Player::render_ui(UIVecs* uivecs) {
+	
 	///hearts
 	// float scale = 0.1f;
 	// int i;
@@ -740,18 +741,24 @@ void Player::render_ui(UIVecs* uivecs) {
 	/// draw empty bar
 	// uivecs->add(UIVecs("
 	//
-	// draw_icon(uivecs, 6, -0.5, 1-0.1*aspect_ratio, 0.1, 0.1*aspect_ratio);
-	// draw_icon(uivecs, 8, 0.4, 1-0.1*aspect_ratio, 0.1, 0.1*aspect_ratio);
-	// draw_icon(uivecs, 7, -0.4, 1-0.1*aspect_ratio, 0.8, 0.1*aspect_ratio);
+	static float aspect_ratio = settings->aspect_ratio();
+	
+	uivecs->add(UIRect("healthbar-left.png", vec2(-0.5, 1-0.1*aspect_ratio), vec2(0.1, 0.1*aspect_ratio)));
+	uivecs->add(UIRect("healthbar-right.png", vec2(0.4, 1-0.1*aspect_ratio), vec2(0.1, 0.1*aspect_ratio)));
+	uivecs->add(UIRect("healthbar-mid.png", vec2(-0.4, 1-0.1*aspect_ratio), vec2(0.8, 0.1*aspect_ratio)));
+	
+	uivecs->add(UIRect("healthbar-red.png",
+		vec2(-0.45, 1 - 0.1*aspect_ratio),
+		vec2((health - damage_health)/10 * 0.9, 0.1*aspect_ratio)
+	));
+	if (damage_health > 0) {
+		uivecs->add(UIRect("healthbar-white.png",
+			vec2((health - damage_health)/10 * 0.9 - 0.45, 1 - 0.1*aspect_ratio),
+			vec2(damage_health/10 * 0.9, 0.1*aspect_ratio)
+		));
+	}
 	//
-	// draw_icon(uivecs, 9, -0.45, 1 - 0.1*aspect_ratio, (health - damage_health)/10 * 0.9, 0.1*aspect_ratio);
-	// if (damage_health > 0) {1
-	// 	draw_icon(uivecs, 10, (health - damage_health)/10 * 0.9 - 0.45, 1 - 0.1*aspect_ratio, damage_health/10 * 0.9, 0.1*aspect_ratio);
-	// } else if (healing_health > 0) {
-	// 	draw_icon(uivecs, 11, health/10 * 0.9 - 0.45, 1 - 0.1*aspect_ratio, healing_health/10 * 0.9, 0.1*aspect_ratio);
-	// }
-	//
-	// inven.render(uivecs, -0.5f, -1.0f);
+	inven.render(uivecs, vec2(-0.5f, -1.0f));
 	// draw_text(uivecs, "\\/", -0.45f+selitem*0.1f, -0.85f);
 	// Item* sel = inven.get(selitem);
 	// if (!sel->isnull) {
