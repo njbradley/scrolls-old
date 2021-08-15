@@ -1,8 +1,0 @@
-audio dirt-hit {
-	:dir: dirt-hit
-}
-
-:::::
-Attribution
-https://freesound.org/people/ABouch/sounds/174935/
-by ABouch on freesound.org
