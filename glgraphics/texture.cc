@@ -10,8 +10,8 @@
 #define STB_RECT_PACK_IMPLEMENTATION
 #include "stb/stb_rect_pack.h"
 
-#include "base/libraries.h"
-#include "base/ui.h"
+#include "scrolls/libraries.h"
+#include "scrolls/ui.h"
 
 GLuint loadBMP_custom(const char * imagepath, bool transparency){
 	

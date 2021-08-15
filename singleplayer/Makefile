@@ -1,7 +1,7 @@
 TARGET := singleplayer
-SCROLLSDEPS := base
+SCROLLSDEPS := scrolls
 ISDLL := TRUE
-EXTRALIBS := 
+EXTRALIBS :=
 
 SOURCES := $(wildcard *.cc)
 HEADERS := $(wildcard *.h) $(wildcard $(patsubst %,../%/*.h, $(SCROLLSDEPS)))

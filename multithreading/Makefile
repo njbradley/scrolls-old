@@ -1,5 +1,5 @@
 TARGET := multithreading
-SCROLLSDEPS := base
+SCROLLSDEPS := scrolls
 ISDLL := TRUE
 
 ifeq ($(PLAT),LINUX)

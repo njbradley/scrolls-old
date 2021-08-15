@@ -1,9 +1,9 @@
 #include "game.h"
-#include "base/graphics.h"
-#include "base/world.h"
-#include "base/player.h"
-#include "base/cross-platform.h"
-#include "base/debug.h"
+#include "scrolls/graphics.h"
+#include "scrolls/world.h"
+#include "scrolls/player.h"
+#include "scrolls/cross-platform.h"
+#include "scrolls/debug.h"
 
 SingleGame::SingleGame() {
 	

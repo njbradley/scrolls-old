@@ -1,5 +1,5 @@
 #include "settings.h"
-#include "base/cross-platform.h"
+#include "scrolls/cross-platform.h"
 
 DEFINE_PLUGIN(Settings);
 EXPORT_PLUGIN(Settings);

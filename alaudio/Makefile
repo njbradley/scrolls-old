@@ -1,5 +1,5 @@
 TARGET := alaudio
-SCROLLSDEPS := base
+SCROLLSDEPS := scrolls
 ISDLL := TRUE
 EXTRALIBS := -lopenal -lalut
 

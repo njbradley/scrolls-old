@@ -2,7 +2,7 @@
 #define GL_RENDERVECS_H
 
 #include "classes.h"
-#include "base/rendervecs.h"
+#include "scrolls/rendervecs.h"
 
 class AsyncGLVecs: public RenderVecs { public:
   GLVecsDestination* destination;

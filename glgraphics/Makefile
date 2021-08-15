@@ -1,5 +1,5 @@
 TARGET := glgraphics
-SCROLLSDEPS := base
+SCROLLSDEPS := scrolls
 ISDLL := TRUE
 
 ifeq ($(PLAT),MAC)

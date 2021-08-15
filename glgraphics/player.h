@@ -2,7 +2,7 @@
 #define GL_PLAYER_H
 
 #include "classes.h"
-#include "base/player.h"
+#include "scrolls/player.h"
 
 class GLControls : public Controls { public:
 	

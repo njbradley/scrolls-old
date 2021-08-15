@@ -1,5 +1,5 @@
 TARGET := dwarfdebug
-SCROLLSDEPS := base
+SCROLLSDEPS := scrolls
 ISDLL := TRUE
 EXTRALIBS := -ldwarfstack
 

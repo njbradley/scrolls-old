@@ -1,9 +1,9 @@
 #ifndef SINGLE_GAME_H
 #define SINGLE_GAME_H
 
-#include "base/classes.h"
-#include "base/plugins.h"
-#include "base/game.h"
+#include "scrolls/classes.h"
+#include "scrolls/plugins.h"
+#include "scrolls/game.h"
 
 class SingleGame : public Game { public:
 	

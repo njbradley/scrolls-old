@@ -1,10 +1,10 @@
 #include "graphics.h"
 #include "rendervecs.h"
-#include "base/settings.h"
+#include "scrolls/settings.h"
 #include "shader.h"
 #include "texture.h"
-#include "base/ui.h"
-#include "base/debug.h"
+#include "scrolls/ui.h"
+#include "scrolls/debug.h"
 
 GLFWwindow* window;
 

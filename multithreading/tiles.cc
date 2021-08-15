@@ -1,6 +1,6 @@
 #include "tiles.h"
-#include "base/world.h"
-#include "base/game.h"
+#include "scrolls/world.h"
+#include "scrolls/game.h"
 
 
 

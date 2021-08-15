@@ -1,8 +1,8 @@
 #ifndef AUDIO_PREDEF
 #define AUDIO_PREDEF
 
-#include "base/classes.h"
-#include "base/audio.h"
+#include "scrolls/classes.h"
+#include "scrolls/audio.h"
 
 #include <AL/al.h>
 #include <AL/alc.h>

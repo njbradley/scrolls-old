@@ -1,6 +1,6 @@
 #include "audio.h"
-#include "base/cross-platform.h"
-#include "base/libraries.h"
+#include "scrolls/cross-platform.h"
+#include "scrolls/libraries.h"
 
 #include <stdlib.h>
 

@@ -2,8 +2,8 @@
 #define GL_GRAPHICS_PREDEF
 
 #include "classes.h"
-#include "base/graphics.h"
-#include "base/libraries.h"
+#include "scrolls/graphics.h"
+#include "scrolls/libraries.h"
 
 #include "rendervecs.h"
 

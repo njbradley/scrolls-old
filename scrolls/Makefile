@@ -1,4 +1,4 @@
-TARGET := base
+TARGET := scrolls
 SCROLLSDEPS :=
 ISDLL := FALSE
 EXTRALIBS :=

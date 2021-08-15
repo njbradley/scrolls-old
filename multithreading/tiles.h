@@ -1,8 +1,8 @@
 #ifndef MULTI_TILES_H
 #define MULTI_TILES_H
 
-#include "base/classes.h"
-#include "base/tiles.h"
+#include "scrolls/classes.h"
+#include "scrolls/tiles.h"
 #include <thread>
 #include <mutex>
 #include <list>
