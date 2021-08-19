@@ -58,6 +58,12 @@ namespace blocktypes {
     .texture_names = {"grass.bmp"},
   });
   
+  BlockData bark ({
+    .name = "wood",
+    .material = &materials::dirt,
+    .texture_names = {"bark.bmp"},
+  });
+  
   BlockData wood ({
     .name = "wood",
     .material = &materials::dirt,
@@ -68,6 +74,13 @@ namespace blocktypes {
     .name = "leaves",
     .material = &materials::leaves,
     .texture_names = {"leaves.bmp"},
+  });
+  
+  BlockData water ({
+    .name = "water",
+    .material = &materials::leaves,
+    .texture_names = {"water.bmp"},
+    .transparent = true,
   });
   
   EXPORT_PLUGIN_SINGLETON(dirt);

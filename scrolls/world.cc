@@ -13,6 +13,7 @@
 #include "player.h"
 #include "graphics.h"
 #include "audio.h"
+#include "debug.h"
 
 #include <map>
 
@@ -228,7 +229,7 @@ void World::startup() {
 }
 
 void World::spawn_player() {
-  ivec3 spawnpos(10,20+4,10);
+  ivec3 spawnpos(10,terrainloader->get_height(ivec2(10,10))+4,10);
   int i = 0;
   // while (loader.gen_func(ivec4(spawnpos.x, spawnpos.y, spawnpos.z, 1)) != 0 and i < 100) {
   //   i ++;
@@ -245,6 +246,7 @@ void World::spawn_player() {
 void World::set_player_vars() {
   audio->set_listener(&player->position, &player->vel, &player->angle);
   graphics->set_camera(&player->position, &player->angle);
+  viewbox->playerpos = &player->position;
 }
 
 void World::load_nearby_chunks() {
@@ -304,7 +306,7 @@ void World::load_nearby_chunks() {
 }
 
 void World::add_tile(Tile* tile) {
-  cout << "Adding tile " << tile << ' ' << tile->pos << endl;
+  logger->log(4) << "Adding tile " << tile << ' ' << tile->pos << endl;
   tiles.add_tile(tile);
   loading_chunks.erase(tile->pos);
 }
@@ -452,7 +454,7 @@ Block* World::raycast(vec3* pos, vec3 dir, double time) {
 }
 
 void World::del_tile(ivec3 pos, bool remove_faces) {
-  cout << "del tile " << pos << endl;
+  logger->log(4) << "del tile " << pos << endl;
   Tile* tile = tiles.del_tile(pos);
   
   if (tile != nullptr) {

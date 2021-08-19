@@ -252,7 +252,7 @@ GLuint loadBMP_pack_folder(const PathLib* img_paths, UIRect* ui_atlas, int max_w
 	for (int i = 0; i < num_imgs; i ++) {
 		int xoff = rects[i].x;
 		int yoff = rects[i].y;
-		cout << xoff << ' ' << yoff << endl;
+		
 		ui_atlas[i] = UIRect(0, vec2(0,0), vec2(0,0), vec2(yoff,xoff) / vec2(max_width,max_height),
 				vec2(rects[i].h,rects[i].w) / vec2(max_width,max_height));
 		for (int x = 0; x < rects[i].w; x ++) {

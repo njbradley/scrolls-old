@@ -46,9 +46,15 @@ void SingleGame::setup_gameloop() {
 
 void SingleGame::gametick() {
 	
+	static double lastTime = getTime();
+	double curtime = getTime();\
+	double deltatime = curtime - lastTime;
+	lastTime = curtime;
+	
 	world->load_nearby_chunks();
 	
 	world->timestep();
+	viewbox->timestep(deltatime, world->daytime);
 	
 	graphics->block_draw_call();
 	

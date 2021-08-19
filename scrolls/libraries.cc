@@ -23,19 +23,22 @@ LibEntry::operator string() const {
 }
 
 
-PathLib::PathLib(string newdirectory): directory(newdirectory) {
+PathLib::PathLib(string directory) {
 	load(directory);
 }
 
-void PathLib::load(string newdirectory) {
-	directory = newdirectory;
+void PathLib::load(string directory) {
+	//cout << "loading dir " << directory << endl;
 	struct stat info;
 	for (PluginLib* plugins : pluginloader.plugins) {
 		string search_path = plugins->dirname + "/" + directory;
+		//cout << " search path " << search_path << endl;
 		if (stat(search_path.c_str(), &info) == 0) {
 			int i = paths.size();
 			for (fs::path path : fs::recursive_directory_iterator(search_path)) {
+				//cout << ' ' << path << endl;
 				if (fs::is_regular_file(path)) {
+					//cout << "  " << path << ' ' << directory << ' ' << fs::relative(path, search_path) << endl;
 					paths.emplace_back(search_path + '/', fs::relative(path, search_path).generic_string());
 				}
 			}

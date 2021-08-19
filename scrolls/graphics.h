@@ -3,6 +3,7 @@
 
 #include "classes.h"
 #include "plugins.h"
+#include "rendervecs.h"
 
 struct ViewParams {
 	double view_distance;
@@ -15,17 +16,25 @@ class ViewBox { public:
   PLUGIN_HEAD(ViewBox, ());
   
 	ViewParams params;
+	bool in_water = false;
+	bool in_block = false;
+	vec3* playerpos = nullptr;
 	
 	ViewBox();
 	virtual ~ViewBox() {}
-	
 	void timestep(double deltatime, double worldtime);
+	
+private:
+	int suntexture;
+	int moontexture;
+	RenderIndex sunindex;
+	RenderIndex moonindex;
 };
+
+extern Plugin<ViewBox> viewbox;
 
 class GraphicsContext { public:
 	PLUGIN_HEAD(GraphicsContext, ());
-	
-	PluginNow<ViewBox> viewbox;
 	
 	virtual ~GraphicsContext() {}
 	

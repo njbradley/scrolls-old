@@ -1,5 +1,5 @@
 #include "graphics.h"
-#include "rendervecs.h"
+#include "libraries.h"
 
 DEFINE_PLUGIN(ViewBox);
 DEFINE_PLUGIN(GraphicsContext);
@@ -7,14 +7,12 @@ DEFINE_PLUGIN(GraphicsContext);
 EXPORT_PLUGIN(ViewBox);
 
 ViewBox::ViewBox() {
-	params.view_distance = 1000;
-	params.clear_color = vec3(1,1,0);
-	params.sun_color = vec3(1,1,1);
-	params.sun_direction = vec3(0,-1,0);
+	suntexture = graphics->block_textures()->getindex("sun.bmp");
+	moontexture = graphics->block_textures()->getindex("moon.bmp");
 }
 
-void ViewBox::timestep(double deltatime, double worldtime) {
-	/*
+void ViewBox::timestep(double deltatime, double daytime) {
+	
 	const double min_sun = 0.5;
   
   const int sunrise = 450;
@@ -34,7 +32,7 @@ void ViewBox::timestep(double deltatime, double worldtime) {
   vec3 sundirection = vec3(sin(daytime*3.14/1000), -cos(daytime*3.14/1000), 0);
   
   RenderData data;
-  data.pos.loc.pos = player->position + sundirection * 1000.0f;
+  data.pos.loc.pos = *playerpos + sundirection * 1000.0f;
   data.pos.loc.rot = quat(cos(daytime*3.14/1000/2), 0, 0, sin(daytime*3.14/1000/2));
   data.pos.loc.scale = 64;
   
@@ -43,12 +41,12 @@ void ViewBox::timestep(double deltatime, double worldtime) {
   }
   
   if (sunindex.isnull()) {
-    sunindex = glvecs.add(data);
+    sunindex = graphics->blockvecs()->add(data);
   } else {
-    glvecs.edit(sunindex, data);
+    graphics->blockvecs()->edit(sunindex, data);
   }
   
-  data.pos.loc.pos = player->position - sundirection * 1000.0f;
+  data.pos.loc.pos = *playerpos - sundirection * 1000.0f;
   data.pos.loc.rot = quat(cos(daytime*3.14/1000/2 + 3.14), 0, 0, sin(daytime*3.14/1000/2 + 3.14));
   data.pos.loc.scale = 64;
   
@@ -57,12 +55,12 @@ void ViewBox::timestep(double deltatime, double worldtime) {
   }
   
   if (moonindex.isnull()) {
-    moonindex = glvecs.add(data);
+    moonindex = graphics->blockvecs()->add(data);
   } else {
-    glvecs.edit(moonindex, data);
+    graphics->blockvecs()->edit(moonindex, data);
   }
-  
-  sunlight = sundirection;
+	
+	vec3 suncolor;
   
   float eveningTime = (daytime < 1000 ? daytime - sunrise : sunset - daytime) / riseduration;
   vec3 skycolor;
@@ -78,13 +76,11 @@ void ViewBox::timestep(double deltatime, double worldtime) {
     suncolor = vec3(1, 0.2f + eveningTime*0.8f, eveningTime) * lateEvening + vec3(0.6, 0.8, 1) * (1-lateEvening);
   }
   
-  suncolor *= sunlevel;
-  graphics->clearcolor = skycolor * sunlevel;
-  
-  mobcount = 0;
-  timestep_clock ++;
-  int i = 0;
-  */
+	params.view_distance = 1000;
+	params.clear_color = skycolor * sunlevel;
+	params.sun_color = suncolor * sunlevel;
+	params.sun_direction = sundirection;
 }
 
+Plugin<ViewBox> viewbox;
 Plugin<GraphicsContext> graphics;

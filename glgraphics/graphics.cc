@@ -245,7 +245,7 @@ void GLGraphicsContext::block_draw_call() {
 	glUniformMatrix4fv(pMatID, 1, GL_FALSE, &P[0][0]);
 	glUniformMatrix4fv(mvMatID, 1, GL_FALSE, &MV[0][0]);
 	
-	ivec3 sunlightdir = vec3(MV * vec4(0, -1, 0, 0));
+	vec3 sunlightdir = vec3(MV * vec4(viewbox->params.sun_direction.x, viewbox->params.sun_direction.y, viewbox->params.sun_direction.z, 0));
 	float sunlight = 1;
 	// Send our transformation to the currently bound shader,
 	// in the "MVP" uniform
@@ -255,7 +255,7 @@ void GLGraphicsContext::block_draw_call() {
 	glClearColor(clearcolor.x * sunlight, clearcolor.y * sunlight, clearcolor.z * sunlight, 0.0f);
 	glUniform1i(viewdistID, viewbox->params.view_distance);
 	
-	glUniform3f(sunlightID, viewbox->params.sun_direction.x, viewbox->params.sun_direction.y, viewbox->params.sun_direction.z);
+	glUniform3f(sunlightID, sunlightdir.x, sunlightdir.y, sunlightdir.z);
 	glUniform3f(suncolorID, viewbox->params.sun_color.x, viewbox->params.sun_color.y, viewbox->params.sun_color.z);
 	
 	//// Vertex attribures : position, rotation, and scale

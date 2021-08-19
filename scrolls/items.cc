@@ -115,7 +115,6 @@ sharpness(newsharpness), weight(newweight), reach(newreach), stackable(false), m
 Item::Item(istream& ifile) {
   string name;
   ifile >> name;
-  cout << "Item name " << name << ";" << endl;
   if (name == "null") {
     data = nullptr;
     isnull = true;

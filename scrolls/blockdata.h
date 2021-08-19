@@ -37,8 +37,10 @@ extern BlockStorage blockstorage;
 namespace blocktypes {
   extern BlockData dirt;
   extern BlockData grass;
+  extern BlockData bark;
   extern BlockData wood;
   extern BlockData leaves;
+  extern BlockData water;
 }
 
 #endif

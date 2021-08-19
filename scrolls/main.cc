@@ -22,6 +22,7 @@ int main( void )
 	audio.init();
 	graphics.init();
 	controls.init();
+	viewbox.init();
 	
 	materialstorage.init();
 	blockstorage.init();

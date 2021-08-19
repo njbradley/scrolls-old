@@ -620,6 +620,12 @@ void Player::computeMatricesFromInputs(){
 	
 	double stamina_cost = 0;
 	
+	if (controls->key_pressed('F')) {
+		spectator = true;
+	} else if (controls->key_pressed('G')) {
+		spectator = false;
+	}
+	
 	if (!spectator) {
 		// Move forward
 		

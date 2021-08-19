@@ -15,7 +15,6 @@ class LibEntry { public:
 class PathLib {
 	vector<LibEntry> paths;
 public:
-	string directory;
 	PathLib(string directory);
 	PathLib() {};
 	
