@@ -1,3 +1,0 @@
-item dragon-scale {
-	:block: dragon-scale
-}

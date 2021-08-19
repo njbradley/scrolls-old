@@ -1,6 +1,0 @@
-material gravel {
-	:toughness: 1.5
-	:elastic: 1
-	:hitsound: gravel-hit
-	:breaksound: gravel-hit
-}

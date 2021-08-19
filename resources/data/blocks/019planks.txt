@@ -1,8 +1,0 @@
-block planks {
-	:material: wood
-	:textures: [planks-side planks-end planks-side planks-side planks-end planks-side]
-	:item_dropped: planks 1
-	:rotation_enabled:
-	:default_direction: 1
-	:clumpy_group: building
-}

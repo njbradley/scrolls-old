@@ -1,7 +1,0 @@
-item bone {
-	:block: bone
-	:material: bone
-	:sharpness: 2
-	:weight: 2
-	:reach: 2
-}

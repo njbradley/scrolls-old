@@ -1,8 +1,0 @@
-mob ghost {
-	:health: 3
-	:box1: -2 -2 -2
-	:box2: 2 2 2
-	:blockpath: ghost
-	:blockpos: -2 -2 -2
-	:emitted_light: 3
-}

@@ -1,3 +1,0 @@
-item wheel {
-	:block: wheel
-}

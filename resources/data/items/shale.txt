@@ -1,3 +1,0 @@
-item shale {
-	:block: shale
-}

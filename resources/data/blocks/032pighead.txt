@@ -1,8 +1,0 @@
-block pighead {
-	:material: flesh
-	:item_dropped: [pork 1, bone 1]
-	:textures: [pigbody pigface pigbody]
-	:clumpy_group: pig
-	:rotation_enabled:
-	:default_direction: 1
-}

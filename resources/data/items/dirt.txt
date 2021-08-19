@@ -1,3 +1,0 @@
-item dirt {
-	:block: dirt
-}

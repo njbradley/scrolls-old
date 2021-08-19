@@ -1,7 +1,0 @@
-mob entarm {
-	:health: 5
-	:box1: -0.5 0 -0.5
-	:box2: 0.5 2 0.5
-	:blockpath: ent-arm
-	:blockpos: -0.5 0 -0.5
-}

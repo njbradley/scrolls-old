@@ -1,5 +1,0 @@
-block shale {
-	:material: stone
-	:textures: [dark-rock]
-	:item_dropped: stone 1
-}

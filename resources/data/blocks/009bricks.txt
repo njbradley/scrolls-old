@@ -1,6 +1,0 @@
-block bricks {
-	:material: stone
-	:toughness: 10
-	:textures: [bricks]
-	:item_dropped: bricks 1
-}

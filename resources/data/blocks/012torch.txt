@@ -1,7 +1,0 @@
-block torch {
-	:material: grass
-	:toughness: 0
-	:textures: [lamp]
-	:item_dropped: lamp 1
-	:lightlevel: 18
-}

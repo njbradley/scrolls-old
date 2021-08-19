@@ -1,5 +1,0 @@
-block paint {
-	:material: wood
-	:textures: [paint]
-	:item_dropped: paint 1
-}

@@ -1,4 +1,0 @@
-material ghost {
-	:toughness: 0.5
-	:elastic: 0.5
-}

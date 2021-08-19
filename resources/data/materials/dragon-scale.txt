@@ -1,4 +1,0 @@
-material dragon-scale {
-	:toughness: 14
-	:elastic: 3
-}

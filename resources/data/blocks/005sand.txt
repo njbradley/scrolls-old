@@ -1,6 +1,0 @@
-block sand {
-	:material: sand
-	:toughness: 0.2
-	:textures: [sand]
-	:clumpy_group: ground
-}

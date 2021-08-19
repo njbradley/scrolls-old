@@ -1,6 +1,0 @@
-block stone {
-	:material: stone
-	:toughness: 13
-	:textures: [smooth-stone]
-	:item_dropped: stone 1
-}

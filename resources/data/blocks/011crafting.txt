@@ -1,8 +1,0 @@
-block crafting {
-	:material: wood
-	:toughness: 3
-	:textures: [wood crafting-top wood wood planks-end wood]
-	:item_dropped: crafting 1
-	:default_direction: 1
-	:clumpy_group: crafting-group
-}

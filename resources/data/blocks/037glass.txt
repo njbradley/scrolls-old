@@ -1,6 +1,0 @@
-block glass {
-	:material: leaves
-	:textures: [glass0]
-	:item_dropped: glass 1
-	:transparent:
-}

@@ -1,8 +1,0 @@
-block axle {
-	:material: wood
-	:textures: [planks-side planks-end planks-side planks-side planks-end planks-side]
-	:item_dropped: axle 1
-	:rotation_enabled:
-	:default_direction: 1
-	:clumpy_group: axle-group
-}

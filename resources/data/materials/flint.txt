@@ -1,4 +1,0 @@
-material flint {
-	:toughness: 31
-	:elastic: 0
-}

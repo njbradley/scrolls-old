@@ -1,8 +1,0 @@
-block enthead {
-	:material: wood
-	:textures: [ent-mouth log-end ent-mouth ent-mouth log-end ent-mouth]
-	:item_dropped: chips 1
-	:rotation_enabled:
-	:default_direction: 1
-	:clumpy-group: tree
-}

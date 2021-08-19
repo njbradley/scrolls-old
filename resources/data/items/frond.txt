@@ -1,3 +1,0 @@
-item frond {
-	:onplace: 4 1 1 : 4 4 4 4
-}

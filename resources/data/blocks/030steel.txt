@@ -1,8 +1,0 @@
-block steel {
-	:material: steel
-	:textures: [steel]
-	:item_dropped: steel 1
-	:clumpyness: 0.99
-	:clumpy_group: building
-
-}

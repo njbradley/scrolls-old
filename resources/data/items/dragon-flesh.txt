@@ -1,3 +1,0 @@
-item dragon-flesh {
-	:block: dragon-flesh
-}

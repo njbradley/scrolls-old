@@ -1,6 +1,0 @@
-item small-rock {
-	:material: stone
-	:weight: 3
-	:sharpness: 0
-	:reach: 1
-}

@@ -1,3 +1,0 @@
-item skull {
-	:block: skull
-}

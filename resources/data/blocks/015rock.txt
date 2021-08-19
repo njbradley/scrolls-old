@@ -1,5 +1,0 @@
-block rock {
-	:material: stone
-	:textures: [stone]
-	:item_dropped: rock 1
-}

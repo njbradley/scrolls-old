@@ -1,8 +1,0 @@
-block dragon-eye {
-	:material: dragon-scale
-	:textures: [dragon-scale dragon-eye dragon-scale]
-	:item_dropped: dragon-eye 1
-	:clumpy_group: dragon-group
-	:default_direction: 1
-	:rotation_enabled:
-}

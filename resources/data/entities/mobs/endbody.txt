@@ -1,8 +1,0 @@
-mob entbody {
-	:health: 10
-	:box1: -0.5 0 -0.5
-	:box2: 0.5 4 0.5
-	:blockpath: ent-body
-	:blockpos: -0.5 0 -0.5
-	:limbs: [ -1 3 -1 entarm   -1 3 1 entarm   1 3 -1 entarm   1 3 1 entarm ]
-}

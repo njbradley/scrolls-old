@@ -1,6 +1,0 @@
-mob skeleton-arm {
-	:box1: 0 -0.5 -0.5
-	:box2: 1 0.5 0.5
-	:blockpath: skeleton-arm
-	:blockpos: 0 -0.5 -0.5
-}

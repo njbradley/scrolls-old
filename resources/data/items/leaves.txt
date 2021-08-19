@@ -1,3 +1,0 @@
-item leaves {
-	:block: leaves
-}

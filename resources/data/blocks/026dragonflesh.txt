@@ -1,6 +1,0 @@
-block dragon-flesh {
-	:material: flesh
-	:textures: [dragon-flesh]
-	:item_dropped: dragon-flesh 1
-	:clumpy_group: dragon-group
-}

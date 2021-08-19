@@ -1,5 +1,0 @@
-block quartz-ore {
-	:material: stone
-	:textures: [quartz-ore]
-	:item_dropped: quartz 1
-}

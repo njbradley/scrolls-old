@@ -1,6 +1,0 @@
-block glofly {
-	:material: glofly
-	:textures: [glofly-side glofly-face glofly-side glofly-top glofly-back glofly-side]
-	:default_direction: 1
-	:rotation_enabled:
-}

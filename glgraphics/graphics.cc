@@ -125,8 +125,15 @@ void GLGraphicsContext::init_graphics() {
 	
 	glGenVertexArrays(1, &ui_vertexid);
 	// Create and compile our GLSL program from the shaders
-	block_program = LoadShadersGeo( RESOURCES_PATH "shaders/block.vs", RESOURCES_PATH "shaders/block.fs", RESOURCES_PATH "shaders/block.gs" );
-	ui_program = LoadShaders( RESOURCES_PATH "shaders/ui.vs", RESOURCES_PATH "shaders/ui.fs" );
+	block_program = LoadShadersGeo(
+		PathLib::find_path("shaders/block.vs").c_str(),
+		PathLib::find_path("shaders/block.fs").c_str(),
+		PathLib::find_path("shaders/block.gs").c_str()
+	);
+	ui_program = LoadShaders(
+		PathLib::find_path("shaders/ui.vs").c_str(),
+		PathLib::find_path("shaders/ui.fs").c_str()
+	);
 	
 	
 	pMatID = glGetUniformLocation(block_program, "Pmat");

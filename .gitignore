@@ -5,6 +5,9 @@
 *.a
 saves
 command.bat
+settings.txt
+tmp.*
+*.tmp
 dump*.txt
 .DS_Store
 crash-reports/

@@ -1,8 +1,0 @@
-block grindstone {
-	:material: stone
-	:textures: [grindstone-side grindstone-end grindstone-side grindstone-side grindstone-end grindstone-side]
-	:default_direction: 1
-	:rotation_enabled:
-	:item_dropped: grindstone 1
-	:clumpy_group: grindstone-group
-}

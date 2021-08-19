@@ -1,6 +1,0 @@
-item flint {
-	:sharpness: 5
-	:weight: 1
-	:reach: 1
-	:material: flint
-}

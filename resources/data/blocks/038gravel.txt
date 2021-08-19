@@ -1,5 +1,0 @@
-block gravel {
-	:material: gravel
-	:textures: [gravel]
-	:item_dropped: [ (% 0.6) pebble 4, (% 0.4) small-rock 1 ]
-}

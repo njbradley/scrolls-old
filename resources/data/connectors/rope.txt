@@ -1,3 +1,0 @@
-connector rope {
-	:material: grass
-}

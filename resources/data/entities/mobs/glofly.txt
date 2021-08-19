@@ -1,8 +1,0 @@
-mob glofly {
-	:box1: -0.75 -0.75 -0.75
-	:box2: 0.75 0.75 0.75
-	:blockpos: -0.5 -0.5 -0.5
-	:blockpath: glofly
-	:emitted_light: 12
-	:health: 4
-}

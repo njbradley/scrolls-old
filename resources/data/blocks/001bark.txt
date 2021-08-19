@@ -1,9 +1,0 @@
-block bark {
-	:material: wood
-	:toughness: 3
-	:textures: [bark]
-	:default_direction: 1
-	:rotation_enabled:
-	:clumpy_group: tree
-	:item_dropped: chips 1
-}

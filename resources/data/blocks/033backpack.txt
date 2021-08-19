@@ -1,5 +1,0 @@
-block backpack {
-	:material: wood
-	:textures: [backpack-side backpack-top backpack-side]
-	:clumpy_group: backpack-group
-}

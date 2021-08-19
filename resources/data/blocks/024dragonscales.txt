@@ -1,6 +1,0 @@
-block dragon-scale {
-	:material: dragon-scale
-	:textures: [dragon-scale]
-	:item_dropped: dragon-scale 1
-	:clumpy_group: dragon-group
-}

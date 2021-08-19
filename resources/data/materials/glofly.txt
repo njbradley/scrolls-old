@@ -1,4 +1,0 @@
-material glofly {
-	:toughness: 4
-	:elastic: 1
-}

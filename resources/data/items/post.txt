@@ -1,3 +1,0 @@
-item post {
-	:onplace: 4 1 1 : 19 19 19 19
-}

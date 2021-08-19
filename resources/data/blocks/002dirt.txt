@@ -1,6 +1,0 @@
-block dirt {
-	:material: dirt
-	:textures: [dirt]
-	:item_dropped: [dirt 1, (% 0.1) flint 1]
-	:clumpy_group: ground
-}

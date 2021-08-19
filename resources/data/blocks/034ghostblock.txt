@@ -1,6 +1,0 @@
-block ghostblock {
-	:material: ghost
-	:textures: [ghostblock]
-	:clumpy_group: ghost-group
-	:lightlevel: 3
-}

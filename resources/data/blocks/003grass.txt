@@ -1,7 +1,0 @@
-block grass {
-	:material: grass
-	:toughness: 0.5
-	:textures: [grass]
-	:item_dropped: [dirt 1, (% 0.25) grass 1]
-	:clumpy_group: ground
-}

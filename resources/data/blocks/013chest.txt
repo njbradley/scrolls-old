@@ -1,6 +1,0 @@
-block chest {
-	:material: wood
-	:textures: [chest]
-	:item_dropped: chest 1
-	:clumpy_group: chest-group
-}

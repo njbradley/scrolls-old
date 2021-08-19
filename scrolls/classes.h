@@ -68,8 +68,8 @@ ostream& operator<<(ostream& out, ivec3 pos);
 ostream& operator<<(ostream& out, vec3 pos);
 ostream& operator<<(ostream& out, quat rot);
 
-#define RESOURCES_PATH "resources/"
-#define SAVES_PATH RESOURCES_PATH "saves/"
+// #define RESOURCES_PATH "resources/"
+#define SAVES_PATH "saves/"
 
 #define csize 2
 #define csize3 8

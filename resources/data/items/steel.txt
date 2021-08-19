@@ -1,3 +1,0 @@
-item steel {
-	:block: steel
-}

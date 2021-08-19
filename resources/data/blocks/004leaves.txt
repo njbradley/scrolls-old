@@ -1,7 +1,0 @@
-block leaves {
-	:material: leaves
-	:toughness: 0
-	:textures: [leaves]
-	:item_dropped: (% 0.5) leaves 1
-	:clumpy_group: tree
-}

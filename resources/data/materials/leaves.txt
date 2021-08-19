@@ -1,5 +1,0 @@
-material leaves {
-	:toughness: 0.5
-	:elastic: 3
-	:hitsound: sand-hit
-}

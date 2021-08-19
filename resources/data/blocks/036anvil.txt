@@ -1,8 +1,0 @@
-block anvil {
-	:material: stone
-	:textures: [anvil-side anvil-face anvil-side anvil-top anvil-back anvil-side]
-	:default_direction: 1
-	:rotation_enabled:
-	:clumpy_group: anvil-group
-	:item_dropped: anvil 1
-}

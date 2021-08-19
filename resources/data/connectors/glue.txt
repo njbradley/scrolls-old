@@ -1,3 +1,0 @@
-connector glue {
-	:material: wood
-}

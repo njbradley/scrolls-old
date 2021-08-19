@@ -1,6 +1,0 @@
-block pigbody {
-	:material: flesh
-	:item_dropped: [pork 1, bone 1]
-	:textures: [pigbody]
-	:clumpy_group: pig
-}

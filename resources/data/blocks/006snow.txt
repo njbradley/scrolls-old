@@ -1,5 +1,0 @@
-block snow {
-	:material: snow
-	:toughness: 0
-	:textures: [snow]
-}

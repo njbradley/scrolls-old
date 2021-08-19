@@ -1,6 +1,0 @@
-block water {
-	:material: water
-	:textures: [water]
-	:transparent:
-	:item_dropped: water 1
-}
