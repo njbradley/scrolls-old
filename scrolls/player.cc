@@ -53,7 +53,7 @@ inven(ifile), backpack(ifile) {
 	ifile >> position.x >> position.y >> position.z;
 	ifile >> vel.x >> vel.y >> vel.z >> angle.x >> angle.y;
 	ifile >> health >> max_health >> damage_health >> healing_health >> healing_speed;
-	ifile >> flying >> autojump;
+	ifile >> spectator >> autojump;
 }
 
 void Player::set_block_breaking_vecs(Pixel* pixref, ivec3 hitpos, int level) {/*
@@ -116,7 +116,7 @@ void Player::save_to_file(ostream& ofile) {
 	ofile << position.x << ' ' << position.y << ' ' << position.z << ' ';
 	ofile << vel.x << ' ' << vel.y << ' ' << vel.z << ' ' << angle.x << ' ' << angle.y << ' ';
 	ofile << health << ' ' << max_health << ' ' << damage_health << ' ' << healing_health << ' ' << healing_speed << ' ';
-	ofile << flying << ' ' << autojump << ' ';
+	ofile << spectator << ' ' << autojump << ' ';
 }
 	
 mat4 Player::getViewMatrix(){
