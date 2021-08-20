@@ -133,7 +133,7 @@ class Block: public Collider { public:
 	void timestep(float deltatime);
 	
 	void render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null);
-	void lighting_update();
+	void lighting_update(bool spread = true);
 	
 	BlockIter iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(csize-1,csize-1,csize-1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr);
 	BlockIter iter_side(ivec3 dir);
@@ -236,10 +236,10 @@ class Pixel { public:
 	void tick();
 	void random_tick();
 	void erase_render();
-	void calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses);
-	void calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses);
+	void calculate_sunlight(unordered_set<ivec3,ivec3_hash>* next_poses = nullptr);
+	void calculate_blocklight(unordered_set<ivec3,ivec3_hash>* next_poses = nullptr);
 	void reset_lightlevel();
-	void lighting_update();
+	void lighting_update(bool spread = true);
 	bool is_air(int,int,int);
 	BlockGroupIter iter_group();
 	BlockGroupIter iter_group(bool (*func)(Pixel* base, Pixel* pix));

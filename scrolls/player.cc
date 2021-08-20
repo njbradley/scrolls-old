@@ -155,7 +155,7 @@ void Player::right_mouse(double deltatime) {
 		Item* inhand = inven.get(selitem);
 		
 		if (block != nullptr) {
-			if (!inhand->isnull) {
+			if (true or !inhand->isnull) {
 				ivec3 blockpos = block->globalpos + dir;//SAFEFLOOR3(hitpos) + dir;
 				if (shifting) {
 					world->set_global(blockpos, 1, 0, 0);
@@ -765,6 +765,8 @@ void Player::render_ui(UIVecs* uivecs) {
 	}
 	//
 	inven.render(uivecs, vec2(-0.5f, -1.0f));
+	
+	uivecs->add(UIChar('X', vec2(-0.01f, -0.02f), 0.02f));
 	// draw_text(uivecs, "\\/", -0.45f+selitem*0.1f, -0.85f);
 	// Item* sel = inven.get(selitem);
 	// if (!sel->isnull) {

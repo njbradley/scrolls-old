@@ -3,6 +3,7 @@
 
 #include "classes.h"
 #include "plugins.h"
+#include <mutex>
 
 class Debugger { public:
 	PLUGIN_HEAD(Debugger, ());
@@ -29,6 +30,7 @@ class UILogger : public Logger { public:
 		static const int numlines = 30;
 		using char_type = std::streambuf::char_type;
 		using int_type = std::streambuf::int_type;
+		std::mutex lock;
 		
 		vector<vector<char_type>> lines;
 		ostream ostr;

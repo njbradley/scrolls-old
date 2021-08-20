@@ -32,7 +32,7 @@ int main( void )
 	
 	logger->log(1) << "Starting game! " << endl;
 	
-	logger->sel_page = 3;
+	logger->sel_page = 0;
 	
 	game->setup_gameloop();
 	while (game->playing) {

@@ -524,17 +524,17 @@ void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool re
   }
 }
 
-void Block::lighting_update()  {
+void Block::lighting_update(bool spread)  {
   if (flags & LIGHT_FLAG and !locked) {
     flags &= ~LIGHT_FLAG;
     if (continues) {
-      for (CHILDREN_LOOP(i)) {
-        children[i]->lighting_update();
+      for (int i = 7; i >= 0; i --) {
+        if (children[i] != nullptr) children[i]->lighting_update(spread);
       }
     } else {
-      pixel->lighting_update();
+      pixel->lighting_update(spread);
       for (FREECHILDREN_LOOP(free)) {
-        free->lighting_update();
+        free->lighting_update(spread);
       }
     }
   }
@@ -1183,6 +1183,9 @@ value(val) {
 
 Pixel::Pixel(Block* newblock, istream& ifile):
 parbl(newblock) {
+  static int count = 0;
+  count ++;
+  logger->log(6) << count << endl;
   bool value_set = false;
   char type;
   unsigned int data;
@@ -1493,15 +1496,22 @@ void Pixel::erase_render() {
   }
 }
 
-void Pixel::lighting_update() {
+void Pixel::lighting_update(bool spread) {
   READ_LOCK;
+  if (!spread) {
+    calculate_blocklight();
+    calculate_sunlight();
+    return;
+  }
+  // sunlight = lightmax;
+  // return;
   unordered_set<ivec3,ivec3_hash> poses;
   unordered_set<ivec3,ivec3_hash> next_poses;
-  calculate_blocklight(poses);
+  calculate_blocklight(&poses);
   while (poses.size() > 0) {
     for (ivec3 pos : poses) {
       Block* b = parbl->get_global(pos, 1);
-      if (b != nullptr) b->pixel->calculate_blocklight(next_poses);
+      if (b != nullptr) b->pixel->calculate_blocklight(&next_poses);
     }
     poses.swap(next_poses);
     next_poses.clear();
@@ -1511,12 +1521,12 @@ void Pixel::lighting_update() {
   int max_size = 0;
   poses.clear();
   next_poses.clear();
-  calculate_sunlight(poses);
+  calculate_sunlight(&poses);
   while (poses.size() > 0) {
     for (ivec3 pos : poses) {
       Block* b = parbl->get_global(pos, 1);
       if (b != nullptr) {
-        b->pixel->calculate_sunlight(next_poses);
+        b->pixel->calculate_sunlight(&next_poses);
       }
     }
     poses.swap(next_poses);
@@ -1542,7 +1552,7 @@ void Pixel::reset_lightlevel() {
 }
 
 
-void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
+void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>* next_poses) {
   if ((value != 0 and !blockstorage[value]->transparent)) {
     return;
   }
@@ -1585,8 +1595,8 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
     if (block != nullptr) {
       for (Pixel* pix : block->iter_side(-dir)) {
         if (pix->sunlight < sunlight - newdec*parbl->scale or (pix->sunlight + newdec*parbl->scale == oldsunlight and sunlight < oldsunlight)) {
-          if (tilepos == SAFEDIV(pix->parbl->globalpos, World::chunksize)) {
-            next_poses.emplace(pix->parbl->globalpos);
+          if (tilepos == SAFEDIV(pix->parbl->globalpos, World::chunksize) and next_poses != nullptr) {
+            next_poses->emplace(pix->parbl->globalpos);
           } else {
             pix->parbl->set_flag(LIGHT_FLAG);
           }
@@ -1599,7 +1609,7 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
   }
 }
 
-void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
+void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>* next_poses) {
   if ((value != 0 and !blockstorage[value]->transparent)) {
     return;
   }
@@ -1637,8 +1647,8 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
       int inverse_index = index<3 ? index + 3 : index - 3;
       for (Pixel* pix : block->iter_side(-dir)) {
         if (pix->blocklight < blocklight - decrement*parbl->scale or (pix->lightsource == inverse_index and blocklight < oldblocklight)) {
-          if (tilepos == SAFEDIV(pix->parbl->globalpos, World::chunksize)) {
-            next_poses.emplace(pix->parbl->globalpos);
+          if (tilepos == SAFEDIV(pix->parbl->globalpos, World::chunksize) and next_poses != nullptr) {
+            next_poses->emplace(pix->parbl->globalpos);
           } else {
             pix->parbl->set_flag(LIGHT_FLAG);
           }

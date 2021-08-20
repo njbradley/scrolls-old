@@ -13,6 +13,7 @@ UILogger::Page::Page(): lines(numlines), ostr(this) {
 }
 
 UILogger::Page::int_type UILogger::Page::overflow(UILogger::Page::int_type lett) {
+	std::lock_guard<std::mutex> guard(lock);
 	if (lett == '\n') {
 		lines.erase(lines.begin());
 		lines.emplace_back();
@@ -30,6 +31,7 @@ void UILogger::Page::render(UIVecs* vecs) {
 	static const float size = 2.0f / (lines.size());
 	vec2 pos (-1, 1-size);
 	
+	std::lock_guard<std::mutex> guard(lock);
 	for (vector<char_type>& line : lines) {
 		for (char_type let : line) {
 			vecs->add(UIChar(let, pos, size/2));

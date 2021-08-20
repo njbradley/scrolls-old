@@ -30,7 +30,7 @@ public:
 
 class ThreadedTileLoader : public TileLoader {
 public:
-	static const int num_threads = 1;
+	static const int num_threads = 3;
 	JobQueue<ivec3> load_queue;
 	JobQueue<ivec3> del_queue;
 	ThreadJob* loading[num_threads];
