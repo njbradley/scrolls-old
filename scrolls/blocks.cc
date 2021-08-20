@@ -1350,7 +1350,13 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
       // Block* block = parbl->get_global((vec3(gpos) + parbl->scale/2.0f) + vec3(dir) * (parbl->scale/2.0f), parbl->scale, dir);
       // Block* block = parbl->get_global(gpos + dir * parbl->scale, parbl->scale);
       renderdata.type.faces[i].tex = 0;
-      if (parbl->is_air(dir, value)) {
+      if (parbl->freecontainer != nullptr) {
+        renderdata.type.faces[i].tex = mat[i];
+        renderdata.type.faces[i].rot = dirs[i];
+        renderdata.type.faces[i].blocklight = lightmax;
+        renderdata.type.faces[i].sunlight = lightmax;
+        exposed = true;
+      } else if (parbl->is_air(dir, value)) {
         renderdata.type.faces[i].tex = mat[i];
         renderdata.type.faces[i].rot = dirs[i];
         renderdata.type.faces[i].blocklight = parbl->get_blocklight(dir);
