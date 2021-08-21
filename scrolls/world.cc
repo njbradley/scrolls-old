@@ -14,6 +14,7 @@
 #include "graphics.h"
 #include "audio.h"
 #include "debug.h"
+#include "settings.h"
 
 #include <map>
 
@@ -21,7 +22,6 @@
 DEFINE_PLUGIN(World);
 EXPORT_PLUGIN(World);
 
-int view_dist = 3;
 
 Tile* TileMap::iterator::operator*() {
   return item->tile;
@@ -155,7 +155,7 @@ void TileMap::status(ostream& ofile) {
 
 
 World::World(string oldname): terrainloader(seed), tileloader(this), name(oldname),
-tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) - 1) {
+tiles( ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) + 3) {
   ifstream ifile(path("worlddata.txt"));
   if (ifile.good()) {
     load_config(ifile);
@@ -263,9 +263,9 @@ void World::load_nearby_chunks() {
     int py = player->position.y/chunksize - (player->position.y<0);
     int pz = player->position.z/chunksize - (player->position.z<0);
     
-    const int maxrange = view_dist;
+    const int maxrange = settings->view_dist;
     
-    int max_chunks = ((view_dist)*2+1) * ((view_dist)*2+1) * ((view_dist)*2+1);
+    int max_chunks = ((settings->view_dist)*2+1) * ((settings->view_dist)*2+1) * ((settings->view_dist)*2+1);
     int num_chunks = tiles.size();
     
     if (!world_closing) {
