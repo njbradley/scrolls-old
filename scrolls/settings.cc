@@ -52,7 +52,7 @@ void Settings::load_settings() {
 		ofile << "dims: 1600 900" << endl;
 		ofile << "max_fps: 90" << endl;
 		ofile << "framerate_sync: on" << endl;
-		ofile << "alloc_memory: 700000" << endl;
+		ofile << "alloc_memory: 70" << endl;
 		ofile << "view_dist: 3" << endl;
 		load_settings();
 	}

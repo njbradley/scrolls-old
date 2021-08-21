@@ -66,11 +66,10 @@ class World: public Collider { public:
   string name;
   int seed;
   int difficulty = 1;
-  double worldtime = 0;
   bool generation = true;
   bool saving = true;
   
-  double daytime;
+  double daytime = 500;
   
   TileMap tiles;
   PluginNow<TerrainLoader> terrainloader;

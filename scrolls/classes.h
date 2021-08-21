@@ -116,12 +116,10 @@ class ItemData;
 class ItemStorage;
 class ItemContainer;
 class RenderVecs;
-class TerrainObject;
 class ThreadManager;
 class Tile;
 class TileLoader;
 class TerrainLoader;
-class TerrainObject;
 class GraphicsContext;
 class AudioContext;
 

@@ -1183,9 +1183,6 @@ value(val) {
 
 Pixel::Pixel(Block* newblock, istream& ifile):
 parbl(newblock) {
-  static int count = 0;
-  count ++;
-  logger->log(6) << count << endl;
   bool value_set = false;
   char type;
   unsigned int data;

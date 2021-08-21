@@ -157,7 +157,11 @@ void TileMap::status(ostream& ofile) {
 World::World(string oldname): terrainloader(seed), tileloader(this), name(oldname),
 tiles( ((view_dist-1)*2+1) * ((view_dist-1)*2+1) * ((view_dist-1)*2+1) - 1) {
   ifstream ifile(path("worlddata.txt"));
-  load_config(ifile);
+  if (ifile.good()) {
+    load_config(ifile);
+  } else {
+    setup_files();
+  }
   startup();
   tileloader->begin_serving();
 }
@@ -266,8 +270,8 @@ void World::load_nearby_chunks() {
     
     if (!world_closing) {
       for (int range = 0; range < maxrange; range ++) {
-        for (int y = py-range; y < py+range+1; y ++) {
-        //for (int y = py+range; y >= py-range; y --) {
+        // for (int y = py-range; y < py+range+1; y ++) {
+        for (int y = py+range; y >= py-range; y --) {
           for (int x = px-range; x < px+range+1; x ++) {
             for (int z = pz-range; z < pz+range+1; z ++) {
               if (x == px-range or x == px+range or y == py-range or y == py+range or z == pz-range or z == pz+range) {
