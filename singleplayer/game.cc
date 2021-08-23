@@ -69,8 +69,14 @@ void SingleGame::gametick() {
 	
 	if (controls->key_pressed('Q') and controls->key_pressed(controls->KEY_CTRL)) {
 		playing = false;
+	} else if (controls->key_pressed('X') and controls->key_pressed(controls->KEY_CTRL)) {
+		std::terminate();
 	} else if (controls->key_pressed('X')) {
 		exit(1);
+	} else if (controls->key_pressed(controls->KEY_CTRL) and controls->key_pressed('S')) {
+		logger->pause();
+	} else if (controls->key_pressed(controls->KEY_CTRL) and controls->key_pressed('A')) {
+		logger->unpause();
 	}
 	if (controls->key_pressed(controls->KEY_CTRL)) {
 		for (int i = 0; i < 10; i ++) {

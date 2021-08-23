@@ -330,7 +330,6 @@ void GLGraphicsContext::ui_draw_call() {
 	glBindTexture(GL_TEXTURE_2D, uitex_id);
 	glUniform1i(uiTextureID, 0);
 	// cout << "num " << gluivecs.num_verts << endl;
-	logger->log(3) << "num: " << gluivecs.num_verts << endl;
 	glDrawArrays(GL_TRIANGLES, 0, gluivecs.num_verts); // 12*3 indices starting at 0 -> 12 triangles
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);

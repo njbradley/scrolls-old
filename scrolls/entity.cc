@@ -11,6 +11,7 @@
 #include "blocks.h"
 #include "blockiter.h"
 #include "materials.h"
+#include "debug.h"
 
 #include <algorithm>
 
@@ -153,7 +154,7 @@ bool Hitbox::collide(Hitbox other, float deltatime, float* col_time) const {
   }
   
   bool collides = true;
-  float maxtime = 0;
+  float maxtime = -1;
   
   // cout << "T " << tvec << endl;
   for (vec3 axis : axes) {
@@ -165,7 +166,8 @@ bool Hitbox::collide(Hitbox other, float deltatime, float* col_time) const {
       float tproj = std::abs(glm::dot(tvec, axis));
       // cout << aproj << ' ' << bproj << ' ' << tproj << endl;
       float overlap = tproj - (aproj + bproj) / 2.0f;
-      if (overlap >= 0) {
+      // cout << " Overlap " << overlap << endl;
+      if (overlap >= 0) { // touching is not colliding
         collides = false;
         
         float avelproj = glm::dot(axis, velocity);
@@ -175,7 +177,7 @@ bool Hitbox::collide(Hitbox other, float deltatime, float* col_time) const {
         } else {
           bvelproj = -bvelproj;
         }
-        if (avelproj + bvelproj != 0) {
+        if (avelproj + bvelproj > 0) {
           float time = overlap / (avelproj + bvelproj);
           if (time > maxtime) {
             maxtime = time;
@@ -187,10 +189,10 @@ bool Hitbox::collide(Hitbox other, float deltatime, float* col_time) const {
   
   if (col_time != nullptr) {
     *col_time = maxtime;
-    return collides or (maxtime >= 0 and maxtime <= deltatime);
   }
+  return collides or (maxtime >= 0 and maxtime <= deltatime);
   
-  return collides;
+  // return collides;
 }
 
 bool Hitbox::contains_noedge(vec3 point) const {
@@ -220,9 +222,11 @@ bool Hitbox::contains(Hitbox other) const {
   return true;
 }
 
-void Hitbox::timestep(float deltatime) {
-  position += velocity * deltatime;
-  rotation += angular_vel * deltatime;
+Hitbox Hitbox::timestep(float deltatime) const {
+  Hitbox newbox = *this;
+  newbox.position += velocity * deltatime;
+  newbox.rotation += angular_vel * deltatime;
+  return newbox;
 }
 
 ostream& operator<<(ostream& ofile, const Hitbox& hitbox) {
@@ -243,6 +247,149 @@ Hitbox Hitbox::boundingbox_points(vec3 position, vec3* points, int num) {
   return Hitbox(position, min, max);
 }
 
+
+
+
+
+
+
+
+ImpactManifold::ImpactManifold(): num_hitpoints(0) {
+  
+}
+
+ImpactManifold::ImpactManifold(Hitbox nbox, float maxtime): box1(nbox), time(maxtime), num_hitpoints(0) {
+  
+}
+
+ImpactManifold::ImpactManifold(Hitbox nbox1, Hitbox nbox2, float maxtime): box1(nbox1), box2(nbox2) {
+  time = maxtime;
+  num_hitpoints = 0;
+  if (box1.collide(box2, maxtime, &time)) {
+    num_hitpoints = 1;
+  }
+}
+
+ImpactManifold::operator bool() {
+  return num_hitpoints;
+}
+
+Hitbox ImpactManifold::newbox1(float dt) {
+  if (dt < time or num_hitpoints == 0) {
+    return box1.timestep(dt);
+  } else {
+    logger->log(3) << " getting collided box AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << endl;
+    return newbox1().timestep(dt - time);
+  }
+}
+
+Hitbox ImpactManifold::newbox1() {
+  Hitbox newbox = box1.timestep(time);
+  newbox.velocity = vec3(0,0,0);
+  return newbox;
+}
+
+Hitbox ImpactManifold::newbox2(float dt) {
+  if (dt < time or num_hitpoints == 0) {
+    return box2.timestep(dt);
+  } else {
+    return newbox2().timestep(dt - time);
+  }
+}
+
+Hitbox ImpactManifold::newbox2() {
+  Hitbox newbox = box2.timestep(time);
+  newbox.velocity = vec3(0,0,0);
+  return newbox;
+}
+
+
+ImpactPlan::ImpactPlan(): time(0) {
+  
+}
+
+ImpactPlan::ImpactPlan(FreeBlock* freeblock, float maxtime): startbox(freeblock->box) {
+  // cout << "Starting impact plan " << startbox << endl;
+  Hitbox box = startbox;
+  time = 0;
+  int i = 0;
+  
+  while (time < maxtime) {
+    // cout << " time " << time << endl;
+    ImpactManifold curimpact(box, maxtime - time);
+    // freeblock -> world collisisions
+    FreeBlockIter freeiter (freeblock->highparent, box);
+    for (int i = 0; i < freeiter.num_bases; i ++) {
+      for (Pixel* pix : freeiter.bases[i]->iter()) {
+        if (pix->value != 0) {
+          // cout << " test " << box << ' '  << pix->parbl->hitbox() << endl;
+          ImpactManifold impact(box, pix->parbl->hitbox(), maxtime - time);
+          if (impact and (!curimpact or impact.time < curimpact.time)) {
+            // cout << pix->parbl->hitbox() << ' ' << impact.time << endl;
+            curimpact = impact;
+          }
+        }
+      }
+    }
+    i ++;
+    
+    /*
+    // freeblock -> freeblock collisiions
+    for (int x = -1; x < 2; x ++) {
+      for (int y = -1; y < 2; y ++) {
+        for (int z = -1; z < 2; z ++) {
+          Block* block = highparent->get_global(highparent->globalpos + ivec3(x,y,z) * highparent->scale, highparent->scale);
+          if (block != nullptr and world != block->world) {
+            
+          }
+          // timestep_freeblock(deltatime, block);
+        }
+      }
+    }*/
+    
+    impacts.push_back(curimpact);
+    time += curimpact.time;
+    box = curimpact.newbox1();
+    // if (curimpact) {
+    //   cout << " found impacr" << curimpact.box2 << endl;
+    //   cout << curimpact.box1 << ' ' << curimpact.time << endl;
+    // } else {
+    //   time = maxtime;
+    // }
+  }
+}
+
+Hitbox ImpactPlan::newbox(float dt) {
+  int i = 0;
+  float newtime = dt;
+  while (i < impacts.size() and impacts[i].time < dt) {
+    newtime -= impacts[i].time;
+    i ++;
+  }
+  
+  return impacts[i].newbox1(newtime);
+}
+    
+  
+  // if (impacts.size() == 0) {
+  //   return startbox.timestep(dt);
+  // } else {
+  //   cout << "looking at impacts "<< endl;
+  //   int i = 0;
+  //   float newtime = dt;
+  //   while (i < impacts.size() and impacts[i].time < dt) {
+  //     i ++;
+  //     newtime -= impacts[i].time;
+  //   }
+  //   cout << i << endl;
+  //   cout << impacts[i].box1 << ' ' << newtime << ' ' << impacts[i].time << endl;
+  //   Hitbox nbox = impacts[i].newbox1(newtime);
+  //   if (nbox.position.x > 100000 or nbox.position.x < 0.00001f) {
+  //     cout << "Im huge " << endl;
+  //   }
+  //   return nbox;
+  // }
+// }
 
 
 Entity::Entity(World* nworld, vec3 pos, vec3 hitbox1, vec3 hitbox2):

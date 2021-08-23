@@ -30,6 +30,7 @@ class Tile : public Container {
 		
 		Tile(ivec3 position, World* world);
 		~Tile();
+		void tick();
 		void timestep(float deltatime);
 		void drop_ticks();
 		void render(RenderVecs* vecs, RenderVecs* transvecs);

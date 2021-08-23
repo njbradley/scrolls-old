@@ -71,7 +71,7 @@ FreeBlockIter::FreeBlockIter(Collider* world, Hitbox newbox): box(newbox) {
     return pos;
   };
   
-  cout << endl << endl << "Freeblockiter " << newbox << endl;
+  // cout << endl << endl << "Freeblockiter " << newbox << endl;
   
   vec3 points[8];
   box.points(points);
@@ -83,7 +83,7 @@ FreeBlockIter::FreeBlockIter(Collider* world, Hitbox newbox): box(newbox) {
 		if ((blocks[i-num_removed] = world->get_global(ivec3(points[i]), 1)) == nullptr) {
 			num_removed++;
 		} else {
-      cout << " init block " << blocks[i-num_removed] << ' ' << blocks[i-num_removed]->globalpos << ' ' << blocks[i-num_removed]->scale << endl;
+      // cout << " init block " << blocks[i-num_removed] << ' ' << blocks[i-num_removed]->globalpos << ' ' << blocks[i-num_removed]->scale << endl;
       for (int j = 0; j < i-num_removed; j ++) {
         if (blocks[j] == blocks[i-num_removed]) {
           num_removed++;
@@ -93,33 +93,33 @@ FreeBlockIter::FreeBlockIter(Collider* world, Hitbox newbox): box(newbox) {
     }
 	}
   
-  for (vec3 point : points) cout << point << ' '; cout << endl;
+  // for (vec3 point : points) cout << point << ' '; cout << endl;
   
   num_bases = 8 - num_removed;
 	
   std::copy(blocks, blocks+8, bases);
-  cout << num_bases << ": ";
-  for (Block* block : blocks) cout << block << ' '; cout << endl;
+  // cout << num_bases << ": ";
+  // for (Block* block : blocks) cout << block << ' '; cout << endl;
   int scale = 1;
   while (num_bases > 1 and blocks[0] != nullptr) {
-    cout << endl << "scale " << scale << " num_bases " << num_bases << " blocks ";
-    for (Block* block : blocks) cout << block << ' '; cout << endl;
+    // cout << endl << "scale " << scale << " num_bases " << num_bases << " blocks ";
+    // for (Block* block : blocks) cout << block << ' '; cout << endl;
     scale *= 2;
     num_removed = 0;
     for (int i = 0; i < num_bases; i ++) {
-      cout << blocks[i] << ' ' << blocks[i]->globalpos << ' ' << blocks[i]->scale << ' ' << num_removed << endl;
+      // cout << blocks[i] << ' ' << blocks[i]->globalpos << ' ' << blocks[i]->scale << ' ' << num_removed << endl;
       if (blocks[i]->scale < scale) {
-        cout << i << "  replacing with " << blocks[i]->parent << endl;
+        // cout << i << "  replacing with " << blocks[i]->parent << endl;
         blocks[i-num_removed] = blocks[i]->parent;
         for (int j = 0; j < i-num_removed; j ++) {
           if (blocks[j] == blocks[i-num_removed]) {
-            cout << j << "  found duplicate " << blocks[j] << endl;
+            // cout << j << "  found duplicate " << blocks[j] << endl;
             num_removed ++;
             break;
           }
         }
       } else {
-        cout << "copying " << endl;
+        // cout << "copying " << endl;
         blocks[i-num_removed] = blocks[i];
       }
     }
@@ -130,7 +130,7 @@ FreeBlockIter::FreeBlockIter(Collider* world, Hitbox newbox): box(newbox) {
     }
   }
   
-  cout << " END " << num_bases << ' ' << bases[0]->hitbox().contains(box) << endl << endl;
+  // cout << " END " << num_bases << ' ' << bases[0]->hitbox().contains(box) << endl << endl;
 }
 
 Pixel* FreeBlockIter::iterator::operator*() {

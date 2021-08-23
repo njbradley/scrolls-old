@@ -130,6 +130,7 @@ class Block: public Collider { public:
 	// void set_light_flag();
 	void set_all_flags(uint8 flag);
 	
+	void tick();
 	void timestep(float deltatime);
 	
 	void render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null);
@@ -189,6 +190,9 @@ class Block: public Collider { public:
 
 class FreeBlock : public Block { public:
 	Hitbox box;
+	ImpactPlan impactplan;
+	std::mutex planlock;
+	float ticktime = -1;
 	Block* highparent = nullptr;
 	vec3 velocity;
 	quat anglularvel;
@@ -209,6 +213,7 @@ class FreeBlock : public Block { public:
 	void set_box(Hitbox newbox);
 	bool try_set_box(Hitbox newbox);
 	void timestep_freeblock(float deltatime, Block* block);
+	void tick();
 	void timestep(float deltatime);
 };
 

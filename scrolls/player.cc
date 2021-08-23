@@ -56,57 +56,8 @@ inven(ifile), backpack(ifile) {
 	ifile >> spectator >> autojump;
 }
 
-void Player::set_block_breaking_vecs(Pixel* pixref, ivec3 hitpos, int level) {/*
-	if (level == 0) {
-		if (!block_breaking_render_index.isnull()) {
-			world->transparent_glvecs.del(block_breaking_render_index);
-			block_breaking_render_index = RenderIndex::npos;
-		}
-		return;
-	}
-	level --;
-	//Pixel pix = *pixref;
-	Pixel pix(*pixref);
-	pix.render_index = RenderIndex::npos;
-	pix.render_flag = true;
-	ivec3 gpos = pix.block->globalpos;
-	ivec3 pgpos = pix.block->parent->globalpos;
-	bool faces[] = {true,true,true,true,true,true};
-	MemVecs vecs;
-	pix.render(&vecs, &vecs, 0xff, true);
-	for (int i = 0; i < vecs.num_verts; i ++) {
-		if (vecs.verts[i*3+0] > gx) {
-			vecs.verts[i*3+0] = hitpos.x + 1.01;
-		} else {
-			vecs.verts[i*3+0] = hitpos.x - 0.01;
-		}
-		
-		if (vecs.verts[i*3+1] > gy) {
-			vecs.verts[i*3+1] = hitpos.y + 1.01;
-		} else {
-			vecs.verts[i*3+1] = hitpos.y - 0.01;
-		}
-		
-		if (vecs.verts[i*3+2] > gz) {
-			vecs.verts[i*3+2] = hitpos.z + 1.01;
-		} else {
-			vecs.verts[i*3+2] = hitpos.z - 0.01;
-		}
-		
-		if (vecs.uvs[i*2+0] > 0) {
-			vecs.uvs[i*2+0] = 1;
-		}
-		if (vecs.uvs[i*2+1] > 0) {
-			vecs.uvs[i*2+1] = 1;
-		}
-		
-		vecs.mats[i*2+1] = block_breaking_tex + level;
-	}
+void Player::set_block_breaking_vecs(Pixel* pixref, ivec3 hitpos, int level) {
 	
-	if (!block_breaking_render_index.isnull()) {
-		world->transparent_glvecs.del(block_breaking_render_index);
-	}
-	block_breaking_render_index = world->transparent_glvecs.add(&vecs);*/
 }
 
 void Player::save_to_file(ostream& ofile) {
@@ -214,10 +165,9 @@ void Player::right_mouse(double deltatime) {
 		if (placing_freeblock != nullptr) {
 			quat newrot = glm::angleAxis(dist, vec3(placing_dir));
 			//cout << "settting " << placing_freeblock << ' ' << placing_dir << endl;
-			Hitbox newbox = placing_freeblock->box;
-			// newbox.rotation = newrot;
+			// Hitbox newbox = placing_freeblock->box;
 			// newbox.position += vec3(dist2.x, 0, dist2.y);
-			placing_freeblock->move(vec3(0,0,0), newrot * glm::inverse(newbox.rotation));
+			// placing_freeblock->move(vec3(0,0,0), newrot * glm::inverse(newbox.rotation));
 			//placing_freeblock->set_rotation(newrot);
 			// placing_block->set_render_flag();
 		}
@@ -626,72 +576,74 @@ void Player::computeMatricesFromInputs(){
 		spectator = false;
 	}
 	
-	if (!spectator) {
-		// Move forward
-		
-		if (controls->key_pressed(controls->KEY_SHIFT)) {
-			nspeed /= 4;
-		}
-		
-		if (controls->key_pressed('W')){
-			// vec3 dir_const = vec3(1,0,0)*(float)consts[0] + vec3(0,0,1)*(float)consts[2] + vec3(-1,0,0)*(float)consts[3] + vec3(0,0,-1)*(float)consts[5];
-			// if (length(dir_const-forward) < 0.9f and (consts[0] or consts[2] or consts[3] or consts[5]) and autojump and not consts[6]) {
-			// 	vel.y = 6;
-			// 	if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS) {
-			// 		vel.y = 10;
-			// 	}
-			// }
-			vel += forward * deltaTime * nspeed;
-			stamina_cost += glm::dot(vel, forward);
-		}
-		// Move backward
-		if (controls->key_pressed('S')){
-			vel -= forward * deltaTime * nspeed;
-			stamina_cost += glm::dot(vel, -forward);
-		}
-		// Strafe right
-		if (controls->key_pressed('D')){
-				vel += right * deltaTime * nspeed;
-				stamina_cost += glm::dot(vel, right);
-		}
-		// Strafe left
-		if (controls->key_pressed('A')){
-				vel -= right * deltaTime * nspeed;
-				stamina_cost += glm::dot(vel, -right);
-		}
-		if (controls->key_pressed(' ')){
-			if (in_water) {
-				vel.y += 3 * deltaTime * nspeed;
-			} else if (consts[4] and vel.y > -10) {
-				vel.y = 15;// = vec3(0,10,0);//up * deltaTime * speed;
-				stamina_cost += vel.y;
+	if (!controls->key_pressed(controls->KEY_CTRL)) {
+		if (!spectator) {
+			// Move forward
+			
+			if (controls->key_pressed(controls->KEY_SHIFT)) {
+				nspeed /= 4;
 			}
-		}
-		
-	} else {
-		
-		nspeed = 75;
-		
-		if (controls->key_pressed('W')){
-			position += forward * deltaTime * nspeed;
-		}
-		// Move backward
-		if (controls->key_pressed('S')){
-			position -= forward * deltaTime * nspeed;
-		}
-		// Strafe right
-		if (controls->key_pressed('D')){
-			position += right * deltaTime * nspeed;
-		}
-		// Strafe left
-		if (controls->key_pressed('A')){
-			position -= right * deltaTime * nspeed;
-		}
-		if (controls->key_pressed(' ')){
-			position += up * deltaTime * speed;
-		}
-		if (controls->key_pressed(controls->KEY_SHIFT)){
-			position -= up * deltaTime * speed;
+			
+			if (controls->key_pressed('W')){
+				// vec3 dir_const = vec3(1,0,0)*(float)consts[0] + vec3(0,0,1)*(float)consts[2] + vec3(-1,0,0)*(float)consts[3] + vec3(0,0,-1)*(float)consts[5];
+				// if (length(dir_const-forward) < 0.9f and (consts[0] or consts[2] or consts[3] or consts[5]) and autojump and not consts[6]) {
+				// 	vel.y = 6;
+				// 	if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS) {
+				// 		vel.y = 10;
+				// 	}
+				// }
+				vel += forward * deltaTime * nspeed;
+				stamina_cost += glm::dot(vel, forward);
+			}
+			// Move backward
+			if (controls->key_pressed('S')){
+				vel -= forward * deltaTime * nspeed;
+				stamina_cost += glm::dot(vel, -forward);
+			}
+			// Strafe right
+			if (controls->key_pressed('D')){
+					vel += right * deltaTime * nspeed;
+					stamina_cost += glm::dot(vel, right);
+			}
+			// Strafe left
+			if (controls->key_pressed('A')){
+					vel -= right * deltaTime * nspeed;
+					stamina_cost += glm::dot(vel, -right);
+			}
+			if (controls->key_pressed(' ')){
+				if (in_water) {
+					vel.y += 3 * deltaTime * nspeed;
+				} else if (consts[4] and vel.y > -10) {
+					vel.y = 15;// = vec3(0,10,0);//up * deltaTime * speed;
+					stamina_cost += vel.y;
+				}
+			}
+			
+		} else {
+			
+			nspeed = 75;
+			
+			if (controls->key_pressed('W')){
+				position += forward * deltaTime * nspeed;
+			}
+			// Move backward
+			if (controls->key_pressed('S')){
+				position -= forward * deltaTime * nspeed;
+			}
+			// Strafe right
+			if (controls->key_pressed('D')){
+				position += right * deltaTime * nspeed;
+			}
+			// Strafe left
+			if (controls->key_pressed('A')){
+				position -= right * deltaTime * nspeed;
+			}
+			if (controls->key_pressed(' ')){
+				position += up * deltaTime * speed;
+			}
+			if (controls->key_pressed(controls->KEY_SHIFT)){
+				position -= up * deltaTime * speed;
+			}
 		}
 	}
 	

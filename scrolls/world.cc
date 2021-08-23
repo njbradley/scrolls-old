@@ -349,7 +349,9 @@ void World::timestep() {
 }
 
 void World::tick() {
-  
+  for (Tile* tile : tiles) {
+    tile->tick();
+  }
 }
 
 void World::drop_ticks() {

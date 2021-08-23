@@ -20,6 +20,8 @@ class Logger { public:
 	
 	virtual ~Logger() {};
 	virtual ostream& log(int page) = 0;
+	virtual void pause() = 0;
+	virtual void unpause() = 0;
 	virtual ostream& operator[](int page) = 0;
 	virtual void render(UIVecs* vecs) = 0;
 };
@@ -27,10 +29,11 @@ class Logger { public:
 class UILogger : public Logger { public:
 	
 	class Page : public std::streambuf { public:
-		static const int numlines = 30;
+		static const int numlines = 80;
 		using char_type = std::streambuf::char_type;
 		using int_type = std::streambuf::int_type;
 		std::mutex lock;
+		bool paused = false;
 		
 		vector<vector<char_type>> lines;
 		ostream ostr;
@@ -47,6 +50,8 @@ class UILogger : public Logger { public:
 	UILogger();
 	virtual ~UILogger() {};
 	virtual ostream& log(int page);
+	virtual void pause();
+	virtual void unpause();
 	virtual ostream& operator[](int page);
 	virtual void render(UIVecs* vecs);
 };

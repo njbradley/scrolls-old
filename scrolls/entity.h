@@ -7,6 +7,7 @@
 #include "items.h"
 
 // Class that represents a rectangular prism, with a position, minimum, and maximum point.
+// Immutable class
 class Hitbox { public:
   vec3 position;
   vec3 negbox;
@@ -51,13 +52,16 @@ class Hitbox { public:
   // but they can be on the border.
   bool contains(Hitbox other) const;
   
-  void timestep(float deltatime);
+  Hitbox timestep(float deltatime) const;
   
   friend ostream& operator<<(ostream& ofile, const Hitbox& hitbox);
   
   static Hitbox boundingbox_points(vec3 pos, vec3* points, int num);
 };
 
+// Describes an impact between two hitboxes
+// When no collision occurs, num_hitpoints is 0
+// (casting to bool returns whether a colision occurs)
 class ImpactManifold { public:
   Hitbox box1;
   Hitbox box2;
@@ -65,21 +69,39 @@ class ImpactManifold { public:
   int num_hitpoints;
   float time;
   
+  // Creates fake manifolds with no collision
+  // first one has no box or time at all,
+  // second has one box and max time, and only
+  // calls to newbox1 work.
   ImpactManifold();
-  ImpactManifold(Hitbox nbox1, Hitbox nbox2);
+  ImpactManifold(Hitbox nbox, float maxtime);
+  // Creates a manfold and evaluates if the two boxes collides
+  // if they do, num_hitpoints will be nonzero and time
+  // will be the collision time
+  ImpactManifold(Hitbox nbox1, Hitbox nbox2, float maxtime);
   
+  // whether the boxes collide
   operator bool();
   
+  // returns the new boxes after time
+  // if dt >= time, then the boxes will be modified
+  // with the results of the collision
+  Hitbox newbox1(float dt);
+  Hitbox newbox2(float dt);
+  // these are shortcuts for newbox1(time)
   Hitbox newbox1();
   Hitbox newbox2();
 };
 
 class ImpactPlan { public:
   vector<ImpactManifold> impacts;
+  Hitbox startbox;
+  float time;
   
   ImpactPlan();
+  ImpactPlan(FreeBlock* freeblock, float maxtime);
   
-  
+  Hitbox newbox(float dt);
 };
 
 class Entity { public:

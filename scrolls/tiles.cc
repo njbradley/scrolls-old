@@ -148,6 +148,12 @@ void Tile::save() {
   chunk->to_file(ofile);
 }
 
+void Tile::tick() {
+  for (FreeBlock* free = allfreeblocks; free != nullptr; free = free->allfreeblocks) {
+    free->tick();
+  }
+}
+
 void Tile::timestep(float deltatime) {
   if (deleting or !fully_loaded) {
     return;

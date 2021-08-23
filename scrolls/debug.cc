@@ -2,23 +2,26 @@
 
 #include "ui.h"
 #include "rendervecs.h"
+#include "player.h"
 
 DEFINE_PLUGIN(Logger);
 DEFINE_PLUGIN(Debugger);
 
 
 
-UILogger::Page::Page(): lines(numlines), ostr(this) {
+UILogger::Page::Page(): lines(60), ostr(this) {
 	
 }
 
 UILogger::Page::int_type UILogger::Page::overflow(UILogger::Page::int_type lett) {
-	std::lock_guard<std::mutex> guard(lock);
-	if (lett == '\n') {
-		lines.erase(lines.begin());
-		lines.emplace_back();
-	} else {
-		lines.back().push_back(lett);
+	if (!paused) {
+		std::lock_guard<std::mutex> guard(lock);
+		if (lett == '\n') {
+			lines.erase(lines.begin());
+			lines.emplace_back();
+		} else {
+			lines.back().push_back(lett);
+		}
 	}
 	return lett;
 }
@@ -34,7 +37,7 @@ void UILogger::Page::render(UIVecs* vecs) {
 	std::lock_guard<std::mutex> guard(lock);
 	for (vector<char_type>& line : lines) {
 		for (char_type let : line) {
-			vecs->add(UIChar(let, pos, size/2));
+			vecs->add(UIChar( let, pos, size/2));
 			pos.x += size/2;
 		}
 		pos.x = -1;
@@ -64,6 +67,20 @@ ostream& UILogger::log(int page) {
 
 ostream& UILogger::operator[] (int page) {
 	return log(page);
+}
+
+void UILogger::pause() {
+	if (!pages[sel_page-3].paused) {
+		log(sel_page) << "---------- Paused (" << getTime() << ") ----------";
+		pages[sel_page-3].paused = true;
+	}
+}
+
+void UILogger::unpause() {
+	if (pages[sel_page-3].paused) {
+		pages[sel_page-3].paused = false;
+		log(sel_page) << endl << "---------- Resumed (" << getTime() << ") ----------" << endl;
+	}
 }
 
 void UILogger::render(UIVecs* vecs) {

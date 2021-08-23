@@ -142,11 +142,10 @@ Block* Block::swap_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
 }
 
 void Block::set_pixel(Pixel* pix) {
-  pix->set_block(this);
+  if (pix != nullptr) {
+    pix->set_block(this);
+  }
   if (pixel != nullptr) {
-    // if (game->debugblock == pixel) {
-    //   game->debugblock = nullptr;
-    // }
     delete pixel;
   }
   pixel = pix;
@@ -154,7 +153,9 @@ void Block::set_pixel(Pixel* pix) {
 }
 
 Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ISPIXEL)
-  pix->set_block(this);
+  if (pix != nullptr) {
+    pix->set_block(this);
+  }
   Pixel* old = pixel;
   pixel = pix;
   set_flag(RENDER_FLAG | LIGHT_FLAG);
@@ -408,11 +409,12 @@ void Block::divide() { ASSERT(!continues)
 
 void Block::subdivide() { ASSERT(!continues)
   lock();
-  Pixel* pix = pixel;
+  Pixel* pix = swap_pixel(nullptr);
   divide();
   for (int i = 0; i < csize3; i ++) {
     set_child(posof(i), new Block(new Pixel(pix->value, pix->direction)));
   }
+  delete pix;
   unlock();
   set_flag(RENDER_FLAG | LIGHT_FLAG);
 }
@@ -485,6 +487,10 @@ void Block::set_all_flags(uint8 flag) {
   for (FREECHILDREN_LOOP(free)) {
     free->set_all_flags(flags);
   }
+}
+
+void Block::tick() {
+  
 }
 
 void Block::timestep(float deltatime) {
@@ -936,6 +942,7 @@ void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int ns
 }
 
 void FreeBlock::timestep_freeblock(float deltatime, Block* block) {
+  cout << "bad " << endl;
   float coltime = deltatime;
   
   if (block->freebox().collide(box, deltatime)) {
@@ -958,40 +965,28 @@ void FreeBlock::timestep_freeblock(float deltatime, Block* block) {
   }
 }
 
+void FreeBlock::tick() {
+  box.velocity -= vec3(0,0.1f,0);
+  // cout << box.position << endl;
+  ImpactPlan newplan(this, 1);
+  planlock.lock();
+  impactplan = newplan;
+  ticktime = 0;
+  planlock.unlock();
+}
+
 void FreeBlock::timestep(float deltatime) {
-  return;
-  maxtime = deltatime;
-  maxbox = Hitbox();
-  
-  // freeblock -> world collisisions
-  float coltime = deltatime;
-  FreeBlockIter freeiter (highparent, box);
-  for (int i = 0; i < freeiter.num_bases; i ++) {
-    for (Pixel* pix : freeiter.bases[i]->iter()) {
-      if (pix->parbl->hitbox().collide(box, deltatime, &coltime) and coltime < maxtime) {
-        maxtime = coltime;
-      }
-    }
+  if (ticktime >= 0) {
+    std::lock_guard<std::mutex> guard(planlock);
+    // cout << box.position << " + " << deltatime << ' ' << ticktime << endl;
+    ticktime += deltatime;
+    set_box(impactplan.newbox(ticktime));
   }
-  
-  // freeblock -> freeblock collisiions
-  for (int x = -1; x < 2; x ++) {
-    for (int y = -1; y < 2; y ++) {
-      for (int z = -1; z < 2; z ++) {
-        Block* block = highparent->get_global(highparent->globalpos + ivec3(x,y,z) * highparent->scale, highparent->scale);
-        if (block != nullptr and world != block->world) {
-          
-        }
-        // timestep_freeblock(deltatime, block);
-      }
-    }
-  }
-  
-  box.timestep(maxtime);
 }
   
 
 void FreeBlock::move(vec3 amount, quat rot) {
+  cout << "MOVINF" << endl;
   Hitbox newbox = box;
   newbox.velocity = amount;
   newbox.angular_vel = rot;
@@ -1027,6 +1022,7 @@ bool FreeBlock::try_set_box(Hitbox newbox) {
 void FreeBlock::set_box(Hitbox newbox) {
   
   if (!highparent->freebox().contains(newbox)) {
+    cout << "CHANGING higbox " << newbox << endl;
     ivec3 dir (0,0,0);
     for (int x = -1; x < 2; x ++) {
       for (int y = -1; y < 2; y ++) {

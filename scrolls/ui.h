@@ -29,17 +29,20 @@ class UIObj { public:
 
 
 class TextLine : public UIObj { public:
+	string font;
 	vec2 startpos;
 	string text;
 	float fontsize;
 	
 	TextLine(string newtext, vec2 pos, float size);
+	TextLine(string font, string newtext, vec2 pos, float size);
 	virtual void render(UIVecs* vecs);
 };
 
 class UIChar { public:
 	UIRect rect;
 	UIChar(char let, vec2 pos, float size);
+	UIChar(string font, char let, vec2 pos, float size);
 	operator UIRect() {return rect;}
 };
 
