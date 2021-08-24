@@ -10,6 +10,7 @@
 #include "entity.h"
 #include "blockiter.h"
 #include "debug.h"
+#include "graphics.h"
 
 const uint8 lightmax = 20;
 
@@ -970,6 +971,12 @@ void FreeBlock::tick() {
   // cout << box.position << endl;
   ImpactPlan newplan(this, 1);
   planlock.lock();
+  if (newplan.impacts.size() > 1) {
+    // newplan.impacts[0].box1.debug_render(graphics->transvecs());
+    float coltime = -1;
+    bool colide = newplan.impacts[0].box1.collide(newplan.impacts[0].box2,1, &coltime);
+    logger->log(3) << newplan.impacts[0].box1 << ' ' << newplan.impacts[0].box2 << ' ' << colide << ' ' << coltime << endl;
+  }
   impactplan = newplan;
   ticktime = 0;
   planlock.unlock();

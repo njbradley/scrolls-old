@@ -54,6 +54,8 @@ class Hitbox { public:
   
   Hitbox timestep(float deltatime) const;
   
+  void debug_render(RenderVecs* transvecs);
+  
   friend ostream& operator<<(ostream& ofile, const Hitbox& hitbox);
   
   static Hitbox boundingbox_points(vec3 pos, vec3* points, int num);

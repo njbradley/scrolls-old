@@ -12,6 +12,8 @@
 #include "blockiter.h"
 #include "materials.h"
 #include "debug.h"
+#include "graphics.h"
+#include "libraries.h"
 
 #include <algorithm>
 
@@ -135,7 +137,6 @@ float Hitbox::axis_projection(vec3 axis) const {
 bool Hitbox::collide(Hitbox other, float deltatime, float* col_time) const {
   /// using separating axis theorem:
   // https://www.jkh.me/files/tutorials/Separating%20Axis%20Theorem%20for%20Oriented%20Bounding%20Boxes.pdf
-  
   vec3 axes[] = {
     dirx(), diry(), dirz(), other.dirx(), other.diry(), other.dirz(),
     glm::cross(dirx(), other.dirx()), glm::cross(dirx(), other.diry()), glm::cross(dirx(), other.dirz()),
@@ -156,18 +157,17 @@ bool Hitbox::collide(Hitbox other, float deltatime, float* col_time) const {
   bool collides = true;
   float maxtime = -1;
   
-  // cout << "T " << tvec << endl;
   for (vec3 axis : axes) {
     if (glm::length(axis) > 0) {
       axis = axis / glm::length(axis);
-      // cout << "Axis: " << axis << endl;
+      
       float aproj = axis_projection(axis);
       float bproj = other.axis_projection(axis);
       float tproj = std::abs(glm::dot(tvec, axis));
-      // cout << aproj << ' ' << bproj << ' ' << tproj << endl;
-      float overlap = tproj - (aproj + bproj) / 2.0f;
-      // cout << " Overlap " << overlap << endl;
-      if (overlap >= 0) { // touching is not colliding
+      
+      float space = tproj - (aproj + bproj) / 2.0f;
+      
+      if (space >= 0) { // touching is not colliding
         collides = false;
         
         float avelproj = glm::dot(axis, velocity);
@@ -178,10 +178,14 @@ bool Hitbox::collide(Hitbox other, float deltatime, float* col_time) const {
           bvelproj = -bvelproj;
         }
         if (avelproj + bvelproj > 0) {
-          float time = overlap / (avelproj + bvelproj);
+          float time = space / (avelproj + bvelproj);
           if (time > maxtime) {
             maxtime = time;
           }
+        } else {
+          // Only one separating axis that is not closing down makes
+          // it not collide anytime in the future
+          return false;
         }
       }
     }
@@ -225,13 +229,41 @@ bool Hitbox::contains(Hitbox other) const {
 Hitbox Hitbox::timestep(float deltatime) const {
   Hitbox newbox = *this;
   newbox.position += velocity * deltatime;
-  newbox.rotation += angular_vel * deltatime;
+  // newbox.rotation *= angular_vel * deltatime;
   return newbox;
 }
 
+void Hitbox::debug_render(RenderVecs* transvecs) {
+  RenderData renderdata;
+  
+  renderdata.pos.loc.pos = global_center();
+  renderdata.pos.loc.rot = rotation;
+  renderdata.pos.loc.scale = size().x;
+  
+  int tex = graphics->trans_block_textures()->getindex("hitbox.png");
+  
+  for (int i = 0; i < 6; i ++) {
+    renderdata.type.faces[i].tex = tex;
+    renderdata.type.faces[i].rot = 0;
+    renderdata.type.faces[i].blocklight = lightmax;
+    renderdata.type.faces[i].sunlight = lightmax;
+  }
+  
+  transvecs->add(renderdata);
+}
+
 ostream& operator<<(ostream& ofile, const Hitbox& hitbox) {
-  ofile << "Hitbox(pos=" << hitbox.position << " negbox=" << hitbox.negbox << " posbox=" << hitbox.posbox
-  << " rot=" << hitbox.rotation << ")";
+  ofile << "Hitbox(pos=" << hitbox.position << " negbox=" << hitbox.negbox << " posbox=" << hitbox.posbox;
+  if (hitbox.rotation != quat(1,0,0,0)) {
+    ofile << " rot=" << hitbox.rotation;
+  }
+  if (hitbox.velocity != vec3(0,0,0)) {
+    ofile << " vel=" << hitbox.velocity;
+  }
+  if (hitbox.angular_vel != quat(1,0,0,0)) {
+    ofile << " angvel=" << hitbox.angular_vel;
+  }
+  ofile << ") ";
   return ofile;
 }
 
