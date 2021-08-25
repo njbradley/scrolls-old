@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -std=c++17 -DGLEW_STATIC -I ../
+CXXFLAGS := -std=c++17 -DGLEW_STATIC -I ../ -fPIC
 LIBS := -lglew32s -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32
 LDFLAGS :=
 DLLFLAGS :=
@@ -12,15 +12,17 @@ endif
 
 ifeq ($(PLAT),MAC)
 LIBS := -ldl
+EXESUFFIX :=exe
 DLLSUFFIX :=.so
 LDFLAGS := -rdynamic
-DLLFLAGS := -shared -fPIC
+DLLFLAGS := -shared
 else
 ifeq ($(PLAT),LINUX)
 LIBS := -pthread -lboost_system -ldl
+EXESUFFIX :=exe
 DLLSUFFIX :=.so
 LDFLAGS := -rdynamic
-DLLFLAGS := -shared -fPIC
+DLLFLAGS := -shared
 else
 LIBS := -lmingw32 -luser32 -lgdi32 -lshell32 -lboost_system-mt -lWs2_32 -ldbghelp $(patsubst %,-l%, $(SCROLLSDEPS)) $(patsubst %,-L../%/, $(SCROLLSDEPS))
 DLLFLAGS := -shared -Wl,--out-implib,lib$(TARGET).a

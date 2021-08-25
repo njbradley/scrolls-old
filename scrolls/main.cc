@@ -41,7 +41,20 @@ int main( void )
 	
 	logger->log(1) << " ending game" << endl;
 	game.close();
-	logger->log(1) << "Completed without errors! " << endl;
+	
+	itemstorage.close();
+	blockstorage.close();
+	materialstorage.close();
+	viewbox.close();
+	controls.close();
+	graphics.close();
+	audio.close();
+	settings.close();
+	debugger.close();
+	logger.close();
+	
+	
+	cout << "Completed without errors! " << endl;
 	return 0;
 }
 

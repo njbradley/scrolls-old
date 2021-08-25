@@ -15,7 +15,7 @@
 #define LIBHANDLE void*
 // #define LOADLIB(X) dlopen(X, RTLD_NOW | RTLD_GLOBAL)
 #define LOADLIB(X) dlopen(X, RTLD_NOW)
-#define FREELIB(X) dlfree(X)
+#define FREELIB(X) dlclose(X)
 #define GETADDR(HAND, X) dlsym(HAND, X)
 #define DLLSUFFIX ".so"
 #endif
@@ -25,6 +25,7 @@
 
 struct PluginDef {
 	void* getfunc;
+	void* delfunc;
 	struct PluginDef* next;
 };
 
@@ -49,11 +50,17 @@ struct IsFunction<Type(Args...),Args...> {
 template <typename PluginType>
 class BasePlugin { public:
 	PluginType* pointer = nullptr;
+	void (*delfunc)(PluginType*);
+	
+	void close() {
+		if (pointer != nullptr) {
+			delfunc(pointer);
+			pointer = nullptr;
+		}
+	}
 	
 	~BasePlugin() {
-		if (pointer != nullptr) {
-			delete pointer;
-		}
+		close();
 	}
 	
 	template <typename Ptype = PluginType, typename ... Args,
@@ -69,12 +76,8 @@ class BasePlugin { public:
 	template <typename ... Args>
 	void init(Args ... args) {
 		pointer = create(args...);
-	}
-	
-	void close() {
-		if (pointer != nullptr) {
-			delete pointer;
-			pointer = nullptr;
+		if (plugin_headptr<PluginType> != nullptr) {
+			delfunc = (void (*) (PluginType*)) plugin_headptr<PluginType>->delfunc;
 		}
 	}
 	
@@ -105,6 +108,7 @@ class PluginNow : public BasePlugin<PluginType> { public:
 template <typename PluginType>
 class BasePluginList { public:
 	vector<PluginType*> pointers;
+	vector<void (*)(PluginType*)> delfuncs;
 	
 	template <typename Ptype = PluginType, typename ... Args,
 		std::enable_if_t<IsFunction<typename Ptype::ctor_func, Args...>::value, int> = 0>
@@ -113,8 +117,21 @@ class BasePluginList { public:
 		while (def != nullptr) {
 			typename Ptype::ctor_func getfunc = (typename Ptype::ctor_func) def->getfunc;
 			pointers.push_back(getfunc(args...));
+			delfuncs.push_back((void (*) (PluginType*)) def->delfunc);
 			def = def->next;
 		}
+	}
+	
+	void close() {
+		for (int i = 0; i < pointers.size(); i ++) {
+			delfuncs[i](pointers[i]);
+		}
+		pointers.clear();
+		delfuncs.clear();
+	}
+	
+	~BasePluginList() {
+		close();
 	}
 	
 	PluginType* operator[](int index) {
@@ -162,8 +179,11 @@ template <typename Btype, typename ... Args>
 struct PluginGetCtorArgs<Btype* (*)(Args...)> {
 	template <typename CType>
 	struct GetFunc {
-		static void* getfunc(Args... args) {
-			return (void*) new CType(args...);
+		static Btype* getfunc(Args... args) {
+			return new CType(args...);
+		}
+		static void delfunc(Btype* ptr) {
+			delete ptr;
 		}
 	};
 };
@@ -176,8 +196,11 @@ struct PluginGetCtorArgs<Btype* (*)(Args...)> {
 template <typename Ptype>
 struct ExportPlugin {
 	using BaseType = typename Ptype::Plugin_BaseType;
-	using GArgs = typename PluginGetCtorArgs<typename Ptype::ctor_func>::GetFunc<Ptype>;
-	PluginDef plugindef {(void*)GArgs::getfunc, plugin_headptr<BaseType>};
+	// template <T>
+	// using TmpType = typename PluginGetCtorArgs<typename Ptype::ctor_func>::GetFunc<T>;
+	// using GArgs = TmpType<Ptype>;
+	typedef typename PluginGetCtorArgs<typename Ptype::ctor_func>::template GetFunc<Ptype> GArgs;
+	PluginDef plugindef {(void*) GArgs::getfunc, (void*) GArgs::delfunc, plugin_headptr<BaseType>};
 	ExportPlugin() {
 		cout << "exporting plugin " << typeid(BaseType).name() << ' ' << typeid(Ptype).name() << ' ' << plugin_headptr<BaseType> << ' ' << &plugin_headptr<BaseType> << endl;
 		plugin_headptr<BaseType> = &plugindef;
@@ -189,12 +212,15 @@ struct ExportPluginSingleton {
 	static_assert(IsFunction<typename Ptype::ctor_func>::value,
 		"ExportPluginSingleton can only be used with objects with no constructor parameters");
 	using BaseType = typename Ptype::Plugin_BaseType;
-	PluginDef plugindef {(void*)&getfunc, plugin_headptr<BaseType>};
+	PluginDef plugindef {(void*)&getfunc, (void*)&delfunc, plugin_headptr<BaseType>};
 	ExportPluginSingleton() {
 		plugin_headptr<BaseType> = &plugindef;
 	}
 	static BaseType* getfunc() {
 		return ptr;
+	}
+	static void delfunc(BaseType* newptr) {
+		
 	}
 };
 

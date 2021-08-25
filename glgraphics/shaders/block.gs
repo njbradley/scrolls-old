@@ -23,7 +23,7 @@ uniform mat4 MVmat;
 uniform mat4 Pmat;
 uniform vec3 sunlight;
 
-float voxSize;
+float voxSize = 1;
 
 vec2 light;
 uvec3 outattr;
