@@ -1,6 +1,6 @@
 CXX := g++
 CXXFLAGS := -std=c++17 -DGLEW_STATIC -I ../ -fPIC
-LIBS := -lglew32s -lmingw32 -lglfw3 -lopengl32 -luser32 -lgdi32 -lshell32
+LIBS := 
 LDFLAGS :=
 DLLFLAGS :=
 ifeq ($(BUILD),RELEASE)

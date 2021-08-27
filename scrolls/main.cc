@@ -10,10 +10,46 @@
 #include "blockdata.h"
 #include "items.h"
 #include "player.h"
+#include "tests.h"
 
 
-int main( void )
-{
+int test_main(int numargs, char** args) {
+	Storage<Test> tests;
+	tests.init();
+	
+	cout << "Loaded " << tests.size() << " tests "<< endl;
+	if (numargs > 2) {
+		for (int i = 2; i < numargs; i ++) {
+			tests[args[i]]->init();
+		}
+		for (int i = 2; i < numargs; i ++) {
+			tests[args[i]]->run_tests();
+		}
+		for (int i = 2; i < numargs; i ++) {
+			tests[args[i]]->print_summary(cout, std::cerr);
+		}
+	} else {
+		for (int i = 0; i < tests.size(); i ++) {
+			tests[i]->init();
+		}
+		for (int i = 0; i < tests.size(); i ++) {
+			tests[i]->run_tests();
+		}
+		std::stringstream mainout;
+		std::stringstream errout;
+		for (int i = 0; i < tests.size(); i ++) {
+			tests[i]->print_summary(mainout, errout);
+		}
+		cout << "------------------------------------" << endl;
+		cout << mainout.rdbuf();
+		cout << "------------------------------------" << endl;
+		std::cerr << errout.rdbuf();
+	}
+	cout << "Done" << endl;
+	return 0;
+}
+
+int game_main() {
 	cout << "Starting " << endl;
 	logger.init();
 	debugger.init();
@@ -58,11 +94,19 @@ int main( void )
 	return 0;
 }
 
+int main(int numargs, char** args) {
+	if (numargs > 1 and string(args[1]) == "test") {
+		return test_main(numargs, args);
+	} else {
+		return game_main();
+	}
+}
+
 
 /*
 All other scripts in this repository are considered part of the
 game and are under this same license
-
+void
 Copyright 2020 Nicholas Bradley. All rights reserved.
 
 I grant the right to download and modify the game for your own personal use.

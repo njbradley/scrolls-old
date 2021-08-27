@@ -11,4 +11,5 @@ tmp.*
 dump*.txt
 .DS_Store
 crash-reports/
-/scripts/stb/
+/stb/
+/*exe

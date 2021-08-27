@@ -146,9 +146,6 @@ bool Hitbox::collide(Hitbox other, float deltatime, float* col_time) const {
   
   vec3 tvec = global_center() - other.global_center(); // vec to other box
   
-  // if (glm::length(tvec) >= (glm::length(size()) + glm::length(other.size())) / 2.0f) {
-  //   return false;
-  // }
   if (glm::length(tvec) < (std::min(std::min(size().x, size().y), size().z)
       + std::min(std::min(other.size().x, other.size().y), other.size().z)) / 2.0f) {
     return true;
@@ -230,6 +227,13 @@ Hitbox Hitbox::timestep(float deltatime) const {
   Hitbox newbox = *this;
   newbox.position += velocity * deltatime;
   // newbox.rotation *= angular_vel * deltatime;
+  return newbox;
+}
+
+Hitbox Hitbox::force(vec3 nvel) const {
+  Hitbox newbox = *this;
+  newbox.velocity += nvel;
+  
   return newbox;
 }
 

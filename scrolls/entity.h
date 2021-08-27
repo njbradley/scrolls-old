@@ -44,7 +44,7 @@ class Hitbox { public:
   
   // boxes collide when they overlap, so bordering cubes are not colliding
   float axis_projection(vec3 axis) const;
-  bool collide(Hitbox other, float deltatime, float* coltime = nullptr) const;
+  bool collide(Hitbox other, float deltatime = 0, float* coltime = nullptr) const;
   
   bool contains_noedge(vec3 point) const;
   bool contains(vec3 point) const;
@@ -53,6 +53,7 @@ class Hitbox { public:
   bool contains(Hitbox other) const;
   
   Hitbox timestep(float deltatime) const;
+  Hitbox force(vec3 nforce) const;
   
   void debug_render(RenderVecs* transvecs);
   
