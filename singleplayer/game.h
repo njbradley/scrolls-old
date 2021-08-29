@@ -7,8 +7,6 @@
 
 class SingleGame : public Game { public:
 	
-	Plugin<World> world;
-	
 	SingleGame();
 	~SingleGame();
 	

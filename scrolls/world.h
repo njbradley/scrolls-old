@@ -86,12 +86,12 @@ class World: public Collider { public:
   
   string path(string file = "") const;
   
-  void setup_files();
-  void load_config(istream& ifile);
-  void save_config(ostream& ofile);
-  void startup();
-  void spawn_player();
-  void set_player_vars();
+  virtual void setup_files();
+  virtual void load_config(istream& ifile);
+  virtual void save_config(ostream& ofile);
+  virtual void startup();
+  virtual void spawn_player();
+  virtual void set_player_vars();
   
   vec3 get_position() const;
   bool render();
@@ -102,7 +102,7 @@ class World: public Collider { public:
   void block_update(ivec3);
   void update_lighting();
   
-  void load_nearby_chunks();
+  virtual void load_nearby_chunks();
   
   Tile* tileat(ivec3 pos);
   Tile* tileat_global(ivec3 pos);

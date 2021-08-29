@@ -57,6 +57,4 @@ class TileLoader { public:
 	virtual void end_serving() = 0;
 };
 
-extern Plugin<TileLoader> tileloader;
-
 #endif

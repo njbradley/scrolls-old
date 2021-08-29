@@ -78,6 +78,11 @@ class BasePlugin { public:
 	operator PluginType*() {
 		return pointer;
 	}
+	
+	template <typename UpCast>
+	UpCast* as() {
+		return dynamic_cast<UpCast*>(pointer);
+	}
 };
 
 template <typename PluginType>
@@ -91,6 +96,14 @@ class PluginNow : public BasePlugin<PluginType> { public:
 	PluginNow(Args ... args) {
 		cout << "Plugin now init " << typeid(PluginType).name() << endl;
 		this->init(args...);
+	}
+};
+
+
+template <typename UpCastType, Plugin<typename UpCastType::Plugin_BaseType>* plugin_ref>
+class PluginUpCast {
+	UpCastType* operator->() {
+		return (UpCastType*) **plugin_ref;
 	}
 };
 

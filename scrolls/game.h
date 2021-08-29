@@ -12,6 +12,8 @@ class Game { public:
 	stringstream debugstream;
 	bool debug_visible = true;
 	
+	Plugin<World> world;
+	
 	virtual ~Game() {};
 	
 	virtual void setup_gameloop() = 0;
