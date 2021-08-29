@@ -1032,7 +1032,7 @@ void FreeBlock::move(vec3 amount, quat rot) {
   cout << "MOVINF" << endl;
   Hitbox newbox = box;
   newbox.velocity = amount;
-  newbox.angular_vel = rot;
+  // newbox.angular_vel = rot;
   Hitbox boxhit;
   if (highparent->collide(newbox, &boxhit, 1, this)) {
     float col_time = -1;

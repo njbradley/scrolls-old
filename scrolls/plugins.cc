@@ -7,6 +7,20 @@
 #include <filesystem>
 #include <sys/stat.h>
 
+#ifdef _WIN32
+#include <libloaderapi.h>
+#define LOADLIB(X) LoadLibrary(X)
+#define FREELIB(X) FreeLibrary(X)
+#define GETADDR(HAND, X) GetProcAddress(HAND, X)
+#define DLLSUFFIX ".dll"
+#else
+#include <dlfcn.h>
+// #define LOADLIB(X) dlopen(X, RTLD_NOW | RTLD_GLOBAL)
+#define LOADLIB(X) dlopen(X, RTLD_NOW)
+#define FREELIB(X) dlclose(X)
+#define GETADDR(HAND, X) dlsym(HAND, X)
+#define DLLSUFFIX ".so"
+#endif
 
 PluginLib::PluginLib(string path) {
 	struct stat info;

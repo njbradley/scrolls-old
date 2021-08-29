@@ -29,7 +29,7 @@ void print(vec3 v) {
 
 
 
-Hitbox::Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot, vec3 vel, quat angvel):
+Hitbox::Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot, vec3 vel, vec3 angvel):
 position(pos), negbox(nbox), posbox(pbox), rotation(rot), velocity(vel), angular_vel(angvel) {
   
 }
@@ -264,7 +264,7 @@ ostream& operator<<(ostream& ofile, const Hitbox& hitbox) {
   if (hitbox.velocity != vec3(0,0,0)) {
     ofile << " vel=" << hitbox.velocity;
   }
-  if (hitbox.angular_vel != quat(1,0,0,0)) {
+  if (hitbox.angular_vel != vec3(0,0,0)) {
     ofile << " angvel=" << hitbox.angular_vel;
   }
   ofile << ") ";
