@@ -14,9 +14,9 @@ class Hitbox { public:
   vec3 posbox;
   quat rotation;
   vec3 velocity;
-  quat angular_vel;
+  vec3 angular_vel;
   
-  Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot = quat(1,0,0,0), vec3 vel = vec3(0,0,0), quat angvel = quat(1,0,0,0));
+  Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot = quat(1,0,0,0), vec3 vel = vec3(0,0,0), quat angvel = vec3(0,0,0));
   Hitbox();
   
   void points(vec3* points) const;

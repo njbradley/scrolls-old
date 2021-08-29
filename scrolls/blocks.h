@@ -56,6 +56,9 @@ class Block: public Collider { public:
 	Block(Pixel* pix);
 	// initializes from a file
 	Block(istream& ifile);
+	
+	Block(Block&& other);
+	
 	~Block();
 	
 	// locks and unlocks block (used for editing)
@@ -120,6 +123,9 @@ class Block: public Collider { public:
 	void subdivide();
 	// turns chunk type into pixel type (deletes all children)
 	void join();
+	// joins if all children are all the same and have nothing
+	// keeping them small (freeblocks, edges)
+	void try_join();
 	// read/writes the block to a file recursively
 	// reading should be done to undef type
 	void to_file(ostream& ofile) const;
@@ -192,6 +198,7 @@ class FreeBlock : public Block { public:
 	Hitbox box;
 	ImpactPlan impactplan;
 	std::mutex planlock;
+	bool fixed = false;
 	float ticktime = -1;
 	Block* highparent = nullptr;
 	vec3 velocity;
@@ -203,7 +210,6 @@ class FreeBlock : public Block { public:
 	FreeBlock* allfreeblocks = nullptr;
 	
 	FreeBlock(Hitbox newbox);
-	FreeBlock(Block block, Hitbox newbox);
 	void add_parent(Block* nparent);
 	void remove_parent(Block* nparent);
 	void set_parent(Block* nparent);
