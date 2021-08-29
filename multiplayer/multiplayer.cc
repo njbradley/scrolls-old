@@ -26,16 +26,16 @@ std::streambuf::int_type BufIn::underflow() {
 }
 
 
-Packet::Packet(char newtype): type(newtype), sent(time(NULL)) {
+Packet::Packet(string name): name(newname), sent(time(NULL)) {
 	
 }
 
-Packet::Packet(char* data, int* read): type(getval<char>(data, read)), sent(getval<int>(data, read)) {
+Packet::Packet(char* data, int* read): name(getval<string>(data, read)), sent(getval<int>(data, read)) {
 	
 }
 
 void Packet::pack(char* data, int* written) {
-	packval<char>(data, written, type);
+	packval<string>(data, written, type);
 	packval<int>(data, written, sent);
 }
 
@@ -73,7 +73,7 @@ string Packet::getval<string>(char* data, int* read) {
 	return result;
 }
 
-ServerPacket::ServerPacket(char type): Packet(type) {
+ServerPacket::ServerPacket(string name): Packet(name) {
 	
 }
 
@@ -87,7 +87,7 @@ void ServerPacket::pack(char* data, int* written) {
 
 
 
-ClientPacket::ClientPacket(char type, int newid): Packet(type), clientid(newid) {
+ClientPacket::ClientPacket(string name, int newid): Packet(name), clientid(newid) {
 	
 }
 
@@ -133,7 +133,7 @@ void NewIdPacket::run(ClientSocketManager* manager, udp::endpoint from) {
 
 
 
-JoinPacket::JoinPacket(string name): ClientPacket('J', 9999), username(name) {
+JoinPacket::JoinPacket(string name): ClientPacket("JoinPacket", 9999), username(name) {
 	
 }
 
@@ -154,18 +154,18 @@ void JoinPacket::run(ServerSocketManager* manager, udp::endpoint from) {
 }
 
 
-TilePacket::TilePacket(Tile* ntile): ServerPacket('T'), tile(ntile) {
+BlockPacket::BlockPacket(Tile* ntile): ServerPacket("BlockPacket"), tile(ntile) {
 	
 }
 
-TilePacket::TilePacket(char* data, int* read): ServerPacket(data, read) {
+BlockPacket::BlockPacket(char* data, int* read): ServerPacket(data, read) {
 	ivec3 pos = getval<ivec3>(data, read);
 	BufIn buf(data, read);
 	istream ifile(&buf);
 	//tile = new Tile(pos, world, ifile);
 }
 
-void TilePacket::pack(char* data, int* written) {
+void BlockPacket::pack(char* data, int* written) {
 	ServerPacket::pack(data, written);
 	packval<ivec3>(data, written, tile->pos);
 	BufOut buf(data, written);
@@ -173,7 +173,7 @@ void TilePacket::pack(char* data, int* written) {
 	//tile->save_to_file(ofile);
 }
 
-void TilePacket::run(ClientSocketManager* manager, udp::endpoint from) {
+void BlockPacket::run(ClientSocketManager* manager, udp::endpoint from) {
 	world->add_tile(tile);
 }
 

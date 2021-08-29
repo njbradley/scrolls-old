@@ -25,10 +25,11 @@ class BufIn : public std::streambuf { public:
 };
 
 struct Packet {
+	PLUGIN_HEAD(Packet, (char* data, int* read));
 	static const int packetsize = 1024;
-	char type;
+	string name;
 	time_t sent;
-	Packet(char newtype);
+	Packet(string newname);
 	Packet(char* data, int* read);
 	virtual void pack(char* data, int* written);
 	
@@ -39,7 +40,7 @@ struct Packet {
 };
 
 struct ServerPacket : Packet {
-	ServerPacket(char type);
+	ServerPacket(string name);
 	ServerPacket(char* data, int* read);
 	virtual void pack(char* data, int* written);
 	virtual void run(ClientSocketManager* game, udp::endpoint from) = 0;
@@ -47,7 +48,7 @@ struct ServerPacket : Packet {
 
 struct ClientPacket : Packet {
 	int clientid;
-	ClientPacket(char type, int newid);
+	ClientPacket(string name, int newid);
 	ClientPacket(char* data, int* read);
 	virtual void pack(char* data, int* written);
 	virtual void run(ServerSocketManager* game, udp::endpoint from) = 0;
@@ -71,10 +72,10 @@ struct NewIdPacket : ServerPacket {
 	virtual void run(ClientSocketManager* game, udp::endpoint from);
 };
 
-struct TilePacket : ServerPacket {
+struct BlockPacket : ServerPacket {
 	Tile* tile;
-	TilePacket(Tile* newtile);
-	TilePacket(char* data, int* read);
+	BlockPacket(Tile* newtile);
+	BlockPacket(char* data, int* read);
 	virtual void pack(char* data, int* written);
 	virtual void run(ClientSocketManager* game, udp::endpoint from);
 };
@@ -86,7 +87,8 @@ struct LeavePacket : ClientPacket {
 	virtual void run(ServerSocketManager* game, udp::endpoint from);
 };
 
-class PacketGroup { public:
+class PacketGroup : Storage<Packet> { public:
+	PacketGroup();
 	ServerPacket* get_server_packet(char* data);
 	ClientPacket* get_client_packet(char* data);
 };
