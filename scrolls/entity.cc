@@ -29,8 +29,8 @@ void print(vec3 v) {
 
 
 
-Hitbox::Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot, vec3 vel, vec3 angvel):
-position(pos), negbox(nbox), posbox(pbox), rotation(rot), velocity(vel), angular_vel(angvel) {
+Hitbox::Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot):
+position(pos), negbox(nbox), posbox(pbox), rotation(rot) {
   
 }
 
@@ -134,7 +134,7 @@ float Hitbox::axis_projection(vec3 axis) const {
        + std::abs(glm::dot(transform_out_dir(size() * vec3(0,0,1)), axis));
 }
 
-bool Hitbox::collide(Hitbox other, float deltatime, float* col_time) const {
+bool Hitbox::collide(Hitbox other, vec3* colliding_amount, vec3* colliding_point) const {
   /// using separating axis theorem:
   // https://www.jkh.me/files/tutorials/Separating%20Axis%20Theorem%20for%20Oriented%20Bounding%20Boxes.pdf
   vec3 axes[] = {
@@ -146,13 +146,26 @@ bool Hitbox::collide(Hitbox other, float deltatime, float* col_time) const {
   
   vec3 tvec = global_center() - other.global_center(); // vec to other box
   
+  if (glm::length(tvec) > (glm::length(size())/2.0f + glm::length(other.size())/2.0f)/2.0f) {
+    return false;
+  }
   if (glm::length(tvec) < (std::min(std::min(size().x, size().y), size().z)
       + std::min(std::min(other.size().x, other.size().y), other.size().z)) / 2.0f) {
-    return true;
+    //return true;
   }
   
-  bool collides = true;
-  float maxtime = -1;
+  vec3 close_points[4];
+  for (int i = 0, j = 0; i < 8; i ++) {
+    vec3 point = transform_out_dir((size() * vec3(i/4,i/2%2,i%2) + size()) / 2.0f);
+    if (glm::dot(point, tvec) > 0) {
+      close_points[j++] = point;
+    }
+  }
+  
+  vec3 least_axis;
+  float least_overlap = 0;
+  vec3 least_point;
+  float other_overlap = 0;
   
   for (vec3 axis : axes) {
     if (glm::length(axis) > 0) {
@@ -165,35 +178,41 @@ bool Hitbox::collide(Hitbox other, float deltatime, float* col_time) const {
       float space = tproj - (aproj + bproj) / 2.0f;
       
       if (space >= 0) { // touching is not colliding
-        collides = false;
-        
-        float avelproj = glm::dot(axis, velocity);
-        float bvelproj = glm::dot(axis, other.velocity);
-        if (glm::dot(axis, tvec) > 0) {
-          avelproj = -avelproj;
-        } else {
-          bvelproj = -bvelproj;
-        }
-        if (avelproj + bvelproj > 0) {
-          float time = space / (avelproj + bvelproj);
-          if (time > maxtime) {
-            maxtime = time;
-          }
-        } else {
-          // Only one separating axis that is not closing down makes
-          // it not collide anytime in the future
-          return false;
-        }
+        return false;
+      }
+      if (space < least_overlap) {
+        least_overlap = space;
+        least_axis = axis;
+        other_overlap = bproj;
       }
     }
   }
   
-  if (col_time != nullptr) {
-    *col_time = maxtime;
+  if (colliding_amount != nullptr) {
+    if (glm::dot(tvec, least_axis) > 0) {
+      *colliding_amount = least_axis * -least_overlap;
+    } else {
+      *colliding_amount = least_axis * least_overlap;
+    }
+    cout << "colamount " << *colliding_amount << endl;
   }
-  return collides or (maxtime >= 0 and maxtime <= deltatime);
-  
-  // return collides;
+  if (colliding_point != nullptr) {
+    float proj_threshold = other_overlap / 2;
+    
+    float max_proj = 0;
+    vec3 allpoints (0,0,0);
+    int num_points = 0;
+    for (vec3 point : close_points) {
+      float proj = std::abs(glm::dot(point, least_axis));
+      if (proj >= proj_threshold) {
+        allpoints += point;
+        num_points ++;
+      }
+    }
+    *colliding_point = allpoints / (float)num_points;
+    cout << "colpoint " << *colliding_point << endl;
+  }
+  return true;
 }
 
 bool Hitbox::contains_noedge(vec3 point) const {
@@ -223,20 +242,6 @@ bool Hitbox::contains(Hitbox other) const {
   return true;
 }
 
-Hitbox Hitbox::timestep(float deltatime) const {
-  Hitbox newbox = *this;
-  newbox.position += velocity * deltatime;
-  // newbox.rotation *= angular_vel * deltatime;
-  return newbox;
-}
-
-Hitbox Hitbox::force(vec3 nvel) const {
-  Hitbox newbox = *this;
-  newbox.velocity += nvel;
-  
-  return newbox;
-}
-
 void Hitbox::debug_render(RenderVecs* transvecs) {
   RenderData renderdata;
   
@@ -261,12 +266,6 @@ ostream& operator<<(ostream& ofile, const Hitbox& hitbox) {
   if (hitbox.rotation != quat(1,0,0,0)) {
     ofile << " rot=" << hitbox.rotation;
   }
-  if (hitbox.velocity != vec3(0,0,0)) {
-    ofile << " vel=" << hitbox.velocity;
-  }
-  if (hitbox.angular_vel != vec3(0,0,0)) {
-    ofile << " angvel=" << hitbox.angular_vel;
-  }
   ofile << ") ";
   return ofile;
 }
@@ -288,144 +287,159 @@ Hitbox Hitbox::boundingbox_points(vec3 position, vec3* points, int num) {
 
 
 
-
-
-ImpactManifold::ImpactManifold(): num_hitpoints(0) {
-  
-}
-
-ImpactManifold::ImpactManifold(Hitbox nbox, float maxtime): box1(nbox), time(maxtime), num_hitpoints(0) {
-  
-}
-
-ImpactManifold::ImpactManifold(Hitbox nbox1, Hitbox nbox2, float maxtime): box1(nbox1), box2(nbox2) {
-  time = maxtime;
-  num_hitpoints = 0;
-  if (box1.collide(box2, maxtime, &time)) {
-    num_hitpoints = 1;
-  }
-}
-
-ImpactManifold::operator bool() {
-  return num_hitpoints;
-}
-
-Hitbox ImpactManifold::newbox1(float dt) {
-  if (dt < time or num_hitpoints == 0) {
-    return box1.timestep(dt);
-  } else {
-    logger->log(3) << " getting collided box AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << endl;
-    return newbox1().timestep(dt - time);
-  }
-}
-
-Hitbox ImpactManifold::newbox1() {
-  Hitbox newbox = box1.timestep(time);
-  newbox.velocity = vec3(0,0,0);
-  return newbox;
-}
-
-Hitbox ImpactManifold::newbox2(float dt) {
-  if (dt < time or num_hitpoints == 0) {
-    return box2.timestep(dt);
-  } else {
-    return newbox2().timestep(dt - time);
-  }
-}
-
-Hitbox ImpactManifold::newbox2() {
-  Hitbox newbox = box2.timestep(time);
-  newbox.velocity = vec3(0,0,0);
-  return newbox;
-}
-
-
-ImpactPlan::ImpactPlan(): time(0) {
-  
-}
-
-ImpactPlan::ImpactPlan(FreeBlock* freeblock, float maxtime): startbox(freeblock->box) {
-  // cout << "Starting impact plan " << startbox << endl;
-  Hitbox box = startbox;
-  time = 0;
-  int i = 0;
-  
-  while (time < maxtime) {
-    // cout << " time " << time << endl;
-    ImpactManifold curimpact(box, maxtime - time);
-    // freeblock -> world collisisions
-    FreeBlockIter freeiter (freeblock->highparent, box);
-    for (int i = 0; i < freeiter.num_bases; i ++) {
-      for (Pixel* pix : freeiter.bases[i]->iter()) {
-        if (pix->value != 0) {
-          // cout << " test " << box << ' '  << pix->parbl->hitbox() << endl;
-          ImpactManifold impact(box, pix->parbl->hitbox(), maxtime - time);
-          if (impact and (!curimpact or impact.time < curimpact.time)) {
-            // cout << pix->parbl->hitbox() << ' ' << impact.time << endl;
-            curimpact = impact;
-          }
-        }
-      }
-    }
-    i ++;
-    
-    /*
-    // freeblock -> freeblock collisiions
-    for (int x = -1; x < 2; x ++) {
-      for (int y = -1; y < 2; y ++) {
-        for (int z = -1; z < 2; z ++) {
-          Block* block = highparent->get_global(highparent->globalpos + ivec3(x,y,z) * highparent->scale, highparent->scale);
-          if (block != nullptr and world != block->world) {
-            
-          }
-          // timestep_freeblock(deltatime, block);
-        }
-      }
-    }*/
-    
-    impacts.push_back(curimpact);
-    time += curimpact.time;
-    box = curimpact.newbox1();
-    // if (curimpact) {
-    //   cout << " found impacr" << curimpact.box2 << endl;
-    //   cout << curimpact.box1 << ' ' << curimpact.time << endl;
-    // } else {
-    //   time = maxtime;
-    // }
-  }
-}
-
-Hitbox ImpactPlan::newbox(float dt) {
-  int i = 0;
-  float newtime = dt;
-  while (i < impacts.size() and impacts[i].time < dt) {
-    newtime -= impacts[i].time;
-    i ++;
-  }
-  
-  return impacts[i].newbox1(newtime);
-}
-    
-  
-  // if (impacts.size() == 0) {
-  //   return startbox.timestep(dt);
-  // } else {
-  //   cout << "looking at impacts "<< endl;
-  //   int i = 0;
-  //   float newtime = dt;
-  //   while (i < impacts.size() and impacts[i].time < dt) {
-  //     i ++;
-  //     newtime -= impacts[i].time;
-  //   }
-  //   cout << i << endl;
-  //   cout << impacts[i].box1 << ' ' << newtime << ' ' << impacts[i].time << endl;
-  //   Hitbox nbox = impacts[i].newbox1(newtime);
-  //   if (nbox.position.x > 100000 or nbox.position.x < 0.00001f) {
-  //     cout << "Im huge " << endl;
-  //   }
-  //   return nbox;
-  // }
+// MovingHitbox::MovingHitbox(Hitbox box, vec3 vel = vec3(0,0,0), vec3 angvel = vec3(0,0,0), float newmass = 1.0f):
+// Hitbox(box), velocity(vel), angularvel(angvel), mass(newmass) {
+//
 // }
+//
+// MovingHitbox::MovingHitbox() {
+//
+// }
+
+
+
+
+
+
+
+
+//
+// ImpactManifold::ImpactManifold(): num_hitpoints(0) {
+//
+// }
+//
+// ImpactManifold::ImpactManifold(Hitbox nbox, float maxtime): box1(nbox), time(maxtime), num_hitpoints(0) {
+//
+// }
+//
+// ImpactManifold::ImpactManifold(Hitbox nbox1, Hitbox nbox2, float maxtime): box1(nbox1), box2(nbox2) {
+//   time = maxtime;
+//   num_hitpoints = 0;
+//   if (box1.collide(box2, maxtime, &time)) {
+//     num_hitpoints = 1;
+//   }
+// }
+//
+// ImpactManifold::operator bool() {
+//   return num_hitpoints;
+// }
+//
+// Hitbox ImpactManifold::newbox1(float dt) {
+//   if (dt < time or num_hitpoints == 0) {
+//     return box1.timestep(dt);
+//   } else {
+//     logger->log(3) << " getting collided box AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << endl;
+//     return newbox1().timestep(dt - time);
+//   }
+// }
+//
+// Hitbox ImpactManifold::newbox1() {
+//   Hitbox newbox = box1.timestep(time);
+//   newbox.velocity = vec3(0,0,0);
+//   return newbox;
+// }
+//
+// Hitbox ImpactManifold::newbox2(float dt) {
+//   if (dt < time or num_hitpoints == 0) {
+//     return box2.timestep(dt);
+//   } else {
+//     return newbox2().timestep(dt - time);
+//   }
+// }
+//
+// Hitbox ImpactManifold::newbox2() {
+//   Hitbox newbox = box2.timestep(time);
+//   newbox.velocity = vec3(0,0,0);
+//   return newbox;
+// }
+//
+//
+// ImpactPlan::ImpactPlan(): time(0) {
+//
+// }
+//
+// ImpactPlan::ImpactPlan(FreeBlock* freeblock, float maxtime): startbox(freeblock->box) {
+//   // cout << "Starting impact plan " << startbox << endl;
+//   Hitbox box = startbox;
+//   time = 0;
+//   int i = 0;
+//
+//   while (time < maxtime) {
+//     // cout << " time " << time << endl;
+//     ImpactManifold curimpact(box, maxtime - time);
+//     // freeblock -> world collisisions
+//     FreeBlockIter freeiter (freeblock->highparent, box);
+//     for (int i = 0; i < freeiter.num_bases; i ++) {
+//       for (Pixel* pix : freeiter.bases[i]->iter()) {
+//         if (pix->value != 0) {
+//           // cout << " test " << box << ' '  << pix->parbl->hitbox() << endl;
+//           ImpactManifold impact(box, pix->parbl->hitbox(), maxtime - time);
+//           if (impact and (!curimpact or impact.time < curimpact.time)) {
+//             // cout << pix->parbl->hitbox() << ' ' << impact.time << endl;
+//             curimpact = impact;
+//           }
+//         }
+//       }
+//     }
+//     i ++;
+//
+//     /*
+//     // freeblock -> freeblock collisiions
+//     for (int x = -1; x < 2; x ++) {
+//       for (int y = -1; y < 2; y ++) {
+//         for (int z = -1; z < 2; z ++) {
+//           Block* block = highparent->get_global(highparent->globalpos + ivec3(x,y,z) * highparent->scale, highparent->scale);
+//           if (block != nullptr and world != block->world) {
+//
+//           }
+//           // timestep_freeblock(deltatime, block);
+//         }
+//       }
+//     }*/
+//
+//     impacts.push_back(curimpact);
+//     time += curimpact.time;
+//     box = curimpact.newbox1();
+//     // if (curimpact) {
+//     //   cout << " found impacr" << curimpact.box2 << endl;
+//     //   cout << curimpact.box1 << ' ' << curimpact.time << endl;
+//     // } else {
+//     //   time = maxtime;
+//     // }
+//   }
+// }
+//
+// Hitbox ImpactPlan::newbox(float dt) {
+//   int i = 0;
+//   float newtime = dt;
+//   while (i < impacts.size() and impacts[i].time < dt) {
+//     newtime -= impacts[i].time;
+//     i ++;
+//   }
+//
+//   return impacts[i].newbox1(newtime);
+// }
+//
+//
+//   // if (impacts.size() == 0) {
+//   //   return startbox.timestep(dt);
+//   // } else {
+//   //   cout << "looking at impacts "<< endl;
+//   //   int i = 0;
+//   //   float newtime = dt;
+//   //   while (i < impacts.size() and impacts[i].time < dt) {
+//   //     i ++;
+//   //     newtime -= impacts[i].time;
+//   //   }
+//   //   cout << i << endl;
+//   //   cout << impacts[i].box1 << ' ' << newtime << ' ' << impacts[i].time << endl;
+//   //   Hitbox nbox = impacts[i].newbox1(newtime);
+//   //   if (nbox.position.x > 100000 or nbox.position.x < 0.00001f) {
+//   //     cout << "Im huge " << endl;
+//   //   }
+//   //   return nbox;
+//   // }
+// // }
 
 
 Entity::Entity(World* nworld, vec3 pos, vec3 hitbox1, vec3 hitbox2):

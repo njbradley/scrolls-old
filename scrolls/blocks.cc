@@ -825,7 +825,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
               cout << ' ' << offblock << offblock->globalpos << ' ' << offblock->scale << endl;
               for (FreeBlock* freeblock = offblock->freechild; freeblock != nullptr; freeblock = freeblock->freechild) {
                 cout << "freeblock " << freeblock << endl;
-                if (freeblock->box.collide(linebox, 0)) {
+                if (freeblock->box.collide(linebox)) {
                   cout << " going into free block" << endl;
                   vec3 start = freeblock->box.transform_in(*pos);
                   vec3 newdir = freeblock->box.transform_in(dir);
@@ -939,7 +939,7 @@ bool Block::collide(Hitbox newbox, Block* block, Hitbox* boxhit, float deltatime
       }
     }
   } else if (block->pixel->value != 0) {
-    if (block->hitbox().collide(newbox, deltatime)) {
+    if (block->hitbox().collide(newbox)) {
       *boxhit = block->hitbox();
       return true;
     }
@@ -976,90 +976,34 @@ void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int ns
   Block::set_parent(nullptr, nworld, this, ppos, nscale);
 }
 
-void FreeBlock::timestep_freeblock(float deltatime, Block* block) {
-  cout << "bad " << endl;
-  float coltime = deltatime;
-  
-  if (block->freebox().collide(box, deltatime)) {
-    if (block->freechild != nullptr and block->freechild->box.collide(box, deltatime, &coltime)) {
-      if (coltime < maxtime) {
-        maxtime = coltime;
-        maxbox = block->freechild->box;
-      }
-      if (coltime < block->freechild->maxtime) {
-        block->freechild->maxtime = coltime;
-        block->freechild->maxbox = box;
-      }
-    }
-    
-    if (block->continues) {
-      for (int i = 0; i < csize3; i ++) {
-        timestep_freeblock(deltatime, block->children[i]);
-      }
-    }
-  }
-}
-
 void FreeBlock::tick() {
-  if (!fixed) {
-    box.velocity -= vec3(0,0.1f,0);
-    // cout << box.position << endl;
-    float starttime = getTime();
-    ImpactPlan newplan(this, 1);
-    planlock.lock();
-    // if (newplan.impacts.size() > 1) {
-      // newplan.impacts[0].box1.debug_render(graphics->transvecs());
-      // float coltime = -1;
-      // bool colide = newplan.impacts[0].box1.collide(newplan.impacts[0].box2,1, &coltime);
-      // logger->log(3) << newplan.impacts[0].box1 << ' ' << newplan.impacts[0].box2 << ' ' << colide << ' ' << coltime << endl;
-    // }
-    impactplan = newplan;
-    ticktime = starttime;
-    planlock.unlock();
-  }
+  
 }
 
 void FreeBlock::timestep(float deltatime) {
-  if (ticktime >= 0 and !fixed) {
-    std::lock_guard<std::mutex> guard(planlock);
-    // cout << box.position << " + " << deltatime << ' ' << ticktime << endl;
-    set_box(impactplan.newbox(getTime() - ticktime));
-  }
-}
-  
-
-void FreeBlock::move(vec3 amount, quat rot) {
-  cout << "MOVINF" << endl;
+  velocity += vec3(0,-1,0) * deltatime;
   Hitbox newbox = box;
-  newbox.velocity = amount;
-  // newbox.angular_vel = rot;
-  Hitbox boxhit;
-  if (highparent->collide(newbox, &boxhit, 1, this)) {
-    float col_time = -1;
-    if (newbox.collide(boxhit, 1, &col_time)) {
-      cout << "collide " << ' ' << col_time << ' ' << boxhit << endl;
-      newbox.position += amount * col_time;
-      newbox.rotation += rot * col_time;
-    } else {
-      cout << "BRUD " << endl;
+  newbox.position += velocity * deltatime;
+  FreeBlockIter freeiter (highparent, newbox);
+  for (int i = 0; i < freeiter.num_bases; i ++) {
+  for (Pixel* pix : freeiter.bases[i]->iter()) {
+  // for (Pixel* pix : freeiter) {
+    cout << pix->parbl->globalpos << ' ' << newbox << endl;
+    if (pix->value != 0) {
+      cout << "yoooo  " << endl;
+      vec3 colamount;
+      vec3 colpoint;
+      if (newbox.collide(pix->parbl->hitbox(), &colamount, &colpoint)) {
+        cout << colamount << ' ' << colpoint << ' ' << endl;
+        newbox.position -= colamount;
+        vec3 colaxis = colamount / glm::length(colamount);
+        if (glm::dot(velocity, colaxis) > 0) {
+          velocity -= glm::dot(velocity, colaxis) * colaxis;
+        }
+      }
     }
-  } else {
-    newbox.position += amount;
-    newbox.rotation += rot;
-  }
-  newbox.velocity = box.velocity;
-  newbox.angular_vel = box.angular_vel;
-  cout << " newbox " << newbox << endl;
+  }}
   set_box(newbox);
-}
-  
-bool FreeBlock::try_set_box(Hitbox newbox) {
-  Hitbox boxhit;
-  if (highparent->collide(newbox, &boxhit, 1, this)) {
-    return false;
-  }
-  set_box(newbox);
-  return true;
 }
 
 void FreeBlock::set_box(Hitbox newbox) {

@@ -196,29 +196,18 @@ class Block: public Collider { public:
 
 class FreeBlock : public Block { public:
 	Hitbox box;
-	ImpactPlan impactplan;
-	std::mutex planlock;
 	bool fixed = false;
-	float ticktime = -1;
 	Block* highparent = nullptr;
-	vec3 velocity;
-	quat anglularvel;
-	bool consts[6] = {false, false, false, false, false, false};
-	vec3 customconsts[8];
-	float maxtime = -1;
-	Hitbox maxbox;
 	FreeBlock* allfreeblocks = nullptr;
 	
+	vec3 velocity;
+	vec3 angularvel;
+	
 	FreeBlock(Hitbox newbox);
-	void add_parent(Block* nparent);
-	void remove_parent(Block* nparent);
 	void set_parent(Block* nparent);
 	void set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale);
 	void expand(ivec3 dir);
-	void move(vec3 amount, quat rot);
 	void set_box(Hitbox newbox);
-	bool try_set_box(Hitbox newbox);
-	void timestep_freeblock(float deltatime, Block* block);
 	void tick();
 	void timestep(float deltatime);
 };

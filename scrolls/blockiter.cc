@@ -169,7 +169,7 @@ void FreeBlockIter::iterator::increment(Block* block) {
 void FreeBlockIter::iterator::get_to_pix(Block* block) {
   // cout << "get_to_pix ( " << block << ' ' << block->globalpos << ' ' << block->scale << endl;
   while (pix == nullptr) {
-    if (!parent->box.collide(block->hitbox(), 0)) {
+    if (!parent->box.collide(block->hitbox())) {
       // cout << " not in face " << endl;
       increment(block);
     } else if (block->continues) {
@@ -183,7 +183,7 @@ void FreeBlockIter::iterator::get_to_pix(Block* block) {
 }
 
 FreeBlockIter::iterator FreeBlockIter::begin() {
-  if (num_bases != 0) {
+  if (num_bases == 0) {
     return end();
   }
   iterator iter {this, bases[0], 0, nullptr};

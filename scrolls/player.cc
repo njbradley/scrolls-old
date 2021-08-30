@@ -114,7 +114,7 @@ void Player::right_mouse(double deltatime) {
 					if (airblock != nullptr) {
 						cout << "freeblock" << endl;
 						// Hitbox newbox (vec3(0,0,0), vec3(blockpos) - 0.5f, vec3(blockpos) + 0.5f);
-						Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f), glm::angleAxis(1.0f, vec3(1,0,0)));
+						Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f));//, glm::angleAxis(1.0f, vec3(1,0,0)));
 						FreeBlock* freeblock = new FreeBlock(newbox);
 						freeblock->fixed = true;
 						freeblock->set_pixel(new Pixel(1));
