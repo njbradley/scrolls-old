@@ -4,12 +4,18 @@
 #include "classes.h"
 #include "scrolls/graphics.h"
 #include "scrolls/libraries.h"
+#include "scrolls/debug.h"
 
 #include "rendervecs.h"
 
 extern GLFWwindow* window;
 
 class GLGraphicsContext : public GraphicsContext { public:
+	// PluginUpCast<DebugLines, GLDebugLines> debuglines {&::debuglines};
+	PLUGIN_REQUIRES(debuglines, GLDebugLines);
+	PLUGIN_REQUIRES_PREFIX(GraphicsContext::, blockvecs, AsyncGLVecs);
+	PLUGIN_REQUIRES_PREFIX(GraphicsContext::, transvecs, AsyncGLVecs);
+	PLUGIN_REQUIRES_PREFIX(GraphicsContext::, uivecs, GLUIVecs);
 	
 	GLuint block_vertexid;
 	GLuint ui_vertexid;
@@ -26,9 +32,6 @@ class GLGraphicsContext : public GraphicsContext { public:
 	GLuint vertexbuffer;
 	GLuint databuffer;
 	
-	AsyncGLVecs glvecs;
-	AsyncGLVecs gltransvecs;
-	GLUIVecs gluivecs;
 	GLVecsDestination glvecsdest;
 	
 	GLuint uibuffer;
@@ -62,10 +65,6 @@ class GLGraphicsContext : public GraphicsContext { public:
 	virtual const PathLib* block_textures() const;
 	virtual const PathLib* trans_block_textures() const;
 	virtual const PathLib* ui_textures() const;
-	
-	virtual RenderVecs* blockvecs();
-	virtual RenderVecs* transvecs();
-	virtual UIVecs* uivecs();
 	
 	void init_graphics();
 	void load_textures();

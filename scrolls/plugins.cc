@@ -46,6 +46,10 @@ PluginLib::~PluginLib() {
 
 
 PluginLoader::PluginLoader() {
+	
+}
+
+void PluginLoader::load() {
 	cout << "Loading plugins " << endl;
 	struct stat info;
 	for (std::filesystem::path fspath : std::filesystem::directory_iterator("./")) {

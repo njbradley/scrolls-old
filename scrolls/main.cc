@@ -50,6 +50,8 @@ int test_main(int numargs, char** args) {
 }
 
 int game_main() {
+	pluginloader.load();
+	
 	cout << "Starting " << endl;
 	logger.init();
 	debugger.init();
@@ -59,6 +61,7 @@ int game_main() {
 	graphics.init();
 	controls.init();
 	viewbox.init();
+	debuglines.init();
 	
 	materialstorage.init();
 	blockstorage.init();

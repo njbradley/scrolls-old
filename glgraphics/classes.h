@@ -11,5 +11,6 @@ class AsyncGLVecs;
 class GLUIVecs;
 class GLGraphicsContext;
 class GLVecsDestination;
+class GLDebugLines;
 
 #endif

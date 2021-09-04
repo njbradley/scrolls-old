@@ -100,13 +100,32 @@ class PluginNow : public BasePlugin<PluginType> { public:
 };
 
 
-template <typename UpCastType, Plugin<typename UpCastType::Plugin_BaseType>* plugin_ref>
-class PluginUpCast {
+template <typename BaseType, typename UpCastType>
+class PluginUpCast { public:
+	BasePlugin<BaseType>* plugin_ref;
 	UpCastType* operator->() {
-		return (UpCastType*) **plugin_ref;
+		UpCastType* newptr = dynamic_cast<UpCastType*>((BaseType*) *plugin_ref);
+		if (newptr == nullptr) {
+			cout << "ERR: plugin " << typeid(BaseType).name() << " is required to be " << typeid(UpCastType).name() << " by another plugin " << endl;
+		}
+		return newptr;
 	}
 };
 
+template <typename PluginType>
+struct GetPluginType {
+	
+};
+
+template <typename PluginType>
+struct GetPluginType<Plugin<PluginType>> {
+	using type = PluginType;
+};
+
+template <typename PluginType>
+struct GetPluginType<PluginNow<PluginType>> {
+	using type = PluginType;
+};
 
 template <typename PluginType>
 class BasePluginList { public:
@@ -269,6 +288,7 @@ class PluginLoader { public:
 	vector<PluginLib*> plugins;
 	
 	PluginLoader();
+	void load();
 	~PluginLoader();
 };
 
@@ -283,6 +303,9 @@ extern PluginLoader pluginloader;
 #define PLUGIN_HEAD(X, params) typedef X Plugin_BaseType; \
 	typedef X* (*ctor_func) params;
 
-
+#define PLUGIN_REQUIRES(plugin, NewType) \
+	PluginUpCast<GetPluginType<decltype(plugin)>::type, NewType> plugin {&::plugin};
+#define PLUGIN_REQUIRES_PREFIX(prefix, plugin, NewType) \
+	PluginUpCast<GetPluginType<decltype(prefix plugin)>::type, NewType> plugin {&(prefix plugin)};
 
 #endif

@@ -12,7 +12,7 @@
 #include "materials.h"
 #include "tiles.h"
 #include "settings.h"
-
+#include "debug.h"
 
 /*
 // Initial position : on +Z
@@ -115,6 +115,7 @@ void Player::right_mouse(double deltatime) {
 						cout << "freeblock" << endl;
 						// Hitbox newbox (vec3(0,0,0), vec3(blockpos) - 0.5f, vec3(blockpos) + 0.5f);
 						Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f));//, glm::angleAxis(1.0f, vec3(1,0,0)));
+						// debuglines->render(newbox);
 						FreeBlock* freeblock = new FreeBlock(newbox);
 						freeblock->fixed = true;
 						freeblock->set_pixel(new Pixel(1));
@@ -148,7 +149,7 @@ void Player::right_mouse(double deltatime) {
 		float dist = (placing_pointing.y - angle.y) * 6.0f;
 		vec2 dist2 = (placing_pointing - angle) * 6.0f;
 		
-		if (placing_freeblock == nullptr and dist > 0.05) {
+		if (false and placing_freeblock == nullptr and dist > 0.05) {
 			cout << "freeblock" << endl;
 			Pixel pix = *placing_block->pixel;
 			placing_block->pixel->set(0, 0);

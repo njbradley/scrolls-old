@@ -56,7 +56,16 @@ class UILogger : public Logger { public:
 	virtual void render(UIVecs* vecs);
 };
 
+class DebugLines { public:
+	PLUGIN_HEAD(DebugLines, ());
+	
+	virtual void render(vec3 start, vec3 end) { }
+	void render(Hitbox hitbox);
+	virtual void clear() { };
+};
+
 extern Plugin<Debugger> debugger;
 extern Plugin<Logger> logger;
+extern Plugin<DebugLines> debuglines;
 
 #endif

@@ -378,13 +378,13 @@ bool World::render() {
   
   
   if (playertile != nullptr and playertile->chunk->flags & RENDER_FLAG and !playertile->lightflag) {
-    playertile->render(graphics->blockvecs(), graphics->transvecs());
+    playertile->render(graphics->blockvecs, graphics->transvecs);
     changed = true;
   } else {
     for (Tile* tile : tiles) {
       changed = changed or (tile->chunk->flags & RENDER_FLAG and tile->fully_loaded);
       if (changed) {
-        tile->render(graphics->blockvecs(), graphics->transvecs());
+        tile->render(graphics->blockvecs, graphics->transvecs);
         break;
       }
     }
@@ -392,7 +392,7 @@ bool World::render() {
       for (Tile* tile : tiles) {
         if (!tile->lightflag) {
           changed = changed or (tile->chunk->flags & RENDER_FLAG);
-          tile->render(graphics->blockvecs(), graphics->transvecs());
+          tile->render(graphics->blockvecs, graphics->transvecs);
           if (changed) {
             break;
           }

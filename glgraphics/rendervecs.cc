@@ -147,3 +147,6 @@ void GLUIVecs::clear() {
 void* GLUIVecs::data() {
   return (void*) &datavec.front();
 }
+
+EXPORT_PLUGIN(AsyncGLVecs);
+EXPORT_PLUGIN(GLUIVecs);

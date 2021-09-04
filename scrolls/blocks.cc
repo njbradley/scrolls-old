@@ -981,6 +981,7 @@ void FreeBlock::tick() {
 }
 
 void FreeBlock::timestep(float deltatime) {
+  return;
   velocity += vec3(0,-1,0) * deltatime;
   Hitbox newbox = box;
   newbox.position += velocity * deltatime;
@@ -988,9 +989,9 @@ void FreeBlock::timestep(float deltatime) {
   for (int i = 0; i < freeiter.num_bases; i ++) {
   for (Pixel* pix : freeiter.bases[i]->iter()) {
   // for (Pixel* pix : freeiter) {
-    cout << pix->parbl->globalpos << ' ' << newbox << endl;
+    // cout << pix->parbl->globalpos << ' ' << newbox << endl;
     if (pix->value != 0) {
-      cout << "yoooo  " << endl;
+      // cout << "yoooo  " << endl;
       vec3 colamount;
       vec3 colpoint;
       if (newbox.collide(pix->parbl->hitbox(), &colamount, &colpoint)) {
@@ -1269,13 +1270,14 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
       // Block* block = parbl->get_global((vec3(gpos) + parbl->scale/2.0f) + vec3(dir) * (parbl->scale/2.0f), parbl->scale, dir);
       // Block* block = parbl->get_global(gpos + dir * parbl->scale, parbl->scale);
       renderdata.type.faces[i].tex = 0;
-      if (parbl->freecontainer != nullptr) {
-        renderdata.type.faces[i].tex = mat[i];
-        renderdata.type.faces[i].rot = dirs[i];
-        renderdata.type.faces[i].blocklight = lightmax;
-        renderdata.type.faces[i].sunlight = lightmax;
-        exposed = true;
-      } else if (parbl->is_air(dir, value)) {
+      // if (parbl->freecontainer != nullptr) {
+      //   renderdata.type.faces[i].tex = mat[i];
+      //   renderdata.type.faces[i].rot = dirs[i];
+      //   renderdata.type.faces[i].blocklight = lightmax;
+      //   renderdata.type.faces[i].sunlight = lightmax;
+      //   exposed = true;
+      // } else
+      if (parbl->is_air(dir, value)) {
         renderdata.type.faces[i].tex = mat[i];
         renderdata.type.faces[i].rot = dirs[i];
         renderdata.type.faces[i].blocklight = parbl->get_blocklight(dir);

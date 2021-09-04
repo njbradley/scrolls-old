@@ -50,7 +50,7 @@ void SingleGame::setup_gameloop() {
 void SingleGame::gametick() {
 	
 	static double lastTime = getTime();
-	double curtime = getTime();\
+	double curtime = getTime();
 	double deltatime = curtime - lastTime;
 	lastTime = curtime;
 	
@@ -61,8 +61,8 @@ void SingleGame::gametick() {
 	
 	graphics->block_draw_call();
 	
-	world->player->render_ui(graphics->uivecs());
-	logger->render(graphics->uivecs());
+	world->player->render_ui(graphics->uivecs);
+	logger->render(graphics->uivecs);
 	graphics->ui_draw_call();
 	
 	graphics->swap();
@@ -77,6 +77,8 @@ void SingleGame::gametick() {
 		logger->pause();
 	} else if (controls->key_pressed(controls->KEY_CTRL) and controls->key_pressed('A')) {
 		logger->unpause();
+	} else if (controls->key_pressed('L')) {
+		debuglines->clear();
 	}
 	if (controls->key_pressed(controls->KEY_CTRL)) {
 		for (int i = 0; i < 10; i ++) {

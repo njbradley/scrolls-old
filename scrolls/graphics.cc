@@ -41,9 +41,9 @@ void ViewBox::timestep(double deltatime, double daytime) {
   }
   
   if (sunindex.isnull()) {
-    sunindex = graphics->blockvecs()->add(data);
+    sunindex = graphics->blockvecs->add(data);
   } else {
-    graphics->blockvecs()->edit(sunindex, data);
+    graphics->blockvecs->edit(sunindex, data);
   }
   
   data.pos.loc.pos = *playerpos - sundirection * 1000.0f;
@@ -55,9 +55,9 @@ void ViewBox::timestep(double deltatime, double daytime) {
   }
   
   if (moonindex.isnull()) {
-    moonindex = graphics->blockvecs()->add(data);
+    moonindex = graphics->blockvecs->add(data);
   } else {
-    graphics->blockvecs()->edit(moonindex, data);
+    graphics->blockvecs->edit(moonindex, data);
   }
 	
 	vec3 suncolor;

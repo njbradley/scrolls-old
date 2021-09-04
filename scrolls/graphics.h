@@ -5,6 +5,7 @@
 #include "plugins.h"
 #include "rendervecs.h"
 
+
 struct ViewParams {
 	double view_distance;
 	vec3 clear_color;
@@ -44,9 +45,9 @@ class GraphicsContext { public:
 	virtual const PathLib* trans_block_textures() const = 0;
 	virtual const PathLib* ui_textures() const = 0;
 	
-	virtual RenderVecs* blockvecs() = 0;
-	virtual RenderVecs* transvecs() = 0;
-	virtual UIVecs* uivecs() = 0;
+	PluginNow<RenderVecs> blockvecs;
+	PluginNow<RenderVecs> transvecs;
+	PluginNow<UIVecs> uivecs;
 	
 	virtual void block_draw_call() = 0;
 	virtual void ui_draw_call() = 0;

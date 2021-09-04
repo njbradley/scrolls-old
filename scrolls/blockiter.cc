@@ -4,6 +4,7 @@
 #include "blockiter.h"
 #include "blocks.h"
 #include "world.h"
+#include "debug.h"
 
 
 
@@ -72,6 +73,7 @@ FreeBlockIter::FreeBlockIter(Collider* world, Hitbox newbox): box(newbox) {
   };
   
   // cout << endl << endl << "Freeblockiter " << newbox << endl;
+  debuglines->render(newbox);
   
   vec3 points[8];
   box.points(points);

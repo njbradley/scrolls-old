@@ -5,7 +5,8 @@
 #include "rendervecs.h"
 #include "ui.h"
 
-
+DEFINE_PLUGIN(RenderVecs);
+DEFINE_PLUGIN(UIVecs);
 
 RenderIndex::RenderIndex(int newindex): index(newindex) {
   

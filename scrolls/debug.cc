@@ -6,7 +6,7 @@
 
 DEFINE_PLUGIN(Logger);
 DEFINE_PLUGIN(Debugger);
-
+DEFINE_PLUGIN(DebugLines);
 
 
 UILogger::Page::Page(): lines(60), ostr(this) {
@@ -89,7 +89,33 @@ void UILogger::render(UIVecs* vecs) {
 	}
 }
 
+
+
+void DebugLines::render(Hitbox hitbox) {
+	vec3 points[8];
+	hitbox.points(points);
+	// x=0 face
+	render(points[0], points[1]);
+	render(points[0], points[2]);
+	render(points[2], points[3]);
+	render(points[1], points[3]);
+	// x=1 face
+	render(points[4], points[5]);
+	render(points[4], points[6]);
+	render(points[6], points[7]);
+	render(points[5], points[7]);
+	// connectors
+	render(points[0], points[4]);
+	render(points[1], points[5]);
+	render(points[2], points[6]);
+	render(points[3], points[7]);
+}
+
+
+
 Plugin<Debugger> debugger;
 Plugin<Logger> logger;
+Plugin<DebugLines> debuglines;
 
 EXPORT_PLUGIN(UILogger);
+EXPORT_PLUGIN(DebugLines);

@@ -18,8 +18,10 @@ class Hitbox { public:
   Hitbox();
   
   void points(vec3* points) const;
+  // global neg and pos points
   vec3 point1() const;
   vec3 point2() const;
+  
   vec3 size() const;
   vec3 local_center() const;
   vec3 global_center() const;
