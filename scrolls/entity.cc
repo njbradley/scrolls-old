@@ -145,22 +145,22 @@ bool Hitbox::collide(Hitbox other, vec3* colliding_amount, vec3* colliding_point
   };
   
   vec3 tvec = global_center() - other.global_center(); // vec to other box
-  
-  if (glm::length(tvec) > (glm::length(size())/2.0f + glm::length(other.size())/2.0f)/2.0f) {
+  if (glm::length(tvec) >= (glm::length(size()) + glm::length(other.size()))/2.0f) {
     return false;
   }
   if (glm::length(tvec) < (std::min(std::min(size().x, size().y), size().z)
       + std::min(std::min(other.size().x, other.size().y), other.size().z)) / 2.0f) {
     //return true;
   }
-  
+  // cout << glm::length(tvec) << " LEN " << tvec << ' ' << size() << ' ' << other.size() << endl;
+  /*
   vec3 close_points[4];
   for (int i = 0, j = 0; i < 8; i ++) {
     vec3 point = transform_out_dir((size() * vec3(i/4,i/2%2,i%2) + size()) / 2.0f);
     if (glm::dot(point, tvec) > 0) {
       close_points[j++] = point;
     }
-  }
+  }*/
   
   vec3 least_axis;
   float least_overlap = 0;
@@ -170,6 +170,7 @@ bool Hitbox::collide(Hitbox other, vec3* colliding_amount, vec3* colliding_point
   for (vec3 axis : axes) {
     if (glm::length(axis) > 0) {
       axis = axis / glm::length(axis);
+      // debuglines->render(global_center(), global_center()+axis, vec3(0,0.7f,0.4f));
       
       float aproj = axis_projection(axis);
       float bproj = other.axis_projection(axis);
@@ -177,6 +178,8 @@ bool Hitbox::collide(Hitbox other, vec3* colliding_amount, vec3* colliding_point
       
       float space = tproj - (aproj + bproj) / 2.0f;
       
+      // cout << ' ' << space << ' ' << tvec << ' ' << tproj << ' ' << aproj << ' ' << bproj << ' ' << axis << endl;
+      // debuglines->render(global_center(), global_center()+axis*space, vec3(1,0,0));
       if (space >= 0) { // touching is not colliding
         return false;
       }
@@ -187,7 +190,7 @@ bool Hitbox::collide(Hitbox other, vec3* colliding_amount, vec3* colliding_point
       }
     }
   }
-  
+  /*
   if (colliding_amount != nullptr) {
     if (glm::dot(tvec, least_axis) > 0) {
       *colliding_amount = least_axis * -least_overlap;
@@ -211,7 +214,7 @@ bool Hitbox::collide(Hitbox other, vec3* colliding_amount, vec3* colliding_point
     }
     *colliding_point = allpoints / (float)num_points;
     cout << "colpoint " << *colliding_point << endl;
-  }
+  }*/
   return true;
 }
 

@@ -14,7 +14,7 @@ class GLDebugLines : public DebugLines { public:
 	
 	GLDebugLines();
 	~GLDebugLines();
-	virtual void render(vec3 start, vec3 end);
+	virtual void render(vec3 start, vec3 end, vec3 color = vec3(1,1,1));
 	virtual void clear();
 	void draw_call(glm::mat4 MVP);
 };

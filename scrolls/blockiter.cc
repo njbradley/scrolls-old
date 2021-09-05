@@ -73,6 +73,7 @@ FreeBlockIter::FreeBlockIter(Collider* world, Hitbox newbox): box(newbox) {
   };
   
   // cout << endl << endl << "Freeblockiter " << newbox << endl;
+  debuglines->clear();
   debuglines->render(newbox);
   
   vec3 points[8];
@@ -82,10 +83,20 @@ FreeBlockIter::FreeBlockIter(Collider* world, Hitbox newbox): box(newbox) {
   
   int num_removed = 0;
 	for (int i = 0; i < 8; i ++) {
-		if ((blocks[i-num_removed] = world->get_global(ivec3(points[i]), 1)) == nullptr) {
+    ivec3 pointpos = SAFEFLOOR3(points[i]);
+    if (i/4 != 0 and points[i].x == pointpos.x) {
+      pointpos.x --;
+    }
+    if (i/2%2 != 0 and points[i].y == pointpos.y) {
+      pointpos.y --;
+    }
+    if (i%2 != 0 and points[i].z == pointpos.z) {
+      pointpos.z --;
+    }
+    cout << ' ' << pointpos << ' ' << points[i] << ' ' << i << ' ' << ivec3(i/4,i/2%2,i%2) << endl;
+		if ((blocks[i-num_removed] = world->get_global(pointpos, 1)) == nullptr) {
 			num_removed++;
 		} else {
-      // cout << " init block " << blocks[i-num_removed] << ' ' << blocks[i-num_removed]->globalpos << ' ' << blocks[i-num_removed]->scale << endl;
       for (int j = 0; j < i-num_removed; j ++) {
         if (blocks[j] == blocks[i-num_removed]) {
           num_removed++;
@@ -94,11 +105,10 @@ FreeBlockIter::FreeBlockIter(Collider* world, Hitbox newbox): box(newbox) {
       }
     }
 	}
-  
   // for (vec3 point : points) cout << point << ' '; cout << endl;
   
   num_bases = 8 - num_removed;
-	
+	cout << " START num bases " << num_bases << endl;
   std::copy(blocks, blocks+8, bases);
   // cout << num_bases << ": ";
   // for (Block* block : blocks) cout << block << ' '; cout << endl;
@@ -132,6 +142,10 @@ FreeBlockIter::FreeBlockIter(Collider* world, Hitbox newbox): box(newbox) {
     }
   }
   
+  for (int i = 0; i < num_bases; i ++) {
+    debuglines->render(bases[i]->hitbox(), vec3(1,0,0));
+    cout << bases[i]->globalpos << ' ' << bases[i]->scale << " base " << endl;
+  }
   // cout << " END " << num_bases << ' ' << bases[0]->hitbox().contains(box) << endl << endl;
 }
 
@@ -148,6 +162,7 @@ FreeBlockIter::iterator FreeBlockIter::iterator::operator++() {
 }
 
 void FreeBlockIter::iterator::increment(Block* block) {
+  vec3 oldpos = vec3(block->globalpos) + block->scale/2.0f;
   while (block->parent != base->parent and block->parentpos == parent->end_pos) {
     block = block->parent;
   }
@@ -165,29 +180,40 @@ void FreeBlockIter::iterator::increment(Block* block) {
   }
   ivec3 pos = parent->increment_func(block->parentpos, parent->start_pos, parent->end_pos);
   block = block->parent->get(pos);
+  debuglines->render(oldpos, vec3(block->globalpos) + block->scale/2.0f, vec3(1,1,0));
   get_to_pix(block);
 }
 
 void FreeBlockIter::iterator::get_to_pix(Block* block) {
   // cout << "get_to_pix ( " << block << ' ' << block->globalpos << ' ' << block->scale << endl;
   while (pix == nullptr) {
+    vec3 oldpos = vec3(block->globalpos) + block->scale/2.0f;
     if (!parent->box.collide(block->hitbox())) {
       // cout << " not in face " << endl;
+      // debuglines->render(block->hitbox(), vec3(1,0.5f,0.5f));
       increment(block);
     } else if (block->continues) {
       // cout << " inner " << endl;
+      // debuglines->render(block->hitbox(), vec3(0.5f,1,0.5f));
       block = block->get(parent->start_pos);
     } else {
+      debuglines->render(block->hitbox(), vec3(0.5f,0.5f,1));
+      debuglines->render(block->hitbox().global_center(), parent->box.global_center(), vec3(0,1,1));
       // cout << " setting " << endl;
       pix = block->pixel;
+      // cout << "end " << pix << " PIX " << block << " Block" << endl;
+      // increment(block);
     }
+    debuglines->render(oldpos, vec3(block->globalpos) + block->scale/2.0f, vec3(1,0,1));
   }
 }
 
 FreeBlockIter::iterator FreeBlockIter::begin() {
   if (num_bases == 0) {
+    cout << "NOTHING " << endl;
     return end();
   }
+  cout << "SOMETJGIN" << endl;
   iterator iter {this, bases[0], 0, nullptr};
   iter.get_to_pix(bases[0]);
   return iter;
@@ -235,7 +261,10 @@ BlockTouchSideIter::BlockTouchSideIter(Block* block, ivec3 dir) {
       vec3 dy;
       vec3 position = block->globalpos;
       Hitbox localbox = block->local_hitbox();
+      localbox.position += vec3(dir) * float(block->scale);
+      // debuglines->render(block->freecontainer->box.transform_out(localbox));
       int dir_index = dir_to_index(dir);
+      dir_index = (dir_index + 3) % 6; // flips dir
       if (dir_index < 3) {
         localbox.negbox[dir_index] += block->scale - 0.1f;
       } else {
@@ -244,9 +273,6 @@ BlockTouchSideIter::BlockTouchSideIter(Block* block, ivec3 dir) {
       
       free = true;
       Hitbox newbox = block->freecontainer->box.transform_out(localbox);
-      cout << "BLOCKTOUCHSIDEITER " << endl;
-      cout << localbox << " -> " << newbox << endl;
-      cout << block->freecontainer->box << " freecontbox " << endl;
       freeiter = FreeBlockIter(block->world,
         newbox
       );

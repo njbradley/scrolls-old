@@ -114,7 +114,7 @@ void Player::right_mouse(double deltatime) {
 					if (airblock != nullptr) {
 						cout << "freeblock" << endl;
 						// Hitbox newbox (vec3(0,0,0), vec3(blockpos) - 0.5f, vec3(blockpos) + 0.5f);
-						Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f));//, glm::angleAxis(1.0f, vec3(1,0,0)));
+						Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f), glm::angleAxis(1.0f, vec3(dir)));
 						// debuglines->render(newbox);
 						FreeBlock* freeblock = new FreeBlock(newbox);
 						freeblock->fixed = true;
@@ -164,10 +164,12 @@ void Player::right_mouse(double deltatime) {
 			//
 			placing_freeblock = freeblock;
 		}
-		if (placing_freeblock != nullptr) {
-			// quat newrot = glm::angleAxis(dist, vec3(placing_dir));
+		if (false and placing_freeblock != nullptr) {
+			quat newrot = glm::angleAxis(dist, vec3(placing_dir));
 			//cout << "settting " << placing_freeblock << ' ' << placing_dir << endl;
-			// Hitbox newbox = placing_freeblock->box;
+			Hitbox newbox = placing_freeblock->box;
+			newbox.rotation = newrot;
+			placing_freeblock->set_box(newbox);
 			// newbox.position += vec3(dist2.x, 0, dist2.y);
 			// placing_freeblock->move(vec3(0,0,0), newrot * glm::inverse(newbox.rotation));
 			//placing_freeblock->set_rotation(newrot);

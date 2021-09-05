@@ -695,14 +695,18 @@ int Block::get_blocklight(ivec3 dir) {
 
 bool Block::is_air(ivec3 dir, char otherval) {
   // logger->log(9) << "Block isair " << endl;
+  // BlockTouchSideIter blockiter = iter_touching_side(dir);
+  // for (BlockTouchSideIter::iterator iter = blockiter.begin(); iter != blockiter.end(); ) {
+  bool isair = false;
   for (const Pixel* pix : iter_touching_side(dir)) {
     // logger->log(9) << pix->parbl << ' ' << pix->parbl->globalpos << ' ' << pix->parbl->scale << ' ' << pix->parbl->freecontainer << endl;
-    bool isair = (pix->value == 0 or (blockstorage[pix->value]->transparent and otherval != pix->value));
-    if (isair) {
-      return true;
-    }
+    // Pixel* pix = *iter;
+    isair = isair or (pix->value == 0 or (blockstorage[pix->value]->transparent and otherval != pix->value));
+    // if (isair) {
+    //   return true;
+    // }
   }
-  return false;
+  return isair;
 }
 
 bool Block::is_air(int dx, int dy, int dz, char otherval) const {
@@ -1264,7 +1268,9 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
      
     int minscale = 1;//blockdata->minscale;
     int i = 0;
-    
+    if (parbl->freecontainer != nullptr) {
+      debuglines->clear();
+    }
     for (int i = 0; i < 6; i ++) {
       ivec3 dir = dir_array[i];
       // Block* block = parbl->get_global((vec3(gpos) + parbl->scale/2.0f) + vec3(dir) * (parbl->scale/2.0f), parbl->scale, dir);
@@ -1280,8 +1286,8 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
       if (parbl->is_air(dir, value)) {
         renderdata.type.faces[i].tex = mat[i];
         renderdata.type.faces[i].rot = dirs[i];
-        renderdata.type.faces[i].blocklight = parbl->get_blocklight(dir);
-        renderdata.type.faces[i].sunlight = parbl->get_sunlight(dir);
+        renderdata.type.faces[i].blocklight = (parbl->freecontainer == nullptr) ? parbl->get_blocklight(dir) : 20;
+        renderdata.type.faces[i].sunlight = (parbl->freecontainer == nullptr) ? parbl->get_sunlight(dir) : 20;
         exposed = true;
       }
     }

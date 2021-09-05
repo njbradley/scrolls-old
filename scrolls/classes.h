@@ -39,7 +39,7 @@ typedef unsigned int uint;
 
 #define SAFEMOD(a,b) ( ((b) + ((a)%(b))) % (b) )
 #define SAFEDIV(a,b) ( (a) / (b) + (((a) % (b)) >> 31) )
-#define SAFEFLOOR(a) ( int(a) - (a - int(a) < 0) )
+#define SAFEFLOOR(a) ( int(a) - ((a) - int(a) < 0) )
 #define SAFEFLOOR3(a) ( ivec3(SAFEFLOOR((a).x), SAFEFLOOR((a).y), SAFEFLOOR((a).z)) )
 
 #define ERR(msg) throw std::runtime_error(string(msg) + "\n" + __PRETTY_FUNCTION__ + ": " + __FILE__ + " Line " + std::to_string(__LINE__));
@@ -79,6 +79,9 @@ typedef int Blocktype;
 extern const ivec3 dir_array[6];
 int dir_to_index(ivec3 dir);
 
+template <typename T> int sign(T val) {
+    return (T(0) < val) - (val < T(0));
+}
 
 ////////////////// CLASSES ///////////////////////////
 class Game;

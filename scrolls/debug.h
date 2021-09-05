@@ -59,8 +59,8 @@ class UILogger : public Logger { public:
 class DebugLines { public:
 	PLUGIN_HEAD(DebugLines, ());
 	
-	virtual void render(vec3 start, vec3 end) { }
-	void render(Hitbox hitbox);
+	virtual void render(vec3 start, vec3 end, vec3 color = vec3(1,1,1)) { }
+	void render(Hitbox hitbox, vec3 color = vec3(1,1,1));
 	virtual void clear() { };
 };
 
