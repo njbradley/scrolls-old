@@ -153,19 +153,13 @@ bool Hitbox::collide(Hitbox other, vec3* colliding_amount, vec3* colliding_point
     //return true;
   }
   // cout << glm::length(tvec) << " LEN " << tvec << ' ' << size() << ' ' << other.size() << endl;
-  /*
-  vec3 close_points[4];
-  for (int i = 0, j = 0; i < 8; i ++) {
-    vec3 point = transform_out_dir((size() * vec3(i/4,i/2%2,i%2) + size()) / 2.0f);
-    if (glm::dot(point, tvec) > 0) {
-      close_points[j++] = point;
-    }
-  }*/
   
   vec3 least_axis;
-  float least_overlap = 0;
+  float least_overlap = -9999999;
   vec3 least_point;
-  float other_overlap = 0;
+  float my_proj = 0;
+  float other_proj = 0;
+  float t_proj;
   
   for (vec3 axis : axes) {
     if (glm::length(axis) > 0) {
@@ -183,38 +177,86 @@ bool Hitbox::collide(Hitbox other, vec3* colliding_amount, vec3* colliding_point
       if (space >= 0) { // touching is not colliding
         return false;
       }
-      if (space < least_overlap) {
+      if (space > least_overlap) {
         least_overlap = space;
         least_axis = axis;
-        other_overlap = bproj;
+        my_proj = aproj;
+        other_proj = bproj;
+        t_proj = tproj;
       }
     }
   }
-  /*
+  
   if (colliding_amount != nullptr) {
     if (glm::dot(tvec, least_axis) > 0) {
       *colliding_amount = least_axis * -least_overlap;
     } else {
       *colliding_amount = least_axis * least_overlap;
     }
-    cout << "colamount " << *colliding_amount << endl;
   }
   if (colliding_point != nullptr) {
-    float proj_threshold = other_overlap / 2;
+    
+    vec3 close_points[4];
+    for (int i = 0, j = 0; i < 8; i ++) {
+      vec3 point = transform_out_dir(size() * vec3(i/4,i/2%2,i%2) - size() / 2.0f);
+      if (glm::dot(point, tvec) < 0) {
+        close_points[j++] = point;
+      }
+    }
+    
+    vec3 other_close_points[4];
+    for (int i = 0, j = 0; i < 8; i ++) {
+      vec3 point = other.transform_out_dir(other.size() * vec3(i/4,i/2%2,i%2) - other.size() / 2.0f);
+      if (glm::dot(point, tvec) > 0) {
+        other_close_points[j++] = point;
+      }
+    }
     
     float max_proj = 0;
     vec3 allpoints (0,0,0);
     int num_points = 0;
+    
+    vec3 contained_points_sum (0,0,0);
+    vec3 past_points_sum (0,0,0);
+    
+    vector<vec3> contained_points;
+    vector<vec3> past_points;
+    
+    
     for (vec3 point : close_points) {
       float proj = std::abs(glm::dot(point, least_axis));
-      if (proj >= proj_threshold) {
-        allpoints += point;
-        num_points ++;
+      vec3 real_point = transform_out(size()/2.0f + point);
+      if (proj >= t_proj - other_proj/2) {
+        past_points_sum += real_point;
+        past_points.push_back(real_point);
+      }
+      if (other.contains(real_point)) {
+        contained_points_sum += real_point;
+        contained_points.push_back(real_point);
       }
     }
-    *colliding_point = allpoints / (float)num_points;
-    cout << "colpoint " << *colliding_point << endl;
-  }*/
+    
+    for (vec3 point : other_close_points) {
+      float proj = std::abs(glm::dot(point, least_axis));
+      vec3 real_point = other.transform_out(other.size()/2.0f + point);
+      if (proj >= t_proj - my_proj/2) {
+        past_points_sum += real_point;
+        past_points.push_back(real_point);
+      }
+      if (contains(real_point)) {
+        contained_points_sum += real_point;
+        contained_points.push_back(real_point);
+      }
+    }
+    
+    if (contained_points.size() != 0) {
+      *colliding_point = contained_points_sum / (float)contained_points.size();
+      cout << "colpoint contained " << *colliding_point << endl;
+    } else {
+      *colliding_point = past_points_sum / (float)past_points.size();
+      cout << "colpoint past " << *colliding_point << endl;
+    }
+  }
   return true;
 }
 

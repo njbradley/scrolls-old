@@ -73,8 +73,8 @@ FreeBlockIter::FreeBlockIter(Collider* world, Hitbox newbox): box(newbox) {
   };
   
   // cout << endl << endl << "Freeblockiter " << newbox << endl;
-  debuglines->clear();
-  debuglines->render(newbox);
+  // debuglines->clear();
+  // debuglines->render(newbox);
   
   vec3 points[8];
   box.points(points);
@@ -93,7 +93,6 @@ FreeBlockIter::FreeBlockIter(Collider* world, Hitbox newbox): box(newbox) {
     if (i%2 != 0 and points[i].z == pointpos.z) {
       pointpos.z --;
     }
-    cout << ' ' << pointpos << ' ' << points[i] << ' ' << i << ' ' << ivec3(i/4,i/2%2,i%2) << endl;
 		if ((blocks[i-num_removed] = world->get_global(pointpos, 1)) == nullptr) {
 			num_removed++;
 		} else {
@@ -108,9 +107,8 @@ FreeBlockIter::FreeBlockIter(Collider* world, Hitbox newbox): box(newbox) {
   // for (vec3 point : points) cout << point << ' '; cout << endl;
   
   num_bases = 8 - num_removed;
-	cout << " START num bases " << num_bases << endl;
   std::copy(blocks, blocks+8, bases);
-  // cout << num_bases << ": ";
+  
   // for (Block* block : blocks) cout << block << ' '; cout << endl;
   int scale = 1;
   while (num_bases > 1 and blocks[0] != nullptr) {
@@ -142,10 +140,6 @@ FreeBlockIter::FreeBlockIter(Collider* world, Hitbox newbox): box(newbox) {
     }
   }
   
-  for (int i = 0; i < num_bases; i ++) {
-    debuglines->render(bases[i]->hitbox(), vec3(1,0,0));
-    cout << bases[i]->globalpos << ' ' << bases[i]->scale << " base " << endl;
-  }
   // cout << " END " << num_bases << ' ' << bases[0]->hitbox().contains(box) << endl << endl;
 }
 
@@ -180,7 +174,7 @@ void FreeBlockIter::iterator::increment(Block* block) {
   }
   ivec3 pos = parent->increment_func(block->parentpos, parent->start_pos, parent->end_pos);
   block = block->parent->get(pos);
-  debuglines->render(oldpos, vec3(block->globalpos) + block->scale/2.0f, vec3(1,1,0));
+  // debuglines->render(oldpos, vec3(block->globalpos) + block->scale/2.0f, vec3(1,1,0));
   get_to_pix(block);
 }
 
@@ -197,23 +191,21 @@ void FreeBlockIter::iterator::get_to_pix(Block* block) {
       // debuglines->render(block->hitbox(), vec3(0.5f,1,0.5f));
       block = block->get(parent->start_pos);
     } else {
-      debuglines->render(block->hitbox(), vec3(0.5f,0.5f,1));
-      debuglines->render(block->hitbox().global_center(), parent->box.global_center(), vec3(0,1,1));
+      // debuglines->render(block->hitbox(), vec3(0.5f,0.5f,1));
+      // debuglines->render(block->hitbox().global_center(), parent->box.global_center(), vec3(0,1,1));
       // cout << " setting " << endl;
       pix = block->pixel;
       // cout << "end " << pix << " PIX " << block << " Block" << endl;
       // increment(block);
     }
-    debuglines->render(oldpos, vec3(block->globalpos) + block->scale/2.0f, vec3(1,0,1));
+    // debuglines->render(oldpos, vec3(block->globalpos) + block->scale/2.0f, vec3(1,0,1));
   }
 }
 
 FreeBlockIter::iterator FreeBlockIter::begin() {
   if (num_bases == 0) {
-    cout << "NOTHING " << endl;
     return end();
   }
-  cout << "SOMETJGIN" << endl;
   iterator iter {this, bases[0], 0, nullptr};
   iter.get_to_pix(bases[0]);
   return iter;

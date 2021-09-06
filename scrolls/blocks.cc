@@ -11,6 +11,7 @@
 #include "blockiter.h"
 #include "debug.h"
 #include "graphics.h"
+#include "player.h"
 
 const uint8 lightmax = 20;
 
@@ -967,7 +968,7 @@ vec3 Block::force(vec3 amount) {
 
 
 
-FreeBlock::FreeBlock(Hitbox newbox): Block(), box(newbox) {
+FreeBlock::FreeBlock(Hitbox newbox): Block(), box(newbox), velocity(0,0,0), angularvel(0,0,0) {
   
 }
 
@@ -985,29 +986,51 @@ void FreeBlock::tick() {
 }
 
 void FreeBlock::timestep(float deltatime) {
-  return;
-  velocity += vec3(0,-1,0) * deltatime;
+  // return;
+  static bool n_pressed = false;
+  
+  if (controls->key_pressed('M')) {
+    fixed = false;
+  }
+  if (controls->key_pressed('B')) {
+    fixed = true;
+  }
+  
+  bool cur_n_pressed = controls->key_pressed('N');
+  if (fixed and (!cur_n_pressed or n_pressed)) {
+    n_pressed = cur_n_pressed;
+    return;
+  }
+  n_pressed = cur_n_pressed;
+  
+  debuglines->clear();
+  velocity += vec3(0,-1,-0.2f) * deltatime;
   Hitbox newbox = box;
   newbox.position += velocity * deltatime;
   FreeBlockIter freeiter (highparent, newbox);
-  for (int i = 0; i < freeiter.num_bases; i ++) {
-  for (Pixel* pix : freeiter.bases[i]->iter()) {
-  // for (Pixel* pix : freeiter) {
+  // for (int i = 0; i < freeiter.num_bases; i ++) {
+  // for (Pixel* pix : freeiter.bases[i]->iter()) {
+  for (Pixel* pix : freeiter) {
     // cout << pix->parbl->globalpos << ' ' << newbox << endl;
     if (pix->value != 0) {
       // cout << "yoooo  " << endl;
       vec3 colamount;
       vec3 colpoint;
       if (newbox.collide(pix->parbl->hitbox(), &colamount, &colpoint)) {
-        cout << colamount << ' ' << colpoint << ' ' << endl;
-        newbox.position -= colamount;
+        debuglines->render(colpoint, newbox.global_center(), vec3(0,1,1));
+        fixed = true;
+        
+        cout << "  " << colamount << ' ' << colpoint << ' ' << endl;
+        newbox.position += colamount;
         vec3 colaxis = colamount / glm::length(colamount);
-        if (glm::dot(velocity, colaxis) > 0) {
+        if (glm::dot(velocity, colaxis) < 0) {
           velocity -= glm::dot(velocity, colaxis) * colaxis;
         }
       }
     }
-  }}
+  }//}
+  debuglines->render(newbox);
+  debuglines->render(newbox.global_center(), newbox.global_center() + velocity);
   set_box(newbox);
 }
 
@@ -1268,9 +1291,6 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
      
     int minscale = 1;//blockdata->minscale;
     int i = 0;
-    if (parbl->freecontainer != nullptr) {
-      debuglines->clear();
-    }
     for (int i = 0; i < 6; i ++) {
       ivec3 dir = dir_array[i];
       // Block* block = parbl->get_global((vec3(gpos) + parbl->scale/2.0f) + vec3(dir) * (parbl->scale/2.0f), parbl->scale, dir);
@@ -1283,7 +1303,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
       //   renderdata.type.faces[i].sunlight = lightmax;
       //   exposed = true;
       // } else
-      if (parbl->is_air(dir, value)) {
+      if (parbl->is_air(dir, value) and parbl->freecontainer == nullptr) {
         renderdata.type.faces[i].tex = mat[i];
         renderdata.type.faces[i].rot = dirs[i];
         renderdata.type.faces[i].blocklight = (parbl->freecontainer == nullptr) ? parbl->get_blocklight(dir) : 20;
