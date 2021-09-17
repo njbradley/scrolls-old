@@ -14,6 +14,7 @@
 
 
 int test_main(int numargs, char** args) {
+	pluginloader.load();
 	Storage<Test> tests;
 	tests.init();
 	

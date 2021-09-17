@@ -445,7 +445,7 @@ void Block::join() { ASSERT(ISCHUNK)
   pixel = nullptr;
 }
 
-void Block::try_join() { ASSERT(ISCHUNK)
+void Block::try_join() {
   Blocktype type = -1;
   for (CHILDREN_LOOP(i)) {
     if (children[i]->continues or children[i]->freechild != nullptr) {
@@ -1008,30 +1008,44 @@ void FreeBlock::timestep(float deltatime) {
   Hitbox newbox = box;
   newbox.position += velocity * deltatime;
   FreeBlockIter freeiter (highparent, newbox);
+  CollisionPlan plan (newbox);
   // for (int i = 0; i < freeiter.num_bases; i ++) {
   // for (Pixel* pix : freeiter.bases[i]->iter()) {
   for (Pixel* pix : freeiter) {
     // cout << pix->parbl->globalpos << ' ' << newbox << endl;
     if (pix->value != 0) {
       // cout << "yoooo  " << endl;
-      vec3 colamount;
-      vec3 colpoint;
-      if (newbox.collide(pix->parbl->hitbox(), &colamount, &colpoint)) {
-        debuglines->render(colpoint, newbox.global_center(), vec3(0,1,1));
+      plan.add_box(pix->parbl->hitbox());
+      // pix->erase_render();
+      // fixed = true;
+      /*cout << "MAKING MANIFOLD" << endl;
+      CollisionManifold manifold(newbox, pix->parbl->hitbox());
+      if (manifold) {
+        debuglines->render(manifold.col_point, newbox.global_center(), vec3(0,1,1));
         fixed = true;
         
-        cout << "  " << colamount << ' ' << colpoint << ' ' << endl;
-        newbox.position += colamount;
-        vec3 colaxis = colamount / glm::length(colamount);
-        if (glm::dot(velocity, colaxis) < 0) {
-          velocity -= glm::dot(velocity, colaxis) * colaxis;
+        newbox.position += manifold.col_axis * manifold.col_amount;
+        if (glm::dot(velocity, manifold.col_axis) < 0) {
+          velocity -= glm::dot(velocity, manifold.col_axis) * manifold.col_axis;
         }
+        vec3 torque_point = manifold.torque_point(newbox.global_center(), velocity);
+        vec3 torque = glm::cross(newbox.global_center() - torque_point, velocity);
+        angularvel += torque;
       }
+      cout << "DONE " << endl;*/
     }
   }//}
+  
+  angularvel += plan.torque(newbox.global_center(), velocity) * deltatime;
+  newbox = plan.newbox();
+  velocity = plan.constrain_vel(velocity);
+  
   debuglines->render(newbox);
+  debuglines->render(newbox.global_center(), newbox.global_center() + angularvel, vec3(1,0,0));
   debuglines->render(newbox.global_center(), newbox.global_center() + velocity);
   set_box(newbox);
+  debuglines->render(highparent->hitbox(), vec3(1,1,0));
+  debuglines->render(highparent->freebox(), vec3(1,0,0));
 }
 
 void FreeBlock::set_box(Hitbox newbox) {

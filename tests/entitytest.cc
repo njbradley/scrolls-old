@@ -31,7 +31,17 @@ struct EntityTest : Test {
 		// TASSERT_NOT(centerbox.collide(Hitbox(vec3(2,0,0), -ones, ones, quat(1,0,0,0), vec3(1,0,0)), 1));
 	}
 	
+	void line_tests() {
+		Line xax (vec3(0,0,0), vec3(1,0,0));
+		Line yax (vec3(0,0,0), vec3(0,1,0));
+		
+		TASSERT_EQ(vec3(0,0,0), xax.collision(yax));
+		TASSERT_EQ(vec3(1,0,0), xax.collision(Line(vec3(1,1,0), vec3(0,-1,0))));
+	}
+	
 	void test() {
+		line_tests();
+		
 		collide_tests();
 		vel_collide_tests();
 	}

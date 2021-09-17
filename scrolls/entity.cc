@@ -29,6 +29,135 @@ void print(vec3 v) {
 
 
 
+
+
+
+Line::Line(): position(0,0,0), direction(0,0,0) {
+  
+}
+
+Line::Line(vec3 pos, vec3 dir): position(pos), direction(dir) {
+  
+}
+
+bool Line::contains(vec3 point) const {
+  float dot = glm::dot(direction, point - position);
+  return dot == -1 or dot == 1;
+}
+
+bool Line::collides(Line other) const {
+  return !isnan(collision(other).x);
+}
+
+vec3 Line::collision(Line other) const {
+  // equasion: dir * time + pos = other.dir * time + other.pos
+  // simplifies to: time = other.pos - pos / (dir - other.dir)
+  
+  vec3 top = other.position - position;
+  vec3 bottom = other.direction - direction;
+  vec3 result = top / bottom;
+  float time;
+  bool set = false;
+  
+  
+  for (int i = 0; i < 3; i ++) {
+    if (!set) time = result[i];
+    if ((bottom[i] == 0 and top[i] != 0) or (bottom[i] != 0 and result[i] != time)) {
+      return vec3(nanf(""), 0, 0);
+    }
+    set = true;
+  }
+  cout << top << ' ' << bottom << ' ' << result << ' ' << time << endl;
+  return position + direction * time;
+}
+    
+
+Line::operator bool() const {
+  return direction == vec3(0,0,0);
+}
+
+Line Line::from_points(vec3 point1, vec3 point2) {
+  return Line(point1, (point2 - point1) / glm::length(point2 - point1));
+}
+
+
+
+
+
+
+Plane::Plane(): position(0,0,0), normal(0,0,0) {
+  
+}
+  
+Plane::Plane(vec3 pos, vec3 norm): position(pos), normal(norm) {
+  
+}
+
+bool Plane::contains(vec3 point) const {
+  return glm::dot(position - point, normal) == 0;
+}
+
+bool Plane::collides(Line line) const {
+  return !isnan(collision(line).x);
+}
+
+vec3 Plane::collision(Line line) const {
+  /// to get plane equasion: point dot direction == position dot direction;
+  float top = glm::dot(normal, position - line.position);
+  float bottom = glm::dot(normal, line.direction);
+  if (bottom == 0) {
+    if (top == 0) {
+      return line.position;
+    } else {
+      return vec3(nanf(""), 0, 0);
+    }
+  }
+  return line.position + (top/bottom) * line.direction;
+}
+
+bool Plane::collides(Plane other) const {
+  return collision(other);
+}
+
+Line Plane::collision(Plane other) const {
+  vec3 newdir = glm::cross(normal, other.normal);
+  vec3 toother = other.position - position;
+  Line topoint (position, toother - normal * glm::dot(toother, normal));
+  Line other_topoint (other.position, -toother - other.normal * glm::dot(-toother, other.normal));
+  vec3 newpoint = topoint.collision(other_topoint);
+  if (isnan(newpoint.x)) {
+    newdir = vec3(0,0,0);
+  }
+  Line result (newpoint, newdir);
+  return result;
+}
+
+Plane::operator bool() const {
+  return normal == vec3(0,0,0);
+}
+
+Plane Plane::from_points(vec3 point1, vec3 point2, vec3 point3) {
+  vec3 norm = glm::cross(point2 - point1, point3 - point2);
+  return Plane(point1, norm/glm::length(norm));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Hitbox::Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot):
 position(pos), negbox(nbox), posbox(pbox), rotation(rot) {
   
@@ -134,7 +263,7 @@ float Hitbox::axis_projection(vec3 axis) const {
        + std::abs(glm::dot(transform_out_dir(size() * vec3(0,0,1)), axis));
 }
 
-bool Hitbox::collide(Hitbox other, vec3* colliding_amount, vec3* colliding_point) const {
+bool Hitbox::collide(Hitbox other) const {
   /// using separating axis theorem:
   // https://www.jkh.me/files/tutorials/Separating%20Axis%20Theorem%20for%20Oriented%20Bounding%20Boxes.pdf
   vec3 axes[] = {
@@ -150,16 +279,9 @@ bool Hitbox::collide(Hitbox other, vec3* colliding_amount, vec3* colliding_point
   }
   if (glm::length(tvec) < (std::min(std::min(size().x, size().y), size().z)
       + std::min(std::min(other.size().x, other.size().y), other.size().z)) / 2.0f) {
-    //return true;
+    return true;
   }
   // cout << glm::length(tvec) << " LEN " << tvec << ' ' << size() << ' ' << other.size() << endl;
-  
-  vec3 least_axis;
-  float least_overlap = -9999999;
-  vec3 least_point;
-  float my_proj = 0;
-  float other_proj = 0;
-  float t_proj;
   
   for (vec3 axis : axes) {
     if (glm::length(axis) > 0) {
@@ -177,86 +299,9 @@ bool Hitbox::collide(Hitbox other, vec3* colliding_amount, vec3* colliding_point
       if (space >= 0) { // touching is not colliding
         return false;
       }
-      if (space > least_overlap) {
-        least_overlap = space;
-        least_axis = axis;
-        my_proj = aproj;
-        other_proj = bproj;
-        t_proj = tproj;
-      }
     }
   }
   
-  if (colliding_amount != nullptr) {
-    if (glm::dot(tvec, least_axis) > 0) {
-      *colliding_amount = least_axis * -least_overlap;
-    } else {
-      *colliding_amount = least_axis * least_overlap;
-    }
-  }
-  if (colliding_point != nullptr) {
-    
-    vec3 close_points[4];
-    for (int i = 0, j = 0; i < 8; i ++) {
-      vec3 point = transform_out_dir(size() * vec3(i/4,i/2%2,i%2) - size() / 2.0f);
-      if (glm::dot(point, tvec) < 0) {
-        close_points[j++] = point;
-      }
-    }
-    
-    vec3 other_close_points[4];
-    for (int i = 0, j = 0; i < 8; i ++) {
-      vec3 point = other.transform_out_dir(other.size() * vec3(i/4,i/2%2,i%2) - other.size() / 2.0f);
-      if (glm::dot(point, tvec) > 0) {
-        other_close_points[j++] = point;
-      }
-    }
-    
-    float max_proj = 0;
-    vec3 allpoints (0,0,0);
-    int num_points = 0;
-    
-    vec3 contained_points_sum (0,0,0);
-    vec3 past_points_sum (0,0,0);
-    
-    vector<vec3> contained_points;
-    vector<vec3> past_points;
-    
-    
-    for (vec3 point : close_points) {
-      float proj = std::abs(glm::dot(point, least_axis));
-      vec3 real_point = transform_out(size()/2.0f + point);
-      if (proj >= t_proj - other_proj/2) {
-        past_points_sum += real_point;
-        past_points.push_back(real_point);
-      }
-      if (other.contains(real_point)) {
-        contained_points_sum += real_point;
-        contained_points.push_back(real_point);
-      }
-    }
-    
-    for (vec3 point : other_close_points) {
-      float proj = std::abs(glm::dot(point, least_axis));
-      vec3 real_point = other.transform_out(other.size()/2.0f + point);
-      if (proj >= t_proj - my_proj/2) {
-        past_points_sum += real_point;
-        past_points.push_back(real_point);
-      }
-      if (contains(real_point)) {
-        contained_points_sum += real_point;
-        contained_points.push_back(real_point);
-      }
-    }
-    
-    if (contained_points.size() != 0) {
-      *colliding_point = contained_points_sum / (float)contained_points.size();
-      cout << "colpoint contained " << *colliding_point << endl;
-    } else {
-      *colliding_point = past_points_sum / (float)past_points.size();
-      cout << "colpoint past " << *colliding_point << endl;
-    }
-  }
   return true;
 }
 
@@ -287,23 +332,10 @@ bool Hitbox::contains(Hitbox other) const {
   return true;
 }
 
-void Hitbox::debug_render(RenderVecs* transvecs) {
-  RenderData renderdata;
-  
-  renderdata.pos.loc.pos = global_center();
-  renderdata.pos.loc.rot = rotation;
-  renderdata.pos.loc.scale = size().x;
-  
-  int tex = graphics->trans_block_textures()->getindex("hitbox.png");
-  
-  for (int i = 0; i < 6; i ++) {
-    renderdata.type.faces[i].tex = tex;
-    renderdata.type.faces[i].rot = 0;
-    renderdata.type.faces[i].blocklight = lightmax;
-    renderdata.type.faces[i].sunlight = lightmax;
-  }
-  
-  transvecs->add(renderdata);
+Hitbox Hitbox::move(vec3 amount) const {
+  Hitbox newbox = *this;
+  newbox.position += amount;
+  return newbox;
 }
 
 ostream& operator<<(ostream& ofile, const Hitbox& hitbox) {
@@ -330,6 +362,335 @@ Hitbox Hitbox::boundingbox_points(vec3 position, vec3* points, int num) {
 
 
 
+
+
+CollisionManifold::CollisionManifold(): result(false) {
+  
+}
+
+CollisionManifold::CollisionManifold(Hitbox nbox1, Hitbox nbox2): box1(nbox1), box2(nbox2) {
+  result = collision_result();
+}
+  
+
+bool CollisionManifold::collision_result() {
+  /// using separating axis theorem:
+  // https://www.jkh.me/files/tutorials/Separating%20Axis%20Theorem%20for%20Oriented%20Bounding%20Boxes.pdf
+  vec3 axes[] = {
+    box1.dirx(), box1.diry(), box1.dirz(), box2.dirx(), box2.diry(), box2.dirz(),
+    glm::cross(box1.dirx(), box2.dirx()), glm::cross(box1.dirx(), box2.diry()), glm::cross(box1.dirx(), box2.dirz()),
+    glm::cross(box1.diry(), box2.dirx()), glm::cross(box1.diry(), box2.diry()), glm::cross(box1.diry(), box2.dirz()),
+    glm::cross(box1.dirz(), box2.dirx()), glm::cross(box1.dirz(), box2.diry()), glm::cross(box1.dirz(), box2.dirz()),
+  };
+  
+  vec3 tvec = box1.global_center() - box2.global_center(); // vec to box2 box
+  if (glm::length(tvec) >= (glm::length(box1.size()) + glm::length(box2.size()))/2.0f) {
+    return false;
+  }
+  // if (glm::length(tvec) < (std::min(std::min(box1.size().x, box1.size().y), box1.size().z)
+  //     + std::min(std::min(box2.size().x, box2.size().y), box2.size().z)) / 2.0f) {
+  //   return true;
+  // }
+  
+  vec3 least_axis;
+  float least_overlap = -9999999;
+  vec3 least_point;
+  float my_proj = 0;
+  float other_proj = 0;
+  float t_proj;
+  
+  for (vec3 axis : axes) {
+    if (glm::length(axis) > 0) {
+      axis = axis / glm::length(axis);
+      
+      float aproj = box1.axis_projection(axis);
+      float bproj = box2.axis_projection(axis);
+      float tproj = std::abs(glm::dot(tvec, axis));
+      
+      float space = tproj - (aproj + bproj) / 2.0f;
+      
+      if (space >= 0) { // touching is not colliding
+        return false;
+      }
+      if (space > least_overlap) {
+        least_overlap = space;
+        least_axis = axis;
+        my_proj = aproj;
+        other_proj = bproj;
+        t_proj = tproj;
+      }
+    }
+  }
+  
+  if (glm::dot(tvec, least_axis) > 0) {
+    col_axis = least_axis;
+  } else {
+    col_axis = -least_axis;
+  }
+  col_amount = -least_overlap;
+  
+  vec3 close_points[4];
+  for (int i = 0, j = 0; i < 8; i ++) {
+    vec3 point = box1.transform_out_dir(box1.size() * vec3(i/4,i/2%2,i%2) - box1.size() / 2.0f);
+    if (glm::dot(point, tvec) < 0) {
+      close_points[j++] = point;
+    }
+  }
+  
+  vec3 other_close_points[4];
+  for (int i = 0, j = 0; i < 8; i ++) {
+    vec3 point = box2.transform_out_dir(box2.size() * vec3(i/4,i/2%2,i%2) - box2.size() / 2.0f);
+    if (glm::dot(point, tvec) > 0) {
+      other_close_points[j++] = point;
+    }
+  }
+  
+  float max_proj = 0;
+  vec3 allpoints (0,0,0);
+  int num_points = 0;
+  
+  vec3 contained_points_sum (0,0,0);
+  vec3 past_points_sum (0,0,0);
+  
+  vector<vec3> contained_points;
+  vector<vec3> past_points;
+  
+  
+  for (vec3 point : close_points) {
+    float proj = std::abs(glm::dot(point, least_axis));
+    vec3 real_point = box1.transform_out(box1.size()/2.0f + point);
+    if (proj >= t_proj - other_proj/2) {
+      past_points_sum += real_point;
+      past_points.push_back(real_point);
+    }
+    if (box2.contains(real_point)) {
+      contained_points_sum += real_point;
+      contained_points.push_back(real_point);
+    }
+  }
+  
+  for (vec3 point : other_close_points) {
+    float proj = std::abs(glm::dot(point, least_axis));
+    vec3 real_point = box2.transform_out(box2.size()/2.0f + point);
+    if (proj >= t_proj - my_proj/2) {
+      past_points_sum += real_point;
+      past_points.push_back(real_point);
+    }
+    if (box1.contains(real_point)) {
+      contained_points_sum += real_point;
+      contained_points.push_back(real_point);
+    }
+  }
+  
+  if (contained_points.size() != 0) {
+    col_point = contained_points_sum / (float)contained_points.size();
+    col_points.insert(col_points.begin(), contained_points.begin(), contained_points.end());
+    // cout << "colpoint contained " << col_point << endl;
+  } else {
+    col_point = past_points_sum / (float)past_points.size();
+    col_points.push_back(col_point);
+    // col_points.insert(col_points.begin(), past_points.begin(), past_points.end());
+    // cout << "colpoint past " << col_point << endl;
+  }
+  
+  return true;
+}
+
+CollisionManifold::operator bool() const {
+  return result;
+}
+
+vec3 CollisionManifold::torque_point(vec3 mass_point, vec3 vel_dir) const {
+  if (!result) return vec3(0,0,0);
+  
+  Line vel_line (mass_point, vel_dir);
+  
+  int num_points = col_points.size();
+  float av_proj = 0;
+  // finding average projection to vel_line
+  for (vec3 point : col_points) {
+    // cout << " col_point " << point << endl;
+    float proj = glm::dot(point, col_axis);
+    av_proj += proj;
+  }
+  av_proj /= num_points;
+  
+  Plane col_plane (col_axis * av_proj, col_axis);
+  vec3 start_colpos = col_plane.collision(vel_line);
+  
+  debuglines->render(mass_point, start_colpos, vec3(1,0,1));
+  
+  vec3 newpoints[num_points+1];
+  vec3 center (0,0,0);
+  
+  int num_removed = 0;
+  // flattening all points onto the plane (and remove duplicates)
+  for (int i = 0; i < num_points; i ++) {
+    vec3 relpoint = col_points[i] - col_plane.position;
+    relpoint = relpoint - col_axis * glm::dot(col_axis, relpoint);
+    vec3 newpoint = relpoint + col_plane.position;
+    // cout << " new point " <<  newpoint << " changed: " << col_points[i] - newpoint << endl;
+    
+    bool unique = true;
+    for (int j = 0; j < i - num_removed; j ++) {
+      unique = unique and newpoints[j] != newpoint;
+    }
+    
+    if (i == 0 or unique) {
+      newpoints[i-num_removed] = newpoint;
+      center += newpoint;
+    } else {
+      num_removed ++;
+    }
+  }
+  num_points -= num_removed;
+  center /= float(num_points);
+  // cout << "Num points " << num_points << endl;
+  
+  
+  
+  // reordering into list of line segments
+  for (int i = 1; i < num_points; i ++) {
+    vec3 lastpoint = newpoints[i-1];
+    float curscore = atan2(glm::dot(glm::cross(lastpoint-center, newpoints[i]-center), col_axis), glm::dot(lastpoint-center, newpoints[i]-center));
+    for (int j = i; j < num_points; j ++) {
+      float score = atan2(glm::dot(glm::cross(lastpoint-center, newpoints[j]-center), col_axis), glm::dot(lastpoint-center, newpoints[j]-center));
+      if ((curscore < 0 or score < curscore) and score > 0) {
+        vec3 tmp = newpoints[i];
+        newpoints[i] = newpoints[j];
+        newpoints[j] = tmp;
+        curscore = score;
+      }
+    }
+  }
+  // adding the first point at the end so that all line segments are there
+  if (newpoints[0] != newpoints[num_points-1]) {
+    newpoints[num_points] = newpoints[0];
+    num_points ++;
+  }
+  
+  int closest_point_index = -1;
+  float closest_point_dist;
+  bool outside = false;
+  // find closest point and check if start_colpos is inside
+  for (int i = 1; i < num_points; i ++) {
+    vec3 lastpoint = newpoints[i-1];
+    vec3 curpoint = newpoints[i];
+    
+    vec3 out_dir = glm::cross(lastpoint-curpoint, col_axis);
+    out_dir /= glm::length(out_dir);
+    
+    // debuglines->render(lastpoint - vec3(0,0.1f,0), curpoint - vec3(0,0.1f,0), vec3(0,1,0.5f));
+    // debuglines->render((lastpoint+curpoint)/2.0f - vec3(0,0.1f,0),
+    //       (lastpoint+curpoint)/2.0f - vec3(0,0.1f,0) + out_dir, vec3(0,1,1));
+    
+    vec3 dir_from_line = start_colpos - lastpoint;
+    if (glm::dot(dir_from_line, out_dir) < 0) {
+      outside = true;
+    }
+    
+    float dist = glm::length(curpoint - start_colpos);
+    if (closest_point_index == -1 or dist < closest_point_dist) {
+      closest_point_index = i;
+      closest_point_dist = dist;
+    }
+  }
+  
+  if (outside) {
+    vec3 closest_point = newpoints[closest_point_index];
+    vec3 lower_point = newpoints[closest_point_index-1];
+    vec3 upper_point = newpoints[(closest_point_index + 1) % num_points];
+    
+    vec3 lower_line_dir = glm::normalize(lower_point - closest_point);
+    // lower_line_dir /= glm::length(lower_line_dir);
+    vec3 upper_line_dir = glm::normalize(upper_point - closest_point);
+    // upper_line_dir /= glm::length(upper_line_dir);
+    
+    float lower_dot = glm::dot(start_colpos - closest_point, lower_line_dir);
+    float upper_dot = glm::dot(start_colpos - closest_point, upper_line_dir);
+    
+    if (lower_dot > 0) {
+      start_colpos = lower_line_dir * lower_dot + closest_point;
+    } else if (upper_dot > 0) {
+      start_colpos = upper_line_dir * upper_dot + closest_point;
+    } else {
+      start_colpos = closest_point;
+    }
+  }
+  debuglines->render(mass_point, start_colpos, vec3(1,0.5f,1));
+  
+  return start_colpos;
+}
+
+
+void CollisionManifold::combine(CollisionManifold other) {
+  if (!result) {
+    *this = other;
+  } else if (col_axis == other.col_axis) {
+    col_amount = std::max(col_amount, other.col_amount);
+    col_points.insert(col_points.end(), other.col_points.begin(), other.col_points.end());
+  } else {
+    cout << "ERR: combine called with not same col_axis" << endl;
+  }
+}
+
+
+
+CollisionPlan::CollisionPlan(Hitbox nbox): box(nbox) {
+  
+}
+
+void CollisionPlan::add_box(Hitbox newbox) {
+  CollisionManifold manifold(box, newbox);
+  if (manifold) {
+    collisions[manifold.col_axis].combine(manifold);
+  }
+}
+
+Hitbox CollisionPlan::newbox() const {
+  if (collisions.size() == 0) {
+    return box;
+  }
+  
+  vec3 movementdir (0,0,0);
+  for (const std::pair<vec3,CollisionManifold>& kv : collisions) {
+    movementdir += kv.second.col_amount * kv.second.col_axis;
+  }
+  
+  movementdir = glm::normalize(movementdir);
+  float max_dist_needed = 0;
+  for (const std::pair<vec3,CollisionManifold>& kv : collisions) {
+    vec3 colvec = kv.second.col_amount * kv.second.col_axis;
+    float proj = glm::dot(movementdir, kv.second.col_axis);
+    if (proj > 0) {
+      float dist_needed = 1/proj * kv.second.col_amount;
+      if (dist_needed > max_dist_needed) {
+        max_dist_needed = dist_needed;
+      }
+    }
+  }
+  return box.move(movementdir * max_dist_needed);
+}
+
+vec3 CollisionPlan::constrain_vel(vec3 velocity) const {
+  for (const std::pair<vec3,CollisionManifold>& kv : collisions) {
+    if (glm::dot(velocity, kv.second.col_axis) < 0) {
+      velocity -= glm::dot(velocity, kv.second.col_axis) * kv.second.col_axis;
+    }
+  }
+  return velocity;
+}
+
+vec3 CollisionPlan::torque(vec3 mass_point, vec3 vel_dir) const {
+  vec3 torque (0,0,0);
+  
+  for (const std::pair<vec3,CollisionManifold>& kv : collisions) {
+    vec3 torque_point = kv.second.torque_point(mass_point, vel_dir);
+    debuglines->render(mass_point, torque_point, vec3(1,0,1));
+    torque += glm::cross(mass_point - torque_point, vel_dir);
+  }
+  return torque;
+}
 
 
 // MovingHitbox::MovingHitbox(Hitbox box, vec3 vel = vec3(0,0,0), vec3 angvel = vec3(0,0,0), float newmass = 1.0f):
@@ -617,7 +978,7 @@ void Entity::calc_constraints() {
         }
         
         //positive side
-        //pos2 is the other point for the face
+        //pos2 is the box2 point for the face
         vec3 pos2 = pos*dir + neg*coords;
         bool constraint = false;
         for (int x = (int)pos2.x; x < pos.x+1; x ++) {

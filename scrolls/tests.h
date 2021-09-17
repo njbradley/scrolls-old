@@ -42,11 +42,11 @@ class Test : public TestParams { public:
 	result = false; \
 }
 
-#define TASSERT_EQ(VAL,X) auto x = X; if (x != VAL) { \
+#define TASSERT_EQ(VAL,X) { auto x = X; if (x != VAL) { \
 	errout << "	ERR: ASSERT_EQ failed: " << __PRETTY_FUNCTION__ << ": " __FILE__ << " at line " << __LINE__ \
 	<< endl << "		'" #X "' != '" << VAL << "', was '" << x << "'" << endl; \
 	result = false; \
-}
+}}
 
 
 #endif

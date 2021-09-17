@@ -6,6 +6,50 @@
 #include "collider.h"
 #include "items.h"
 
+
+
+
+class Line { public:
+  vec3 position;
+  vec3 direction;
+  
+  Line();
+  Line(vec3 pos, vec3 dir);
+  
+  bool contains(vec3 point) const;
+  
+  bool collides(Line other) const;
+  vec3 collision(Line other) const;
+  
+  operator bool() const;
+  
+  static Line from_points(vec3 point1, vec3 point2);
+};
+
+
+class Plane { public:
+  vec3 position;
+  vec3 normal;
+  
+  Plane();
+  Plane(vec3 pos, vec3 norm);
+  
+  bool contains(vec3 point) const;
+  
+  bool collides(Line line) const;
+  vec3 collision(Line line) const;
+  bool collides(Plane other) const;
+  Line collision(Plane other) const;
+  
+  operator bool() const;
+  
+  static Plane from_points(vec3 point1, vec3 point2, vec3 point3);
+};
+
+  
+
+
+
 // Class that represents a rectangular prism, with a position, minimum, and maximum point.
 // Immutable class
 class Hitbox { public:
@@ -44,7 +88,7 @@ class Hitbox { public:
   
   // boxes collide when they overlap, so bordering cubes are not colliding
   float axis_projection(vec3 axis) const;
-  bool collide(Hitbox other, vec3* colamount = nullptr, vec3* colpoint = nullptr) const;
+  bool collide(Hitbox other) const;
   
   bool contains_noedge(vec3 point) const;
   bool contains(vec3 point) const;
@@ -52,12 +96,42 @@ class Hitbox { public:
   // but they can be on the border.
   bool contains(Hitbox other) const;
   
-  void debug_render(RenderVecs* transvecs);
+  Hitbox move(vec3 amount) const;
   
   friend ostream& operator<<(ostream& ofile, const Hitbox& hitbox);
   
   static Hitbox boundingbox_points(vec3 pos, vec3* points, int num);
 };
+
+class CollisionManifold { public:
+  Hitbox box1;
+  Hitbox box2;
+  vec3 col_axis;
+  float col_amount;
+  vector<vec3> col_points;
+  vec3 col_point;
+  bool result;
+  
+  CollisionManifold();
+  CollisionManifold(Hitbox b1, Hitbox b2);
+  operator bool() const;
+  bool collision_result();
+  vec3 torque_point(vec3 mass_point, vec3 vel_dir) const;
+  void combine(CollisionManifold other);
+};
+
+class CollisionPlan { public:
+  Hitbox box;
+  std::map<vec3,CollisionManifold,vec3_comparator> collisions;
+  
+  CollisionPlan(Hitbox nbox);
+  
+  void add_box(Hitbox newbox);
+  Hitbox newbox() const;
+  vec3 constrain_vel(vec3 vel) const;
+  vec3 torque(vec3 mass_point, vec3 vel_dir) const;
+};
+  
 
 
 //
