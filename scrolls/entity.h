@@ -130,6 +130,7 @@ class CollisionPlan { public:
   Hitbox newbox() const;
   vec3 constrain_vel(vec3 vel) const;
   vec3 torque(vec3 mass_point, vec3 vel_dir) const;
+  vec3 constrain_torque(vec3 mass_point, vec3 vel_dir, vec3 torque) const;
 };
   
 

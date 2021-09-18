@@ -968,7 +968,7 @@ vec3 Block::force(vec3 amount) {
 
 
 
-FreeBlock::FreeBlock(Hitbox newbox): Block(), box(newbox), velocity(0,0,0), angularvel(0,0,0) {
+FreeBlock::FreeBlock(Hitbox newbox): Block(), box(newbox), velocity(0.5f,0,0), angularvel(0,0,0) {
   
 }
 
@@ -1004,9 +1004,12 @@ void FreeBlock::timestep(float deltatime) {
   n_pressed = cur_n_pressed;
   
   debuglines->clear();
-  velocity += vec3(0,-1,-0.2f) * deltatime;
+  velocity += vec3(0,-10,0) * deltatime;
   Hitbox newbox = box;
   newbox.position += velocity * deltatime;
+  if (angularvel != vec3(0,0,0)) {
+    newbox.rotation = glm::normalize(newbox.rotation * glm::angleAxis(glm::length(angularvel) * deltatime, glm::normalize(angularvel)));
+  }
   FreeBlockIter freeiter (highparent, newbox);
   CollisionPlan plan (newbox);
   // for (int i = 0; i < freeiter.num_bases; i ++) {
@@ -1035,8 +1038,10 @@ void FreeBlock::timestep(float deltatime) {
       cout << "DONE " << endl;*/
     }
   }//}
-  
-  angularvel += plan.torque(newbox.global_center(), velocity) * deltatime;
+  vec3 torque = plan.torque(newbox.global_center(), velocity);
+  cout << torque << endl;
+  angularvel += torque;
+  // angularvel = plan.constrain_torque(newbox.global_center(), velocity, angularvel);
   newbox = plan.newbox();
   velocity = plan.constrain_vel(velocity);
   
@@ -1317,7 +1322,8 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
       //   renderdata.type.faces[i].sunlight = lightmax;
       //   exposed = true;
       // } else
-      if (parbl->is_air(dir, value) and parbl->freecontainer == nullptr) {
+      // if (parbl->is_air(dir, value) and parbl->freecontainer == nullptr) {
+      if (parbl->is_air(dir, value)) {
         renderdata.type.faces[i].tex = mat[i];
         renderdata.type.faces[i].rot = dirs[i];
         renderdata.type.faces[i].blocklight = (parbl->freecontainer == nullptr) ? parbl->get_blocklight(dir) : 20;

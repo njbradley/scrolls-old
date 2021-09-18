@@ -458,7 +458,7 @@ bool CollisionManifold::collision_result() {
   
   for (vec3 point : close_points) {
     float proj = std::abs(glm::dot(point, least_axis));
-    vec3 real_point = box1.transform_out(box1.size()/2.0f + point);
+    vec3 real_point = box1.global_center() + point;//box1.transform_out(box1.size()/2.0f + point);
     if (proj >= t_proj - other_proj/2) {
       past_points_sum += real_point;
       past_points.push_back(real_point);
@@ -471,7 +471,7 @@ bool CollisionManifold::collision_result() {
   
   for (vec3 point : other_close_points) {
     float proj = std::abs(glm::dot(point, least_axis));
-    vec3 real_point = box2.transform_out(box2.size()/2.0f + point);
+    vec3 real_point = box2.global_center() + point;//box2.transform_out(box2.size()/2.0f + point);
     if (proj >= t_proj - my_proj/2) {
       past_points_sum += real_point;
       past_points.push_back(real_point);
@@ -502,6 +502,10 @@ CollisionManifold::operator bool() const {
 
 vec3 CollisionManifold::torque_point(vec3 mass_point, vec3 vel_dir) const {
   if (!result) return vec3(0,0,0);
+  
+  if (col_points.size() == 1) {
+    return col_points[0];
+  }
   
   Line vel_line (mass_point, vel_dir);
   
@@ -547,7 +551,9 @@ vec3 CollisionManifold::torque_point(vec3 mass_point, vec3 vel_dir) const {
   center /= float(num_points);
   // cout << "Num points " << num_points << endl;
   
-  
+  if (num_points == 1) {
+    return newpoints[0];
+  }
   
   // reordering into list of line segments
   for (int i = 1; i < num_points; i ++) {
@@ -577,12 +583,11 @@ vec3 CollisionManifold::torque_point(vec3 mass_point, vec3 vel_dir) const {
     vec3 lastpoint = newpoints[i-1];
     vec3 curpoint = newpoints[i];
     
-    vec3 out_dir = glm::cross(lastpoint-curpoint, col_axis);
-    out_dir /= glm::length(out_dir);
+    vec3 out_dir = glm::normalize(glm::cross(lastpoint-curpoint, col_axis));
     
-    // debuglines->render(lastpoint - vec3(0,0.1f,0), curpoint - vec3(0,0.1f,0), vec3(0,1,0.5f));
-    // debuglines->render((lastpoint+curpoint)/2.0f - vec3(0,0.1f,0),
-    //       (lastpoint+curpoint)/2.0f - vec3(0,0.1f,0) + out_dir, vec3(0,1,1));
+    debuglines->render(lastpoint - vec3(0,0.1f,0), curpoint - vec3(0,0.1f,0), vec3(0,1,0.5f));
+    debuglines->render((lastpoint+curpoint)/2.0f - vec3(0,0.1f,0),
+          (lastpoint+curpoint)/2.0f - vec3(0,0.1f,0) + out_dir, vec3(0,1,1));
     
     vec3 dir_from_line = start_colpos - lastpoint;
     if (glm::dot(dir_from_line, out_dir) < 0) {
@@ -673,10 +678,15 @@ Hitbox CollisionPlan::newbox() const {
 }
 
 vec3 CollisionPlan::constrain_vel(vec3 velocity) const {
+  bool drag = false;
   for (const std::pair<vec3,CollisionManifold>& kv : collisions) {
     if (glm::dot(velocity, kv.second.col_axis) < 0) {
       velocity -= glm::dot(velocity, kv.second.col_axis) * kv.second.col_axis;
+      drag = true;
     }
+  }
+  if (drag) {
+    velocity *= 0.95f;
   }
   return velocity;
 }
@@ -684,14 +694,62 @@ vec3 CollisionPlan::constrain_vel(vec3 velocity) const {
 vec3 CollisionPlan::torque(vec3 mass_point, vec3 vel_dir) const {
   vec3 torque (0,0,0);
   
+  vec3 vel_dir_norm = vel_dir;
+  if (vel_dir != vec3(0,0,0)) {
+    vel_dir_norm /= glm::length(vel_dir);
+  }
+  
   for (const std::pair<vec3,CollisionManifold>& kv : collisions) {
     vec3 torque_point = kv.second.torque_point(mass_point, vel_dir);
     debuglines->render(mass_point, torque_point, vec3(1,0,1));
-    torque += glm::cross(mass_point - torque_point, vel_dir);
+    float ratio = std::abs(glm::dot(kv.second.col_axis, vel_dir_norm));
+    cout << ratio << endl;
+    torque += glm::cross(mass_point - torque_point, vel_dir * ratio);
   }
   return torque;
 }
 
+vec3 CollisionPlan::constrain_torque(vec3 mass_point, vec3 vel_dir, vec3 torque) const {
+  if (collisions.size()) {
+    return torque;
+  }
+  /*
+  debuglines->render(mass_point, mass_point + torque, vec3(1,1,0));
+  vector<vec3> newtorques;
+  vec3 newtorque (0,0,0);
+  for (const std::pair<vec3,CollisionManifold>& kv : collisions) {
+    for (vec3 colpoint : kv.second.col_points) {
+      vec3 vec_to_colpoint = colpoint - mass_point;
+      vec3 newtorque = glm::cross(vec_to_colpoint, -vel_dir);
+      if (glm::length(newtorque) != 0) {
+        newtorque = glm::normalize(newtorque);
+        newtorques.push_back(newtorque);
+        newtorque_av += newtorque;
+        debuglines->render(mass_point, mass_point + newtorque, vec3(0,1,0));
+        debuglines->render(mass_point, colpoint);
+        debuglines->render(colpoint, colpoint-vel_dir);
+      }
+    }
+  }
+  
+  if (newtorques.size() == 0) {
+    return torque;
+  }
+  
+  newtorque_av = glm::normalize(newtorque_av / newtorques.size());
+  
+  for (vec3 newtor : newtorques) {
+    if (glm::dot(newtor, newtorque_av) <= 0) {
+      return vec3(0,0,0);
+    }
+  }
+  
+  // if (glm::dot(newtorque_av, torque) <
+  
+  debuglines->render(mass_point, mass_point + torque, vec3(0,1,1));
+  */
+  return torque;
+}
 
 // MovingHitbox::MovingHitbox(Hitbox box, vec3 vel = vec3(0,0,0), vec3 angvel = vec3(0,0,0), float newmass = 1.0f):
 // Hitbox(box), velocity(vel), angularvel(angvel), mass(newmass) {
