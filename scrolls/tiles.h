@@ -26,7 +26,6 @@ class Tile : public Container {
 		bool lightflag = true;
 		bool fully_loaded = false;
 		bool done_reading = false;
-		FreeBlock* allfreeblocks = nullptr;
 		
 		Tile(ivec3 position, World* world);
 		~Tile();

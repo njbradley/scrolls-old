@@ -89,6 +89,7 @@ class Hitbox { public:
   // boxes collide when they overlap, so bordering cubes are not colliding
   float axis_projection(vec3 axis) const;
   bool collide(Hitbox other) const;
+  vec3 collision(Line line) const;
   
   bool contains_noedge(vec3 point) const;
   bool contains(vec3 point) const;

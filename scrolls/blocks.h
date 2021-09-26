@@ -210,6 +210,7 @@ class FreeBlock : public Block { public:
 	void set_box(Hitbox newbox);
 	void tick();
 	void timestep(float deltatime);
+	vec3 force(vec3 pos, vec3 dir);
 };
 
 class Pixel { public:

@@ -806,97 +806,63 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
     }
   }
   
-  Hitbox linebox (startpos, vec3(0,0,0), vec3(starttime, 0, 0), rot);
-  cout << linebox << ' ' << linebox.boundingbox() << endl;
-  return curblock;
-  FreeBlockIter freeiter(world, linebox.boundingbox());
+  if (timeleft < 0) timeleft = 0;
+  
+  timeleft = starttime - timeleft;
+  
+  Hitbox linebox (startpos, vec3(0,0,0), vec3(timeleft, 0, 0), rot);
+  
+  // debuglines->render(linebox);
+  
+  if (freecontainer != nullptr) return curblock;
+  
+  Hitbox bigbox = linebox.boundingbox();
+  bigbox.negbox -= 8.0f;
+  bigbox.posbox += 8.0f;
+  
+  FreeBlockIter freeiter(world, bigbox);
   
   double best_time = timeleft;
   
+  int num_bases = 0;
+  FreeBlock* freeblocks[freeiter.num_bases];
+  
   for (int i = 0; i < freeiter.num_bases; i ++) {
     Block* block = freeiter.bases[i];
-    cout << block << ' ' << block->globalpos << ' ' << block->scale << ' ' << endl;
-    
-    Block* parblock = block;
-    cout << "STARTING " << block << endl;
-    while (parblock != nullptr) {
-      cout << parblock << ' ' << parblock->globalpos << ' ' << parblock->scale << endl;
-      for (int x = -1; x < 2; x ++) {
-        for (int y = -1; y < 2; y ++) {
-          for (int z = -1; z < 2; z ++) {
-            ivec3 off (x,y,z);
-            Block* offblock = parblock->get_global(parblock->globalpos + off * parblock->scale, parblock->scale);
-            if (offblock != nullptr and offblock->scale == parblock->scale) {
-              cout << ' ' << offblock << offblock->globalpos << ' ' << offblock->scale << endl;
-              for (FreeBlock* freeblock = offblock->freechild; freeblock != nullptr; freeblock = freeblock->freechild) {
-                cout << "freeblock " << freeblock << endl;
-                if (freeblock->box.collide(linebox)) {
-                  cout << " going into free block" << endl;
-                  vec3 start = freeblock->box.transform_in(*pos);
-                  vec3 newdir = freeblock->box.transform_in(dir);
-                  
-                  
-                  // cout << start << ' ' << newdir << endl;
-                  float dt = 0;
-                  float maxdt = -1;
-                  bool ray_valid = true;
-                  for (int axis = 0; axis < 3 and ray_valid; axis ++) {
-                    float mintime;
-                    float maxtime;
-                    
-                    if (start[axis] < 0) {
-                      mintime = (-start[axis]) / newdir[axis];
-                      maxtime = (freeblock->scale - start[axis]) / newdir[axis];
-                    } else if (start[axis] > freeblock->scale) {
-                      mintime = (freeblock->scale - start[axis]) / newdir[axis];
-                      maxtime = (-start[axis]) / newdir[axis];
-                    } else {
-                      mintime = 0;
-                      if (newdir[axis] < 0) {
-                        maxtime = (-start[axis]) / newdir[axis];
-                      } else {
-                        maxtime = (freeblock->scale - start[axis]) / newdir[axis];
-                      }
-                    }
-                    // cout << mintime << ' ' << maxtime << endl;
-                    if (maxdt == -1) {
-                      maxdt = maxtime;
-                    }
-                    if ( mintime < 0 or mintime > maxdt or maxtime < dt) {
-                      ray_valid = false;
-                      break;
-                    } else {
-                      if (mintime > dt) {
-                        dt = mintime;
-                      }
-                      if (maxtime < maxdt) {
-                        maxdt = maxtime;
-                      }
-                    }
-                  }
-                  
-                  if (ray_valid and dt < timeleft) {
-                    vec3 newpos = start + newdir * (dt + 0.001f);
-                    Block* startblock = curblock->freechild->get_local(SAFEFLOOR3(newpos), 1);
-                    // cout << " startblock " << startblock << ' ' << SAFEFLOOR3(newpos) << ' ' << newpos << ' ' << dt << endl;
-                    cout << "Before " << start << ' ' << newpos << endl;
-                    Block* result = startblock->raycast(&newpos, newdir, timeleft - dt);
-                    double time = glm::dot(newpos - (start + newdir * (dt + 0.001f)), dir);
-                    cout << "After " << newpos << endl;
-                    // cout << " result " << result << endl;
-                    if (result != nullptr and time < best_time) {
-                      *pos = curblock->freechild->box.transform_out(newpos);
-                      curblock = result;
-                      best_time = time;
-                    }
-                  }
-                }
-              }
-            }
-          }
+    bool exists = false;
+    for (int j = 0; j < num_bases-1; j ++) {
+      exists = exists or block->world->allfreeblocks == freeblocks[j];
+    }
+    if (!exists and block->world->allfreeblocks != nullptr) {
+      freeblocks[num_bases++] = block->world->allfreeblocks;
+    }
+    // debuglines->render(block->hitbox(), vec3(1,0,0));
+  }
+  
+  for (int i = 0; i < num_bases; i ++) {
+    for (FreeBlock* free = freeblocks[i]; free != nullptr; free = free->allfreeblocks) {
+      // debuglines->render(free->hitbox(), vec3(1,1,0));
+      
+      if (free->box.collide(linebox)) {
+        cout << " going into free block time " << timeleft << endl;
+        
+        vec3 colpos = free->box.collision(Line(startpos, dir));
+        cout << " colpos " << colpos << endl;
+        float time = glm::dot(colpos - startpos, dir);
+        cout << " time " << time << endl;
+        
+        if (time <= timeleft) {
+          vec3 newpos = free->box.transform_in(colpos);
+          vec3 newdir = free->box.transform_in_dir(dir);
+          
+          Block* startblock = free->get_local(SAFEFLOOR3(newpos), 1);
+          Block* result = startblock->raycast(&newpos, newdir, timeleft - time);
+          
+          *pos = free->box.transform_out(newpos);
+          curblock = result;
+          timeleft = time;
         }
       }
-      parblock = parblock->parent;
     }
   }
   
@@ -968,7 +934,7 @@ vec3 Block::force(vec3 amount) {
 
 
 
-FreeBlock::FreeBlock(Hitbox newbox): Block(), box(newbox), velocity(0.5f,0,0), angularvel(0,0,0) {
+FreeBlock::FreeBlock(Hitbox newbox): Block(), box(newbox), velocity(0,0,0), angularvel(0,0,0) {
   
 }
 
@@ -1116,7 +1082,20 @@ void FreeBlock::expand(ivec3 dir) { // Todo: this method only works for csize=2
   set_flag(RENDER_FLAG | LIGHT_FLAG);
 }
 
-
+vec3 FreeBlock::force(vec3 pos, vec3 dir) {
+  debuglines->render(pos, pos+dir);
+  vec3 pos_to_center = box.global_center() - pos;
+  debuglines->render(pos, pos + pos_to_center);
+  vec3 vel_part = dir * glm::dot(pos_to_center, dir);
+  debuglines->render(pos, pos + vel_part, vec3(1,0,0));
+  vec3 torque_part = pos_to_center - vel_part;
+  debuglines->render(pos, pos + torque_part, vec3(0,1,0));
+  
+  velocity += vel_part;
+  torque_part += glm::cross(torque_part, -dir);
+  
+  return vel_part;
+}
 
 
 

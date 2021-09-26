@@ -315,9 +315,13 @@ void Player::left_mouse(double deltatime) {
 		Block* block;
 		raycast(&block, &dir, &hitpos);
 		
-		ivec3 pos (hitpos);
+		ivec3 pos = SAFEFLOOR3(hitpos);
 		
-		world->set_global(pos, 1, 0, 0);
+		if (block->freecontainer == nullptr) {
+			world->set_global(pos, 1, 0, 0);
+		} else {
+			block->freecontainer->force(hitpos, pointing);
+		}
 		// game->debugblock = world->get_global(pos.x, pos.y-1, pos.z, 1)->pixel;
 		// cout << game->debugblock->parbl->flags << '-' << endl;
 		timeout = 0.5;

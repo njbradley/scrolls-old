@@ -67,7 +67,7 @@ vec3 Line::collision(Line other) const {
     }
     set = true;
   }
-  cout << top << ' ' << bottom << ' ' << result << ' ' << time << endl;
+  // cout << top << ' ' << bottom << ' ' << result << ' ' << time << endl;
   return position + direction * time;
 }
     
@@ -305,6 +305,34 @@ bool Hitbox::collide(Hitbox other) const {
   return true;
 }
 
+vec3 Hitbox::collision(Line line) const {
+  vec3 result (nanf(""), 0, 0);
+  bool set = false;
+  float score;
+  
+  cout << " BOUNDS " << transform_out(vec3(0,0,0)) << ' ' << transform_out(size()) << endl;
+  
+  for (int i = 0; i < 3; i ++) {
+    vec3 poses[2] = {
+      Plane(transform_out(vec3(0,0,0)), transform_out_dir(dir_array[i+3])).collision(line),
+      Plane(transform_out(size()), transform_out_dir(dir_array[i])).collision(line),
+    };
+    for (vec3 colpos : poses) {
+      cout << "  colpos " << colpos << ' ' << transform_in(colpos) << endl;
+      if (!isnan(colpos.x) and contains(colpos)) {
+        float newscore = glm::dot(colpos - line.position, line.direction);
+        cout << "  score " << newscore << endl;
+        if (!set or newscore < score) {
+          result = colpos;
+          score = newscore;
+          set = true;
+        }
+      }
+    }
+  }
+  return result;
+}
+
 bool Hitbox::contains_noedge(vec3 point) const {
   point = transform_in(point);
   return 0 < point.x and point.x < size().x
@@ -314,6 +342,7 @@ bool Hitbox::contains_noedge(vec3 point) const {
 
 bool Hitbox::contains(vec3 point) const {
   point = transform_in(point);
+  // cout << "    contains " << point << endl;
   return 0 <= point.x and point.x <= size().x
      and 0 <= point.y and point.y <= size().y
      and 0 <= point.z and point.z <= size().z;
