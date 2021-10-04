@@ -39,8 +39,21 @@ struct EntityTest : Test {
 		TASSERT_EQ(vec3(1,0,0), xax.collision(Line(vec3(1,1,0), vec3(0,-1,0))));
 	}
 	
+	void transform_tests() {
+		Hitbox box1 (zeros, -ones, ones, glm::angleAxis(3.14f/2, vec3(0,0,1)));
+		
+		TASSERT_EQ(vec3(0,0,0), box1.transform_out(box1.transform_in(vec3(0,0,0))));
+		TASSERT_EQ(vec3(0,0,0), box1.transform_in(box1.transform_out(vec3(0,0,0))));
+		
+		TASSERT_EQ(vec3(0,1000,0), box1.transform_out(box1.transform_in(vec3(0,1000,0))));
+		TASSERT_EQ(vec3(0,1000,0), box1.transform_in(box1.transform_out(vec3(0,1000,0))));
+		
+		TASSERT_EQ(vec3(0,10,0), box1.transform_out(box1.transform_in(vec3(0,10,0))));
+		TASSERT_EQ(vec3(0,10,0), box1.transform_in(box1.transform_out(vec3(0,10,0))));
+	}
+	
 	void test() {
-		line_tests();
+		// line_tests();
 		
 		collide_tests();
 		vel_collide_tests();

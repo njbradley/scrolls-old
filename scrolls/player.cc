@@ -117,10 +117,11 @@ void Player::right_mouse(double deltatime) {
 						// Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f), glm::angleAxis(1.0f, vec3(dir)));
 						Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f));
 						// debuglines->render(newbox);
-						FreeBlock* freeblock = new FreeBlock(newbox);
-						freeblock->fixed = true;
+						FreeBlock* freeblock = new FreeBlock(Movingbox(newbox, vec3(-0.8,0,0), vec3(0,0,0), 1));
+						freeblock->paused = true;
 						freeblock->set_pixel(new Pixel(1));
 						airblock->add_freechild(freeblock);
+						freeblock->calculate_mass();
 						// FreeBlock* freeblock = new FreeBlock(vec3(airblock->globalpos), quat(1, 0, 0, 0));
 						// freeblock->set_parent(nullptr, airblock->world, ivec3(0,0,0), 1);
 						// freeblock->set_pixel(new Pixel(1));
@@ -158,9 +159,10 @@ void Player::right_mouse(double deltatime) {
 			placing_block = placing_block->get_global(blockpos, 2);
 			// Hitbox newbox (vec3(0,0,0), vec3(blockpos) - 0.5f, vec3(blockpos) + 0.5f);
 			Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f));
-			FreeBlock* freeblock = new FreeBlock(newbox);
+			FreeBlock* freeblock = new FreeBlock(Movingbox(newbox, 1));
 			freeblock->set_pixel(new Pixel(1));
 			placing_block->add_freechild(freeblock);
+			freeblock->calculate_mass();
 			cout << "freescale " << freeblock->scale << endl;
 			//
 			placing_freeblock = freeblock;
@@ -320,7 +322,7 @@ void Player::left_mouse(double deltatime) {
 		if (block->freecontainer == nullptr) {
 			world->set_global(pos, 1, 0, 0);
 		} else {
-			block->freecontainer->force(hitpos, pointing);
+			block->freecontainer->apply_impulse(pointing, hitpos);
 		}
 		// game->debugblock = world->get_global(pos.x, pos.y-1, pos.z, 1)->pixel;
 		// cout << game->debugblock->parbl->flags << '-' << endl;

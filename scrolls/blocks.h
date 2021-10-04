@@ -100,10 +100,11 @@ class Block: public Collider { public:
 	vec3 fglobalpos() const;
 	quat getrotation() const;
 	// local
-	Hitbox local_hitbox();
-	Hitbox local_freebox();
-	Hitbox hitbox();
-	Hitbox freebox();
+	Hitbox local_hitbox() const;
+	Hitbox local_freebox() const;
+	Hitbox hitbox() const;
+	Hitbox freebox() const;
+	Movingbox movingbox() const;
 	// travels the tree to find the requested size and pos.
 	// calls to world if it reaches the top
 	Block* get_global(int x, int y, int z, int w);
@@ -195,22 +196,35 @@ class Block: public Collider { public:
 
 
 class FreeBlock : public Block { public:
-	Hitbox box;
+	Movingbox box;
 	bool fixed = false;
+	bool paused = false;
+	bool asleep = false;
 	Block* highparent = nullptr;
 	FreeBlock* allfreeblocks = nullptr;
 	
-	vec3 velocity;
-	vec3 angularvel;
-	
-	FreeBlock(Hitbox newbox);
+	FreeBlock(Movingbox newbox);
 	void set_parent(Block* nparent);
 	void set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale);
 	void expand(ivec3 dir);
-	void set_box(Hitbox newbox);
+	void set_box(Movingbox newbox);
 	void tick();
 	void timestep(float deltatime);
-	vec3 force(vec3 pos, vec3 dir);
+	
+	void apply_torque(vec3 newtorque);
+	
+	void apply_impulse(vec3 impulse);
+	void apply_impulse(vec3 impulse, vec3 point);
+	void apply_impulse(Movingpoint point);
+	
+	void calculate_mass();
+	
+	void try_sleep();
+	void force_sleep();
+	void wake();
+	
+	void fix();
+	void unfix();
 };
 
 class Pixel { public:
@@ -242,6 +256,7 @@ class Pixel { public:
 	void reset_lightlevel();
 	void lighting_update(bool spread = true);
 	bool is_air(int,int,int);
+	BlockData* data() const;
 	BlockGroupIter iter_group();
 	BlockGroupIter iter_group(bool (*func)(Pixel* base, Pixel* pix));
 	BlockGroupIter iter_group(Collider* world, bool (*func)(Pixel* base, Pixel* pix) = nullptr);

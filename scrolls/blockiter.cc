@@ -192,7 +192,7 @@ void FreeBlockIter::iterator::get_to_pix(Block* block) {
       block = block->get(parent->start_pos);
     } else {
       // debuglines->render(block->hitbox(), vec3(0.5f,0.5f,1));
-      // debuglines->render(block->hitbox().global_center(), parent->box.global_center(), vec3(0,1,1));
+      // debuglines->render(block->hitbox().global_midpoint(), parent->box.global_midpoint(), vec3(0,1,1));
       // cout << " setting " << endl;
       pix = block->pixel;
       // cout << "end " << pix << " PIX " << block << " Block" << endl;

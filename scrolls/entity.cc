@@ -28,7 +28,9 @@ void print(vec3 v) {
 
 
 
-
+glm::mat3 rotate_tensor(glm::mat3 mat, quat rot) {
+  return mat;
+}
 
 
 
@@ -144,9 +146,40 @@ Plane Plane::from_points(vec3 point1, vec3 point2, vec3 point3) {
 
 
 
+Movingpoint::Movingpoint(): Movingpoint(vec3(0,0,0), vec3(0,0,0), 0) {
+  
+}
 
+Movingpoint::Movingpoint(vec3 pos, float nmass): position(pos), velocity(0,0,0), mass(nmass) {
+  
+}
 
+Movingpoint::Movingpoint(vec3 pos, vec3 vel, float nmass): position(pos), velocity(vel), mass(nmass) {
+  
+}
 
+Movingpoint::operator vec3() const {
+  return position;
+}
+
+vec3 Movingpoint::momentum() const {
+  if (!movable()) {
+    return vec3(0,0,0);
+  }
+  return velocity * mass;
+}
+
+bool Movingpoint::movable() const {
+  return !isinf(mass);
+}
+
+void Movingpoint::apply_impulse(vec3 impulse) {
+  velocity += impulse / mass;
+}
+
+void Movingpoint::timestep(float deltatime) {
+  position += velocity * deltatime;
+}
 
 
 
@@ -183,8 +216,16 @@ vec3 Hitbox::size() const {
   return posbox - negbox;
 }
 
-vec3 Hitbox::local_center() const {
+vec3 Hitbox::local_midpoint() const {
   return size() / 2.0f;
+}
+
+vec3 Hitbox::global_midpoint() const {
+  return transform_out(local_midpoint());
+}
+
+vec3 Hitbox::local_center() const {
+  return -negbox;
 }
 
 vec3 Hitbox::global_center() const {
@@ -239,6 +280,10 @@ quat Hitbox::transform_out(quat rot) const {
   return rotation * rot;
 }
 
+Movingpoint Hitbox::transform_in(Movingpoint point) const {
+  return Movingpoint(transform_in(point.position), transform_in_dir(point.velocity), point.mass);
+}
+
 Hitbox Hitbox::transform_in(Hitbox box) const {
   return Hitbox(
     transform_in(box.position),
@@ -248,12 +293,36 @@ Hitbox Hitbox::transform_in(Hitbox box) const {
   );
 }
 
+Movingbox Hitbox::transform_in(Movingbox box) const {
+  return Movingbox(
+    transform_in(Hitbox(box)),
+    transform_in_dir(box.velocity),
+    transform_in_dir(box.angularvel),
+    box.mass,
+    rotate_tensor(box.inertia, glm::inverse(rotation))
+  );
+}
+
+Movingpoint Hitbox::transform_out(Movingpoint point) const {
+  return Movingpoint(transform_out(point.position), transform_out_dir(point.velocity), point.mass);
+}
+
 Hitbox Hitbox::transform_out(Hitbox box) const {
   return Hitbox(
     transform_out(box.position),
     box.negbox,
     box.posbox,
     transform_out(box.rotation)
+  );
+}
+
+Movingbox Hitbox::transform_out(Movingbox box) const {
+  return Movingbox(
+    transform_out(Hitbox(box)),
+    transform_out_dir(box.velocity),
+    transform_out_dir(box.angularvel),
+    box.mass,
+    rotate_tensor(box.inertia, rotation)
   );
 }
 
@@ -273,7 +342,7 @@ bool Hitbox::collide(Hitbox other) const {
     glm::cross(dirz(), other.dirx()), glm::cross(dirz(), other.diry()), glm::cross(dirz(), other.dirz()),
   };
   
-  vec3 tvec = global_center() - other.global_center(); // vec to other box
+  vec3 tvec = global_midpoint() - other.global_midpoint(); // vec to other box
   if (glm::length(tvec) >= (glm::length(size()) + glm::length(other.size()))/2.0f) {
     return false;
   }
@@ -286,7 +355,7 @@ bool Hitbox::collide(Hitbox other) const {
   for (vec3 axis : axes) {
     if (glm::length(axis) > 0) {
       axis = axis / glm::length(axis);
-      // debuglines->render(global_center(), global_center()+axis, vec3(0,0.7f,0.4f));
+      // debuglines->render(global_midpoint(), global_midpoint()+axis, vec3(0,0.7f,0.4f));
       
       float aproj = axis_projection(axis);
       float bproj = other.axis_projection(axis);
@@ -295,7 +364,7 @@ bool Hitbox::collide(Hitbox other) const {
       float space = tproj - (aproj + bproj) / 2.0f;
       
       // cout << ' ' << space << ' ' << tvec << ' ' << tproj << ' ' << aproj << ' ' << bproj << ' ' << axis << endl;
-      // debuglines->render(global_center(), global_center()+axis*space, vec3(1,0,0));
+      // debuglines->render(global_midpoint(), global_midpoint()+axis*space, vec3(1,0,0));
       if (space >= 0) { // touching is not colliding
         return false;
       }
@@ -361,10 +430,15 @@ bool Hitbox::contains(Hitbox other) const {
   return true;
 }
 
-Hitbox Hitbox::move(vec3 amount) const {
-  Hitbox newbox = *this;
-  newbox.position += amount;
-  return newbox;
+void Hitbox::move(vec3 amount) {
+  position += amount;
+}
+
+void Hitbox::change_center(vec3 newcenter) {
+  vec3 oldsize = size();
+  position = transform_out(newcenter);
+  negbox = -newcenter;
+  posbox = oldsize - newcenter;
 }
 
 ostream& operator<<(ostream& ofile, const Hitbox& hitbox) {
@@ -391,13 +465,125 @@ Hitbox Hitbox::boundingbox_points(vec3 position, vec3* points, int num) {
 
 
 
+Movingbox::Movingbox(): Hitbox(), velocity(0,0,0), angularvel(0,0,0), mass(1) {
+  
+}
+
+Movingbox::Movingbox(Hitbox box, float nmass): Hitbox(box), velocity(0,0,0), angularvel(0,0,0), mass(nmass) {
+  calc_inertia();
+}
+
+Movingbox::Movingbox(Hitbox box, vec3 vel, vec3 angvel, float nmass):
+Hitbox(box), velocity(vel), angularvel(angvel), mass(nmass) {
+  calc_inertia();
+}
+
+Movingbox::Movingbox(Hitbox box, vec3 vel, vec3 angvel, float nmass, glm::mat3 inert):
+Hitbox(box), velocity(vel), angularvel(angvel), mass(nmass), inertia(inert) {
+  
+}
+
+void Movingbox::calc_inertia() {
+  
+}
+
+void Movingbox::points(Movingpoint* points) const {
+  vec3 center = global_center();
+  for (int i = 0; i < 8; i ++) {
+    points[i] = transform_out(Movingpoint(size() * vec3(i/4,i/2%2,i%2), mass));
+  }
+}
+
+
+
+// Movingpoint Movingbox::local_midpoint() const {
+//   return Movingpoint(size() / 2.0f, vec3(0,0,0), mass);
+// }
+//
+// Movingpoint Movingbox::global_midpoint() const {
+//   return transform_out(local_midpoint());
+// }
+//
+// Movingpoint Movingbox::local_center() const {
+//   return Movingpoint(-negbox, vec3(0,0,0), mass);
+// }
+//
+// Movingpoint Movingbox::global_center() const {
+//   return transform_out(local_center());
+// }
+
+Movingpoint Movingbox::transform_in(Movingpoint point) const {
+  vec3 newvel = point.velocity - velocity;
+  vec3 center_to_pos = point.position - Hitbox::global_center();
+  vec3 rotvel = glm::cross(angularvel, center_to_pos);
+  return Movingpoint(Hitbox::transform_in(point.position), transform_in_dir(newvel - rotvel), point.mass);
+}
+
+Movingbox Movingbox::transform_in(Movingbox box) const {
+  vec3 newvel = transform_in(Movingpoint(box.global_center(), 1)).velocity;
+  vec3 newangvel = transform_in_dir(box.angularvel - angularvel);
+  return Movingbox(
+    transform_in(Hitbox(box)),
+    newvel,
+    newangvel,
+    box.mass,
+    rotate_tensor(box.inertia, glm::inverse(rotation))
+  );
+}
+
+Movingpoint Movingbox::transform_out(Movingpoint point) const {
+  vec3 newpos = Hitbox::transform_out(point.position);
+  vec3 newvel = transform_out_dir(point.velocity) + velocity;
+  vec3 center_to_pos = newpos - Hitbox::global_center();
+  vec3 rotvel = glm::cross(angularvel, center_to_pos);
+  return Movingpoint(newpos, newvel + rotvel, point.mass);
+}
+
+Movingbox Movingbox::transform_out(Movingbox box) const {
+  vec3 newvel = transform_out(Movingpoint(box.global_center(), 1)).velocity;
+  vec3 newangvel = transform_out_dir(box.angularvel) + angularvel;
+  return Movingbox(
+    transform_out(Hitbox(box)),
+    newvel,
+    newangvel,
+    box.mass,
+    rotate_tensor(box.inertia, rotation)
+  );
+}
+
+glm::mat3 Movingbox::global_inertia() const{
+  return rotate_tensor(inertia, rotation);
+}
+
+bool Movingbox::movable() const {
+  return !isinf(mass);
+}
+
+void Movingbox::apply_impulse(vec3 impulse) {
+  velocity += impulse;
+}
+
+void Movingbox::apply_impulse(vec3 impulse, vec3 point) {
+  velocity += impulse / mass;
+  angularvel += global_inertia() * glm::cross(point - global_center(), impulse);
+}
+
+void Movingbox::timestep(float deltatime) {
+  position += velocity * deltatime;
+  if (angularvel != vec3(0,0,0)) {
+    rotation = glm::normalize(rotation * glm::angleAxis(glm::length(angularvel) * deltatime, glm::normalize(angularvel)));
+  }
+}
+
+
+
 
 
 CollisionManifold::CollisionManifold(): result(false) {
   
 }
 
-CollisionManifold::CollisionManifold(Hitbox nbox1, Hitbox nbox2): box1(nbox1), box2(nbox2) {
+CollisionManifold::CollisionManifold(Movingbox* nbox1, Movingbox* nbox2): box1(nbox1), box2(nbox2) {
   result = collision_result();
 }
   
@@ -406,18 +592,18 @@ bool CollisionManifold::collision_result() {
   /// using separating axis theorem:
   // https://www.jkh.me/files/tutorials/Separating%20Axis%20Theorem%20for%20Oriented%20Bounding%20Boxes.pdf
   vec3 axes[] = {
-    box1.dirx(), box1.diry(), box1.dirz(), box2.dirx(), box2.diry(), box2.dirz(),
-    glm::cross(box1.dirx(), box2.dirx()), glm::cross(box1.dirx(), box2.diry()), glm::cross(box1.dirx(), box2.dirz()),
-    glm::cross(box1.diry(), box2.dirx()), glm::cross(box1.diry(), box2.diry()), glm::cross(box1.diry(), box2.dirz()),
-    glm::cross(box1.dirz(), box2.dirx()), glm::cross(box1.dirz(), box2.diry()), glm::cross(box1.dirz(), box2.dirz()),
+    box1->dirx(), box1->diry(), box1->dirz(), box2->dirx(), box2->diry(), box2->dirz(),
+    glm::cross(box1->dirx(), box2->dirx()), glm::cross(box1->dirx(), box2->diry()), glm::cross(box1->dirx(), box2->dirz()),
+    glm::cross(box1->diry(), box2->dirx()), glm::cross(box1->diry(), box2->diry()), glm::cross(box1->diry(), box2->dirz()),
+    glm::cross(box1->dirz(), box2->dirx()), glm::cross(box1->dirz(), box2->diry()), glm::cross(box1->dirz(), box2->dirz()),
   };
   
-  vec3 tvec = box1.global_center() - box2.global_center(); // vec to box2 box
-  if (glm::length(tvec) >= (glm::length(box1.size()) + glm::length(box2.size()))/2.0f) {
+  vec3 tvec = box1->global_midpoint() - box2->global_midpoint(); // vec to box2 box
+  if (glm::length(tvec) >= (glm::length(box1->size()) + glm::length(box2->size()))/2.0f) {
     return false;
   }
-  // if (glm::length(tvec) < (std::min(std::min(box1.size().x, box1.size().y), box1.size().z)
-  //     + std::min(std::min(box2.size().x, box2.size().y), box2.size().z)) / 2.0f) {
+  // if (glm::length(tvec) < (std::min(std::min(box1->size().x, box1->size().y), box1->size().z)
+  //     + std::min(std::min(box2->size().x, box2->size().y), box2->size().z)) / 2.0f) {
   //   return true;
   // }
   
@@ -432,8 +618,8 @@ bool CollisionManifold::collision_result() {
     if (glm::length(axis) > 0) {
       axis = axis / glm::length(axis);
       
-      float aproj = box1.axis_projection(axis);
-      float bproj = box2.axis_projection(axis);
+      float aproj = box1->axis_projection(axis);
+      float bproj = box2->axis_projection(axis);
       float tproj = std::abs(glm::dot(tvec, axis));
       
       float space = tproj - (aproj + bproj) / 2.0f;
@@ -460,7 +646,8 @@ bool CollisionManifold::collision_result() {
   
   vec3 close_points[4];
   for (int i = 0, j = 0; i < 8; i ++) {
-    vec3 point = box1.transform_out_dir(box1.size() * vec3(i/4,i/2%2,i%2) - box1.size() / 2.0f);
+    vec3 inner_point = box1->size() * vec3(i/4,i/2%2,i%2) - box1->size() / 2.0f;
+    vec3 point = box1->transform_out_dir(inner_point);
     if (glm::dot(point, tvec) < 0) {
       close_points[j++] = point;
     }
@@ -468,7 +655,8 @@ bool CollisionManifold::collision_result() {
   
   vec3 other_close_points[4];
   for (int i = 0, j = 0; i < 8; i ++) {
-    vec3 point = box2.transform_out_dir(box2.size() * vec3(i/4,i/2%2,i%2) - box2.size() / 2.0f);
+    vec3 inner_point = box2->size() * vec3(i/4,i/2%2,i%2) - box2->size() / 2.0f;
+    vec3 point = box2->transform_out_dir(inner_point);
     if (glm::dot(point, tvec) > 0) {
       other_close_points[j++] = point;
     }
@@ -478,46 +666,45 @@ bool CollisionManifold::collision_result() {
   vec3 allpoints (0,0,0);
   int num_points = 0;
   
-  vec3 contained_points_sum (0,0,0);
-  vec3 past_points_sum (0,0,0);
-  
-  vector<vec3> contained_points;
-  vector<vec3> past_points;
+  vector<Movingpoint> contained_points;
+  vector<Movingpoint> past_points;
   
   
   for (vec3 point : close_points) {
     float proj = std::abs(glm::dot(point, least_axis));
-    vec3 real_point = box1.global_center() + point;//box1.transform_out(box1.size()/2.0f + point);
+    Movingpoint real_point = box1->transform_out(Movingpoint(box1->size()/2.0f + box1->transform_in_dir(point), box1->mass));
+    Movingpoint other_point = box2->transform_out(Movingpoint(box2->transform_in(real_point.position), box2->mass));
+    real_point.velocity = real_point.momentum() - other_point.momentum();
+    real_point.mass = 1;
     if (proj >= t_proj - other_proj/2) {
-      past_points_sum += real_point;
       past_points.push_back(real_point);
     }
-    if (box2.contains(real_point)) {
-      contained_points_sum += real_point;
+    if (box2->contains(real_point)) {
       contained_points.push_back(real_point);
     }
   }
   
   for (vec3 point : other_close_points) {
     float proj = std::abs(glm::dot(point, least_axis));
-    vec3 real_point = box2.global_center() + point;//box2.transform_out(box2.size()/2.0f + point);
+    Movingpoint real_point = box2->transform_out(Movingpoint(box2->size()/2.0f + box2->transform_in_dir(point), box2->mass));
+    Movingpoint other_point = box1->transform_out(Movingpoint(box1->transform_in(real_point.position), box1->mass));
+    real_point.velocity = other_point.momentum() - real_point.momentum();
+    real_point.mass = 1;
     if (proj >= t_proj - my_proj/2) {
-      past_points_sum += real_point;
       past_points.push_back(real_point);
     }
-    if (box1.contains(real_point)) {
-      contained_points_sum += real_point;
+    if (box1->contains(real_point)) {
       contained_points.push_back(real_point);
     }
   }
   
   if (contained_points.size() != 0) {
-    col_point = contained_points_sum / (float)contained_points.size();
     col_points.insert(col_points.begin(), contained_points.begin(), contained_points.end());
     // cout << "colpoint contained " << col_point << endl;
   } else {
-    col_point = past_points_sum / (float)past_points.size();
-    col_points.push_back(col_point);
+    cout << "BADDDDDD entity.cc:674" << endl;
+    // vec3 col_point = past_points_sum / (float)past_points.size();
+    // col_points.push_back(col_point);
     // col_points.insert(col_points.begin(), past_points.begin(), past_points.end());
     // cout << "colpoint past " << col_point << endl;
   }
@@ -529,6 +716,47 @@ CollisionManifold::operator bool() const {
   return result;
 }
 
+void CollisionManifold::apply_changes() {
+  float massratio = box1->mass / (box1->mass + box2->mass);
+  if (!box1->movable()) {
+    massratio = 1;
+  }
+  if (!box2->movable()) {
+    massratio = 0;
+  }
+  // cout << "BEFORE CHANGES" << endl;
+  // cout << box1->position << endl;
+  // cout << box1->velocity << endl;
+  
+  // cout << "mass ratio " << massratio << endl;
+  box1->move(col_axis * col_amount * (1-massratio));
+  box2->move(-col_axis * col_amount * massratio);
+  
+  
+  for (Movingpoint point : col_points) {
+    // cout << " point " << point.position << ' ' << point.velocity << endl;
+    if (glm::dot(point.velocity, col_axis) < 0) {
+      vec3 vel = col_axis * glm::dot(point.velocity, col_axis);
+      vel *= 1.0f/col_points.size();
+      // vel *= 0.3f;
+      // cout << "   " << point.velocity << endl;
+      box1->apply_impulse(-vel, point.position);
+      box2->apply_impulse(vel, point.position);
+      // cout << "  box " << box1->velocity << ' ' << box1->angularvel << endl;
+    }
+    
+    // friction
+    vec3 vel = point.velocity - col_axis * glm::dot(point.velocity, col_axis);
+    vel *= 1.0f/col_points.size();
+    vel *= 0.1f;
+    box1->apply_impulse(-vel, point.position);
+    box2->apply_impulse(vel, point.position);
+  }
+  
+  // cout << box1->position << ' ' << box1->velocity << endl;
+}
+
+/*
 vec3 CollisionManifold::torque_point(vec3 mass_point, vec3 vel_dir) const {
   if (!result) return vec3(0,0,0);
   
@@ -654,9 +882,9 @@ vec3 CollisionManifold::torque_point(vec3 mass_point, vec3 vel_dir) const {
   debuglines->render(mass_point, start_colpos, vec3(1,0.5f,1));
   
   return start_colpos;
-}
+}*/
 
-
+/*
 void CollisionManifold::combine(CollisionManifold other) {
   if (!result) {
     *this = other;
@@ -703,7 +931,10 @@ Hitbox CollisionPlan::newbox() const {
       }
     }
   }
-  return box.move(movementdir * max_dist_needed);
+  
+  Hitbox newbox = box;
+  newbox.move(movementdir * max_dist_needed);
+  return newbox;
 }
 
 vec3 CollisionPlan::constrain_vel(vec3 velocity) const {
@@ -776,10 +1007,10 @@ vec3 CollisionPlan::constrain_torque(vec3 mass_point, vec3 vel_dir, vec3 torque)
   // if (glm::dot(newtorque_av, torque) <
   
   debuglines->render(mass_point, mass_point + torque, vec3(0,1,1));
-  */
+  //
   return torque;
 }
-
+*/
 // MovingHitbox::MovingHitbox(Hitbox box, vec3 vel = vec3(0,0,0), vec3 angvel = vec3(0,0,0), float newmass = 1.0f):
 // Hitbox(box), velocity(vel), angularvel(angvel), mass(newmass) {
 //

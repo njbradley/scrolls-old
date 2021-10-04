@@ -250,15 +250,15 @@ vec3 Block::fglobalpos() const {
   return pos;
 }
 
-Hitbox Block::local_hitbox() {
+Hitbox Block::local_hitbox() const {
   return Hitbox(vec3(0,0,0), globalpos, globalpos + scale);
 }
 
-Hitbox Block::local_freebox() {
+Hitbox Block::local_freebox() const {
   return Hitbox(vec3(0,0,0), vec3(globalpos) - scale/2.0f, vec3(globalpos) + scale*3/2.0f);
 }
 
-Hitbox Block::hitbox() {
+Hitbox Block::hitbox() const {
   if (freecontainer == nullptr) {
     return local_hitbox();
   } else {
@@ -266,11 +266,22 @@ Hitbox Block::hitbox() {
   }
 }
 
-Hitbox Block::freebox() {
+Hitbox Block::freebox() const{
   if (freecontainer == nullptr) {
     return local_freebox();
   } else {
     return freecontainer->box.transform_out(local_freebox());
+  }
+}
+
+Movingbox Block::movingbox() const {
+  if (freecontainer == nullptr) {
+    return Movingbox(hitbox(), vec3(0,0,0), vec3(0,0,0), std::numeric_limits<float>::infinity());
+  } else {
+    Movingbox newbox = freecontainer->box;
+    newbox.negbox = vec3(globalpos) - scale/2.0f;
+    newbox.posbox = vec3(globalpos) + scale/2.0f;
+    return newbox;
   }
 }
 
@@ -851,7 +862,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
         float time = glm::dot(colpos - startpos, dir);
         cout << " time " << time << endl;
         
-        if (time <= timeleft) {
+        if (!std::isnan(time) and time <= timeleft) {
           vec3 newpos = free->box.transform_in(colpos);
           vec3 newdir = free->box.transform_in_dir(dir);
           
@@ -934,7 +945,7 @@ vec3 Block::force(vec3 amount) {
 
 
 
-FreeBlock::FreeBlock(Hitbox newbox): Block(), box(newbox), velocity(0,0,0), angularvel(0,0,0) {
+FreeBlock::FreeBlock(Movingbox newbox): Block(), box(newbox) {
   
 }
 
@@ -952,25 +963,60 @@ void FreeBlock::tick() {
 }
 
 void FreeBlock::timestep(float deltatime) {
-  // return;
   static bool n_pressed = false;
   
   if (controls->key_pressed('M')) {
-    fixed = false;
+    paused = false;
   }
   if (controls->key_pressed('B')) {
-    fixed = true;
+    paused = true;
+  }
+  
+  if (controls->key_pressed('L')) {
+    box.velocity += vec3(-10,0,0) * deltatime;
+  }
+  if (controls->key_pressed('J')) {
+    box.velocity += vec3(10,0,0) * deltatime;
+  }
+  if (controls->key_pressed('I')) {
+    box.velocity += vec3(0,0,10) * deltatime;
+  }
+  if (controls->key_pressed('K')) {
+    box.velocity += vec3(0,0,-10) * deltatime;
+  }
+  
+  if (controls->key_pressed('M')) {
+    box.velocity = vec3(0,5,0);
   }
   
   bool cur_n_pressed = controls->key_pressed('N');
-  if (fixed and (!cur_n_pressed or n_pressed)) {
+  if (paused and (!cur_n_pressed or n_pressed)) {
     n_pressed = cur_n_pressed;
     return;
   }
   n_pressed = cur_n_pressed;
   
   debuglines->clear();
+  
+  Movingbox newbox = box;
+  newbox.velocity += vec3(0,-10,0) * deltatime;
+  newbox.timestep(deltatime);
+  
+  FreeBlockIter freeiter (highparent, newbox);
+  
+  for (Pixel* pix : freeiter) {
+    if (pix->value != 0) {
+      Movingbox pixbox = pix->parbl->movingbox();
+      CollisionManifold manifold(&newbox, &pixbox);
+      manifold.apply_changes();
+      // paused = true;
+    }
+  }
+  
+  /*
   velocity += vec3(0,-10,0) * deltatime;
+  // apply_force(force);
+  // apply_torque(torque);
   Hitbox newbox = box;
   newbox.position += velocity * deltatime;
   if (angularvel != vec3(0,0,0)) {
@@ -984,77 +1030,71 @@ void FreeBlock::timestep(float deltatime) {
     // cout << pix->parbl->globalpos << ' ' << newbox << endl;
     if (pix->value != 0) {
       // cout << "yoooo  " << endl;
-      plan.add_box(pix->parbl->hitbox());
-      // pix->erase_render();
-      // fixed = true;
+      plan.add_box(pix->parbl->movingbox());
+      pix->erase_render();
+      // paused = true;
       /*cout << "MAKING MANIFOLD" << endl;
       CollisionManifold manifold(newbox, pix->parbl->hitbox());
       if (manifold) {
-        debuglines->render(manifold.col_point, newbox.global_center(), vec3(0,1,1));
-        fixed = true;
+        debuglines->render(manifold.col_point, newbox.global_midpoint(), vec3(0,1,1));
+        paused = true;
         
         newbox.position += manifold.col_axis * manifold.col_amount;
         if (glm::dot(velocity, manifold.col_axis) < 0) {
           velocity -= glm::dot(velocity, manifold.col_axis) * manifold.col_axis;
         }
-        vec3 torque_point = manifold.torque_point(newbox.global_center(), velocity);
-        vec3 torque = glm::cross(newbox.global_center() - torque_point, velocity);
+        vec3 torque_point = manifold.torque_point(newbox.global_midpoint(), velocity);
+        vec3 torque = glm::cross(newbox.global_midpoint() - torque_point, velocity);
         angularvel += torque;
       }
-      cout << "DONE " << endl;*/
+      cout << "DONE " << endl;
     }
   }//}
-  vec3 torque = plan.torque(newbox.global_center(), velocity);
-  cout << torque << endl;
-  angularvel += torque;
-  // angularvel = plan.constrain_torque(newbox.global_center(), velocity, angularvel);
+  vec3 newtorque = plan.torque(newbox.global_midpoint(), velocity);
+  cout << newtorque << endl;
+  angularvel += newtorque;
+  // angularvel = plan.constrain_torque(newbox.global_midpoint(), velocity, angularvel);
   newbox = plan.newbox();
-  velocity = plan.constrain_vel(velocity);
+  velocity = plan.constrain_vel(velocity);*/
   
   debuglines->render(newbox);
-  debuglines->render(newbox.global_center(), newbox.global_center() + angularvel, vec3(1,0,0));
-  debuglines->render(newbox.global_center(), newbox.global_center() + velocity);
+  debuglines->render(newbox.global_midpoint(), newbox.global_midpoint() + box.angularvel, vec3(1,0,0));
+  debuglines->render(newbox.global_midpoint(), newbox.global_midpoint() + box.velocity);
+  
+  Movingpoint points[8];
+  box.points(points);
+  for (Movingpoint point : points) {
+    debuglines->render(point.position, point.position + point.velocity, vec3(1,0,1));
+  }
+  
   set_box(newbox);
   debuglines->render(highparent->hitbox(), vec3(1,1,0));
   debuglines->render(highparent->freebox(), vec3(1,0,0));
 }
 
-void FreeBlock::set_box(Hitbox newbox) {
+void FreeBlock::set_box(Movingbox newbox) {
   
   if (!highparent->freebox().contains(newbox)) {
-    cout << "CHANGING higbox " << newbox << endl;
-    ivec3 dir (0,0,0);
-    for (int x = -1; x < 2; x ++) {
-      for (int y = -1; y < 2; y ++) {
-        for (int z = -1; z < 2; z ++) {
-          Hitbox freebox = highparent->freebox();
-          freebox.position += vec3(x, y, z) * float(scale*2);
-          if (freebox.contains(newbox)) {
-            dir = ivec3(x, y, z);
-            break;
-          }
-        }
-      }
+    // cout << "CHANGING higbox " << newbox << endl;
+    
+    vec3 guesspos = SAFEFLOOR3(newbox.global_midpoint());
+    Block* guess = highparent->get_global(guesspos, scale*2);
+    
+    if (guess == nullptr) {
+      return;
+    }
+    while (guess->scale > scale*2) {
+      guess->subdivide();
+      guess = guess->get_global(guesspos, scale*2);
     }
     
-    Block* newparent = highparent->get_global(highparent->globalpos + dir * scale * 2, scale*2);
-    if (dir != ivec3(0,0,0) and newparent != nullptr) { // Todo what happens when freeblock leave loaded chunks
-      cout << newparent << " found new highparent " << endl;
-      while (newparent->scale > scale*2) {
-        newparent->subdivide();
-        newparent = newparent->get_global(highparent->globalpos + dir * scale * 2, scale*2);
-      }
-      
-      highparent->remove_freechild(this);
-      newparent->add_freechild(this);
-    }
+    highparent->remove_freechild(this);
+    guess->add_freechild(this);
   }
+  
   box = newbox;
   flags &= ~RENDER_FLAG;
-  set_flag(RENDER_FLAG);
-  for (Pixel* pix : iter()) {
-    pix->parbl->set_flag(RENDER_FLAG);
-  }
+  set_all_flags(RENDER_FLAG);
 }
 
 
@@ -1082,27 +1122,83 @@ void FreeBlock::expand(ivec3 dir) { // Todo: this method only works for csize=2
   set_flag(RENDER_FLAG | LIGHT_FLAG);
 }
 
-vec3 FreeBlock::force(vec3 pos, vec3 dir) {
-  debuglines->render(pos, pos+dir);
-  vec3 pos_to_center = box.global_center() - pos;
-  debuglines->render(pos, pos + pos_to_center);
-  vec3 vel_part = dir * glm::dot(pos_to_center, dir);
-  debuglines->render(pos, pos + vel_part, vec3(1,0,0));
-  vec3 torque_part = pos_to_center - vel_part;
-  debuglines->render(pos, pos + torque_part, vec3(0,1,0));
+void FreeBlock::apply_impulse(vec3 impulse) {
+  box.apply_impulse(impulse);
   
-  velocity += vel_part;
-  torque_part += glm::cross(torque_part, -dir);
+  wake();
+}
+
+void FreeBlock::apply_impulse(vec3 impulse, vec3 point) {
+  box.apply_impulse(impulse, point);
   
-  return vel_part;
+  wake();
 }
 
 
 
+void FreeBlock::calculate_mass() {/*
+  glm::mat3 inertia = {
+    {0,0,0},
+    {0,0,0},
+    {0,0,0}
+  };
+  local_inertia = inertia;
+  global_inertia = inertia;
+  
+  mass = 0;
+  
+  local_center = vec3(0,0,0);
+  
+  for (Pixel* pix : iter()) {
+    BlockData* data = pix->data();
+    if (data != nullptr) {
+      float pixmass = data->density * pix->parbl->scale * pix->parbl->scale * pix->parbl->scale;
+      mass += pixmass;
+      local_center += (vec3(pix->parbl->globalpos) + pix->parbl->scale / 2.0f) * pixmass;
+    }
+  }
+  
+  if (mass == 0) {
+    force_sleep();
+  } else {
+		local_center /= mass;
+		// q3Mat3 identity;
+		// q3Identity( identity );
+		// inertia -= (identity * q3Dot( lc, lc ) - q3OuterProduct( lc, lc )) * mass;
+  }
+  global_center = box.transform_out(local_center);
+  cout << "mass: " << mass << " local_center " << local_center << endl;*/
+}
+
+
+void FreeBlock::try_sleep() {
+  if (box.velocity == vec3(0,0,0)
+  and box.angularvel == vec3(0,0,0)) {
+    asleep = true;
+  }
+}
+
+void FreeBlock::force_sleep() {
+  box.velocity = vec3(0,0,0);
+  box.angularvel = vec3(0,0,0);
+  asleep = true;
+}
+
+void FreeBlock::wake() {
+  asleep = false;
+}
 
 
 
+void FreeBlock::fix() {
+  box.velocity = vec3(0,0,0);
+  box.angularvel = vec3(0,0,0);
+  fixed = true;
+}
 
+void FreeBlock::unfix() {
+  fixed = false;
+}
 
 
 Pixel::Pixel(int val, int direct, int njoints[6]):
@@ -1301,8 +1397,8 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
       //   renderdata.type.faces[i].sunlight = lightmax;
       //   exposed = true;
       // } else
-      // if (parbl->is_air(dir, value) and parbl->freecontainer == nullptr) {
-      if (parbl->is_air(dir, value)) {
+      if (parbl->is_air(dir, value) and parbl->freecontainer == nullptr) {
+      // if (parbl->is_air(dir, value)) {
         renderdata.type.faces[i].tex = mat[i];
         renderdata.type.faces[i].rot = dirs[i];
         renderdata.type.faces[i].blocklight = (parbl->freecontainer == nullptr) ? parbl->get_blocklight(dir) : 20;
@@ -1759,6 +1855,14 @@ void BlockContainer::set_global(ivec3 pos, int w, Blocktype val, int direction, 
 */
 bool Pixel::is_air(int x, int y, int z) {
   return value == 0;
+}
+
+BlockData* Pixel::data() const {
+  if (value == 0) {
+    return nullptr;
+  } else {
+    return blockstorage[value];
+  }
 }
 
 BlockGroupIter Pixel::iter_group() {

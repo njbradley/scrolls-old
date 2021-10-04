@@ -13,6 +13,7 @@ struct BlockDataParams {
   bool rotation_enabled = false;
   int lightlevel = 0;
   bool transparent = false;
+  float density = 1;
 };
   
 
