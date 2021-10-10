@@ -855,8 +855,8 @@ void CollisionManifold::apply_changes() {
   // cout << box1->velocity << endl;
   
   // cout << "mass ratio " << massratio << endl;
-  box1->move(col_axis * col_amount * (1-massratio));
-  box2->move(-col_axis * col_amount * massratio);
+  // box1->move(col_axis * col_amount * (1-massratio));
+  // box2->move(-col_axis * col_amount * massratio);
   
   
   for (Movingpoint point : col_points) {
@@ -864,6 +864,7 @@ void CollisionManifold::apply_changes() {
     if (glm::dot(point.velocity, col_axis) < 0) {
       vec3 vel = col_axis * glm::dot(point.velocity, col_axis);
       vel *= 1.0f/col_points.size();
+      // vel += -col_axis;
       // vel *= 0.3f;
       // cout << "   " << point.velocity << endl;
       box1->apply_impulse(-vel, point.position);
