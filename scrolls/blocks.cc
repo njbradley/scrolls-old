@@ -963,7 +963,7 @@ void FreeBlock::tick() {
 }
 
 void FreeBlock::timestep(float deltatime) {
-  
+  // cout << "START ";
   if (controls->key_pressed('L')) {
     box.velocity += vec3(-10,0,0) * deltatime;
   }
@@ -978,7 +978,7 @@ void FreeBlock::timestep(float deltatime) {
   }
   
   if (controls->key_pressed('U')) {
-    box.velocity = vec3(0,5,0);
+    box.velocity.y = 5;
   }
   
   Movingbox newbox = box;
@@ -989,7 +989,7 @@ void FreeBlock::timestep(float deltatime) {
   
   for (int i = 0; i < freeiter.num_bases; i ++) {
     for (FreeBlock* free = freeiter.bases[i]->world->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
-      if (free < this) {
+      if (free->box.collide(newbox) and free < this) {
         CollisionManifold manifold(&newbox, &free->box);
         manifold.apply_changes();
       }
@@ -1060,6 +1060,7 @@ void FreeBlock::timestep(float deltatime) {
     debuglines->render(point.position, point.position + point.velocity, vec3(1,0,1));
   }
   
+  // cout << "END " << endl;
   set_box(newbox);
   debuglines->render(highparent->hitbox(), vec3(1,1,0));
   debuglines->render(highparent->freebox(), vec3(1,0,0));
@@ -1074,6 +1075,8 @@ void FreeBlock::set_box(Movingbox newbox) {
     Block* guess = highparent->get_global(guesspos, scale*2);
     
     if (guess == nullptr) {
+      highparent->remove_freechild(this);
+      delete this;
       return;
     }
     while (guess->scale > scale*2) {
