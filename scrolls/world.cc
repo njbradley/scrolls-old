@@ -330,6 +330,26 @@ void World::timestep() {
   static double total_time = 0;
   static int num_times = 0;
   double start = getTime();
+  
+  static bool n_pressed = false;
+  static bool paused = true;
+  
+  if (controls->key_pressed('M')) {
+    paused = false;
+  }
+  if (controls->key_pressed('B')) {
+    paused = true;
+  }
+  
+  bool cur_n_pressed = controls->key_pressed('N');
+  if (paused and (!cur_n_pressed or n_pressed)) {
+    n_pressed = cur_n_pressed;
+    return;
+  }
+  n_pressed = cur_n_pressed;
+  
+  debuglines->clear();
+  
   for (Tile* tile : tiles) {
     tile->timestep(dt);
   }

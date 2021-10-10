@@ -963,14 +963,6 @@ void FreeBlock::tick() {
 }
 
 void FreeBlock::timestep(float deltatime) {
-  static bool n_pressed = false;
-  
-  if (controls->key_pressed('M')) {
-    paused = false;
-  }
-  if (controls->key_pressed('B')) {
-    paused = true;
-  }
   
   if (controls->key_pressed('L')) {
     box.velocity += vec3(-10,0,0) * deltatime;
@@ -985,18 +977,9 @@ void FreeBlock::timestep(float deltatime) {
     box.velocity += vec3(0,0,-10) * deltatime;
   }
   
-  if (controls->key_pressed('M')) {
+  if (controls->key_pressed('U')) {
     box.velocity = vec3(0,5,0);
   }
-  
-  bool cur_n_pressed = controls->key_pressed('N');
-  if (paused and (!cur_n_pressed or n_pressed)) {
-    n_pressed = cur_n_pressed;
-    return;
-  }
-  n_pressed = cur_n_pressed;
-  
-  debuglines->clear();
   
   Movingbox newbox = box;
   newbox.velocity += vec3(0,-10,0) * deltatime;
@@ -1004,12 +987,22 @@ void FreeBlock::timestep(float deltatime) {
   
   FreeBlockIter freeiter (highparent, newbox);
   
+  for (int i = 0; i < freeiter.num_bases; i ++) {
+    for (FreeBlock* free = freeiter.bases[i]->world->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
+      if (free < this) {
+        CollisionManifold manifold(&newbox, &free->box);
+        manifold.apply_changes();
+      }
+    }
+  }
+  
   for (Pixel* pix : freeiter) {
     if (pix->value != 0) {
       Movingbox pixbox = pix->parbl->movingbox();
       CollisionManifold manifold(&newbox, &pixbox);
       manifold.apply_changes();
       // paused = true;
+      // pix->erase_render();
     }
   }
   
@@ -1056,7 +1049,7 @@ void FreeBlock::timestep(float deltatime) {
   // angularvel = plan.constrain_torque(newbox.global_midpoint(), velocity, angularvel);
   newbox = plan.newbox();
   velocity = plan.constrain_vel(velocity);*/
-  
+  // newbox.dampen(0, 0, 0);
   debuglines->render(newbox);
   debuglines->render(newbox.global_midpoint(), newbox.global_midpoint() + box.angularvel, vec3(1,0,0));
   debuglines->render(newbox.global_midpoint(), newbox.global_midpoint() + box.velocity);

@@ -77,7 +77,9 @@ class Hitbox { public:
   Hitbox(vec3 pos, vec3 nbox, vec3 pbox, quat rot = quat(1,0,0,0));
   Hitbox();
   
-  void points(vec3* points) const;
+  void points(vec3 points[8]) const;
+  void edges(Line edges[12]) const;
+  void faces(Plane faces[6]) const;
   // global neg and pos points
   vec3 point1() const;
   vec3 point2() const;
@@ -121,6 +123,7 @@ class Hitbox { public:
   
   void move(vec3 amount);
   void change_center(vec3 newcenter);
+  void dampen(float posthresh, float angthresh);
   
   friend ostream& operator<<(ostream& ofile, const Hitbox& hitbox);
   
@@ -142,7 +145,8 @@ class Movingbox : public Hitbox { public:
   
   void calc_inertia();
   
-  void points(Movingpoint* points) const;
+  using Hitbox::points;
+  void points(Movingpoint points[8]) const;
   
   using Hitbox::transform_in;
   using Hitbox::transform_out;
@@ -158,6 +162,7 @@ class Movingbox : public Hitbox { public:
   
   bool movable() const;
   void timestep(float deltatime);
+  void dampen(float posthresh, float angthresh, float velthresh);
 };
 
 

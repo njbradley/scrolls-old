@@ -25,13 +25,39 @@ void print(vec3 v) {
     cout << v.x << ' ' << v.y << ' ' << v.z << endl;
 }
 
+#define PI 3.14159265358979323846f
 
-
-
-glm::mat3 rotate_tensor(glm::mat3 mat, quat rot) {
-  return mat;
+float dampen(float value, float thresh) {
+  if (std::abs(value) <= thresh) {
+    return 0;
+  }
+  return value;
 }
 
+float dampen_to_int(float value, float thresh) {
+  float rounded = std::round(value);
+  return rounded + dampen(value - rounded, thresh);
+}
+
+vec3 dampen(vec3 value, float thresh) {
+  return vec3(dampen(value.x, thresh), dampen(value.y, thresh), dampen(value.z, thresh));
+}
+
+vec3 dampen_to_int(vec3 value, float thresh) {
+  vec3 rounded = glm::round(value);
+  return rounded + dampen(value - rounded, thresh);
+}
+
+quat dampen(quat value, float thresh) {
+  vec3 axis = glm::axis(value);
+  float angle = glm::angle(value);
+  return glm::angleAxis(dampen_to_int(angle/PI, thresh)*PI, dampen(axis, thresh));
+}
+
+glm::mat3 rotate_tensor(glm::mat3 mat, quat rot) {
+  glm::mat3 rotmat = glm::mat3_cast(rot);
+  return rotmat * mat * glm::transpose(rotmat);
+}
 
 
 Line::Line(): position(0,0,0), direction(0,0,0) {
@@ -200,9 +226,34 @@ Hitbox::Hitbox(): Hitbox(vec3(0,0,0), vec3(0,0,0), vec3(0,0,0)) {
   
 }
 
-void Hitbox::points(vec3* points) const {
+void Hitbox::points(vec3 points[8]) const {
   for (int i = 0; i < 8; i ++) {
     points[i] = transform_out(size() * vec3(i/4,i/2%2,i%2));
+  }
+}
+
+void Hitbox::edges(Line edges[12]) const {
+  for (int axis = 0; axis < 3; axis ++) {
+    vec3 dir (0,0,0);
+    vec3 pos (0,0,0);
+    dir[axis] = 1;
+    vec3 globdir = transform_out_dir(dir);
+    for (int i = 0; i < 2; i ++) {
+      for (int j = 0; j < 2; j ++) {
+        pos[(axis+1)%3] = i*size()[(axis+1)%3];
+        pos[(axis+2)%3] = j*size()[(axis+2)%3];
+        edges[axis*4+i*2+j] = Line(transform_out(pos), globdir);
+      }
+    }
+  }
+}
+
+void Hitbox::faces(Plane faces[6]) const {
+  for (int axis = 0; axis < 3; axis ++) {
+    vec3 dir (0,0,0);
+    dir[axis] = 1;
+    faces[axis*2+0] = Plane(transform_out(size()), transform_out_dir(dir));
+    faces[axis*2+1] = Plane(transform_out(vec3(0,0,0)), transform_out_dir(-dir));
   }
 }
 
@@ -441,6 +492,11 @@ void Hitbox::change_center(vec3 newcenter) {
   posbox = oldsize - newcenter;
 }
 
+void Hitbox::dampen(float posthresh, float angthresh) {
+  position = dampen_to_int(position, posthresh);
+  rotation = ::dampen(rotation, angthresh);
+}
+
 ostream& operator<<(ostream& ofile, const Hitbox& hitbox) {
   ofile << "Hitbox(pos=" << hitbox.position << " negbox=" << hitbox.negbox << " posbox=" << hitbox.posbox;
   if (hitbox.rotation != quat(1,0,0,0)) {
@@ -484,7 +540,15 @@ Hitbox(box), velocity(vel), angularvel(angvel), mass(nmass), inertia(inert) {
 }
 
 void Movingbox::calc_inertia() {
+  vec3 dims = size();
   
+  vec3 dims2 = 4.0f * size() * size();
+  mass = dims.x*dims.y*dims.z;
+  float scalar = 1/12.0f;
+  inertia = glm::mat3(1.0f);
+  inertia[0].x = scalar * mass * (dims2.y + dims2.z);
+  inertia[1].y = scalar * mass * (dims2.x + dims2.z);
+  inertia[2].z = scalar * mass * (dims2.x + dims2.y);
 }
 
 void Movingbox::points(Movingpoint* points) const {
@@ -564,18 +628,27 @@ void Movingbox::apply_impulse(vec3 impulse) {
 }
 
 void Movingbox::apply_impulse(vec3 impulse, vec3 point) {
+  // cout << point << endl;
   velocity += impulse / mass;
-  angularvel += global_inertia() * glm::cross(point - global_center(), impulse);
+  angularvel += glm::inverse(global_inertia()) * glm::cross(point - global_center(), impulse);
+  // angularvel += glm::cross(point - global_center(), impulse) / mass;
+  debuglines->render(point, global_center(), vec3(0,1,0));
+  // debuglines->render(
 }
 
 void Movingbox::timestep(float deltatime) {
   position += velocity * deltatime;
   if (angularvel != vec3(0,0,0)) {
-    rotation = glm::normalize(rotation * glm::angleAxis(glm::length(angularvel) * deltatime, glm::normalize(angularvel)));
+    quat drot = glm::angleAxis(glm::length(angularvel) * deltatime, glm::normalize(angularvel));
+    rotation = glm::normalize(drot * rotation);
   }
 }
 
-
+void Movingbox::dampen(float posthresh, float angthresh, float velthresh) {
+  Hitbox::dampen(posthresh, angthresh);
+  velocity = ::dampen(velocity, velthresh);
+  angularvel = ::dampen(angularvel, velthresh);
+}
 
 
 
@@ -644,6 +717,59 @@ bool CollisionManifold::collision_result() {
   }
   col_amount = -least_overlap;
   
+  
+  vector<vec3> points;
+  
+  vec3 tmppoints[8];
+  box1->points(tmppoints);
+  for (vec3 point : tmppoints) {
+    if (box1->contains(point) and box2->contains(point)) {
+      points.push_back(point);
+    }
+  }
+  
+  // box2->points(tmppoints);
+  // for (vec3 point : tmppoints) {
+  //   if (box1->contains(point) and box2->contains(point)) {
+  //     points.push_back(point);
+  //   }
+  // }
+  
+  Line edges[12];
+  Plane faces[6];
+  box1->edges(edges);
+  box2->faces(faces);
+  for (Line edge : edges) {
+    for (Plane face : faces) {
+      vec3 col = face.collision(edge);
+      if (!std::isnan(col.x) and box1->contains(col) and box2->contains(col)) {
+        points.push_back(col);
+      }
+    }
+  }
+  
+  // box2->edges(edges);
+  // box1->faces(faces);
+  // for (Line edge : edges) {
+  //   for (Plane face : faces) {
+  //     vec3 col = face.collision(edge);
+  //     if (!std::isnan(col.x) and box1->contains(col) and box2->contains(col)) {
+  //       points.push_back(col);
+  //     }
+  //   }
+  // }
+  
+  for (vec3 point : points) {
+    Movingpoint point1 = box1->transform_out(Movingpoint(box1->transform_in(point), box1->mass));
+    Movingpoint point2 = box2->transform_out(Movingpoint(box2->transform_in(point), box2->mass));
+    point1.velocity = point1.momentum() - point2.momentum();
+    point1.mass = 1;
+    debuglines->render(point1.position + vec3(-0.1,0,0), point1.position + vec3(0.1,0,0));
+    debuglines->render(point1.position + vec3(0,0,-0.1), point1.position + vec3(0,0,0.1));
+    col_points.push_back(point1);
+  }
+  
+  /*
   vec3 close_points[4];
   for (int i = 0, j = 0; i < 8; i ++) {
     vec3 inner_point = box1->size() * vec3(i/4,i/2%2,i%2) - box1->size() / 2.0f;
@@ -707,7 +833,7 @@ bool CollisionManifold::collision_result() {
     // col_points.push_back(col_point);
     // col_points.insert(col_points.begin(), past_points.begin(), past_points.end());
     // cout << "colpoint past " << col_point << endl;
-  }
+  }*/
   
   return true;
 }
@@ -743,6 +869,7 @@ void CollisionManifold::apply_changes() {
       box1->apply_impulse(-vel, point.position);
       box2->apply_impulse(vel, point.position);
       // cout << "  box " << box1->velocity << ' ' << box1->angularvel << endl;
+      debuglines->render(point.position, point.position + vel, vec3(1,1,0));
     }
     
     // friction
