@@ -1050,6 +1050,9 @@ void FreeBlock::timestep(float deltatime) {
   newbox = plan.newbox();
   velocity = plan.constrain_vel(velocity);*/
   // newbox.dampen(0, 0, 0);
+  newbox.velocity *= 1.0f / (1.0f + deltatime * 0.1f);
+  newbox.angularvel *= 1.0f / (1.0f + deltatime * 0.1f);
+  
   debuglines->render(newbox);
   debuglines->render(newbox.global_midpoint(), newbox.global_midpoint() + box.angularvel, vec3(1,0,0));
   debuglines->render(newbox.global_midpoint(), newbox.global_midpoint() + box.velocity);

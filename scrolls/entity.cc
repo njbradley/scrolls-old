@@ -855,8 +855,8 @@ void CollisionManifold::apply_changes() {
   // cout << box1->velocity << endl;
   
   // cout << "mass ratio " << massratio << endl;
-  // box1->move(col_axis * col_amount * (1-massratio));
-  // box2->move(-col_axis * col_amount * massratio);
+  box1->move(col_axis * col_amount * (1-massratio) * 0.5f);
+  box2->move(-col_axis * col_amount * massratio * 0.5f);
   
   
   for (Movingpoint point : col_points) {
