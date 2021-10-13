@@ -36,7 +36,10 @@ float dampen(float value, float thresh) {
 
 float dampen_to_int(float value, float thresh) {
   float rounded = std::round(value);
-  return rounded + dampen(value - rounded, thresh);
+  if (std::abs(value - rounded) <= thresh) {
+    return rounded;
+  }
+  return value;
 }
 
 vec3 dampen(vec3 value, float thresh) {
@@ -49,9 +52,12 @@ vec3 dampen_to_int(vec3 value, float thresh) {
 }
 
 quat dampen(quat value, float thresh) {
-  vec3 axis = glm::axis(value);
-  float angle = glm::angle(value);
-  return glm::angleAxis(dampen_to_int(angle/PI, thresh)*PI, dampen(axis, thresh));
+  return quat(dampen_to_int(value.w, thresh), dampen_to_int(value.x, thresh), dampen_to_int(value.y, thresh), dampen_to_int(value.z, thresh));
+  // vec3 axis = glm::axis(value);
+  // if (axis.x
+  // float angle = glm::angle(value);
+  
+  // return glm::angleAxis(dampen_to_int(angle/PI, thresh)*PI, dampen(axis, thresh));
 }
 
 glm::mat3 rotate_tensor(glm::mat3 mat, quat rot) {
@@ -540,6 +546,10 @@ Hitbox(box), velocity(vel), angularvel(angvel), mass(nmass), inertia(inert) {
 }
 
 void Movingbox::calc_inertia() {
+  if (!movable()) {
+    inertia = glm::mat3(0);
+    return;
+  }
   vec3 dims = size();
   
   vec3 dims2 = 4.0f * size() * size();
@@ -557,8 +567,6 @@ void Movingbox::points(Movingpoint* points) const {
     points[i] = transform_out(Movingpoint(size() * vec3(i/4,i/2%2,i%2), mass));
   }
 }
-
-
 
 // Movingpoint Movingbox::local_midpoint() const {
 //   return Movingpoint(size() / 2.0f, vec3(0,0,0), mass);
@@ -623,14 +631,26 @@ bool Movingbox::movable() const {
   return !isinf(mass);
 }
 
+
+vec3 Movingbox::impulse_at(vec3 globalpos) const {
+  if (!movable()) return vec3(0,0,0);
+  vec3 impulse = glm::cross(global_inertia() * angularvel, globalpos - global_center());
+  // impulse = glm::max(impulse, velocity * mass)
+  impulse += velocity * mass;
+  return impulse;
+}
+
 void Movingbox::apply_impulse(vec3 impulse) {
   velocity += impulse;
 }
 
 void Movingbox::apply_impulse(vec3 impulse, vec3 point) {
   // cout << point << endl;
-  velocity += impulse / mass;
-  angularvel += glm::inverse(global_inertia()) * glm::cross(point - global_center(), impulse);
+  vec3 centerdir = glm::normalize(global_center() - point);
+  vec3 velpart = centerdir * glm::dot(centerdir, impulse);
+  vec3 angpart = impulse - velpart;
+  velocity += velpart / mass;
+  angularvel += glm::inverse(global_inertia()) * glm::cross(point - global_center(), angpart);
   // angularvel += glm::cross(point - global_center(), impulse) / mass;
   debuglines->render(point, global_center(), vec3(0,1,0));
   // debuglines->render(
@@ -652,11 +672,99 @@ void Movingbox::dampen(float posthresh, float angthresh, float velthresh) {
 
 
 
+MovingboxStep::MovingboxStep(): Movingbox(), unapplied_vel(0,0,0), unapplied_movement(0,0,0) {
+  
+}
+
+MovingboxStep::MovingboxStep(Movingbox box): Movingbox(box), unapplied_vel(0,0,0), unapplied_movement(0,0,0) {
+  
+}
+
+void MovingboxStep::apply_impulse(vec3 impulse) {
+  vec3 newvel = impulse / mass;
+  
+  if (glm::length(newvel) > glm::length(unapplied_vel)) {
+    vec3 tmp = unapplied_vel;
+    unapplied_vel = newvel;
+    newvel = tmp;
+  }
+  vec3 vel_norm = glm::normalize(unapplied_vel);
+  if (glm::dot(vel_norm, newvel) >= 0) {
+    unapplied_vel += newvel - vel_norm * glm::dot(vel_norm, newvel);
+  } else {
+    unapplied_vel += newvel;
+  }
+}
+
+void MovingboxStep::apply_impulse(vec3 impulse, vec3 point) {
+  vec3 newvel = impulse / mass;
+  vec3 newangvel = glm::inverse(global_inertia()) * glm::cross(point - global_center(), impulse);
+  
+  debuglines->render(point, point+impulse, vec3(0,1,1));
+  
+  apply_impulse(impulse);
+  
+  unapplied_angvel.push_back(newangvel);
+}
+
+void MovingboxStep::move(vec3 amount) {
+  if (glm::length(amount) > glm::length(unapplied_movement)) {
+    vec3 tmp = unapplied_movement;
+    unapplied_movement = amount;
+    amount = tmp;
+  }
+  vec3 mov_norm = glm::normalize(unapplied_movement);
+  if (glm::dot(mov_norm, amount) >= 0) {
+    unapplied_movement += amount - mov_norm * glm::dot(mov_norm, amount);
+  } else {
+    unapplied_movement += amount;
+  }
+}
+
+void MovingboxStep::apply_forces() {
+  velocity += unapplied_vel;
+  position += unapplied_movement;
+  
+  if (unapplied_angvel.size() == 0) return;
+  
+  vec3 newangvel (0,0,0);
+  
+  for (int i = 0; i < unapplied_angvel.size(); i ++) {
+    if (glm::length(unapplied_angvel[i]) < 0.01f) {
+      newangvel = vec3(0,0,0);
+      break;
+    }
+    vec3 angveldir = glm::normalize(unapplied_angvel[i]);
+    debuglines->render(global_center(), global_center() + angveldir);
+    bool matched = false;
+    for (int j = 0; j < i; j ++) {
+      if (glm::dot(glm::normalize(unapplied_angvel[j]), angveldir) < -0.99f) {
+        matched = true;
+      }
+    }
+    if (!matched) {
+      newangvel += unapplied_angvel[i];
+    }
+  }
+  
+  newangvel /= unapplied_angvel.size();
+  angularvel += newangvel;
+  
+  unapplied_vel = vec3(0,0,0);
+  unapplied_angvel.clear();
+  unapplied_movement = vec3(0,0,0);
+}
+
+
+
+
+
 CollisionManifold::CollisionManifold(): result(false) {
   
 }
 
-CollisionManifold::CollisionManifold(Movingbox* nbox1, Movingbox* nbox2): box1(nbox1), box2(nbox2) {
+CollisionManifold::CollisionManifold(Movingbox* nbox1, Movingbox* nbox2, MovingboxStep* ndest1, MovingboxStep* ndest2):
+box1(nbox1), box2(nbox2), dest1(ndest1), dest2(ndest2) {
   result = collision_result();
 }
   
@@ -760,10 +868,12 @@ bool CollisionManifold::collision_result() {
   // }
   
   for (vec3 point : points) {
-    Movingpoint point1 = box1->transform_out(Movingpoint(box1->transform_in(point), box1->mass));
-    Movingpoint point2 = box2->transform_out(Movingpoint(box2->transform_in(point), box2->mass));
-    point1.velocity = point1.momentum() - point2.momentum();
-    point1.mass = 1;
+    vec3 impulse = box1->impulse_at(point) - box2->impulse_at(point);
+    Movingpoint point1 (point, impulse, 1);
+    // Movingpoint point1 = box1->transform_out(Movingpoint(box1->transform_in(point), box1->mass));
+    // Movingpoint point2 = box2->transform_out(Movingpoint(box2->transform_in(point), box2->mass));
+    // point1.velocity = point1.momentum() - point2.momentum();
+    // point1.mass = 1;
     debuglines->render(point1.position + vec3(-0.1,0,0), point1.position + vec3(0.1,0,0));
     debuglines->render(point1.position + vec3(0,0,-0.1), point1.position + vec3(0,0,0.1));
     col_points.push_back(point1);
@@ -842,7 +952,7 @@ CollisionManifold::operator bool() const {
   return result;
 }
 
-void CollisionManifold::apply_changes() {
+void CollisionManifold::move_boxes() {
   float massratio = box1->mass / (box1->mass + box2->mass);
   if (!box1->movable()) {
     massratio = 1;
@@ -850,38 +960,40 @@ void CollisionManifold::apply_changes() {
   if (!box2->movable()) {
     massratio = 0;
   }
-  // cout << "BEFORE CHANGES" << endl;
-  // cout << box1->position << endl;
-  // cout << box1->velocity << endl;
   
-  // cout << "mass ratio " << massratio << endl;
-  box1->move(col_axis * col_amount * (1-massratio) * 0.5f);
-  box2->move(-col_axis * col_amount * massratio * 0.5f);
+  dest1->move(col_axis * col_amount * (1-massratio));
+  dest2->move(-col_axis * col_amount * massratio);
+}
   
+
+void CollisionManifold::apply_forces() {
   
   for (Movingpoint point : col_points) {
     // cout << " point " << point.position << ' ' << point.velocity << endl;
     if (glm::dot(point.velocity, col_axis) < 0) {
       vec3 vel = col_axis * glm::dot(point.velocity, col_axis);
-      vel *= 1.0f/col_points.size();
       // vel += -col_axis;
+      // vel *= 1.0f/col_points.size();
       // vel *= 0.3f;
       // cout << "   " << point.velocity << endl;
-      box1->apply_impulse(-vel, point.position);
-      box2->apply_impulse(vel, point.position);
+      dest1->apply_impulse(-vel, point.position);
+      dest2->apply_impulse(vel, point.position);
       // cout << "  box " << box1->velocity << ' ' << box1->angularvel << endl;
       debuglines->render(point.position, point.position + vel, vec3(1,1,0));
     }
-    
+  }
+}
+
+void CollisionManifold::apply_friction() {
+  
+  for (Movingpoint point : col_points) {
     // friction
     vec3 vel = point.velocity - col_axis * glm::dot(point.velocity, col_axis);
-    vel *= 1.0f/col_points.size();
+    // vel *= 1.0f/col_points.size();
     vel *= 0.1f;
-    box1->apply_impulse(-vel, point.position);
-    box2->apply_impulse(vel, point.position);
+    dest1->apply_impulse(-vel, point.position);
+    dest2->apply_impulse(vel, point.position);
   }
-  
-  // cout << box1->position << ' ' << box1->velocity << endl;
 }
 
 /*

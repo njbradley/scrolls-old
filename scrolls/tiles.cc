@@ -163,6 +163,15 @@ void Tile::timestep(float deltatime) {
   }
 }
 
+void Tile::resolve_timestep(float deltatime) {
+  if (deleting or !fully_loaded) {
+    return;
+  }
+  for (FreeBlock* free = allfreeblocks; free != nullptr; free = free->allfreeblocks) {
+    free->resolve_timestep(deltatime);
+  }
+}
+
 void Tile::drop_ticks() {
   
 }

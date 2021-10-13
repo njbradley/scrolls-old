@@ -353,6 +353,9 @@ void World::timestep() {
   for (Tile* tile : tiles) {
     tile->timestep(dt);
   }
+  for (Tile* tile : tiles) {
+    tile->resolve_timestep(dt);
+  }
   total_time += getTime() - start;
   num_times ++;
   

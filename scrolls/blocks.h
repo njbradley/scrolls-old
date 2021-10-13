@@ -197,6 +197,7 @@ class Block: public Collider { public:
 
 class FreeBlock : public Block { public:
 	Movingbox box;
+	MovingboxStep nextbox;
 	bool fixed = false;
 	bool paused = false;
 	bool asleep = false;
@@ -210,6 +211,7 @@ class FreeBlock : public Block { public:
 	void set_box(Movingbox newbox);
 	void tick();
 	void timestep(float deltatime);
+	void resolve_timestep(float deltatime);
 	
 	void apply_torque(vec3 newtorque);
 	

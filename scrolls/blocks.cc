@@ -963,7 +963,8 @@ void FreeBlock::tick() {
 }
 
 void FreeBlock::timestep(float deltatime) {
-  // cout << "START ";
+  cout << "START " << box << endl;
+  
   if (controls->key_pressed('L')) {
     box.velocity += vec3(-10,0,0) * deltatime;
   }
@@ -981,17 +982,27 @@ void FreeBlock::timestep(float deltatime) {
     box.velocity.y = 5;
   }
   
-  Movingbox newbox = box;
-  newbox.velocity += vec3(0,-10,0) * deltatime;
-  newbox.timestep(deltatime);
+  nextbox = box;
+  nextbox.velocity += vec3(0,-10,0) * deltatime;
+  nextbox.timestep(deltatime);
   
-  FreeBlockIter freeiter (highparent, newbox);
+  // nextbox.dampen(0.001f,0.01f,0);
+  
+  // nextbox.velocity *= 1.0f / (1.0f + deltatime * 0.1f);
+  // nextbox.angularvel *= 1.0f / (1.0f + deltatime * 0.1f);
+}
+
+void FreeBlock::resolve_timestep(float deltatime) {
+  FreeBlockIter freeiter (highparent, nextbox);
+  
+  vector<CollisionManifold> manifolds;
   
   for (int i = 0; i < freeiter.num_bases; i ++) {
     for (FreeBlock* free = freeiter.bases[i]->world->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
-      if (free->box.collide(newbox) and free < this) {
-        CollisionManifold manifold(&newbox, &free->box);
-        manifold.apply_changes();
+      if (free->box.collide(nextbox) and free < this) {
+        manifolds.emplace_back(&nextbox, &free->nextbox, &nextbox, &free->nextbox);
+        // CollisionManifold manifold(&nextbox, &free->box);
+        // manifold.apply_changes();
       }
     }
   }
@@ -999,63 +1010,33 @@ void FreeBlock::timestep(float deltatime) {
   for (Pixel* pix : freeiter) {
     if (pix->value != 0) {
       Movingbox pixbox = pix->parbl->movingbox();
-      CollisionManifold manifold(&newbox, &pixbox);
-      manifold.apply_changes();
+      MovingboxStep pixboxstep = pixbox;
+      manifolds.emplace_back(&nextbox, &pixbox, &nextbox, &pixboxstep);
+      // CollisionManifold manifold();
+      // manifold.apply_forces();
       // paused = true;
       // pix->erase_render();
     }
   }
   
-  /*
-  velocity += vec3(0,-10,0) * deltatime;
-  // apply_force(force);
-  // apply_torque(torque);
-  Hitbox newbox = box;
-  newbox.position += velocity * deltatime;
-  if (angularvel != vec3(0,0,0)) {
-    newbox.rotation = glm::normalize(newbox.rotation * glm::angleAxis(glm::length(angularvel) * deltatime, glm::normalize(angularvel)));
+  for (CollisionManifold& mani : manifolds) {
+    mani.apply_forces();
   }
-  FreeBlockIter freeiter (highparent, newbox);
-  CollisionPlan plan (newbox);
-  // for (int i = 0; i < freeiter.num_bases; i ++) {
-  // for (Pixel* pix : freeiter.bases[i]->iter()) {
-  for (Pixel* pix : freeiter) {
-    // cout << pix->parbl->globalpos << ' ' << newbox << endl;
-    if (pix->value != 0) {
-      // cout << "yoooo  " << endl;
-      plan.add_box(pix->parbl->movingbox());
-      pix->erase_render();
-      // paused = true;
-      /*cout << "MAKING MANIFOLD" << endl;
-      CollisionManifold manifold(newbox, pix->parbl->hitbox());
-      if (manifold) {
-        debuglines->render(manifold.col_point, newbox.global_midpoint(), vec3(0,1,1));
-        paused = true;
-        
-        newbox.position += manifold.col_axis * manifold.col_amount;
-        if (glm::dot(velocity, manifold.col_axis) < 0) {
-          velocity -= glm::dot(velocity, manifold.col_axis) * manifold.col_axis;
-        }
-        vec3 torque_point = manifold.torque_point(newbox.global_midpoint(), velocity);
-        vec3 torque = glm::cross(newbox.global_midpoint() - torque_point, velocity);
-        angularvel += torque;
-      }
-      cout << "DONE " << endl;
-    }
-  }//}
-  vec3 newtorque = plan.torque(newbox.global_midpoint(), velocity);
-  cout << newtorque << endl;
-  angularvel += newtorque;
-  // angularvel = plan.constrain_torque(newbox.global_midpoint(), velocity, angularvel);
-  newbox = plan.newbox();
-  velocity = plan.constrain_vel(velocity);*/
-  // newbox.dampen(0, 0, 0);
-  newbox.velocity *= 1.0f / (1.0f + deltatime * 0.1f);
-  newbox.angularvel *= 1.0f / (1.0f + deltatime * 0.1f);
+  nextbox.apply_forces();
+  for (CollisionManifold& mani : manifolds) {
+    mani.apply_friction();
+  }
+  nextbox.apply_forces();
+  for (CollisionManifold& mani : manifolds) {
+    mani.move_boxes();
+  }
   
-  debuglines->render(newbox);
-  debuglines->render(newbox.global_midpoint(), newbox.global_midpoint() + box.angularvel, vec3(1,0,0));
-  debuglines->render(newbox.global_midpoint(), newbox.global_midpoint() + box.velocity);
+  nextbox.apply_forces();
+  // newbox.dampen(0, 0, 0);
+  
+  debuglines->render(nextbox);
+  debuglines->render(nextbox.global_midpoint(), nextbox.global_midpoint() + box.angularvel, vec3(1,0,0));
+  debuglines->render(nextbox.global_midpoint(), nextbox.global_midpoint() + box.velocity);
   
   Movingpoint points[8];
   box.points(points);
@@ -1064,7 +1045,7 @@ void FreeBlock::timestep(float deltatime) {
   }
   
   // cout << "END " << endl;
-  set_box(newbox);
+  set_box(nextbox);
   debuglines->render(highparent->hitbox(), vec3(1,1,0));
   debuglines->render(highparent->freebox(), vec3(1,0,0));
 }
@@ -1078,8 +1059,9 @@ void FreeBlock::set_box(Movingbox newbox) {
     Block* guess = highparent->get_global(guesspos, scale*2);
     
     if (guess == nullptr) {
-      highparent->remove_freechild(this);
-      delete this;
+      cout << "IM OUT " << newbox << endl;
+      // highparent->remove_freechild(this);
+      // delete this;
       return;
     }
     while (guess->scale > scale*2) {

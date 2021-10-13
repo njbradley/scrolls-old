@@ -31,6 +31,7 @@ class Tile : public Container {
 		~Tile();
 		void tick();
 		void timestep(float deltatime);
+		void resolve_timestep(float deltatime);
 		void drop_ticks();
 		void render(RenderVecs* vecs, RenderVecs* transvecs);
 		void save();

@@ -116,7 +116,7 @@ void Player::right_mouse(double deltatime) {
 						// Hitbox newbox (vec3(0,0,0), vec3(blockpos) - 0.5f, vec3(blockpos) + 0.5f);
 						// Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f), glm::angleAxis(1.0f, vec3(dir)));
 						Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f));
-						newbox.move(vec3(0,0,0.1));
+						// newbox.move(vec3(0,0,0.1));
 						// newbox.rotation = glm::angleAxis(3.14159265f/2, vec3(1,0,0));
 						// debuglines->render(newbox);
 						FreeBlock* freeblock = new FreeBlock(Movingbox(newbox, vec3(0,0,0), vec3(0,0,0), 1));

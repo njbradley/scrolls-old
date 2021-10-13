@@ -122,6 +122,8 @@ class Hitbox { public:
   bool contains(Hitbox other) const;
   
   void move(vec3 amount);
+  void move(vec3 point1, vec3 amount1, vec3 point2, vec3 amount2);
+  void move(vec3 point1, vec3 amount1, vec3 point2, vec3 amount2, vec3 point3, vec3 amount3);
   void change_center(vec3 newcenter);
   void dampen(float posthresh, float angthresh);
   
@@ -157,6 +159,7 @@ class Movingbox : public Hitbox { public:
   
   glm::mat3 global_inertia() const;
   
+  vec3 impulse_at(vec3 globalpos) const;
   void apply_impulse(vec3 impulse);
   void apply_impulse(vec3 impulse, vec3 point);
   
@@ -165,11 +168,28 @@ class Movingbox : public Hitbox { public:
   void dampen(float posthresh, float angthresh, float velthresh);
 };
 
-
+class MovingboxStep : public Movingbox { public:
+  vec3 unapplied_vel;
+  // vec3 unapplied_angvel;
+  vector<vec3> unapplied_angvel;
+  vec3 unapplied_movement;
+  
+  MovingboxStep();
+  MovingboxStep(Movingbox box);
+  
+  void apply_impulse(vec3 impulse);
+  void apply_impulse(vec3 impulse, vec3 point);
+  
+  void move(vec3 amount);
+  
+  void apply_forces();
+};
 
 class CollisionManifold { public:
   Movingbox* box1;
   Movingbox* box2;
+  MovingboxStep* dest1;
+  MovingboxStep* dest2;
   vec3 col_axis;
   float col_amount;
   vector<Movingpoint> col_points;
@@ -177,12 +197,20 @@ class CollisionManifold { public:
   bool result;
   
   CollisionManifold();
-  CollisionManifold(Movingbox* b1, Movingbox* b2);
+  CollisionManifold(Movingbox* nbox1, Movingbox* nbox2, MovingboxStep* ndest1, MovingboxStep* ndest2);
   operator bool() const;
   bool collision_result();
-  void apply_changes();
+  void apply_forces();
+  void apply_friction();
+  void move_boxes();
   // void combine(CollisionManifold other);
 };
+
+// class CollisionPlan { public:
+//   Block* block1;
+//   Block* block2;
+//
+//
 /*
 class CollisionPlan { public:
   Hitbox box;
