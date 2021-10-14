@@ -13,3 +13,4 @@ dump*.txt
 crash-reports/
 /stb/
 /*exe
+obj

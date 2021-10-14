@@ -1,6 +1,6 @@
 CXX := g++
 CXXFLAGS := -std=c++17 -DGLEW_STATIC -I ../ -fPIC
-LIBS := 
+LIBS :=
 LDFLAGS :=
 DLLFLAGS :=
 ifeq ($(BUILD),RELEASE)
@@ -43,6 +43,7 @@ endif
 
 
 LIBS := $(LIBS) $(EXTRALIBS)
+CXXFLAGS := $(CXXFLAGS) $(EXTRAFLAGS)
 
 $(TARGET): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(OPT) $(OBJECTS) -o $(TARGETFILE) $(LDFLAGS) $(LIBS)
