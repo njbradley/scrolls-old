@@ -12,10 +12,10 @@ extern GLFWwindow* window;
 
 class GLGraphicsContext : public GraphicsContext { public:
 	// PluginUpCast<DebugLines, GLDebugLines> debuglines {&::debuglines};
-	PLUGIN_REQUIRES(debuglines, GLDebugLines);
-	PLUGIN_REQUIRES_PREFIX(GraphicsContext::, blockvecs, AsyncGLVecs);
-	PLUGIN_REQUIRES_PREFIX(GraphicsContext::, transvecs, AsyncGLVecs);
-	PLUGIN_REQUIRES_PREFIX(GraphicsContext::, uivecs, GLUIVecs);
+	PLUGIN_REQUIRES(::, debuglines, GLDebugLines);
+	PLUGIN_REQUIRES(GraphicsContext::, blockvecs, AsyncGLVecs);
+	PLUGIN_REQUIRES(GraphicsContext::, transvecs, AsyncGLVecs);
+	PLUGIN_REQUIRES(GraphicsContext::, uivecs, GLUIVecs);
 	
 	GLuint block_vertexid;
 	GLuint ui_vertexid;

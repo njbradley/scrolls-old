@@ -303,9 +303,7 @@ extern PluginLoader pluginloader;
 #define PLUGIN_HEAD(X, params) typedef X Plugin_BaseType; \
 	typedef X* (*ctor_func) params;
 
-#define PLUGIN_REQUIRES(plugin, NewType) \
-	PluginUpCast<GetPluginType<decltype(plugin)>::type, NewType> plugin {&::plugin};
-#define PLUGIN_REQUIRES_PREFIX(prefix, plugin, NewType) \
+#define PLUGIN_REQUIRES(prefix, plugin, NewType) \
 	PluginUpCast<GetPluginType<decltype(prefix plugin)>::type, NewType> plugin {&(prefix plugin)};
 
 #endif
