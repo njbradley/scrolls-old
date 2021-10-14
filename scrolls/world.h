@@ -74,6 +74,7 @@ class World: public Collider { public:
   TileMap tiles;
   PluginNow<TerrainLoader> terrainloader;
   PluginNow<TileLoader> tileloader;
+  PluginNow<PhysicsEngine> physics;
   
   Player* player;
   

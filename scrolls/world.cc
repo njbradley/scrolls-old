@@ -154,7 +154,7 @@ void TileMap::status(ostream& ofile) {
 }
 
 
-World::World(string oldname): terrainloader(seed), tileloader(this), name(oldname),
+World::World(string oldname): terrainloader(seed), tileloader(this), name(oldname), physics(this, 1/20.0f),
 tiles( ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) + 3) {
   ifstream ifile(path("worlddata.txt"));
   if (ifile.good()) {
@@ -372,6 +372,7 @@ void World::timestep() {
 }
 
 void World::tick() {
+  physics->tick();
   for (Tile* tile : tiles) {
     tile->tick();
   }

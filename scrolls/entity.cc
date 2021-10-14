@@ -996,6 +996,13 @@ void CollisionManifold::apply_friction() {
   }
 }
 
+
+DEFINE_PLUGIN(PhysicsEngine);
+
+PhysicsEngine::PhysicsEngine(World* nworld, float dt): world(nworld), deltatime(dt) {
+  
+}
+
 /*
 vec3 CollisionManifold::torque_point(vec3 mass_point, vec3 vel_dir) const {
   if (!result) return vec3(0,0,0);

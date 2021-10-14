@@ -4,8 +4,6 @@
 using std::cout;
 using std::endl;
 
-q3Scene scene( 1.0 / 20.0 );
-
 /*
 int main() {
 	q3BodyDef bodyDef;

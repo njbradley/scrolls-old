@@ -206,6 +206,18 @@ class CollisionManifold { public:
   // void combine(CollisionManifold other);
 };
 
+
+class PhysicsEngine { public:
+  PLUGIN_HEAD(PhysicsEngine, (World*, float));
+  
+  World* world;
+  float deltatime;
+  
+  PhysicsEngine(World* nworld, float deltatime);
+  
+  virtual void tick() = 0;
+};
+
 // class CollisionPlan { public:
 //   Block* block1;
 //   Block* block2;

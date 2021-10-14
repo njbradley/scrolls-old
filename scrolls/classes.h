@@ -99,6 +99,7 @@ class BlockTouchIter;
 class BlockTouchSideIter;
 class BlockGroupIter;
 class Collider;
+class PhysicsEngine;
 class Pixel;
 class World;
 class Material;
