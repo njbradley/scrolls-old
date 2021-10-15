@@ -154,7 +154,7 @@ void TileMap::status(ostream& ofile) {
 }
 
 
-World::World(string oldname): terrainloader(seed), tileloader(this), name(oldname), physics(this, 1/20.0f),
+World::World(string oldname): terrainloader(seed), tileloader(this), name(oldname), physics(this, 1/30.0f),
 tiles( ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) + 3) {
   ifstream ifile(path("worlddata.txt"));
   if (ifile.good()) {
@@ -313,6 +313,7 @@ void World::add_tile(Tile* tile) {
   logger->log(4) << "Adding tile " << tile << ' ' << tile->pos << endl;
   tiles.add_tile(tile);
   loading_chunks.erase(tile->pos);
+  physics->on_tile_load(tile);
 }
 
 void World::timestep() {
@@ -330,23 +331,6 @@ void World::timestep() {
   static double total_time = 0;
   static int num_times = 0;
   double start = getTime();
-  
-  static bool n_pressed = false;
-  static bool paused = true;
-  
-  if (controls->key_pressed('M')) {
-    paused = false;
-  }
-  if (controls->key_pressed('B')) {
-    paused = true;
-  }
-  
-  bool cur_n_pressed = controls->key_pressed('N');
-  if (paused and (!cur_n_pressed or n_pressed)) {
-    n_pressed = cur_n_pressed;
-    return;
-  }
-  n_pressed = cur_n_pressed;
   
   debuglines->clear();
   
@@ -372,6 +356,23 @@ void World::timestep() {
 }
 
 void World::tick() {
+  static bool n_pressed = false;
+  static bool paused = true;
+  
+  if (controls->key_pressed('M')) {
+    paused = false;
+  }
+  if (controls->key_pressed('B')) {
+    paused = true;
+  }
+  
+  bool cur_n_pressed = controls->key_pressed('N');
+  if (paused and (!cur_n_pressed or n_pressed)) {
+    n_pressed = cur_n_pressed;
+    return;
+  }
+  n_pressed = cur_n_pressed;
+  
   physics->tick();
   for (Tile* tile : tiles) {
     tile->tick();

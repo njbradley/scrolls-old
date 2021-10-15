@@ -215,6 +215,8 @@ class PhysicsEngine { public:
   
   PhysicsEngine(World* nworld, float deltatime);
   
+	virtual void on_tile_load(Tile* tile) = 0;
+	virtual void on_freeblock(FreeBlock* freeblock) = 0;
   virtual void tick() = 0;
 };
 
