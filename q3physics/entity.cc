@@ -94,13 +94,15 @@ void Q3PhysicsEngine::on_freeblock(FreeBlock* freeblock) {
 }
 
 void Q3PhysicsEngine::tick() {
-	
+	double start = getTime();
 	for (Q3Wrapper* body : freeblocks) {
 		body->sync_glm();
 		// cout << body->q3body->GetTransform().position.y << ' ' << body->q3body->GetLinearVelocity() << endl;
 	}
-	
+	double mid = getTime();
 	scene.Step();
+	
+	cout << getTime() - mid << " Step  " << mid - start << " sync " << endl;
 }
 
 EXPORT_PLUGIN(Q3PhysicsEngine);
