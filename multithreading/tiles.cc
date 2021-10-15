@@ -186,8 +186,8 @@ void TickThread::operator()() {
 		}
 		ms = (getTime() - start_time) * 1000;
 		parent->tick_ms = ms;
-		if (ms < 50) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(50 - ms));
+		if (ms < 25) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(25 - ms));
 		}
 	}
 	cout << "tick thread exited" << endl;

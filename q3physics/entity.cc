@@ -5,38 +5,6 @@
 #include "scrolls/tiles.h"
 #include "scrolls/blockdata.h"
 
-vec3 q3toglm(q3Vec3 pos) {
-	return vec3(pos.x, pos.y, pos.z);
-}
-
-quat q3toglm(q3Quaternion rot) {
-	return quat(rot.w, rot.x, rot.y, rot.z);
-}
-
-glm::mat3 q3toglm(q3Mat3 mat) {
-	return {
-		q3toglm(mat[0]),
-		q3toglm(mat[1]),
-		q3toglm(mat[2])
-	};
-}
-
-
-q3Vec3 glmtoq3(vec3 pos) {
-	return q3Vec3(pos.x, pos.y, pos.z);
-}
-
-q3Quaternion glmtoq3(quat rot) {
-	return q3Quaternion(rot.x, rot.y, rot.z, rot.w);
-}
-
-q3Mat3 glmtoq3(glm::mat3 mat) {
-	return q3Mat3(
-		glmtoq3(mat[0]),
-		glmtoq3(mat[1]),
-		glmtoq3(mat[2])
-	);
-}
 
 
 
@@ -53,9 +21,9 @@ Q3Wrapper::Q3Wrapper(q3Scene* newscene, Movingbox* box): scene(newscene), moving
 	} else {
 		bodydef.bodyType = eStaticBody;
 	}
-	bodydef.position = glmtoq3(box->position);
+	bodydef.position = box->position;
 	bodydef.angle = glm::angle(movingbox->rotation);
-	bodydef.axis = glmtoq3(glm::axis(movingbox->rotation));
+	bodydef.axis = glm::axis(movingbox->rotation);
 	q3body = scene->CreateBody(bodydef);
 	// sync_q3();
 }
@@ -63,28 +31,28 @@ Q3Wrapper::Q3Wrapper(q3Scene* newscene, Movingbox* box): scene(newscene), moving
 void Q3Wrapper::add_box(Hitbox box) {
 	q3BoxDef boxdef;
 	q3Transform transform;
-	transform.position = glmtoq3(box.global_midpoint());
-	transform.rotation = glmtoq3(glm::mat3_cast(box.rotation));
+	transform.position = box.global_midpoint();
+	transform.rotation = glm::mat3_cast(box.rotation);
 	
-	boxdef.Set(transform, glmtoq3(box.size()));
+	boxdef.Set(transform, box.size());
 	
 	q3body->AddBox(boxdef);
 }
 
 void Q3Wrapper::sync_q3() {
-	q3body->SetTransform(glmtoq3(movingbox->position), glmtoq3(glm::axis(movingbox->rotation)), glm::angle(movingbox->rotation));
+	q3body->SetTransform(movingbox->position, glm::axis(movingbox->rotation), glm::angle(movingbox->rotation));
 	if (movingbox->movable()) {
-		q3body->SetLinearVelocity(glmtoq3(movingbox->velocity));
-		q3body->SetAngularVelocity(glmtoq3(movingbox->angularvel));
+		q3body->SetLinearVelocity(movingbox->velocity);
+		q3body->SetAngularVelocity(movingbox->angularvel);
 	}
 }
 
 void Q3Wrapper::sync_glm() {
-	movingbox->position = q3toglm(q3body->GetTransform().position);
-	movingbox->rotation = q3toglm(q3body->GetQuaternion());
+	movingbox->position = q3body->GetTransform().position;
+	movingbox->rotation = q3body->GetQuaternion();
 	if (movingbox->movable()) {
-		movingbox->velocity = q3toglm(q3body->GetLinearVelocity());
-		movingbox->angularvel = q3toglm(q3body->GetAngularVelocity());
+		movingbox->velocity = q3body->GetLinearVelocity();
+		movingbox->angularvel = q3body->GetAngularVelocity();
 	}
 }
 
@@ -129,7 +97,7 @@ void Q3PhysicsEngine::tick() {
 	
 	for (Q3Wrapper* body : freeblocks) {
 		body->sync_glm();
-		cout << body->q3body->GetTransform().position.y << ' ' << q3toglm(body->q3body->GetLinearVelocity()) << endl;
+		// cout << body->q3body->GetTransform().position.y << ' ' << body->q3body->GetLinearVelocity() << endl;
 	}
 	
 	scene.Step();

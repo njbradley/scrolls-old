@@ -6,13 +6,6 @@
 
 #include "q3.h"
 
-vec3 q3toglm(q3Vec3 pos);
-quat q3toglm(q3Quaternion rot);
-glm::mat3 q3toglm(q3Mat3 mat);
-
-q3Vec3 glmtoq3(vec3 pos);
-q3Quaternion glmtoq3(quat rot);
-q3Mat3 glmtoq3(glm::mat3 mat);
 
 class Q3Wrapper { public:
 	Movingbox* movingbox;
