@@ -997,6 +997,23 @@ void CollisionManifold::apply_friction() {
 }
 
 
+
+
+PhysicsBody::PhysicsBody(FreeBlock* free): freeblock(free) {
+  free->physicsbody = this;
+  update();
+}
+
+
+
+PhysicsBox::PhysicsBox(Pixel* pix): pixel(pix) {
+  pixel->physicsbox = this;
+  update();
+}
+
+
+
+
 DEFINE_PLUGIN(PhysicsEngine);
 
 PhysicsEngine::PhysicsEngine(World* nworld, float dt): world(nworld), deltatime(dt) {

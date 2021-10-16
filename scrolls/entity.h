@@ -206,6 +206,21 @@ class CollisionManifold { public:
   // void combine(CollisionManifold other);
 };
 
+class PhysicsBody { public:
+  FreeBlock* freeblock;
+  
+  PhysicsBody(FreeBlock* free);
+  virtual ~PhysicsBody() {};
+  virtual void update() {};
+};
+
+class PhysicsBox { public:
+  Pixel* pixel = nullptr;
+  
+  PhysicsBox(Pixel* pix);
+  virtual ~PhysicsBox() {};
+  virtual void update() {};
+};
 
 class PhysicsEngine { public:
   PLUGIN_HEAD(PhysicsEngine, (World*, float));
@@ -215,8 +230,6 @@ class PhysicsEngine { public:
   
   PhysicsEngine(World* nworld, float deltatime);
   
-	virtual void on_tile_load(Tile* tile) = 0;
-	virtual void on_freeblock(FreeBlock* freeblock) = 0;
   virtual void tick() = 0;
 };
 

@@ -299,8 +299,9 @@ Block* Block::get_global(ivec3 pos, int w) {
   while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale) or curblock->scale < w) {
     if (curblock->parent == nullptr) {
       if (curblock->freecontainer != nullptr) {
-        pos = SAFEFLOOR3(curblock->freecontainer->box.transform_out(pos));
-        curblock = curblock->freecontainer->highparent;
+        return nullptr;
+        // pos = SAFEFLOOR3(curblock->freecontainer->box.transform_out(pos));
+        // curblock = curblock->freecontainer->highparent;
       } else {
         Block* result = world->get_global(pos, w);
         return result;
@@ -1418,6 +1419,10 @@ void Pixel::set(int val, int newdirection, int newjoints[6]) {
     for (Pixel* pix : parbl->iter_touching_side(dir)) {
       pix->render_update();
     }
+  }
+  
+  if (physicsbox != nullptr) {
+    physicsbox->update();
   }
   
   /*

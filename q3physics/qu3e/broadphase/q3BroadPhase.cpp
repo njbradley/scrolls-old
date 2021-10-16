@@ -6,7 +6,8 @@
 @date	10/10/2014
 
 	Copyright (c) 2014 Randy Gaul http://www.randygaul.net
-
+	Modified Nick Bradley (2021)
+	
 	This software is provided 'as-is', without any express or implied
 	warranty. In no event will the authors be held liable for any damages
 	arising from the use of this software.
@@ -28,10 +29,16 @@
 #include "../collision/q3Box.h"
 #include "../common/q3Geometry.h"
 #include "../dynamics/q3ContactManager.h"
+#include "../scene/q3Scene.h"
 
 q3BroadPhase::q3BroadPhase( q3ContactManager *manager )
 {
 	m_manager = manager;
+}
+
+q3BroadPhase::q3BroadPhase( q3Scene* scene )
+{
+	m_manager = &scene->m_contactManager;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -147,9 +154,9 @@ void q3DefaultBroadPhase::Update( i32 id, const q3AABB& aabb )
 }
 
 //--------------------------------------------------------------------------------------------------
-bool q3DefaultBroadPhase::TestOverlap( i32 A, i32 B ) const
+bool q3DefaultBroadPhase::TestOverlap( q3Box* A, q3Box* B ) const
 {
-	return q3AABBtoAABB( m_tree.GetFatAABB( A ), m_tree.GetFatAABB( B ) );
+	return q3AABBtoAABB( m_tree.GetFatAABB( A->broadPhaseIndex ), m_tree.GetFatAABB( B->broadPhaseIndex ) );
 }
 
 //--------------------------------------------------------------------------------------------------

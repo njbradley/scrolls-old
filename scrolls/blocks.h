@@ -203,6 +203,7 @@ class FreeBlock : public Block { public:
 	bool asleep = false;
 	Block* highparent = nullptr;
 	FreeBlock* allfreeblocks = nullptr;
+	PhysicsBody* physicsbody = nullptr;
 	
 	FreeBlock(Movingbox newbox);
 	void set_parent(Block* nparent);
@@ -241,6 +242,7 @@ class Pixel { public:
 	RenderIndex render_index = RenderIndex::npos;
 	RenderVecs* lastvecs;
 	BlockGroup* group = nullptr;
+	PhysicsBox* physicsbox = nullptr;
 	
 	Pixel(int val, int direction = -1, int njoints[6] = nullptr);
 	Pixel(Block* newblock, istream& ifile);

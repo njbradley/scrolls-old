@@ -41,6 +41,7 @@ struct q3BodyDef;
 struct q3ContactConstraint;
 class q3Render;
 struct q3Island;
+class q3BroadPhase;
 
 // This listener is used to gather information about two shapes colliding. This
 // can be used for game logic and sounds. Physics objects created in these
@@ -167,6 +168,7 @@ private:
 	bool m_enableFriction;
 
 	friend class q3Body;
+	friend class q3BroadPhase;
 };
 
 #endif // Q3SCENE_H

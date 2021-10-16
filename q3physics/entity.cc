@@ -1,4 +1,5 @@
 #include "entity.h"
+#include "conversions.h"
 #include "scrolls/blocks.h"
 #include "scrolls/blockiter.h"
 #include "scrolls/world.h"
@@ -9,96 +10,122 @@
 
 
 
-Q3Wrapper::Q3Wrapper(q3Scene* newscene, Movingbox* box, q3Body* body): scene(newscene), movingbox(box), q3body(body) {
-	
-}
 
-Q3Wrapper::Q3Wrapper(q3Scene* newscene, Movingbox* box): scene(newscene), movingbox(box) {
+Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free, q3Scene* scene): PhysicsBody(free) {
 	q3BodyDef bodydef;
-	if (movingbox->movable()) {
-		cout << "MOVABLE " << endl;
-		bodydef.bodyType = eDynamicBody;
-	} else {
-		bodydef.bodyType = eStaticBody;
+	bodydef.bodyType = eDynamicBody;
+	bodydef.position = freeblock->box.position;
+	bodydef.angle = glm::angle(freeblock->box.rotation);
+	bodydef.axis = glm::axis(freeblock->box.rotation);
+	body = scene->CreateBody(bodydef);
+	
+	// add_box(Hitbox(vec3(0), vec3(-0.5), vec3(0.5)));
+	
+	for (Pixel* pix : free->iter()) {
+		if (pix != 0) {
+			add_box(pix->parbl->local_hitbox());
+		}
 	}
-	bodydef.position = box->position;
-	bodydef.angle = glm::angle(movingbox->rotation);
-	bodydef.axis = glm::axis(movingbox->rotation);
-	q3body = scene->CreateBody(bodydef);
+	
 	// sync_q3();
 }
 
-void Q3Wrapper::add_box(Hitbox box) {
+void Q3PhysicsBody::add_box(Hitbox box) {
+	cout << box << endl;
 	q3BoxDef boxdef;
 	q3Transform transform;
-	transform.position = box.global_midpoint();
+	transform.position = box.point1();
 	transform.rotation = glm::mat3_cast(box.rotation);
 	
 	boxdef.Set(transform, box.size());
 	
-	q3body->AddBox(boxdef);
+	body->AddBox(boxdef);
 }
 
-void Q3Wrapper::sync_q3() {
-	q3body->SetTransform(movingbox->position, glm::axis(movingbox->rotation), glm::angle(movingbox->rotation));
-	if (movingbox->movable()) {
-		q3body->SetLinearVelocity(movingbox->velocity);
-		q3body->SetAngularVelocity(movingbox->angularvel);
+void Q3PhysicsBody::sync_q3() {
+	body->SetTransform(
+		freeblock->box.position, glm::axis(freeblock->box.rotation),
+		glm::angle(freeblock->box.rotation)
+	);
+	if (freeblock->box.movable()) {
+		body->SetLinearVelocity(freeblock->box.velocity);
+		body->SetAngularVelocity(freeblock->box.angularvel);
 	}
 }
 
-void Q3Wrapper::sync_glm() {
-	movingbox->position = q3body->GetTransform().position;
-	movingbox->rotation = q3body->GetQuaternion();
-	if (movingbox->movable()) {
-		movingbox->velocity = q3body->GetLinearVelocity();
-		movingbox->angularvel = q3body->GetAngularVelocity();
+void Q3PhysicsBody::sync_glm() {
+	freeblock->box.position = body->GetTransform().position;
+	freeblock->box.rotation = body->GetQuaternion();
+	if (freeblock->box.movable()) {
+		freeblock->box.velocity = body->GetLinearVelocity();
+		freeblock->box.angularvel = body->GetAngularVelocity();
 	}
 }
 
 
-
-
-
-
-
-Q3PhysicsEngine::Q3PhysicsEngine(World* world, float dt): PhysicsEngine(world, dt), scene(deltatime) {
-	cout << "Initialized physics " << endl;
-}
-
-void Q3PhysicsEngine::on_tile_load(Tile* newtile) {
-	cout << "loading tile " << newtile << ' ' << newtile->pos << endl;
-	Q3Wrapper* tilebody = new Q3Wrapper(&scene, new Movingbox(newtile->chunk->movingbox()));
-	int i = 0;
-	for (Pixel* pix : newtile->chunk->iter()) {
-		if (pix->value != 0 and pix->parbl->scale == 1 and pix->value == blocktypes::leaves.id) {
-			tilebody->add_box(pix->parbl->local_hitbox());
-			cout << i ++ << endl;
-		}
-	}
-	tiles.push_back(tilebody);
-	cout << " done loading " << endl;
-}
-
-void Q3PhysicsEngine::on_freeblock(FreeBlock* freeblock) {
-	cout << "loading freeblock " << freeblock->box << endl;
-	Q3Wrapper* body = new Q3Wrapper(&scene, &freeblock->box);
+void Q3PhysicsBody::update() {
 	
-	for (Pixel* pix : freeblock->iter()) {
-		if (pix->value != 0) {
-			body->add_box(pix->parbl->local_hitbox());
-		}
+}
+
+Q3PhysicsBody* Q3PhysicsBody::from_block(FreeBlock* free, q3Scene* scene) {
+	if (free->physicsbody == nullptr) {
+		return new Q3PhysicsBody(free, scene);
+	} else {
+		return (Q3PhysicsBody*) free->physicsbody;
 	}
-	freeblocks.push_back(body);
-	cout << " done loading " << endl;
+}
+
+
+
+
+Q3PhysicsBox::Q3PhysicsBox(Pixel* pix, q3Body* worldbody): PhysicsBox(pix) {
+	if (pixel->parbl->freecontainer == nullptr) {
+		qbox.body = worldbody;
+	} else {
+		Q3PhysicsBody* body = (Q3PhysicsBody*) pixel->parbl->freecontainer->physicsbody;
+		qbox.body = body->body;
+	}
+}
+
+void Q3PhysicsBox::update() {
+	boxtoq3(pixel->parbl->local_hitbox(), &qbox);
+	qbox.next = nullptr;
+	
+	// box.body = worldbody;
+	qbox.friction = 0.4;
+	qbox.restitution = 0.2;
+	qbox.density = 1.0;
+	qbox.sensor = false;
+}
+
+Q3PhysicsBox* Q3PhysicsBox::from_pix(Pixel* pix, q3Body* worldbody) {
+	if (pix->physicsbox == nullptr) {
+		return new Q3PhysicsBox(pix, worldbody);
+	} else {
+		return (Q3PhysicsBox*) pix->physicsbox;
+	}
+}
+
+
+
+
+
+
+Q3PhysicsEngine::Q3PhysicsEngine(World* world, float dt):
+PhysicsEngine(world, dt), scene(deltatime), broadphase(&scene, world) {
+	cout << "Initialized physics " << endl;
 }
 
 void Q3PhysicsEngine::tick() {
 	double start = getTime();
-	for (Q3Wrapper* body : freeblocks) {
-		body->sync_glm();
-		// cout << body->q3body->GetTransform().position.y << ' ' << body->q3body->GetLinearVelocity() << endl;
+	
+	for (Tile* tile : world->tiles) {
+		for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
+			Q3PhysicsBody* body = Q3PhysicsBody::from_block(free, &scene);
+			body->sync_glm();
+		}
 	}
+	
 	double mid = getTime();
 	scene.Step();
 	

@@ -313,7 +313,6 @@ void World::add_tile(Tile* tile) {
   logger->log(4) << "Adding tile " << tile << ' ' << tile->pos << endl;
   tiles.add_tile(tile);
   loading_chunks.erase(tile->pos);
-  physics->on_tile_load(tile);
 }
 
 void World::timestep() {

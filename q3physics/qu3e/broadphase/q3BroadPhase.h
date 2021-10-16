@@ -6,6 +6,7 @@
 @date	10/10/2014
 
 	Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+	Modified Nick Bradley (2021)
 
 	This software is provided 'as-is', without any express or implied
 	warranty. In no event will the authors be held liable for any damages
@@ -38,6 +39,7 @@ class q3ContactManager;
 struct q3Box;
 struct q3Transform;
 struct q3AABB;
+class q3Scene;
 
 struct q3ContactPair
 {
@@ -51,6 +53,7 @@ protected:
 public:
 	
 	q3BroadPhase( q3ContactManager *manager );
+	q3BroadPhase( q3Scene *scene );
 	virtual ~q3BroadPhase();
 	
 	virtual void InsertBox( q3Box *shape, const q3AABB& aabb ) = 0;
@@ -62,7 +65,9 @@ public:
 
 	virtual void Update( i32 id, const q3AABB& aabb ) = 0;
 
-	virtual bool TestOverlap( i32 A, i32 B ) const = 0;
+	virtual bool TestOverlap( q3Box* A, q3Box* B ) const = 0;
+	
+	friend class q3Scene;
 };
 
 class q3DefaultBroadPhase : public q3BroadPhase
@@ -80,7 +85,7 @@ public:
 
 	virtual void Update( i32 id, const q3AABB& aabb );
 
-	virtual bool TestOverlap( i32 A, i32 B ) const;
+	virtual bool TestOverlap( q3Box* A, q3Box* B ) const;
 
 private:
 

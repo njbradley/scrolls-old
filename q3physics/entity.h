@@ -1,33 +1,43 @@
 #ifndef Q3PH_ENTITY
 #define Q3PH_ENTITY
 
-#include "scrolls/classes.h"
+#include "classes.h"
+#include "broadphase.h"
 #include "scrolls/entity.h"
 
 #include "q3.h"
 
-
-class Q3Wrapper { public:
-	Movingbox* movingbox;
-	q3Body* q3body;
-	q3Scene* scene;
+class Q3PhysicsBody : public PhysicsBody{ public:
+	q3Body* body;
 	
-	Q3Wrapper(q3Scene* newscene, Movingbox* box, q3Body* body);
-	Q3Wrapper(q3Scene* newscene, Movingbox* box);
+	Q3PhysicsBody(FreeBlock* free, q3Scene* scene);
 	void add_box(Hitbox box);
 	void sync_q3();
 	void sync_glm();
+	
+	virtual void update();
+	
+	static Q3PhysicsBody* from_block(FreeBlock* free, q3Scene* scene);
+};
+
+class Q3PhysicsBox : public PhysicsBox { public:
+	q3Box qbox;
+	
+	Q3PhysicsBox(Pixel* pix, q3Body* worldbody);
+	
+  virtual void update();
+	
+	static Q3PhysicsBox* from_pix(Pixel* pix, q3Body* worldbody);
 };
 
 class Q3PhysicsEngine : public PhysicsEngine { public:
 	q3Scene scene;
+	BlockBroadPhase broadphase;
 	
 	vector<Q3Wrapper*> tiles;
 	vector<Q3Wrapper*> freeblocks;
 	
 	Q3PhysicsEngine(World* world, float dt);
-	virtual void on_tile_load(Tile* tile);
-	virtual void on_freeblock(FreeBlock* freeblock);
 	virtual void tick();
 };
 

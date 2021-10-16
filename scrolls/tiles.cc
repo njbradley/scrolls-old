@@ -233,7 +233,6 @@ void Tile::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6])
 void Tile::add_freeblock(FreeBlock* freeblock) {
   freeblock->allfreeblocks = allfreeblocks;
   allfreeblocks = freeblock;
-  world->physics->on_freeblock(freeblock);
 }
 
 void Tile::remove_freeblock(FreeBlock* freeblock) {
