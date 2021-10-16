@@ -24,6 +24,8 @@ public:
 	virtual void Update( i32 id, const q3AABB& aabb ) { };
 
 	virtual bool TestOverlap(q3Box* box1, q3Box* box2) const;
+	
+	static constexpr float grow_amount = 0.5f;
 };
 
 #endif
