@@ -110,7 +110,7 @@ const q3Box* q3Body::AddBox( const q3BoxDef& def )
 
 	CalculateMassData( );
 
-	m_scene->m_contactManager.m_broadphase.InsertBox( box, aabb );
+	m_scene->m_contactManager.m_broadphase->InsertBox( box, aabb );
 	m_scene->m_newBox = true;
 
 	return box;
@@ -163,7 +163,7 @@ void q3Body::RemoveBox( const q3Box* box )
 			m_scene->m_contactManager.RemoveContact( contact );
 	}
 
-	m_scene->m_contactManager.m_broadphase.RemoveBox( box );
+	m_scene->m_contactManager.m_broadphase->RemoveBox( box );
 
 	CalculateMassData( );
 
@@ -177,7 +177,7 @@ void q3Body::RemoveAllBoxes( )
 	{
 		q3Box* next = m_boxes->next;
 
-		m_scene->m_contactManager.m_broadphase.RemoveBox( m_boxes );
+		m_scene->m_contactManager.m_broadphase->RemoveBox( m_boxes );
 		m_scene->m_heap.Free( (void*)m_boxes );
 
 		m_boxes = next;
@@ -594,7 +594,7 @@ void q3Body::CalculateMassData( )
 //--------------------------------------------------------------------------------------------------
 void q3Body::SynchronizeProxies( )
 {
-	q3BroadPhase* broadphase = &m_scene->m_contactManager.m_broadphase;
+	q3BroadPhase* broadphase = m_scene->m_contactManager.m_broadphase;
 
 	m_tx.position = m_worldCenter - q3Mul( m_tx.rotation, m_localCenter );
 

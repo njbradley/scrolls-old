@@ -44,7 +44,7 @@ class q3Stack;
 class q3ContactManager
 {
 public:
-	q3ContactManager( q3Stack* stack );
+	q3ContactManager(q3Stack* stack, q3BroadPhase* broadphase);
 
 	// Add a new contact constraint for a pair of objects
 	// unless the contact constraint already exists
@@ -73,7 +73,7 @@ private:
 	i32 m_contactCount;
 	q3Stack* m_stack;
 	q3PagedAllocator m_allocator;
-	q3BroadPhase m_broadphase;
+	q3BroadPhase* m_broadphase;
 	q3ContactListener *m_contactListener;
 
 	friend class q3BroadPhase;

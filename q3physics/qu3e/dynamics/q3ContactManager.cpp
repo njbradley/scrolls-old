@@ -34,11 +34,14 @@
 //--------------------------------------------------------------------------------------------------
 // q3ContactManager
 //--------------------------------------------------------------------------------------------------
-q3ContactManager::q3ContactManager( q3Stack* stack )
+q3ContactManager::q3ContactManager( q3Stack* stack, q3BroadPhase* broadphase )
 	: m_stack( stack )
 	, m_allocator( sizeof( q3ContactConstraint ), 256 )
-	, m_broadphase( this )
+	, m_broadphase(broadphase)
 {
+	if (broadphase == NULL) {
+		m_broadphase = new q3DefaultBroadPhase(this);
+	}
 	m_contactList = NULL;
 	m_contactCount = 0;
 	m_contactListener = NULL;
@@ -121,7 +124,7 @@ void q3ContactManager::AddContact( q3Box *A, q3Box *B )
 //--------------------------------------------------------------------------------------------------
 void q3ContactManager::FindNewContacts( )
 {
-	m_broadphase.UpdatePairs( );
+	m_broadphase->UpdatePairs( );
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -188,7 +191,7 @@ void q3ContactManager::RemoveFromBroadphase( q3Body *body )
 
 	while ( box )
 	{
-		m_broadphase.RemoveBox( box );
+		m_broadphase->RemoveBox( box );
 		box = box->next;
 	}
 }
@@ -222,7 +225,7 @@ void q3ContactManager::TestCollisions( void )
 		}
 
 		// Check if contact should persist
-		if ( !m_broadphase.TestOverlap( A->broadPhaseIndex, B->broadPhaseIndex ) )
+		if ( !m_broadphase->TestOverlap( A->broadPhaseIndex, B->broadPhaseIndex ) )
 		{
 			q3ContactConstraint* next = constraint->next;
 			RemoveContact( constraint );

@@ -29,13 +29,21 @@
 #include "../common/q3Geometry.h"
 #include "../dynamics/q3ContactManager.h"
 
-//--------------------------------------------------------------------------------------------------
-// q3BroadPhase
-//--------------------------------------------------------------------------------------------------
 q3BroadPhase::q3BroadPhase( q3ContactManager *manager )
 {
 	m_manager = manager;
+}
 
+//--------------------------------------------------------------------------------------------------
+q3BroadPhase::~q3BroadPhase( )
+{
+}
+
+//--------------------------------------------------------------------------------------------------
+// q3BroadPhase
+//--------------------------------------------------------------------------------------------------
+q3DefaultBroadPhase::q3DefaultBroadPhase( q3ContactManager *manager ): q3BroadPhase(manager)
+{
 	m_pairCount = 0;
 	m_pairCapacity = 64;
 	m_pairBuffer = (q3ContactPair*)q3Alloc( m_pairCapacity * sizeof( q3ContactPair ) );
@@ -46,14 +54,14 @@ q3BroadPhase::q3BroadPhase( q3ContactManager *manager )
 }
 
 //--------------------------------------------------------------------------------------------------
-q3BroadPhase::~q3BroadPhase( )
+q3DefaultBroadPhase::~q3DefaultBroadPhase( )
 {
 	q3Free( m_moveBuffer );
 	q3Free( m_pairBuffer );
 }
 
 //--------------------------------------------------------------------------------------------------
-void q3BroadPhase::InsertBox( q3Box *box, const q3AABB& aabb )
+void q3DefaultBroadPhase::InsertBox( q3Box *box, const q3AABB& aabb )
 {
 	i32 id = m_tree.Insert( aabb, box );
 	box->broadPhaseIndex = id;
@@ -61,7 +69,7 @@ void q3BroadPhase::InsertBox( q3Box *box, const q3AABB& aabb )
 }
 
 //--------------------------------------------------------------------------------------------------
-void q3BroadPhase::RemoveBox( const q3Box *box )
+void q3DefaultBroadPhase::RemoveBox( const q3Box *box )
 {
 	m_tree.Remove( box->broadPhaseIndex );
 }
@@ -79,7 +87,7 @@ inline bool ContactPairSort( const q3ContactPair& lhs, const q3ContactPair& rhs 
 }
 
 //--------------------------------------------------------------------------------------------------
-void q3BroadPhase::UpdatePairs( )
+void q3DefaultBroadPhase::UpdatePairs( )
 {
 	m_pairCount = 0;
 
@@ -132,20 +140,20 @@ void q3BroadPhase::UpdatePairs( )
 }
 
 //--------------------------------------------------------------------------------------------------
-void q3BroadPhase::Update( i32 id, const q3AABB& aabb )
+void q3DefaultBroadPhase::Update( i32 id, const q3AABB& aabb )
 {
 	if ( m_tree.Update( id, aabb ) )
 		BufferMove( id );
 }
 
 //--------------------------------------------------------------------------------------------------
-bool q3BroadPhase::TestOverlap( i32 A, i32 B ) const
+bool q3DefaultBroadPhase::TestOverlap( i32 A, i32 B ) const
 {
 	return q3AABBtoAABB( m_tree.GetFatAABB( A ), m_tree.GetFatAABB( B ) );
 }
 
 //--------------------------------------------------------------------------------------------------
-void q3BroadPhase::BufferMove( i32 id )
+void q3DefaultBroadPhase::BufferMove( i32 id )
 {
 	if ( m_moveCount == m_moveCapacity )
 	{

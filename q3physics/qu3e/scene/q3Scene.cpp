@@ -37,8 +37,8 @@
 //--------------------------------------------------------------------------------------------------
 // q3Scene
 //--------------------------------------------------------------------------------------------------
-q3Scene::q3Scene( r32 dt, const q3Vec3& gravity, i32 iterations )
-	: m_contactManager( &m_stack )
+q3Scene::q3Scene( r32 dt, q3BroadPhase* newbp, const q3Vec3& gravity, i32 iterations )
+	: m_contactManager( &m_stack, newbp )
 	, m_boxAllocator( sizeof( q3Box ), 256 )
 	, m_bodyCount( 0 )
 	, m_bodyList( NULL )
@@ -62,7 +62,7 @@ void q3Scene::Step( )
 {
 	if ( m_newBox )
 	{
-		m_contactManager.m_broadphase.UpdatePairs( );
+		m_contactManager.m_broadphase->UpdatePairs( );
 		m_newBox = false;
 	}
 
@@ -313,7 +313,7 @@ void q3Scene::Render( q3Render* render ) const
 	}
 
 	m_contactManager.RenderContacts( render );
-	//m_contactManager.m_broadphase.m_tree.Render( render );
+	//m_contactManager.m_broadphase->m_tree.Render( render );
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -344,7 +344,7 @@ void q3Scene::SetContactListener( q3ContactListener* listener )
 
 //--------------------------------------------------------------------------------------------------
 void q3Scene::QueryAABB( q3QueryCallback *cb, const q3AABB& aabb ) const
-{
+{/*
 	struct SceneQueryWrapper
 	{
 		bool TreeCallBack( i32 id )
@@ -371,12 +371,12 @@ void q3Scene::QueryAABB( q3QueryCallback *cb, const q3AABB& aabb ) const
 	wrapper.m_aabb = aabb;
 	wrapper.broadPhase = &m_contactManager.m_broadphase;
 	wrapper.cb = cb;
-	m_contactManager.m_broadphase.m_tree.Query( &wrapper, aabb );
+	m_contactManager.m_broadphase.m_tree.Query( &wrapper, aabb );*/
 }
 
 //--------------------------------------------------------------------------------------------------
 void q3Scene::QueryPoint( q3QueryCallback *cb, const q3Vec3& point ) const
-{
+{/*
 	struct SceneQueryWrapper
 	{
 		bool TreeCallBack( i32 id )
@@ -405,12 +405,12 @@ void q3Scene::QueryPoint( q3QueryCallback *cb, const q3Vec3& point ) const
 	q3AABB aabb;
 	aabb.min = point - v;
 	aabb.max = point + v;
-	m_contactManager.m_broadphase.m_tree.Query( &wrapper, aabb );
+	m_contactManager.m_broadphase.m_tree.Query( &wrapper, aabb );*/
 }
 
 //--------------------------------------------------------------------------------------------------
 void q3Scene::RayCast( q3QueryCallback *cb, q3RaycastData& rayCast ) const
-{
+{/*
 	struct SceneQueryWrapper
 	{
 		bool TreeCallBack( i32 id )
@@ -434,7 +434,7 @@ void q3Scene::RayCast( q3QueryCallback *cb, q3RaycastData& rayCast ) const
 	wrapper.m_rayCast = &rayCast;
 	wrapper.broadPhase = &m_contactManager.m_broadphase;
 	wrapper.cb = cb;
-	m_contactManager.m_broadphase.m_tree.Query( &wrapper, rayCast );
+	m_contactManager.m_broadphase.m_tree.Query( &wrapper, rayCast );*/
 }
 
 //--------------------------------------------------------------------------------------------------

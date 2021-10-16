@@ -45,25 +45,44 @@ struct q3ContactPair
 	i32 B;
 };
 
-class q3BroadPhase
-{
+class q3BroadPhase {
+protected:
+	q3ContactManager *m_manager;
 public:
+	
 	q3BroadPhase( q3ContactManager *manager );
-	~q3BroadPhase( );
-
-	void InsertBox( q3Box *shape, const q3AABB& aabb );
-	void RemoveBox( const q3Box *shape );
+	virtual ~q3BroadPhase();
+	
+	virtual void InsertBox( q3Box *shape, const q3AABB& aabb ) = 0;
+	virtual void RemoveBox( const q3Box *shape ) = 0;
 
 	// Generates the contact list. All previous contacts are returned to the allocator
 	// before generation occurs.
-	void UpdatePairs( void );
+	virtual void UpdatePairs( void ) = 0;
 
-	void Update( i32 id, const q3AABB& aabb );
+	virtual void Update( i32 id, const q3AABB& aabb ) = 0;
 
-	bool TestOverlap( i32 A, i32 B ) const;
+	virtual bool TestOverlap( i32 A, i32 B ) const = 0;
+};
+
+class q3DefaultBroadPhase : public q3BroadPhase
+{
+public:
+	q3DefaultBroadPhase( q3ContactManager *manager );
+	~q3DefaultBroadPhase( );
+
+	virtual void InsertBox( q3Box *shape, const q3AABB& aabb );
+	virtual void RemoveBox( const q3Box *shape );
+
+	// Generates the contact list. All previous contacts are returned to the allocator
+	// before generation occurs.
+	virtual void UpdatePairs( void );
+
+	virtual void Update( i32 id, const q3AABB& aabb );
+
+	virtual bool TestOverlap( i32 A, i32 B ) const;
 
 private:
-	q3ContactManager *m_manager;
 
 	q3ContactPair* m_pairBuffer;
 	i32 m_pairCount;
@@ -83,7 +102,7 @@ private:
 	friend class q3Scene;
 };
 
-inline bool q3BroadPhase::TreeCallBack( i32 index )
+inline bool q3DefaultBroadPhase::TreeCallBack( i32 index )
 {
 	// Cannot collide with self
 	if ( index == m_currentIndex )
