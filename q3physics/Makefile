@@ -2,7 +2,7 @@ TARGET := q3physics
 SCROLLSDEPS := scrolls
 ISDLL := TRUE
 
-Q3FLAGS := -std=c++11 -g
+Q3FLAGS := -std=c++11 -g -fPIC
 
 Q3SOURCES := $(wildcard qu3e/*/*.cpp)
 Q3HEADERS := $(wildcard qu3e/*/*.h)
