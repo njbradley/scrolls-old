@@ -39,6 +39,7 @@ q3BroadPhase::q3BroadPhase( q3ContactManager *manager )
 q3BroadPhase::q3BroadPhase( q3Scene* scene )
 {
 	m_manager = &scene->m_contactManager;
+	cout << m_manager << " Base Manager " << scene << endl;
 }
 
 //--------------------------------------------------------------------------------------------------

@@ -38,6 +38,10 @@ typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
 
+#include <iostream>
+using std::cout;
+using std::endl;
+
 #define Q3_UNUSED( A ) \
 	(void)A
 

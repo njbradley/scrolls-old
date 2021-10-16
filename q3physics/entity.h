@@ -7,7 +7,7 @@
 
 #include "q3.h"
 
-class Q3PhysicsBody : public PhysicsBody{ public:
+class Q3PhysicsBody : public PhysicsBody { public:
 	q3Body* body;
 	
 	Q3PhysicsBody(FreeBlock* free, q3Scene* scene);

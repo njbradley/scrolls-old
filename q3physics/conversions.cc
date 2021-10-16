@@ -2,6 +2,7 @@
 #include "scrolls/entity.h"
 
 Hitbox q3tobox(q3Box* qbox1) {
+	// cout << qbox1 << ' ' << qbox1->local.position 
 	Hitbox box1 (
 		qbox1->local.position,
 		vec3(0,0,0), qbox1->e,

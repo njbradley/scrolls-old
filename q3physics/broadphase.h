@@ -3,7 +3,7 @@
 
 #include "classes.h"
 
-class BlockBroadPhase : q3BroadPhase {
+class BlockBroadPhase : public q3BroadPhase {
 public:
 	q3Scene* scene;
 	q3Body* worldbody;

@@ -32,6 +32,7 @@
 #include "../scene/q3Scene.h"
 #include "../debug/q3Render.h"
 
+
 //--------------------------------------------------------------------------------------------------
 // q3ContactManager
 //--------------------------------------------------------------------------------------------------
@@ -51,6 +52,7 @@ q3ContactManager::q3ContactManager( q3Stack* stack, q3BroadPhase* broadphase )
 //--------------------------------------------------------------------------------------------------
 void q3ContactManager::AddContact( q3Box *A, q3Box *B )
 {
+	cout << " GOT PAIR " << A << ' ' << B << endl;
 	q3Body *bodyA = A->body;
 	q3Body *bodyB = B->body;
 	if ( !bodyA->CanCollide( bodyB ) )
@@ -120,6 +122,7 @@ void q3ContactManager::AddContact( q3Box *A, q3Box *B )
 	bodyB->SetToAwake( );
 
 	++m_contactCount;
+	cout << " DOINE PIAR " << endl;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -131,6 +134,7 @@ void q3ContactManager::FindNewContacts( )
 //--------------------------------------------------------------------------------------------------
 void q3ContactManager::RemoveContact( q3ContactConstraint *contact )
 {
+	cout << " DEL PAIR " << contact->A << ' ' << contact->B << endl;
 	q3Body *A = contact->bodyA;
 	q3Body *B = contact->bodyB;
 

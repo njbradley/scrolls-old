@@ -68,6 +68,8 @@ class Block: public Collider { public:
 	// minimal protection
 	void lock();
 	void unlock();
+	
+	void update();
 	// sets the parent of this block (only call for toplevel blocks)
 	void set_parent(Container* world, ivec3 ppos, int nscale);
 	void set_parent(Block* parent, Container* world, FreeBlock* freecont, ivec3 ppos, int nscale);

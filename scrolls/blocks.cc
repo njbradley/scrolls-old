@@ -111,6 +111,15 @@ void Block::lock() {
 
 void Block::unlock() {
   locked = false;
+  update();
+}
+
+void Block::update() {
+  if (!continues and pixel != nullptr) {
+    if (pixel->physicsbox != nullptr) {
+      pixel->physicsbox->update();
+    }
+  }
 }
 
 void Block::set_parent(Container* nworld, ivec3 ppos, int nscale) {
@@ -141,6 +150,7 @@ void Block::set_parent(Block* nparent, Container* nworld, FreeBlock* freecont, i
   }
   
   set_flag(RENDER_FLAG | LIGHT_FLAG);
+  update();
 }
 
 void Block::set_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
@@ -172,6 +182,7 @@ void Block::set_pixel(Pixel* pix) {
   }
   pixel = pix;
   set_flag(RENDER_FLAG | LIGHT_FLAG);
+  update();
 }
 
 Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ISPIXEL)
@@ -181,6 +192,7 @@ Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ISPIXEL)
   Pixel* old = pixel;
   pixel = pix;
   set_flag(RENDER_FLAG | LIGHT_FLAG);
+  update();
   return old;
 }
 
@@ -440,6 +452,7 @@ void Block::divide() { ASSERT(!continues)
   for (int i = 0; i < csize3; i ++) {
     children[i] = nullptr;
   }
+  update();
 }
 
 void Block::subdivide() { ASSERT(!continues)
@@ -1421,9 +1434,7 @@ void Pixel::set(int val, int newdirection, int newjoints[6]) {
     }
   }
   
-  if (physicsbox != nullptr) {
-    physicsbox->update();
-  }
+  parbl->update();
   
   /*
   Block* block;

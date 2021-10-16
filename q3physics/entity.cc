@@ -85,10 +85,12 @@ Q3PhysicsBox::Q3PhysicsBox(Pixel* pix, q3Body* worldbody): PhysicsBox(pix) {
 		Q3PhysicsBody* body = (Q3PhysicsBody*) pixel->parbl->freecontainer->physicsbody;
 		qbox.body = body->body;
 	}
+	update();
 }
 
 void Q3PhysicsBox::update() {
-	boxtoq3(pixel->parbl->local_hitbox(), &qbox);
+	Hitbox box = pixel->parbl->local_hitbox();
+	boxtoq3(box, &qbox);
 	qbox.next = nullptr;
 	
 	// box.body = worldbody;
@@ -112,7 +114,8 @@ Q3PhysicsBox* Q3PhysicsBox::from_pix(Pixel* pix, q3Body* worldbody) {
 
 
 Q3PhysicsEngine::Q3PhysicsEngine(World* world, float dt):
-PhysicsEngine(world, dt), scene(deltatime), broadphase(&scene, world) {
+PhysicsEngine(world, dt), scene(deltatime, &broadphase), broadphase(&scene, world) {
+	cout << this << ' ' << &scene << endl;
 	cout << "Initialized physics " << endl;
 }
 
