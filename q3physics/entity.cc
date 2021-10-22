@@ -14,7 +14,7 @@ q3Body* wbody;
 Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free, q3Scene* scene): PhysicsBody(free) {
 	q3BodyDef bodydef;
 	bodydef.bodyType = eDynamicBody;
-	bodydef.position = freeblock->box.global_midpoint();
+	bodydef.position = freeblock->box.point1();
 	bodydef.angle = glm::angle(freeblock->box.rotation);
 	bodydef.axis = glm::axis(freeblock->box.rotation);
 	body = scene->CreateBody(bodydef);
@@ -56,7 +56,6 @@ void Q3PhysicsBody::sync_q3() {
 }
 
 void Q3PhysicsBody::sync_glm() {
-	cout << body->GetTransform().position << " 59 " << endl;
 	freeblock->box.position = body->GetTransform().position;
 	freeblock->box.rotation = body->GetQuaternion();
 	if (freeblock->box.movable()) {
@@ -87,9 +86,7 @@ Q3PhysicsBox::Q3PhysicsBox(Pixel* pix, q3Body* worldbody): PhysicsBox(pix) {
 		qbox.body = worldbody;
 	} else {
 		Q3PhysicsBody* body = (Q3PhysicsBody*) pixel->parbl->freecontainer->physicsbody;
-		cout << body->body->GetTransform().position << " 89" << endl;
 		body->body->AddBox(&qbox);
-		cout << body->body->GetTransform().position << " 91" << endl;
 	}
 }
 
@@ -98,6 +95,8 @@ void Q3PhysicsBox::update() {
 	if (pixel->parbl->freecontainer != nullptr) {
 		box.position -= pixel->parbl->freecontainer->box.local_center();
 	}
+	box.negbox += tiny_thresh;
+	box.posbox -= tiny_thresh;
 	boxtoq3(box, &qbox);
 	
 	// box.body = worldbody;
@@ -136,7 +135,7 @@ void Q3PhysicsEngine::tick() {
 			body->sync_glm();
 		}
 	}
-	cout << body->body->GetTransform().position << " 138 " << endl;
+	
 	double mid = getTime();
 	scene.Step();
 	
