@@ -34,7 +34,7 @@ public:
 
 	virtual bool TestOverlap(q3Box* box1, q3Box* box2) const;
 	
-	static constexpr float grow_amount = 0.5f;
+	static constexpr float grow_amount = 0.51f;
 };
 
 #endif

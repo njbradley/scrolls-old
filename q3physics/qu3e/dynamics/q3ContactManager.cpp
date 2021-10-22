@@ -52,7 +52,7 @@ q3ContactManager::q3ContactManager( q3Stack* stack, q3BroadPhase* broadphase )
 //--------------------------------------------------------------------------------------------------
 void q3ContactManager::AddContact( q3Box *A, q3Box *B )
 {
-	cout << " GOT PAIR " << A << ' ' << B << endl;
+	// cout << " GOT PAIR " << A << ' ' << B << endl;
 	q3Body *bodyA = A->body;
 	q3Body *bodyB = B->body;
 	if ( !bodyA->CanCollide( bodyB ) )
@@ -76,6 +76,12 @@ void q3ContactManager::AddContact( q3Box *A, q3Box *B )
 
 		edge = edge->next;
 	}
+	
+	cout << "ADD CoNTACT " << A << ' ' << B << ' ' << A->body << ' ' << B->body << ' '
+	<< (A->body->m_flags&q3Body::eStatic) << ' ' << (B->body->m_flags&q3Body::eStatic) << ' '
+	<< (A->body->m_flags&q3Body::eDynamic) << ' ' << (B->body->m_flags&q3Body::eDynamic) << endl;
+	cout << ' ' << A->local.position.x << ',' << A->local.position.y << ',' << A->local.position.z << endl;
+	cout << ' ' << A->e.x << ',' << A->e.y << ',' << A->e.z << endl;
 
 	// Create new contact
 	q3ContactConstraint *contact = (q3ContactConstraint*)m_allocator.Allocate( );
@@ -122,7 +128,6 @@ void q3ContactManager::AddContact( q3Box *A, q3Box *B )
 	bodyB->SetToAwake( );
 
 	++m_contactCount;
-	cout << " DOINE PIAR " << endl;
 }
 
 //--------------------------------------------------------------------------------------------------

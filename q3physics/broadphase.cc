@@ -40,14 +40,14 @@ void BlockBroadPhase::update_freeblock(FreeBlock* freeblock) {
 				Hitbox inbox = inpix->parbl->hitbox();
 				inbox.negbox -= grow_amount;
 				inbox.posbox += grow_amount;
-				cout << " TEST PAIR " << pixbox << endl << "  " << inbox << endl;
+				// cout << " TEST PAIR " << pixbox << endl << "  " << inbox << endl;
 				if (inpix->value != 0 and pixbox.collide(inbox)) {
-					cout << " PAIR " << pix << ' ' << inpix << endl;
-					cout << "   " << pixbox << endl << "   " << inbox << endl;
-					cout << "  " << q3tobox(&pixbod->qbox) << endl;
+					// cout << " PAIR " << pix << ' ' << inpix << endl;
+					// cout << "   " << pixbox << endl << "   " << inbox << endl;
+					// cout << "  " << q3tobox(&pixbod->qbox) << endl;
 					q3Box* tmp = &Q3PhysicsBox::from_pix(inpix, worldbody)->qbox;
-					cout << "  " << q3tobox(tmp) << endl;
-					cout << pixbod->qbox.e << ' ' << tmp->e << endl;
+					// cout << "  " << q3tobox(tmp) << endl;
+					// cout << pixbod->qbox.e << ' ' << tmp->e << endl;
 					m_manager->AddContact(&pixbod->qbox, tmp);
 				}
 			}
@@ -82,8 +82,8 @@ bool BlockBroadPhase::TestOverlap(q3Box* qbox1, q3Box* qbox2) const {
 	box1.posbox += grow_amount;
 	box2.negbox -= grow_amount;
 	box2.posbox += grow_amount;
-	cout << " TESTING " << box1 << endl << box2 << endl;
+	// cout << " TESTING " << box1 << endl << box2 << endl;
 	bool result = box1.collide(box2);
-	if (result) cout << " STILL COLLIDING " << qbox1 << ' ' << qbox2 << endl;
+	// if (result) cout << " STILL COLLIDING " << qbox1 << ' ' << qbox2 << endl;
 	return result;
 }
