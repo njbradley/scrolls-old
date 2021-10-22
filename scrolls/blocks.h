@@ -199,7 +199,6 @@ class Block: public Collider { public:
 
 class FreeBlock : public Block { public:
 	Movingbox box;
-	MovingboxStep nextbox;
 	bool fixed = false;
 	bool paused = false;
 	bool asleep = false;
