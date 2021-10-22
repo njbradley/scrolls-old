@@ -116,6 +116,23 @@ const q3Box* q3Body::AddBox( const q3BoxDef& def )
 	return box;
 }
 
+void q3Body::AddBox( q3Box* box ) {
+	q3AABB aabb;
+	
+	box->next = m_boxes;
+	m_boxes = box;
+	box->ComputeAABB( m_tx, &aabb );
+
+	box->body = this;
+
+	CalculateMassData( );
+	
+	cout << m_mass << " MASS " << endl;
+	
+	m_scene->m_contactManager.m_broadphase->InsertBox( box, aabb );
+	m_scene->m_newBox = true;
+}
+
 //--------------------------------------------------------------------------------------------------
 void q3Body::RemoveBox( const q3Box* box )
 {

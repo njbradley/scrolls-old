@@ -77,12 +77,16 @@ void q3ContactManager::AddContact( q3Box *A, q3Box *B )
 		edge = edge->next;
 	}
 	
-	cout << "ADD CoNTACT " << A << ' ' << B << ' ' << A->body << ' ' << B->body << ' '
-	<< (A->body->m_flags&q3Body::eStatic) << ' ' << (B->body->m_flags&q3Body::eStatic) << ' '
-	<< (A->body->m_flags&q3Body::eDynamic) << ' ' << (B->body->m_flags&q3Body::eDynamic) << endl;
-	cout << ' ' << A->local.position.x << ',' << A->local.position.y << ',' << A->local.position.z << endl;
-	cout << ' ' << A->e.x << ',' << A->e.y << ',' << A->e.z << endl;
-
+	cout << "New Contact: {" << endl;
+	cout << "  A box: (" << A->local.position.x << ',' << A->local.position.y << ',' << A->local.position.z
+	<< ") (" << A->e.x << ',' << A->e.y << ',' << A->e.z << ")" << endl;
+	cout << "  B box: (" << B->local.position.x << ',' << B->local.position.y << ',' << B->local.position.z
+	<< ") (" << B->e.x << ',' << B->e.y << ',' << B->e.z << ")" << endl;
+	cout << "  A body: (" << A->body->GetTransform().position.x << ',' << A->body->GetTransform().position.y
+	<< ',' << A->body->GetTransform().position.z << ")" << endl;
+	cout << "  B body: (" << B->body->GetTransform().position.x << ',' << B->body->GetTransform().position.y
+	<< ',' << B->body->GetTransform().position.z << ")" << endl;
+	cout << '}' << endl;
 	// Create new contact
 	q3ContactConstraint *contact = (q3ContactConstraint*)m_allocator.Allocate( );
 	contact->A = A;

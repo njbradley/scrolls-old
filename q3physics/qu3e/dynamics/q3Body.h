@@ -58,7 +58,8 @@ public:
 	// another. The body will recalculate its mass values. No contacts
 	// will be created until the next q3Scene::Step( ) call.
 	const q3Box* AddBox( const q3BoxDef& def );
-
+	void AddBox(q3Box* box);
+	
 	// Removes this box from the body and broadphase. Forces the body
 	// to recompute its mass if the body is dynamic. Frees the memory
 	// pointed to by the box pointer.
@@ -92,7 +93,7 @@ public:
 	void SetLayers( i32 layers );
 	i32 GetLayers( ) const;
 	const q3Quaternion GetQuaternion( ) const;
-	void* GetUserData( ) const;	
+	void* GetUserData( ) const;
   
 	void SetLinearDamping( r32 damping );
 	r32 GetLinearDamping( r32 damping ) const;
