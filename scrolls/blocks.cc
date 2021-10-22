@@ -985,25 +985,23 @@ void FreeBlock::tick() {
 }
 
 void FreeBlock::timestep(float deltatime) {
-  
-  return;
-  cout << "START " << box << endl;
+  if (physicsbody == nullptr) return;
   
   if (controls->key_pressed('L')) {
-    box.velocity += vec3(-10,0,0) * deltatime;
+    physicsbody->apply_impulse(vec3(-10,0,0) * deltatime);
   }
   if (controls->key_pressed('J')) {
-    box.velocity += vec3(10,0,0) * deltatime;
+    physicsbody->apply_impulse(vec3(10,0,0) * deltatime);
   }
   if (controls->key_pressed('I')) {
-    box.velocity += vec3(0,0,10) * deltatime;
+    physicsbody->apply_impulse(vec3(0,0,10) * deltatime);
   }
   if (controls->key_pressed('K')) {
-    box.velocity += vec3(0,0,-10) * deltatime;
+    physicsbody->apply_impulse(vec3(0,0,-10) * deltatime);
   }
   
   if (controls->key_pressed('U')) {
-    box.velocity.y = 5;
+    physicsbody->apply_impulse(vec3(0,20,0) * deltatime);
   }
   
   
@@ -1027,7 +1025,7 @@ void FreeBlock::resolve_timestep(float deltatime) {
   }
   
   // cout << "END " << endl;
-  set_box(box);
+  // set_box(box);
   debuglines->render(highparent->hitbox(), vec3(1,1,0));
   debuglines->render(highparent->freebox(), vec3(1,0,0));
 }
@@ -1056,7 +1054,7 @@ void FreeBlock::set_box(Movingbox newbox) {
   }
   
   box = newbox;
-  flags &= ~RENDER_FLAG;
+  set_flag(RENDER_FLAG);
   set_all_flags(RENDER_FLAG);
 }
 
@@ -1085,17 +1083,6 @@ void FreeBlock::expand(ivec3 dir) { // Todo: this method only works for csize=2
   set_flag(RENDER_FLAG | LIGHT_FLAG);
 }
 
-void FreeBlock::apply_impulse(vec3 impulse) {
-  box.apply_impulse(impulse);
-  
-  wake();
-}
-
-void FreeBlock::apply_impulse(vec3 impulse, vec3 point) {
-  box.apply_impulse(impulse, point);
-  
-  wake();
-}
 
 
 
@@ -1318,10 +1305,10 @@ void Pixel::rotate_to_origin(int* mats, int* dirs, int rotation) {
 
 void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
   
-  if (render_index.index > -1) {
-    lastvecs->del(render_index);
-    render_index = RenderIndex::npos;
-  }
+  // if (render_index.index > -1) {
+  //   lastvecs->del(render_index);
+  //   render_index = RenderIndex::npos;
+  // }
   
   if (value != 0) {
     ivec3 gpos = parbl->globalpos;
@@ -1360,8 +1347,8 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
       //   renderdata.type.faces[i].sunlight = lightmax;
       //   exposed = true;
       // } else
-      if (parbl->is_air(dir, value) and parbl->freecontainer == nullptr) {
-      // if (parbl->is_air(dir, value)) {
+      // if (parbl->is_air(dir, value) and parbl->freecontainer == nullptr) {
+      if (parbl->is_air(dir, value)) {
         renderdata.type.faces[i].tex = mat[i];
         renderdata.type.faces[i].rot = dirs[i];
         renderdata.type.faces[i].blocklight = (parbl->freecontainer == nullptr) ? parbl->get_blocklight(dir) : 20;
@@ -1375,6 +1362,9 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
         if (lastvecs == transvecs and !render_index.isnull()) {
           lastvecs->edit(render_index, renderdata);
         } else {
+          if (!render_index.isnull()) {
+            lastvecs->del(render_index);
+          }
           render_index = transvecs->add(renderdata);
           lastvecs = transvecs;
         }
@@ -1382,11 +1372,21 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
         if (lastvecs == allvecs and !render_index.isnull()) {
           allvecs->edit(render_index, renderdata);
         } else {
+          if (!render_index.isnull()) {
+            lastvecs->del(render_index);
+          }
           render_index = allvecs->add(renderdata);
           lastvecs = allvecs;
         }
       }
+    } else if (!render_index.isnull()) {
+      lastvecs->del(render_index);
+      render_index = RenderIndex::npos;
     }
+    
+  } else if (!render_index.isnull()) {
+    lastvecs->del(render_index);
+    render_index = RenderIndex::npos;
   }
 }
 

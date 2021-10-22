@@ -174,6 +174,10 @@ class PhysicsBody { public:
   PhysicsBody(FreeBlock* free);
   virtual ~PhysicsBody() {};
   virtual void update() {};
+  
+	virtual void apply_impulse(vec3 impulse) {};
+	virtual void apply_impulse(vec3 impulse, vec3 point) {};
+	virtual void apply_impulse(Movingpoint point);
 };
 
 class PhysicsBox { public:

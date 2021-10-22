@@ -660,14 +660,14 @@ void Movingbox::dampen(float posthresh, float angthresh, float velthresh) {
 
 PhysicsBody::PhysicsBody(FreeBlock* free): freeblock(free) {
   free->physicsbody = this;
-  update();
 }
 
-
+void PhysicsBody::apply_impulse(Movingpoint point) {
+  apply_impulse(point.momentum(), point.position);
+}
 
 PhysicsBox::PhysicsBox(Pixel* pix): pixel(pix) {
   pixel->physicsbox = this;
-  update();
 }
 
 

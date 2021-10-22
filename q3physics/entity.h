@@ -17,6 +17,9 @@ class Q3PhysicsBody : public PhysicsBody { public:
 	
 	virtual void update();
 	
+	virtual void apply_impulse(vec3 impulse);
+	virtual void apply_impulse(vec3 impulse, vec3 point);
+	
 	static Q3PhysicsBody* from_block(FreeBlock* free, q3Scene* scene);
 };
 

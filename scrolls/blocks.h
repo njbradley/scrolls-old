@@ -215,12 +215,6 @@ class FreeBlock : public Block { public:
 	void timestep(float deltatime);
 	void resolve_timestep(float deltatime);
 	
-	void apply_torque(vec3 newtorque);
-	
-	void apply_impulse(vec3 impulse);
-	void apply_impulse(vec3 impulse, vec3 point);
-	void apply_impulse(Movingpoint point);
-	
 	void calculate_mass();
 	
 	void try_sleep();

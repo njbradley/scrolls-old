@@ -325,7 +325,7 @@ void Player::left_mouse(double deltatime) {
 		if (block->freecontainer == nullptr) {
 			world->set_global(pos, 1, 0, 0);
 		} else {
-			block->freecontainer->apply_impulse(pointing, hitpos);
+			block->freecontainer->physicsbody->apply_impulse(pointing, hitpos);
 		}
 		// game->debugblock = world->get_global(pos.x, pos.y-1, pos.z, 1)->pixel;
 		// cout << game->debugblock->parbl->flags << '-' << endl;

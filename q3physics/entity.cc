@@ -62,11 +62,20 @@ void Q3PhysicsBody::sync_glm() {
 		freeblock->box.velocity = body->GetLinearVelocity();
 		freeblock->box.angularvel = body->GetAngularVelocity();
 	}
+	freeblock->set_box(freeblock->box);
 }
 
 
 void Q3PhysicsBody::update() {
 	
+}
+
+void Q3PhysicsBody::apply_impulse(vec3 impulse) {
+	body->ApplyLinearImpulse(impulse);
+}
+
+void Q3PhysicsBody::apply_impulse(vec3 impulse, vec3 point) {
+	body->ApplyLinearImpulseAtWorldPoint(impulse, point);
 }
 
 Q3PhysicsBody* Q3PhysicsBody::from_block(FreeBlock* free, q3Scene* scene) {
@@ -128,7 +137,7 @@ PhysicsEngine(world, dt), scene(deltatime, &broadphase), broadphase(&scene, worl
 
 void Q3PhysicsEngine::tick() {
 	double start = getTime();
-	Q3PhysicsBody* body;
+	Q3PhysicsBody* body = nullptr;
 	for (Tile* tile : world->tiles) {
 		for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
 			body = Q3PhysicsBody::from_block(free, &scene);
