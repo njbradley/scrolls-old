@@ -42,9 +42,9 @@ int test_main(int numargs, char** args) {
 			tests[i]->print_summary(mainout, errout);
 		}
 		cout << "------------------------------------" << endl;
-		cout << mainout.rdbuf();
+		cout << mainout.str();
 		cout << "------------------------------------" << endl;
-		std::cerr << errout.rdbuf();
+		std::cerr << errout.str();
 	}
 	cout << "Done" << endl;
 	return 0;

@@ -22,9 +22,9 @@ void Test::run_tests() {
 
 void Test::print_summary(ostream& mainout, ostream& mainerr) {
 	mainout << name << ": " << (result ? "true" : "false") << endl;
-	mainout << out.rdbuf();
+	mainout << out.str();
 	if (!result) {
 		mainerr << "Test " << name << " failed:" << endl;
 	}
-	mainerr << errout.rdbuf();
+	mainerr << errout.str();
 }

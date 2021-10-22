@@ -3,6 +3,15 @@
 
 #include "classes.h"
 
+// This is my workaround for q3 to make it work the scrolls world
+// The main problem is that there are way to many static blocks,
+// If I was to add all blocks in the world to the q3Scene, then
+// everything would take forever. Instead, I made my own Broadphase
+// object, which in q3 is used to find approximate collisions and
+// return pairs of objects that collide. This way, I create boxes on
+// the fly for any static blocks that are being collided with, and return
+// pairs of those objects.
+
 class BlockBroadPhase : public q3BroadPhase {
 public:
 	q3Scene* scene;
