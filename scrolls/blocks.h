@@ -165,6 +165,8 @@ class Block: public Collider { public:
 	
 	static void write_pix_val(ostream& ofile, char type, unsigned int val);
 	static void read_pix_val(istream& ifile, char* type, unsigned int* val);
+	static void write_pix_val_float(ostream& ofile, char type, float val);
+	static void read_pix_val_float(istream& ifile, char* type, float* val);
 };
 
 // FreeBlocks are blocks not grid alligned
@@ -206,7 +208,12 @@ class FreeBlock : public Block { public:
 	FreeBlock* allfreeblocks = nullptr;
 	PhysicsBody* physicsbody = nullptr;
 	
+	FreeBlock();
 	FreeBlock(Movingbox newbox);
+	FreeBlock(istream& ifile);
+	~FreeBlock();
+	void to_file(ostream& ofile);
+	void from_file(istream& ifile);
 	void set_parent(Block* nparent);
 	void set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale);
 	void expand(ivec3 dir);
@@ -270,9 +277,16 @@ class Pixel { public:
   static void rotate_to_origin(int* mats, int* dirs, int rotation);
 };
 
-    
-    
-    
+
+namespace blockformat {
+	const unsigned char chunk = 0b11000000;
+	const unsigned char null = 0b11111111;
+	const unsigned char free = 0b11110000;
+	
+	const unsigned char valuetype = 0b00;
+	const unsigned char dirtype = 0b01;
+	const unsigned char jointstype = 0b10;
+}
 
 
 #endif

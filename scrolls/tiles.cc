@@ -242,6 +242,7 @@ void Tile::remove_freeblock(FreeBlock* freeblock) {
       *free = (*free)->allfreeblocks;
       return;
     }
+    free = &(*free)->allfreeblocks;
   }
 }
 

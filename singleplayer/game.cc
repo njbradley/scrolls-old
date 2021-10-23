@@ -4,6 +4,9 @@
 #include "scrolls/player.h"
 #include "scrolls/cross-platform.h"
 #include "scrolls/debug.h"
+#include "scrolls/tiles.h"
+#include "scrolls/blocks.h"
+
 
 SingleGame::SingleGame() {
 	
@@ -79,6 +82,15 @@ void SingleGame::gametick() {
 		logger->unpause();
 	} else if (controls->key_pressed('L')) {
 		debuglines->clear();
+	} else if (controls->key_pressed('T')) {
+		for (Tile* tile : world->tiles) {
+			for (FreeBlock* free = tile->allfreeblocks; free != nullptr;) {
+				free->highparent->remove_freechild(free);
+				FreeBlock* next = free->allfreeblocks;
+				delete free;
+				free = next;
+			}
+		}
 	}
 	if (controls->key_pressed(controls->KEY_CTRL)) {
 		for (int i = 0; i < 10; i ++) {

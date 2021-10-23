@@ -145,8 +145,10 @@ void Block::set_parent(Block* nparent, Container* nworld, FreeBlock* freecont, i
     }
   }
   
-  for (FREECHILDREN_LOOP(free)) {
-    free->set_parent(this, world, vec3(0,0,0), scale/2);
+  if (freecontainer == nullptr) {
+    for (FREECHILDREN_LOOP(free)) {
+      free->set_parent(this, world, vec3(0,0,0), scale/2);
+    }
   }
   
   set_flag(RENDER_FLAG | LIGHT_FLAG);
@@ -213,7 +215,8 @@ void Block::remove_freechild(FreeBlock* newfree) {
     freedest = &(*freedest)->freechild;
   }
   if (*freedest != nullptr) {
-    *freedest = (*freedest)->freechild;
+    FreeBlock* next = (*freedest)->freechild;
+    *freedest = next;
   }
   parent->try_join();
 }
@@ -498,13 +501,17 @@ void Block::try_join() {
 }
 
 void Block::to_file(ostream& ofile) const {
+  for (FREECHILDREN_LOOP(free)) {
+    ofile << blockformat::free;
+    free->to_file(ofile);
+  }
   if (continues) {
-    ofile << char(0b11000000);
+    ofile << blockformat::chunk;
     for (int i = 0; i < csize3; i ++) {
       if (children[i] != nullptr) {
         children[i]->to_file(ofile);
       } else {
-        ofile << char(0b11111111);
+        ofile << blockformat::null;
       }
     }
   } else {
@@ -513,15 +520,24 @@ void Block::to_file(ostream& ofile) const {
 }
 
 void Block::from_file(istream& ifile) {
-  if (ifile.peek() == (0b11000000)) {
+  while (ifile.peek() == blockformat::free) {
+    ifile.get();
+    FreeBlock* free = new FreeBlock();
+    add_freechild(free);
+    free->from_file(ifile);
+  }
+  if (ifile.peek() == blockformat::chunk) {
     ifile.get();
     divide();
     for (int i = 0; i < csize3; i ++) {
-      if (ifile.peek() == (0b11111111)) {
+      if (ifile.peek() == (blockformat::null)) {
         ifile.get();
         children[i] = nullptr;
       } else {
-        set_child(posof(i), new Block(ifile));
+        Block* block = new Block();
+        set_child(posof(i), block);
+        block->from_file(ifile);
+        // set_child(posof(i), new Block(ifile));
       }
     }
   } else {
@@ -760,20 +776,26 @@ void Block::write_pix_val(ostream& ofile, char type, unsigned int value) {
 }
 
 void Block::read_pix_val(istream& ifile, char* type, unsigned int* value) {
-  char data = ifile.get();
+  unsigned char data = ifile.get();
   *type = (data & 0b11000000) >> 6;
   *value = (data & 0b00111110) >> 1;
   int multiplier = 32;
   while ((data & 0b00000001) and !ifile.eof()) {
     data = ifile.get();
-    *value = *value | ((multiplier * (data & 0b11111110)) >> 1);
+    *value = *value | (multiplier * ((data & 0b11111110) >> 1));
     multiplier *= 128;
   }
 }
 
+void Block::write_pix_val_float(ostream& ofile, char type, float val) {
+  unsigned int* ptr = (unsigned int*) &val;
+  Block::write_pix_val(ofile, type, *ptr);
+}
 
-
-
+void Block::read_pix_val_float(istream& ifile, char* type, float* val) {
+  unsigned int* ptr = (unsigned int*) val;
+  Block::read_pix_val(ifile, type, ptr);
+}
 
 Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
   Block* curblock = this;
@@ -962,22 +984,97 @@ vec3 Block::force(vec3 amount) {
 
 
 
-
+FreeBlock::FreeBlock() {
+  
+}
 
 FreeBlock::FreeBlock(Movingbox newbox): Block(), box(newbox) {
   
 }
 
+FreeBlock::FreeBlock(istream& ifile): Block() {
+  from_file(ifile);
+}
+
+FreeBlock::~FreeBlock() {
+  if (physicsbody != nullptr) {
+    delete physicsbody;
+  }
+  if (highparent != nullptr and highparent->world != nullptr) {
+    highparent->world->remove_freeblock(this);
+  }
+}
+
+void FreeBlock::to_file(ostream& ofile) {
+  Block::to_file(ofile);
+  
+  char type = 0b00; // type not used
+  
+  cout << " WRITING " << box << endl;
+  
+  Block::write_pix_val_float(ofile, type, box.position.x);
+  Block::write_pix_val_float(ofile, type, box.position.y);
+  Block::write_pix_val_float(ofile, type, box.position.z);
+  
+  Block::write_pix_val_float(ofile, type, box.negbox.x);
+  Block::write_pix_val_float(ofile, type, box.negbox.y);
+  Block::write_pix_val_float(ofile, type, box.negbox.z);
+  
+  Block::write_pix_val_float(ofile, type, box.velocity.x);
+  Block::write_pix_val_float(ofile, type, box.velocity.y);
+  Block::write_pix_val_float(ofile, type, box.velocity.z);
+  
+  Block::write_pix_val_float(ofile, type, box.angularvel.x);
+  Block::write_pix_val_float(ofile, type, box.angularvel.y);
+  Block::write_pix_val_float(ofile, type, box.angularvel.z);
+  
+  Block::write_pix_val_float(ofile, type, box.rotation.w);
+  Block::write_pix_val_float(ofile, type, box.rotation.x);
+  Block::write_pix_val_float(ofile, type, box.rotation.y);
+  Block::write_pix_val_float(ofile, type, box.rotation.z);
+}
+
+void FreeBlock::from_file(istream& ifile) {
+  Block::from_file(ifile);
+  char type;
+  
+  Block::read_pix_val_float(ifile, &type, &box.position.x);
+  Block::read_pix_val_float(ifile, &type, &box.position.y);
+  Block::read_pix_val_float(ifile, &type, &box.position.z);
+  
+  Block::read_pix_val_float(ifile, &type, &box.negbox.x);
+  Block::read_pix_val_float(ifile, &type, &box.negbox.y);
+  Block::read_pix_val_float(ifile, &type, &box.negbox.z);
+  
+  Block::read_pix_val_float(ifile, &type, &box.velocity.x);
+  Block::read_pix_val_float(ifile, &type, &box.velocity.y);
+  Block::read_pix_val_float(ifile, &type, &box.velocity.z);
+  
+  Block::read_pix_val_float(ifile, &type, &box.angularvel.x);
+  Block::read_pix_val_float(ifile, &type, &box.angularvel.y);
+  Block::read_pix_val_float(ifile, &type, &box.angularvel.z);
+  
+  Block::read_pix_val_float(ifile, &type, &box.rotation.w);
+  Block::read_pix_val_float(ifile, &type, &box.rotation.x);
+  Block::read_pix_val_float(ifile, &type, &box.rotation.y);
+  Block::read_pix_val_float(ifile, &type, &box.rotation.z);
+  
+  box.posbox = box.negbox + float(scale);
+  cout << " CREATED " << box << endl;
+}
+
 void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale) {
+  // cout << " set parent " << nparent << ' ' << nworld << ' ' << nscale << endl;
   bool changed_world = highparent == nullptr or nparent == nullptr or highparent->world != nparent->world;
-  if (changed_world and highparent != nullptr) {
+  if (changed_world and highparent != nullptr and highparent->world != nullptr) {
     highparent->world->remove_freeblock(this);
   }
   highparent = nparent;
   Block::set_parent(nullptr, nworld, this, ppos, nscale);
-  if (changed_world and highparent != nullptr) {
+  if (changed_world and highparent != nullptr and highparent->world != nullptr) {
     highparent->world->add_freeblock(this);
   }
+  box.posbox = box.negbox + float(scale);
 }
 
 void FreeBlock::tick() {
@@ -1183,12 +1280,12 @@ parbl(newblock) {
   direction = 0xff;
   while (!value_set and !ifile.eof()) {
     Block::read_pix_val(ifile, &type, &data);
-    if (type == 0b00) {
+    if (type == blockformat::valuetype) {
       value = data;
       value_set = true;
-    } else if (type == 0b01) {
+    } else if (type == blockformat::dirtype) {
       direction = data;
-    } else if (type == 0b10) {
+    } else if (type == blockformat::jointstype) {
       for (int i = 5; i >= 0; i --) {
         joints[i] = data % 32;
         if (joints[i] > 0) {
@@ -1870,12 +1967,12 @@ void Pixel::to_file(ostream& of) {
     }
   }
   if (jointval != 0) {
-    Block::write_pix_val(of, 0b10, jointval);
+    Block::write_pix_val(of, blockformat::jointstype, jointval);
   }
   if (value != 0 and direction != blockstorage[value]->default_direction) {
-    Block::write_pix_val(of, 0b01, direction);
+    Block::write_pix_val(of, blockformat::dirtype, direction);
   }
-  Block::write_pix_val(of, 0b00, value);
+  Block::write_pix_val(of, blockformat::valuetype, value);
 }
 
 

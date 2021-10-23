@@ -11,10 +11,12 @@
 
 q3Body* wbody;
 
-Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free, q3Scene* scene): PhysicsBody(free) {
+Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free, q3Scene* nscene): PhysicsBody(free), scene(nscene) {
 	q3BodyDef bodydef;
 	bodydef.bodyType = eDynamicBody;
 	bodydef.position = freeblock->box.point1();
+	bodydef.linearVelocity = freeblock->box.velocity;
+	bodydef.angularVelocity = freeblock->box.angularvel;
 	bodydef.angle = glm::angle(freeblock->box.rotation);
 	bodydef.axis = glm::axis(freeblock->box.rotation);
 	body = scene->CreateBody(bodydef);
@@ -28,6 +30,10 @@ Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free, q3Scene* scene): PhysicsBody(free)
 	}
 	
 	// sync_q3();
+}
+
+Q3PhysicsBody::~Q3PhysicsBody() {
+	scene->RemoveBody(body);
 }
 
 void Q3PhysicsBody::sync_q3() {
