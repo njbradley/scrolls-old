@@ -29,7 +29,8 @@ public:
 	// Generates the contact list. All previous contacts are returned to the allocator
 	// before generation occurs.
 	virtual void UpdatePairs( void );
-
+	Hitbox expandbox(Hitbox box);
+	
 	virtual void Update( i32 id, const q3AABB& aabb ) { };
 
 	virtual bool TestOverlap(q3Box* box1, q3Box* box2) const;

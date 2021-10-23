@@ -127,8 +127,6 @@ void q3Body::AddBox( q3Box* box ) {
 
 	CalculateMassData( );
 	
-	cout << m_mass << " MASS " << endl;
-	
 	m_scene->m_contactManager.m_broadphase->InsertBox( box, aabb );
 	m_scene->m_newBox = true;
 }

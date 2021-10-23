@@ -19,8 +19,6 @@ Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free, q3Scene* scene): PhysicsBody(free)
 	bodydef.axis = glm::axis(freeblock->box.rotation);
 	body = scene->CreateBody(bodydef);
 	
-	cout << body->GetTransform().position << ' ' << freeblock->box << endl;
-	
 	// add_box(Hitbox(vec3(0), vec3(-0.5), vec3(0.5)));
 	
 	for (Pixel* pix : free->iter()) {
@@ -30,18 +28,6 @@ Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free, q3Scene* scene): PhysicsBody(free)
 	}
 	
 	// sync_q3();
-}
-
-void Q3PhysicsBody::add_box(Hitbox box) {
-	cout << box << endl;
-	q3BoxDef boxdef;
-	q3Transform transform;
-	transform.position = box.global_midpoint();
-	transform.rotation = glm::mat3_cast(box.rotation);
-	
-	boxdef.Set(transform, box.size());
-	
-	body->AddBox(boxdef);
 }
 
 void Q3PhysicsBody::sync_q3() {
@@ -148,7 +134,7 @@ void Q3PhysicsEngine::tick() {
 	double mid = getTime();
 	scene.Step();
 	
-	cout << getTime() - mid << " Step  " << mid - start << " sync " << endl;
+	// cout << getTime() - mid << " Step  " << mid - start << " sync " << endl;
 }
 
 EXPORT_PLUGIN(Q3PhysicsEngine);

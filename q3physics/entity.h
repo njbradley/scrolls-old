@@ -11,7 +11,6 @@ class Q3PhysicsBody : public PhysicsBody { public:
 	q3Body* body;
 	
 	Q3PhysicsBody(FreeBlock* free, q3Scene* scene);
-	void add_box(Hitbox box);
 	void sync_q3();
 	void sync_glm();
 	
