@@ -14,6 +14,8 @@ class BlockIter { public:
     BlockIter* parent;
     Pixel* pix;
     Pixel* operator*();
+    Block* increment(Block* block);
+    void move_down(Block* block);
     iterator operator++();
     friend bool operator!=(const iterator& iter1, const iterator& iter2);
   };

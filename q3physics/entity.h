@@ -32,7 +32,7 @@ class Q3PhysicsBox : public PhysicsBox { public:
   virtual void update();
 	
 	static Q3PhysicsBox* from_pix(Pixel* pix, q3Body* worldbody);
-	static constexpr float tiny_thresh = 0.001f;
+	static constexpr float tiny_thresh = 0.0f;
 };
 
 class Q3PhysicsEngine : public PhysicsEngine { public:

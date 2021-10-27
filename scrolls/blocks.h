@@ -40,7 +40,7 @@ class Block: public Collider { public:
 	Container* world;
 	FreeBlock* freecontainer = nullptr;
 	bool continues;
-	bool locked = false;
+	char locked = 0;
 	FreeBlock* freechild = nullptr;
 	union {
 		Pixel* pixel;
@@ -57,8 +57,6 @@ class Block: public Collider { public:
 	// initializes from a file
 	Block(istream& ifile);
 	
-	Block(Block&& other);
-	
 	~Block();
 	
 	// locks and unlocks block (used for editing)
@@ -68,6 +66,8 @@ class Block: public Collider { public:
 	// minimal protection
 	void lock();
 	void unlock();
+	
+	void swap(Block* other);
 	
 	void update();
 	// sets the parent of this block (only call for toplevel blocks)

@@ -43,7 +43,7 @@ typedef unsigned int uint;
 #define SAFEFLOOR3(a) ( ivec3(SAFEFLOOR((a).x), SAFEFLOOR((a).y), SAFEFLOOR((a).z)) )
 
 #define ERR(msg) throw std::runtime_error(string(msg) + "\n" + __PRETTY_FUNCTION__ + ": " + __FILE__ + " Line " + std::to_string(__LINE__));
-#define dkout if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS) cout
+#define dkout if (controls->key_pressed('K')) cout
 
 struct ivec3_comparator {
   bool operator() (const ivec3& lhs, const ivec3& rhs) const;

@@ -134,7 +134,6 @@ void Player::right_mouse(double deltatime) {
 						placing_block = airblock;
 					}
 				} else {
-					cout << "normal" << endl;
 					block->set_global(blockpos, 1, 1, 0);
 					placing_block = block->get_global(blockpos, 1);
 					// game->debugblock = placing_block->pixel;
@@ -325,7 +324,7 @@ void Player::left_mouse(double deltatime) {
 		if (block->freecontainer == nullptr) {
 			world->set_global(pos, 1, 0, 0);
 		} else {
-			block->freecontainer->physicsbody->apply_impulse(pointing, hitpos);
+			block->freecontainer->physicsbody->apply_impulse(pointing*5.0f, hitpos);
 		}
 		// game->debugblock = world->get_global(pos.x, pos.y-1, pos.z, 1)->pixel;
 		// cout << game->debugblock->parbl->flags << '-' << endl;

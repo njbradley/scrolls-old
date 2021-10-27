@@ -5,7 +5,7 @@
 #include "blocks.h"
 #include "world.h"
 #include "debug.h"
-
+#include "player.h"
 
 
 
@@ -14,23 +14,47 @@ Pixel* BlockIter::iterator::operator*() {
   return pix;
 }
 
-
-BlockIter::iterator BlockIter::iterator::operator++() {
-  Block* block = pix->parbl;
+Block* BlockIter::iterator::increment(Block* block) {
   while (block->parent != parent->base->parent and block->parentpos == parent->end_pos) {
     block = block->parent;
   }
   if (block->parent == parent->base->parent) {
-    pix = nullptr;
-    return *this;
+    return nullptr;
   }
   ivec3 pos = block->parentpos;
-  pos = parent->increment_func(pos, parent->start_pos, parent->end_pos);
-  block = block->parent->get(pos);
-  while (block->continues) {
-    block = block->get(parent->start_pos);
+  do {
+    pos = parent->increment_func(pos, parent->start_pos, parent->end_pos);
+  } while (pos != parent->end_pos and block->parent->get(pos) == nullptr);
+  if (block->parent->get(pos) == nullptr) {
+    block = increment(block->parent);
+  } else {
+    block = block->parent->get(pos);
   }
-  pix = block->pixel;
+  return block;
+}
+
+void BlockIter::iterator::move_down(Block* block) {
+  while (block != nullptr and block->continues) {
+    ivec3 pos = parent->start_pos;
+    
+    while (pos != parent->end_pos and block->get(pos) == nullptr) {
+      pos = parent->increment_func(pos, parent->start_pos, parent->end_pos);
+    }
+    if (block->get(pos) == nullptr) {
+      block = increment(block);
+    } else {
+      block = block->get(pos);
+    }
+  }
+  if (block == nullptr) {
+    pix = nullptr;
+  } else {
+    pix = block->pixel;
+  }
+}
+
+BlockIter::iterator BlockIter::iterator::operator++() {
+  move_down(increment(pix->parbl));
   return *this;
 }
 
@@ -38,11 +62,9 @@ BlockIter::iterator BlockIter::begin() {
   if (base == nullptr) {
     return end();
   }
-  Block* block = base;
-  while (block->continues) {
-    block = block->get(start_pos);
-  }
-  return {this, block->pixel};
+  iterator iter {this, nullptr};
+  iter.move_down(base);
+  return iter;
 }
 
 BlockIter::iterator BlockIter::end() {
