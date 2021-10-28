@@ -248,6 +248,73 @@ bool operator!=(const FreeBlockIter::iterator& iter1, const FreeBlockIter::itera
 
 
 
+FreeBlock* FreeBlockFreeIter::iterator::operator*() {
+  return free;
+}
+
+FreeBlockFreeIter::iterator FreeBlockFreeIter::iterator::operator++() {
+  if (free == nullptr) {
+    baseindex ++;
+    if (baseindex < 8) {
+      free = bases[baseindex];
+    } else {
+      free = nullptr;
+    }
+  } else {
+    free = free->allfreeblocks;
+  }
+  return *this;
+}
+
+FreeBlockFreeIter::iterator FreeBlockFreeIter::begin() {
+  return iterator {freebases, 0, freebases[0]};
+}
+
+FreeBlockFreeIter::iterator FreeBlockFreeIter::end() {
+  return iterator {freebases, num_freebases, nullptr};
+}
+
+bool operator!=(const FreeBlockFreeIter::iterator& iter1, const FreeBlockFreeIter::iterator& iter2) {
+  return iter1.bases != iter2.bases or iter1.baseindex != iter2.baseindex or iter1.free != iter2.free;
+}
+
+FreeBlockFreeIter::FreeBlockFreeIter(Collider* world, Hitbox box) {
+  
+  box.negbox -= World::chunksize/4;
+  box.posbox += World::chunksize/4;
+  
+  vec3 points[8];
+  box.points(points);
+  
+  num_freebases = 0;
+  for (int i = 0; i < 8; i ++) {
+    Block* block = world->get_global(SAFEFLOOR3(points[i]), 1);
+    if (block != nullptr) {
+      FreeBlock* newfree = block->world->allfreeblocks;
+      if (newfree != nullptr) {
+        freebases[num_freebases++] = newfree;
+        for (int j = 0; j < num_freebases-1; j ++) {
+          if (freebases[j] == newfree) {
+            num_freebases --;
+            break;
+          }
+        }
+      }
+    }
+  }
+  
+  freebases[num_freebases] = nullptr;
+}
+
+
+
+
+
+
+
+
+
+
 Pixel* BlockTouchSideIter::iterator::operator*() {
   if (parent->free) {
     return *freeiter;

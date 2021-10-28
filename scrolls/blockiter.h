@@ -46,7 +46,23 @@ class FreeBlockIter { public:
   iterator begin();
   iterator end();
 };
-  
+
+class FreeBlockFreeIter { public:
+  FreeBlock* freebases[8];
+  int num_freebases;
+  class iterator { public:
+    FreeBlock** bases;
+    int baseindex;
+    FreeBlock* free;
+    FreeBlock* operator*();
+    iterator operator++();
+    friend bool operator!=(const iterator& iter1, const iterator& iter2);
+  };
+  FreeBlockFreeIter(Collider* world, Hitbox box);
+  Hitbox grow_box(Hitbox box);
+  iterator begin();
+  iterator end();
+};
 
 class BlockTouchSideIter { public:
 	Block* base;

@@ -53,8 +53,16 @@ void SingleGame::setup_gameloop() {
 void SingleGame::gametick() {
 	
 	static double lastTime = getTime();
+	static int num_frames = 0;
 	double curtime = getTime();
 	double deltatime = curtime - lastTime;
+	if (int(curtime) - int(lastTime) > 0) {
+		logger->log(3) << "fps: " << num_frames << endl;
+		num_frames = 0;
+	}
+	
+	num_frames++;
+	
 	lastTime = curtime;
 	
 	world->load_nearby_chunks();

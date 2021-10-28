@@ -319,6 +319,8 @@ void Player::left_mouse(double deltatime) {
 		Block* block;
 		raycast(&block, &dir, &hitpos);
 		
+		if (block == nullptr) return;
+		
 		ivec3 pos = SAFEFLOOR3(hitpos);
 		
 		if (block->freecontainer == nullptr) {

@@ -449,20 +449,17 @@ void Block::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]
         cout << expand_dir << ' ' << expand_off << endl;
         curblock->freecontainer->expand(expand_off);
         curblock = curblock->get(expand_off);
-        cout << " finished setting " << curblock << endl;
         // std::terminate();
       } else {
         world->set_global(pos, w, val, direc, joints);
         return;
       }
     }
-    cout << " curblock to " << curblock << ' ' << curblock->parent << endl;
     curblock = curblock->parent;
   }
   
   while (curblock->scale > w) {
     ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
-    cout << " going down " << curblock << ' ' << rem << endl;
     if (!curblock->continues) {
       curblock->subdivide();
     }
@@ -474,7 +471,6 @@ void Block::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]
         curblock->get(rem)->set_pixel(new Pixel(0));
       }
     }
-    cout << curblock->get(rem)->continues << endl;
     curblock = curblock->get(rem);
   }
   
@@ -636,7 +632,7 @@ void Block::timestep(float deltatime) {
 
 
 void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
-  if (freecontainer != nullptr) cout << " rendering " << globalpos << ' ' << scale << endl;
+  // if (freecontainer != nullptr) cout << " rendering " << globalpos << ' ' << scale << endl;
   if (flags & RENDER_FLAG and !locked) {
     // logger->log(9) << "RENDERING " << int(flags) << ' ' << this << ' ' << globalpos << ' ' << scale << endl;
     flags &= ~RENDER_FLAG;
@@ -835,7 +831,84 @@ void Block::read_pix_val_float(istream& ifile, char* type, float* val) {
   Block::read_pix_val(ifile, type, ptr);
 }
 
-Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
+Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) {
+  vec3 axis = glm::cross(vec3(1,0,0), dir);
+  axis /= glm::length(axis);
+  
+  quat rot = glm::angleAxis(float(acos(glm::dot(vec3(1,0,0), dir))), axis);
+  vec3 startpos = *pos;
+  
+  Hitbox linebox (startpos, vec3(0,0,0), vec3(timeleft, 0, 0), rot);
+  Line line (startpos, dir);
+  
+  float closest_dist = timeleft;
+  Block* closest_block = nullptr;
+  vec3 closest_pos = *pos;
+  vec3 closest_norm = vec3(0,0,0);
+  
+  FreeBlockIter iter (this, linebox);
+  for (Pixel* pix : iter) {
+    // debuglines->render(pix->parbl->hitbox());
+    if (pix->value != 0) {
+      Plane faces[6];
+      pix->parbl->hitbox().faces(faces);
+      for (Plane face : faces) {
+        vec3 colpoint = face.collision(line);
+        if (!std::isnan(colpoint.x) and pix->parbl->hitbox().contains(colpoint)) {
+          float dist = glm::dot(colpoint - startpos, dir);
+          if (dist < closest_dist) {
+            closest_dist = dist;
+            closest_block = pix->parbl;
+            closest_pos = colpoint;
+            closest_norm = face.normal;
+          }
+        }
+      }
+    }
+  }
+  
+  FreeBlockFreeIter freeiter (this, linebox);
+  for (FreeBlock* free : freeiter) {
+    // FreeBlockIter initer (free, free->box.transform_in(linebox));
+    for (Pixel* pix : free->iter()) {
+      // debuglines->render(pix->parbl->hitbox());
+      if (pix->value != 0) {
+        Plane faces[6];
+        pix->parbl->hitbox().faces(faces);
+        for (Plane face : faces) {
+          vec3 colpoint = face.collision(line);
+          if (!std::isnan(colpoint.x) and pix->parbl->hitbox().contains(colpoint)) {
+            float dist = glm::dot(colpoint - startpos, dir);
+            // debuglines->render(pix->parbl->hitbox());
+            if (dist < closest_dist) {
+              closest_dist = dist;
+              closest_block = pix->parbl;
+              closest_pos = colpoint;
+              closest_norm = face.normal;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  *pos = closest_pos + dir * 0.001f;
+  // *dir = closest_norm;
+  return closest_block;
+  /*
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   Block* curblock = this;
   
   
@@ -870,7 +943,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
           for (int z = -1; z < 2; z ++) {
             ivec3 off (x,y,z);
             Block* block = parblock->get_global(parblock->globalpos + off * parblock->scale, parblock->scale);
-    */
+    
       
     
     ivec3 gpos = curblock->globalpos;
@@ -961,7 +1034,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) { ASSERT(ISPIXEL)
     }
   }
   
-  return curblock;
+  return curblock;*/
 }
 
 bool Block::collide(Hitbox newbox, Hitbox* boxhit, float deltatime, FreeBlock* ignore) {
@@ -1154,14 +1227,14 @@ void FreeBlock::resolve_timestep(float deltatime) {
   
   
   debuglines->render(box);
-  debuglines->render(box.global_midpoint(), box.global_midpoint() + box.angularvel, vec3(1,0,0));
-  debuglines->render(box.global_midpoint(), box.global_midpoint() + box.velocity);
+  // debuglines->render(box.global_midpoint(), box.global_midpoint() + box.angularvel, vec3(1,0,0));
+  // debuglines->render(box.global_midpoint(), box.global_midpoint() + box.velocity);
   
-  Movingpoint points[8];
-  box.points(points);
-  for (Movingpoint point : points) {
-    debuglines->render(point.position, point.position + point.velocity, vec3(1,0,1));
-  }
+  // Movingpoint points[8];
+  // box.points(points);
+  // for (Movingpoint point : points) {
+  //   debuglines->render(point.position, point.position + point.velocity, vec3(1,0,1));
+  // }
   
   // cout << "END " << endl;
   // set_box(box);
