@@ -111,18 +111,20 @@ void Block::swap(Block* other) {
       swap_child(posof(i), other->swap_child(posof(i), children[i]));
     }
   } else if (continues and !other->continues) {
+    cout << "HERE " << endl;
     Pixel* pix = other->swap_pixel(nullptr);
     other->divide();
     for (int i = 0; i < csize3; i ++) {
-      other->set_child(posof(i), children[i]);
+      other->set_child(posof(i), swap_child(posof(i), nullptr));
     }
     join();
     set_pixel(pix);
   } else if (!continues and other->continues) {
+    cout << "fdhdfghdghfdghdfgh" << endl;
     Pixel* pix = swap_pixel(nullptr);
     divide();
     for (int i = 0; i < csize3; i ++) {
-      set_child(posof(i), children[i]);
+      set_child(posof(i), other->swap_child(posof(i), nullptr));
     }
     other->join();
     other->set_pixel(pix);
@@ -249,7 +251,9 @@ void Block::remove_freechild(FreeBlock* newfree) {
     FreeBlock* next = (*freedest)->freechild;
     *freedest = next;
   }
-  parent->try_join();
+  if (parent != nullptr) {
+    parent->try_join();
+  }
 }
 
 
@@ -446,7 +450,6 @@ void Block::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]
         ivec3 expand_dir = glm::sign(SAFEDIV(pos, curblock->scale) - SAFEDIV(curblock->globalpos, curblock->scale));
         ivec3 expand_off = (-expand_dir + 1) / 2;
         pos += expand_off * curblock->scale;
-        cout << expand_dir << ' ' << expand_off << endl;
         curblock->freecontainer->expand(expand_off);
         curblock = curblock->get(expand_off);
         // std::terminate();
@@ -465,6 +468,10 @@ void Block::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]
     }
     if (curblock->get(rem) == nullptr) {
       curblock->set_child(rem, new Block());
+      cout << " adding child " << curblock->scale << ' ';
+      for (int i = 0; i < csize3; i ++) {
+        cout << curblock->children[i] << ' ';
+      } cout << endl;
       if (curblock->scale > w) {
         curblock->get(rem)->divide();
       } else {
@@ -831,6 +838,34 @@ void Block::read_pix_val_float(istream& ifile, char* type, float* val) {
   Block::read_pix_val(ifile, type, ptr);
 }
 
+void Block::to_log(ostream& out) const {
+  out << "Block " << this << " {" << endl;
+  out << "   " << globalpos << " by " << scale << endl;
+  if (continues) {
+    if (pixel == nullptr) {
+      out << "   undef " << endl;
+    } else {
+      out << "   pixel: " << pixel << ' ' << pixel->value << endl;
+    }
+  } else {
+    out << "   children: ";
+    for (int i = 0; i < csize3; i ++) {
+      out << children[i] << ' ';
+    }
+    out << endl;
+  }
+  for (FREECHILDREN_LOOP(free)) {
+    out << "   freechild: " << free << endl;
+  }
+  out << "}" << endl;
+}
+
+ostream& operator<<(ostream& out, const Block& block) {
+  block.to_log(out);
+  return out;
+}
+
+
 Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) {
   vec3 axis = glm::cross(vec3(1,0,0), dir);
   axis /= glm::length(axis);
@@ -1177,7 +1212,7 @@ void FreeBlock::from_file(istream& ifile) {
 }
 
 void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale) {
-  // cout << " set parent " << nparent << ' ' << nworld << ' ' << nscale << endl;
+  cout << " set parent " << nparent << ' ' << nworld << ' ' << nscale << endl;
   bool changed_world = highparent == nullptr or nparent == nullptr or highparent->world != nparent->world;
   if (changed_world and highparent != nullptr and highparent->world != nullptr) {
     highparent->world->remove_freeblock(this);
@@ -1274,24 +1309,29 @@ void FreeBlock::set_box(Movingbox newbox) {
 
 void FreeBlock::expand(ivec3 dir) { // Todo: this method only works for csize=2
   cout << "Expanding " << endl;
+  cout << highparent << endl;
   lock();
   // dir = (dir + 1) / 2;
-  cout << " old " << globalpos << ' ' << scale << ' ' << highparent->globalpos << ' ' << highparent->scale << endl;
+  cout << " old " << *this << endl;
   Block* copyblock = new Block();
   copyblock->swap(this);
+  cout << " new " << *copyblock << endl;
+  cout << "copyblock " << copyblock << endl;
   divide();
   
-  
+  cout << highparent << endl;
   // expanding box and correcting highparent;
   box.negbox -= vec3(scale * dir);
   box.posbox += vec3(scale * (1 - dir));
+  Block* newparent = highparent->parent;
+  cout << highparent << endl;
   highparent->remove_freechild(this);
-  highparent->parent->add_freechild(this);
+  newparent->add_freechild(this);
   // set_parent(highparent->parent, world, parentpos, scale * csize);
   set_box(box);
   
   set_child(dir, copyblock);
-  cout << " new " << globalpos << ' ' << scale << ' ' << highparent->globalpos << ' ' << highparent->scale << endl;
+  cout << " new " << *copyblock << endl;
   
   unlock();
   set_flag(RENDER_FLAG | LIGHT_FLAG);
@@ -1606,7 +1646,6 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
 
 void Pixel::set(int val, int newdirection, int newjoints[6]) {
   WRITE_LOCK;
-  cout << int(val) << endl;
   if (val == 0) {
     newdirection = 0;
   } else {
@@ -1887,151 +1926,6 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>* next_poses) {
   }
 }
 
-/*
-void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>& next_poses) {
-  if ((value != 0 and !blockstorage[value]->transparent)) {
-    return;
-  }
-  const int decrement = 1;
-  int oldsunlight = sunlight;
-  sunlight = 0;
-  for (ivec3 dir : dir_array) {
-    int newdec = dir.y == 1 ? 0 : decrement;
-    int oppdec = dir.y == -1 ? 0 : decrement;
-    Block* block = parbl->get_global(parbl->globalpos+dir*parbl->scale, parbl->scale);
-    // if (block != nullptr and !(*parbl->iter().begin())->tile->fully_loaded) {
-    //   //block = nullptr;
-    // }
-    if (block != nullptr) {
-      for (Pixel* pix : block->iter_side(-dir)) {
-        // if (pix->tile != tile and dir.y == 1 and pix->tile->lightflag) {
-        //   sunlight = lightmax;
-        // } else if (pix->tile != tile and dir.y == -1 and pix->sunlight == lightmax) {
-          // sunlight = lightmax;
-        // } else
-        if (pix->sunlight - newdec*pix->parbl->scale > sunlight and pix->sunlight + oppdec*parbl->scale != oldsunlight) {
-          sunlight = pix->sunlight - newdec*pix->parbl->scale;
-        }
-      }
-    } else if (dir.y == 1) {
-      sunlight = lightmax;
-    }
-  }
-  
-  ivec3 tilepos = SAFEMOD(parbl->globalpos, World::chunksize);
-  bool changed = oldsunlight != sunlight;
-  for (ivec3 dir : dir_array) {
-    int newdec = dir.y == -1 ? 0 : decrement;
-    Block* block = parbl->get_global(parbl->globalpos+dir*parbl->scale, parbl->scale);
-    if (block != nullptr) {
-      for (Pixel* pix : block->iter_side(-dir)) {
-        if (pix->sunlight < sunlight - newdec*parbl->scale or (pix->sunlight + newdec*parbl->scale == oldsunlight and sunlight < oldsunlight)) {
-          if (SAFEMOD(pix->parbl->globalpos, World::chunksize) == tilepos) {
-            next_poses.emplace(pix->parbl->globalpos);
-          } else {
-            pix->parbl->set_flag(LIGHT_FLAG);
-          }
-        } else if (SAFEMOD(pix->parbl->globalpos, World::chunksize) == tilepos
-         and dir.y == -1 and pix->sunlight == lightmax) {
-          pix->parbl->set_flag(LIGHT_FLAG);
-        }
-        if (changed) pix->parbl->set_flag(RENDER_FLAG);
-      }
-    }
-  }
-}
-
-void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>& next_poses) {
-  if ((value != 0 and !blockstorage[value]->transparent)) {
-    return;
-  }
-  const int decrement = 1;
-  int oldblocklight = blocklight;BlockContainer::BlockContainer(Block* b): block(b), allocated(false) {
-	block->set_parent(nullptr, this, nullptr, ivec3(0,0,0), b->scale);
-}
-
-BlockContainer::BlockContainer(int scale): allocated(true) {
-  block = new Block();
-	block->set_parent(nullptr, this, nullptr, ivec3(0,0,0), scale);
-}
-
-BlockContainer::~BlockContainer() {
-  if (allocated) {
-    delete block;
-  }
-}
-
-vec3 BlockContainer::get_position() const {
-	return block->get_position();
-}
-
-Block* BlockContainer::get_global(int x, int y, int z, int size) {
-	if (x >= 0 and y >= 0 and z >= 0 and x < block->scale and y < block->scale and z < block->scale) {
-		return block->get_global(x, y, z, size);
-	} else {
-		return nullptr;
-	}
-}
-
-void BlockContainer::set(ivec4 pos, char val, int direction, int newjoints[6]) {
-  // Block* testblock;
-  // while ((testblock = get_global(pos.x, pos.y, pos.z, pos.w)) == nullptr) {
-  //   Pixel* pix = new Pixel(0, 0, 0, 0, block->scale * csize, nullptr, nullptr);
-  //   Chunk* chunk = pix->subdivide();
-  //   chunk->blocks[0][0][0] = block;
-  //   block->parent = chunk;
-  //   block = chunk;
-  //   pix->del(true);
-  //   delete pix;
-  // }
-  
-  block->set_global(pos, pos.w, val, direction, newjoints);
-}
-
-void BlockContainer::set_global(ivec3 pos, int w, Blocktype val, int direction, int newjoints[6]) {
-  block->set_global(pos, w, val, direction, newjoints);
-}
-
-  blocklight = entitylight;
-  int oldsource = lightsource;
-  lightsource = 0xff;
-  int index = 0;
-  for (ivec3 dir : dir_array) {
-    Block* block = parbl->get_global(parbl->globalpos+dir*parbl->scale, parbl->scale);
-    if (block != nullptr) {
-      int inverse_index = index<3 ? index + 3 : index - 3;
-      for (Pixel* pix : block->iter_side(-dir)) {
-        if (pix->blocklight - decrement*pix->parbl->scale > blocklight and pix->lightsource != inverse_index) {
-          blocklight = pix->blocklight - decrement*pix->parbl->scale;
-          lightsource = index;
-        }
-      }
-    }
-    index ++;
-  }
-  
-  bool changed = oldblocklight != blocklight;
-  ivec3 tilepos = SAFEMOD(parbl->globalpos, World::chunksize);
-  index = 0;
-  for (ivec3 dir : dir_array) {
-    Block* block = parbl->get_global(parbl->globalpos+dir*parbl->scale, parbl->scale);
-    if (block != nullptr) {
-      int inverse_index = index<3 ? index + 3 : index - 3;
-      for (Pixel* pix : block->iter_side(-dir)) {
-        if (pix->blocklight < blocklight - decrement*parbl->scale or (pix->lightsource == inverse_index and blocklight < oldblocklight)) {
-          if (SAFEMOD(pix->parbl->globalpos, World::chunksize) == tilepos) {
-            next_poses.emplace(pix->parbl->globalpos);
-          } else {
-            pix->parbl->set_flag(LIGHT_FLAG);
-          }
-        }
-        if (changed) pix->parbl->set_flag(RENDER_FLAG);
-      }
-    }
-    index ++;
-  }
-}
-*/
 bool Pixel::is_air(int x, int y, int z) {
   return value == 0;
 }

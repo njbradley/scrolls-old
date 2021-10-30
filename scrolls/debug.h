@@ -20,6 +20,7 @@ class Logger { public:
 	
 	virtual ~Logger() {};
 	virtual ostream& log(int page) = 0;
+	virtual void clear(int page) = 0;
 	virtual void pause() = 0;
 	virtual void unpause() = 0;
 	virtual ostream& operator[](int page) = 0;
@@ -43,6 +44,7 @@ class UILogger : public Logger { public:
 		
 		operator ostream& ();
 		void render(UIVecs* vecs);
+		void clear();
 	};
 	
 	vector<Page> pages;
@@ -50,6 +52,7 @@ class UILogger : public Logger { public:
 	UILogger();
 	virtual ~UILogger() {};
 	virtual ostream& log(int page);
+	virtual void clear(int page);
 	virtual void pause();
 	virtual void unpause();
 	virtual ostream& operator[](int page);

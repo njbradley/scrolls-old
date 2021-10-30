@@ -85,7 +85,6 @@ void Player::raycast(Block** hit, ivec3* dir, vec3* hitpos) {
 			vec3 pos = (*hit)->freecontainer->box.transform_in(*hitpos);
 			vec3 backpos = pos - (*hit)->freecontainer->box.transform_in_dir(pointing) * 0.002f;
 			*dir = SAFEFLOOR3(backpos) - SAFEFLOOR3(pos);
-			cout << pos << ' ' << backpos << ' ' << *dir << endl;
 		} else {
 			*dir = SAFEFLOOR3(*hitpos - pointing*0.002f) - SAFEFLOOR3(*hitpos);
 		}
@@ -93,6 +92,7 @@ void Player::raycast(Block** hit, ivec3* dir, vec3* hitpos) {
 }
 
 void Player::right_mouse(double deltatime) {
+	cout << "Clicking " << endl;
 	//cout << "riht" << endl;
 	bool shifting = controls->key_pressed(controls->KEY_SHIFT);
 	
@@ -107,7 +107,10 @@ void Player::right_mouse(double deltatime) {
 		
 		if (block != nullptr) {
 			if (true or !inhand->isnull) {
-				ivec3 blockpos = block->globalpos + dir;//SAFEFLOOR3(hitpos) + dir;
+				if (block->freecontainer != nullptr) {
+					hitpos = block->freecontainer->box.transform_in(hitpos);
+				}
+				ivec3 blockpos = SAFEFLOOR3(hitpos) + dir;//SAFEFLOOR3(hitpos) + dir;
 				if (shifting) {
 					world->set_global(blockpos, 1, 0, 0);
 					Block* airblock = world->get_global(blockpos.x, blockpos.y, blockpos.z, 2);
@@ -142,7 +145,6 @@ void Player::right_mouse(double deltatime) {
 				placing_dir = dir;
 				placing_pointing = angle;
 			} else {
-				cout << block << '.' << block->freecontainer << endl;
 				placing_block = block;
 				placing_freeblock = block->freecontainer;
 				placing_dir = dir;
@@ -312,7 +314,7 @@ void Player::right_mouse(double deltatime) {
 
 void Player::left_mouse(double deltatime) {
 	
-	if (timeout <= 0) {
+	// if (timeout <= 0) {
 		
 		vec3 hitpos;
 		ivec3 dir;
@@ -330,8 +332,8 @@ void Player::left_mouse(double deltatime) {
 		}
 		// game->debugblock = world->get_global(pos.x, pos.y-1, pos.z, 1)->pixel;
 		// cout << game->debugblock->parbl->flags << '-' << endl;
-		timeout = 0.5;
-	}
+		// timeout = 0.5;
+	// }
 	/*
 	
 	
@@ -672,11 +674,16 @@ void Player::computeMatricesFromInputs(){
 	}
 	
 	if (controls->mouse_button(0)) {
-		left_mouse(deltaTime);
+		if (timeout >= 0) {
+			left_mouse(deltaTime);
+			timeout = -0.5f;
+		}
 		timeout += deltaTime;
-	}
-	else if (controls->mouse_button(1)) {
-		right_mouse(deltaTime);
+	} else if (controls->mouse_button(1)) {
+		if (timeout >= 0) {
+			right_mouse(deltaTime);
+			timeout = -0.5f;
+		}
 		timeout += deltaTime;
 	} else {
 		timeout = 0;

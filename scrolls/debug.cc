@@ -45,6 +45,11 @@ void UILogger::Page::render(UIVecs* vecs) {
 	}
 }
 
+void UILogger::Page::clear() {
+	for (vector<char_type>& line : lines) {
+		line.clear();
+	}
+}
 
 UILogger::UILogger(): pages(10) {
 	
@@ -62,6 +67,12 @@ ostream& UILogger::log(int page) {
 		return std::cerr;
 	} else {
 		return pages[page-3];
+	}
+}
+
+void UILogger::clear(int page) {
+	if (page >= 3) {
+		pages[page-3].clear();
 	}
 }
 

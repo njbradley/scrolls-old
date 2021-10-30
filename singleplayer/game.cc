@@ -57,6 +57,7 @@ void SingleGame::gametick() {
 	double curtime = getTime();
 	double deltatime = curtime - lastTime;
 	if (int(curtime) - int(lastTime) > 0) {
+		logger->clear(3);
 		logger->log(3) << "fps: " << num_frames << endl;
 		num_frames = 0;
 	}
