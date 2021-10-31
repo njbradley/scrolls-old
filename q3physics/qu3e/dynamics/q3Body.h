@@ -116,6 +116,8 @@ public:
 
 	r32 GetMass( ) const;
 	r32 GetInvMass( ) const;
+	
+	q3Vec3 GetLocalCenter() const;
 private:
 	// m_flags
 	enum

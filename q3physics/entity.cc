@@ -48,12 +48,14 @@ void Q3PhysicsBody::sync_q3() {
 }
 
 void Q3PhysicsBody::sync_glm() {
+	// freeblock->box.change_center(vec3(0,0,0));
 	freeblock->box.position = body->GetTransform().position;
 	freeblock->box.rotation = body->GetQuaternion();
 	if (freeblock->box.movable()) {
 		freeblock->box.velocity = body->GetLinearVelocity();
 		freeblock->box.angularvel = body->GetAngularVelocity();
 	}
+	// freeblock->box.change_center(body->GetLocalCenter());
 	freeblock->set_box(freeblock->box);
 }
 

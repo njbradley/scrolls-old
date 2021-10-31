@@ -274,6 +274,10 @@ r32 q3Body::GetMass( ) const
     return m_mass;
 }
 
+q3Vec3 q3Body::GetLocalCenter() const {
+	return m_localCenter;
+}
+
 //--------------------------------------------------------------------------------------------------
 r32 q3Body::GetInvMass( ) const
 {

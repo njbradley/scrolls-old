@@ -1321,8 +1321,12 @@ void FreeBlock::expand(ivec3 dir) { // Todo: this method only works for csize=2
   
   cout << highparent << endl;
   // expanding box and correcting highparent;
-  box.negbox -= vec3(scale * dir);
-  box.posbox += vec3(scale * (1 - dir));
+  // box.negbox -= vec3(scale * dir);
+  // box.posbox += vec3(scale * (1 - dir));
+  
+  box.position -= vec3(scale * dir);
+  box.posbox += float(scale);
+  
   Block* newparent = highparent->parent;
   cout << highparent << endl;
   highparent->remove_freechild(this);
