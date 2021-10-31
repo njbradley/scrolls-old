@@ -265,12 +265,20 @@ Block* Block::get(int x, int y, int z) {
   return children[x*csize*csize + y*csize + z];
 }
 
+Block* Block::get(int index) {
+  return children[index];
+}
+
 const Block* Block::get(ivec3 pos) const {
   return children[pos.x*csize*csize + pos.y*csize + pos.z];
 }
 
 const Block* Block::get(int x, int y, int z) const {
   return children[x*csize*csize + y*csize + z];
+}
+
+const Block* Block::get(int index) const {
+  return children[index];
 }
 
 ivec3 Block::posof(int index) const {

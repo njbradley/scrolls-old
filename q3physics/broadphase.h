@@ -25,6 +25,10 @@ public:
 	virtual void InsertBox( q3Box *shape, const q3AABB& aabb ) { };
 	virtual void RemoveBox( const q3Box *shape ) { };
 	
+	bool can_collide(Pixel* pix);
+	void add_contact(Pixel* pix1, Pixel* pix2);
+	void update_collision(Block* block1, Block* block2);
+	
 	void update_freeblock(FreeBlock* free);
 	// Generates the contact list. All previous contacts are returned to the allocator
 	// before generation occurs.

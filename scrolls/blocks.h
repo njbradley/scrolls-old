@@ -89,8 +89,10 @@ class Block: public Collider { public:
 	// (no error checking for speed)
 	Block* get(ivec3 pos);
 	Block* get(int x, int y, int z);
+	Block* get(int index);
 	const Block* get(ivec3 pos) const;
 	const Block* get(int x, int y, int z) const;
+	const Block* get(int index) const;
 	// returns the index into the children array
 	// for a position
 	int indexof(ivec3 pos) const;

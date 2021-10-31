@@ -10,7 +10,6 @@
 
 BlockBroadPhase::BlockBroadPhase(q3Scene* nscene, World* nworld):
 q3BroadPhase(nscene), scene(nscene), world(nworld) {
-	cout << m_manager << " Manager " << endl;
 	q3BodyDef def;
 	def.bodyType = eStaticBody;
 	worldbody = scene->CreateBody(def);
@@ -20,8 +19,65 @@ BlockBroadPhase::~BlockBroadPhase() {
 	
 }
 
+bool BlockBroadPhase::can_collide(Pixel* pix) {
+	return pix != nullptr and pix->value != 0;
+}
+
+void BlockBroadPhase::add_contact(Pixel* pix1, Pixel* pix2) {
+	Q3PhysicsBox* box1 = Q3PhysicsBox::from_pix(pix1, worldbody);
+	Q3PhysicsBox* box2 = Q3PhysicsBox::from_pix(pix2, worldbody);
+	m_manager->AddContact(&box1->qbox, &box2->qbox);
+}
+
+void BlockBroadPhase::update_collision(Block* block1, Block* block2) {
+	if (block1 == nullptr or block2 == nullptr
+	or (block1->freecontainer == nullptr and block2->freecontainer == nullptr)) {
+		return;
+	}
+	
+	if (expandbox(block1->hitbox()).collide(expandbox(block2->hitbox()))) {
+		if (block1->continues and block2->continues) {
+			for (int i = 0; i < csize3; i ++) {
+				for (int j = 0; j < csize3; j ++) {
+					update_collision(block1->get(i), block2->get(j));
+				}
+			}
+		} else if (block1->continues) {
+			if (can_collide(block2->pixel)) {
+				for (int i = 0; i < csize3; i ++) {
+					update_collision(block1->get(i), block2);
+				}
+			}
+		} else if (block2->continues) {
+			if (can_collide(block1->pixel)) {
+				for (int i = 0; i < csize3; i ++) {
+					update_collision(block1, block2->get(i));
+				}
+			}
+		} else {
+			if (can_collide(block1->pixel) and can_collide(block2->pixel)) {
+				add_contact(block1->pixel, block2->pixel);
+			}
+		}
+	}
+}
 
 void BlockBroadPhase::update_freeblock(FreeBlock* freeblock) {
+	FreeBlockIter freeiter (freeblock->highparent, expandbox(freeblock->box));
+	
+	for (int i = 0; i < freeiter.num_bases; i ++) {
+		update_collision(freeblock, freeiter.bases[i]);
+	}
+	
+	FreeBlockFreeIter freefreeiter (freeblock->highparent, expandbox(freeblock->box));
+	
+	for (FreeBlock* free : freefreeiter) {
+		if (free > freeblock) {
+			update_collision(freeblock, free);
+		}
+	}
+	
+	/*
 	Hitbox fbox = freeblock->box;
 	fbox.negbox -= grow_amount*2;
 	fbox.posbox += grow_amount*2;
@@ -80,7 +136,7 @@ void BlockBroadPhase::update_freeblock(FreeBlock* freeblock) {
 				}
 			}
 		}
-	}
+	}*/
 }
 
 Hitbox BlockBroadPhase::expandbox(Hitbox box) {
