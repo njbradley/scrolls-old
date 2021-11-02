@@ -194,11 +194,6 @@ void World::load_config(istream& ifile) {
       ifile >> gen;
       generation = gen == "on";
     }
-    if (buff == "saving") {
-      string sav;
-      ifile >> sav;
-      saving = sav == "on";
-    }
     getline(ifile, buff);
     getline(ifile,buff,':');
   }
@@ -210,7 +205,6 @@ void World::save_config(ostream& ofile) {
   ofile << "difficulty:" << difficulty << endl;
   ofile << "daytime:" << daytime << endl;
   ofile << "generation:" << (generation ? "on" : "off") << endl;
-  ofile << "saving:" << (saving ? "on" : "off") << endl;
   ofile << "end:" << endl;
 }
 
@@ -321,6 +315,7 @@ void World::timestep() {
   double dt = now - last_time;
   last_time = now;
   
+  debuglines->clear();
   ivec3 chunk(player->position/float(chunksize) - vec3(player->position.x<0, player->position.y<0, player->position.z<0));
   if (tileat(chunk) != nullptr or player->spectator) {
     player->timestep();
@@ -331,7 +326,6 @@ void World::timestep() {
   static int num_times = 0;
   double start = getTime();
   
-  debuglines->clear();
   
   for (Tile* tile : tiles) {
     tile->timestep(dt);
@@ -401,12 +395,12 @@ bool World::render() {
   Tile* playertile = tileat(ppos);
   
   
-  if (playertile != nullptr and playertile->chunk->flags & RENDER_FLAG and !playertile->lightflag) {
+  if (playertile != nullptr and playertile->chunk->flags & Block::RENDER_FLAG and !playertile->lightflag) {
     playertile->render(graphics->blockvecs, graphics->transvecs);
     changed = true;
   } else {
     for (Tile* tile : tiles) {
-      changed = changed or (tile->chunk->flags & RENDER_FLAG and tile->fully_loaded);
+      changed = changed or (tile->chunk->flags & Block::RENDER_FLAG and tile->fully_loaded);
       if (changed) {
         tile->render(graphics->blockvecs, graphics->transvecs);
         break;
@@ -415,7 +409,7 @@ bool World::render() {
     if (!changed) {
       for (Tile* tile : tiles) {
         if (!tile->lightflag) {
-          changed = changed or (tile->chunk->flags & RENDER_FLAG);
+          changed = changed or (tile->chunk->flags & Block::RENDER_FLAG);
           tile->render(graphics->blockvecs, graphics->transvecs);
           if (changed) {
             break;
@@ -505,12 +499,18 @@ bool World::is_world_closed() {
 void World::close_world() {
   tileloader->end_serving();
   
-  ofstream ofile(path("player.txt"));
-  player->save_to_file(ofile);
+  if (saving) {
+    ofstream ofile(path("player.txt"));
+    player->save_to_file(ofile);
+    ofile.close();
+  }
   delete player;
-  ofile.close();
   
-  cout << "all tiles saved sucessfully: " << tiles.size() << endl;
+  if (saving) {
+    cout << "all tiles saved sucessfully: " << tiles.size() << endl;
+  } else {
+    cout << "no tiles saved due to user command: " << tiles.size() << endl;
+  }
   
   for (Tile* tile : tiles) {
     tile->deleting = true;

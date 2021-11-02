@@ -34,6 +34,9 @@ class Player: public Entity {
   
   Block* placing_block = nullptr;
   FreeBlock* placing_freeblock = nullptr;
+	FreeBlock* moving_freeblock = nullptr;
+	float moving_range;
+	vec3 moving_point;
   ivec3 placing_dir;
   vec2 placing_pointing;
 	double timeout;

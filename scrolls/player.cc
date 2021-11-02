@@ -92,21 +92,18 @@ void Player::raycast(Block** hit, ivec3* dir, vec3* hitpos) {
 }
 
 void Player::right_mouse(double deltatime) {
-	cout << "Clicking " << endl;
 	//cout << "riht" << endl;
 	bool shifting = controls->key_pressed(controls->KEY_SHIFT);
 	
-	if (placing_block == nullptr and placing_freeblock == nullptr) {
+	if (placing_block == nullptr and placing_freeblock == nullptr and moving_freeblock == nullptr) {
 		
 		vec3 hitpos;
 		ivec3 dir;
 		Block* block;
 		raycast(&block, &dir, &hitpos);
 		
-		Item* inhand = inven.get(selitem);
-		
 		if (block != nullptr) {
-			if (true or !inhand->isnull) {
+			if (selitem != 0) {
 				if (block->freecontainer != nullptr) {
 					hitpos = block->freecontainer->box.transform_in(hitpos);
 				}
@@ -125,7 +122,7 @@ void Player::right_mouse(double deltatime) {
 						FreeBlock* freeblock = new FreeBlock(Movingbox(newbox, vec3(0,0,0), vec3(0,0,0), 1));
 						// FreeBlock* freeblock = new FreeBlock(Movingbox(newbox, vec3(-0.8,0,0), vec3(0,0,0), 1));
 						freeblock->paused = true;
-						freeblock->set_pixel(new Pixel(1));
+						freeblock->set_pixel(new Pixel(selitem));
 						airblock->add_freechild(freeblock);
 						freeblock->calculate_mass();
 						// FreeBlock* freeblock = new FreeBlock(vec3(airblock->globalpos), quat(1, 0, 0, 0));
@@ -137,179 +134,51 @@ void Player::right_mouse(double deltatime) {
 						placing_block = airblock;
 					}
 				} else {
-					block->set_global(blockpos, 1, 1, 0);
+					block->set_global(blockpos, 1, selitem, 0);
 					placing_block = block->get_global(blockpos, 1);
 					// game->debugblock = placing_block->pixel;
 					// world->get_global(ox, oy, oz, 1)->set_global(ivec3(ox+dx, oy+dy, oz+dz), 1, 1, 0);
 				}
 				placing_dir = dir;
 				placing_pointing = angle;
-			} else {
-				placing_block = block;
-				placing_freeblock = block->freecontainer;
-				placing_dir = dir;
-				placing_pointing = angle;
+			} else if (block->freecontainer != nullptr) {
+				moving_freeblock = block->freecontainer;
+				moving_point = moving_freeblock->box.transform_in(hitpos);
+				moving_range = glm::length(hitpos - position);
 			}
 		}
-	} else {
-		float dist = (placing_pointing.y - angle.y) * 6.0f;
-		vec2 dist2 = (placing_pointing - angle) * 6.0f;
+	} else if (moving_freeblock != nullptr) {
+		const float mul = 20.0f;
+		// const float lim = 0.05f;
 		
-		if (false and placing_freeblock == nullptr and dist > 0.05) {
-			cout << "freeblock" << endl;
-			Pixel pix = *placing_block->pixel;
-			placing_block->pixel->set(0, 0);
-			ivec3 blockpos = placing_block->globalpos;
-			placing_block = placing_block->get_global(blockpos, 2);
-			// Hitbox newbox (vec3(0,0,0), vec3(blockpos) - 0.5f, vec3(blockpos) + 0.5f);
-			Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f));
-			FreeBlock* freeblock = new FreeBlock(Movingbox(newbox, 1));
-			freeblock->set_pixel(new Pixel(1));
-			placing_block->add_freechild(freeblock);
-			freeblock->calculate_mass();
-			cout << "freescale " << freeblock->scale << endl;
-			//
-			placing_freeblock = freeblock;
-		}
-		if (false and placing_freeblock != nullptr) {
-			quat newrot = glm::angleAxis(dist, vec3(placing_dir));
-			//cout << "settting " << placing_freeblock << ' ' << placing_dir << endl;
-			Hitbox newbox = placing_freeblock->box;
-			newbox.rotation = newrot;
-			placing_freeblock->set_box(newbox);
-			// newbox.position += vec3(dist2.x, 0, dist2.y);
-			// placing_freeblock->move(vec3(0,0,0), newrot * glm::inverse(newbox.rotation));
-			//placing_freeblock->set_rotation(newrot);
-			// placing_block->set_render_flag();
-		}
-	}
-	return;
-	/*
-	vec3 hitpos;
-	Pixel* pix;
-	DisplayEntity* target_entity;
-	raycast(&pix, &hitpos, &target_entity);
-	Item* inhand = inven.get(selitem);
-	
-	bool shifting = glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS;
-	
-	if (!shifting and inhand->do_rcaction(world)) {
-		inven.use(selitem);
-		return;
-	}
-	
-	if (pix == nullptr) {
-		game->debugblock = nullptr;
-		game->debugentity = nullptr;
-		return;
-	}
-	if (target_entity != nullptr) {
+		vec3 dest_point = position + pointing * moving_range;
+		vec3 cur_point = moving_freeblock->box.transform_out(moving_point);
+		Movingpoint movpoint = moving_freeblock->box.transform_out(Movingpoint(cur_point, moving_freeblock->box.mass));
+		// cur_point += movpoint.momentum();
 		
-	}
-	
-	double x = hitpos.x;
-	double y = hitpos.y;
-	double z = hitpos.z;
-	
-	
-	int ox = (int)x - (x<0);
-	int oy = (int)y - (y<0);
-	int oz = (int)z - (z<0);
-	x -= pointing.x*0.002;
-	y -= pointing.y*0.002;
-	z -= pointing.z*0.002;
-	int dx = (int)x - (x<0) - ox;
-	int dy = (int)y - (y<0) - oy;
-	int dz = (int)z - (z<0) - oz;
-	//cout << dx << ' ' << dy << ' ' << dz << endl;
-	//world->set(item, (int)x - (x<0), (int)y - (y<0), (int)z - (z<0));
-	
-	ivec3 blockpos = ivec3(hitpos) - ivec3(hitpos.x<0, hitpos.y<0, hitpos.z<0);
-	ivec3 dir (dx, dy, dz);
-	int closest_side = -1;
-	vec3 inblock = hitpos - glm::floor(hitpos);
-	vec3 absinblock = glm::abs(inblock - 0.5f);
-	float side_dist = 0.5f;
-	for (int i = 0; i < 3; i ++) {
-		if (dir[i] == 0 and (closest_side == -1 or absinblock[i] > absinblock[closest_side])) {
-			closest_side = i;
+		// cout << moving_freeblock->box.mass << ' ' << movpoint.momentum() << endl;
+		
+		if (dest_point != cur_point) {
+			
+			vec3 to_point = glm::normalize(dest_point - cur_point);
+			
+			vec3 vel_part = moving_freeblock->box.velocity * 0.2f;//glm::dot(moving_freeblock->box.velocity, to_point) * to_point;
+			
+			vec3 force = dest_point - (cur_point + vel_part);
+			debuglines->render(cur_point, dest_point);
+			debuglines->render(cur_point, cur_point + vel_part, vec3(1,1,0));
+			
+			
+			
+			// force += movpoint.velocity / (mul*5);
+			
+			// force = force * vec3(std::abs(force.x) > lim, std::abs(force.y) > lim, std::abs(force.z) > lim);
+			// force = glm::sign(force) * force * force;
+			
+			force = force * float(deltatime) * mul;
+			moving_freeblock->physicsbody->apply_impulse(force, cur_point);
 		}
 	}
-	ivec3 close_dir (0,0,0);
-	if (inblock[closest_side] - 0.5f < 0) {
-		close_dir[closest_side] = -1;
-	} else {
-		close_dir[closest_side] = 1;
-	}
-	side_dist -= absinblock[closest_side];
-	
-	int close_index = -1;
-	for (int i = 0; i < 6; i ++) {
-		if (close_dir == dir_array[i]) {
-			close_index = i;
-		}
-	}
-	ivec3 cross_dir = ivec3(glm::cross(vec3(dir), vec3(close_dir)));
-	
-	
-	if (blocks->blocks[pix->value]->rcaction != "null" and !shifting) {
-		blocks->blocks[pix->value]->do_rcaction(pix);
-	} else {
-		if (!inhand->isnull and inhand->data->onplace != nullptr) {
-			
-			
-			
-			return;
-			Item* item = inven.get(selitem);
-			if (!item->isnull) {
-				CharArray* arr = item->data->onplace;
-				if (arr != nullptr) {
-					
-					ivec3 dirs[] = {
-						dir,
-						close_dir,
-						-close_dir,
-						cross_dir,
-						-cross_dir
-					};
-					
-					if (shifting and side_dist < 0.3 and world->get(blockpos.x+close_dir.x, blockpos.y+close_dir.y, blockpos.z+close_dir.z) == 0) {
-						dirs[0] = close_dir;
-						dirs[1] = -close_dir;
-						dirs[2] = dir;
-					}
-					
-					for (ivec3 newdir : dirs) {
-						bool placed = arr->place(world, item, blockpos+dir, newdir);
-						if (placed) {
-							audio->play_sound("place", vec3(x, y, z));
-							inven.use(selitem);
-							break;
-						}
-					}
-				}
-			}
-		} else if (!inhand->isnull and inhand->data->glue != nullptr) {
-			
-			// cout << close_dir << ' '<< close_index << endl;
-			if (close_index != -1 and pix->joints[close_index] == 7) {
-				pix->joints[close_index] = inhand->data->glue->tex_index;
-				ivec3 sidepos = blockpos + close_dir;
-				Pixel* sidepix = world->get_global(sidepos.x, sidepos.y, sidepos.z, 1)->pixel;
-				sidepix->joints[(close_index+3)%6] = inhand->data->glue->tex_index;
-				pix->render_update();
-				sidepix->render_update();
-				if (pix->group != nullptr) pix->group->del(pix);
-				if (sidepix->group != nullptr) sidepix->group->del(pix);
-				world->block_update(blockpos.x, blockpos.y, blockpos.z);
-				world->block_update(sidepos.x, sidepos.y, sidepos.z);
-			}
-		} else {
-			game->debugblock = pix;
-			game->debugentity = target_entity;
-		}
-	
-	}*/
 }
 
 void Player::left_mouse(double deltatime) {
@@ -667,7 +536,7 @@ void Player::computeMatricesFromInputs(){
 	use_stamina(stamina_cost/30 * deltaTime);
 	
 	for (int i = 0; i < 10; i ++) {
-		if (controls->key_pressed((i != 9) ? '1' + i : '0')) {
+		if (controls->key_pressed((i != 9) ? '1' + i : '0') and i <= blockstorage.size()) {
 			selitem = i;
 			break;
 		}
@@ -680,15 +549,16 @@ void Player::computeMatricesFromInputs(){
 		}
 		timeout += deltaTime;
 	} else if (controls->mouse_button(1)) {
-		if (timeout >= 0) {
-			right_mouse(deltaTime);
-			timeout = -0.5f;
-		}
+		right_mouse(deltaTime);
+		// if (timeout >= 0) {
+			// timeout = -0.5f;
+		// }
 		timeout += deltaTime;
 	} else {
 		timeout = 0;
 		placing_block = nullptr;
 		placing_freeblock = nullptr;
+		moving_freeblock = nullptr;
 	}
 	//mouse = false;
 	
@@ -741,6 +611,10 @@ void Player::render_ui(UIVecs* uivecs) {
 	inven.render(uivecs, vec2(-0.5f, -1.0f));
 	
 	uivecs->add(UIChar('X', vec2(-0.01f, -0.02f), 0.02f));
+	if (selitem != 0) {
+		TextLine text (blockstorage[selitem]->name, vec2(0.5f,-1.0f), 0.04f);
+		uivecs->add(&text);
+	}
 	// draw_text(uivecs, "\\/", -0.45f+selitem*0.1f, -0.85f);
 	// Item* sel = inven.get(selitem);
 	// if (!sel->isnull) {

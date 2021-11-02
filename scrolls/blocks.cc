@@ -102,10 +102,19 @@ void Block::lock() {
 
 void Block::unlock() {
   locked--;
-  if (!locked) update();
+  if (!locked) {
+    if (flags & UPDATE_FLAG) {
+      update();
+      reset_flag(UPDATE_FLAG);
+    }
+    set_flag(flags);
+  }
 }
 
 void Block::swap(Block* other) {
+  std::lock_guard<Block> guard(*this);
+  std::lock_guard<Block> otherguard(*other);
+  
   if (continues and other->continues) {
     for (int i = 0; i < csize3; i ++) {
       swap_child(posof(i), other->swap_child(posof(i), children[i]));
@@ -148,9 +157,13 @@ void Block::swap(Block* other) {
     
 
 void Block::update() {
-  if (!continues and pixel != nullptr) {
-    if (pixel->physicsbox != nullptr) {
-      pixel->physicsbox->update();
+  if (locked) {
+    set_flag(UPDATE_FLAG);
+  } else {
+    if (!continues and pixel != nullptr) {
+      if (pixel->physicsbox != nullptr) {
+        pixel->physicsbox->update();
+      }
     }
   }
 }
@@ -160,6 +173,7 @@ void Block::set_parent(Container* nworld, ivec3 ppos, int nscale) {
 }
 
 void Block::set_parent(Block* nparent, Container* nworld, FreeBlock* freecont, ivec3 ppos, int nscale) {
+  std::lock_guard<Block> guard(*this);
   parent = nparent;
   world = nworld;
   freecontainer = freecont;
@@ -189,6 +203,7 @@ void Block::set_parent(Block* nparent, Container* nworld, FreeBlock* freecont, i
 }
 
 void Block::set_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
+  std::lock_guard<Block> guard(*this);
   Block* old = get(pos);
   if (old != nullptr) {
     delete old;
@@ -200,6 +215,7 @@ void Block::set_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
 }
 
 Block* Block::swap_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
+  std::lock_guard<Block> guard(*this);
   Block* old = get(pos);
   children[indexof(pos)] = block;
   if (block != nullptr) {
@@ -209,6 +225,7 @@ Block* Block::swap_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
 }
 
 void Block::set_pixel(Pixel* pix) { ASSERT(ISPIXEL or ISUNDEF)
+  std::lock_guard<Block> guard(*this);
   if (pix != nullptr) {
     pix->set_block(this);
   }
@@ -221,6 +238,7 @@ void Block::set_pixel(Pixel* pix) { ASSERT(ISPIXEL or ISUNDEF)
 }
 
 Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ISPIXEL or ISUNDEF)
+  std::lock_guard<Block> guard(*this);
   if (pix != nullptr) {
     pix->set_block(this);
   }
@@ -233,6 +251,7 @@ Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ISPIXEL or ISUNDEF)
 
 
 void Block::add_freechild(FreeBlock* newfree) {
+  std::lock_guard<Block> guard(*this);
   FreeBlock** freedest = &freechild;
   while (*freedest != nullptr) {
     freedest = &(*freedest)->freechild;
@@ -243,6 +262,7 @@ void Block::add_freechild(FreeBlock* newfree) {
 }
 
 void Block::remove_freechild(FreeBlock* newfree) {
+  std::lock_guard<Block> guard(*this);
   FreeBlock** freedest = &freechild;
   while (*freedest != nullptr and *freedest != newfree) {
     freedest = &(*freedest)->freechild;
@@ -469,12 +489,23 @@ void Block::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]
     curblock = curblock->parent;
   }
   
+  while (curblock->scale > w and curblock->continues) {
+    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
+    if (curblock->get(rem) == nullptr) {
+      break;
+    }
+    curblock = curblock->get(rem);
+  }
+  
+  std::lock_guard<Block> guard (*curblock);
+  
   while (curblock->scale > w) {
     ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
     if (!curblock->continues) {
       curblock->subdivide();
     }
     if (curblock->get(rem) == nullptr) {
+      cout << " sepc " << rem << ' ' << indexof(rem) << endl;
       curblock->set_child(rem, new Block());
       cout << " adding child " << curblock->scale << ' ';
       for (int i = 0; i < csize3; i ++) {
@@ -498,32 +529,34 @@ void Block::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]
 }
 
 void Block::divide() { ASSERT(!continues)
+  std::lock_guard<Block> guard(*this);
   set_pixel(nullptr);
   continues = true;
   for (int i = 0; i < csize3; i ++) {
     children[i] = nullptr;
   }
-  update();
+  set_flag(RENDER_FLAG | LIGHT_FLAG);
 }
 
 void Block::subdivide() { ASSERT(!continues)
-  lock();
+  std::lock_guard<Block> guard(*this);
   Pixel* pix = swap_pixel(nullptr);
   divide();
   for (int i = 0; i < csize3; i ++) {
     set_child(posof(i), new Block(new Pixel(pix->value, pix->direction)));
   }
   delete pix;
-  unlock();
   set_flag(RENDER_FLAG | LIGHT_FLAG);
 }
 
 void Block::join() { ASSERT(ISCHUNK)
+  std::lock_guard<Block> guard(*this);
   for (CHILDREN_LOOP(i)) {
     delete children[i];
   }
   continues = false;
   pixel = nullptr;
+  set_flag(RENDER_FLAG | LIGHT_FLAG);
 }
 
 void Block::try_join() {
@@ -540,8 +573,10 @@ void Block::try_join() {
   }
   
   if (type != -1) {
+    lock();
     join();
     set_pixel(new Pixel(type));
+    unlock();
     if (parent != nullptr) {
       parent->try_join();
     }
@@ -568,6 +603,7 @@ void Block::to_file(ostream& ofile) const {
 }
 
 void Block::from_file(istream& ifile) {
+  std::lock_guard<Block> guard(*this);
   while (ifile.peek() == blockformat::free) {
     ifile.get();
     FreeBlock* free = new FreeBlock();
@@ -599,16 +635,22 @@ Block::Block(istream& ifile): continues(false), pixel(nullptr) {
 
 void Block::set_flag(uint8 flag) {
   Block* curblock = this;
-  while (curblock != nullptr /*and !(curblock->flags & flag)*/ and !curblock->locked) {
-    // logger->log(9) << " flag setting " << curblock << ' ' << curblock->globalpos << ' ' << curblock->scale << ' ' << int(curblock->flags);
+  
+  do {
     curblock->flags |= flag;
-    // logger->log(9) << ' ' << int(curblock->flags) << endl;
+    flag &= PROPAGATING_FLAGS;
+    if (curblock->locked) break;
+    
     if (curblock->parent == nullptr and curblock->freecontainer != nullptr) {
       curblock = curblock->freecontainer->highparent;
     } else {
       curblock = curblock->parent;
     }
-  }
+  } while (curblock != nullptr);
+}
+
+void Block::reset_flag(uint8 flag) {
+  flags &= ~flag;
 }
 
 void Block::set_all_flags(uint8 flag) {
@@ -620,6 +662,18 @@ void Block::set_all_flags(uint8 flag) {
   }
   for (FREECHILDREN_LOOP(free)) {
     free->set_all_flags(flags);
+  }
+}
+
+void Block::reset_all_flags(uint8 flag) {
+  flags &= ~flag;
+  if (continues) {
+    for (CHILDREN_LOOP(i)) {
+      children[i]->reset_all_flags(flags);
+    }
+  }
+  for (FREECHILDREN_LOOP(free)) {
+    free->reset_all_flags(flags);
   }
 }
 
@@ -849,7 +903,7 @@ void Block::read_pix_val_float(istream& ifile, char* type, float* val) {
 void Block::to_log(ostream& out) const {
   out << "Block " << this << " {" << endl;
   out << "   " << globalpos << " by " << scale << endl;
-  if (continues) {
+  if (!continues) {
     if (pixel == nullptr) {
       out << "   undef " << endl;
     } else {
@@ -1220,7 +1274,7 @@ void FreeBlock::from_file(istream& ifile) {
 }
 
 void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale) {
-  cout << " set parent " << nparent << ' ' << nworld << ' ' << nscale << endl;
+  std::lock_guard<Block> guard(*this);
   bool changed_world = highparent == nullptr or nparent == nullptr or highparent->world != nparent->world;
   if (changed_world and highparent != nullptr and highparent->world != nullptr) {
     highparent->world->remove_freeblock(this);
@@ -1251,7 +1305,7 @@ void FreeBlock::timestep(float deltatime) {
   if (controls->key_pressed('I')) {
     physicsbody->apply_impulse(vec3(0,0,mag) * deltatime);
   }
-  if (controls->key_pressed('K')) {
+  if (controls->key_pressed('V')) {
     physicsbody->apply_impulse(vec3(0,0,-mag) * deltatime);
   }
   
@@ -1269,7 +1323,7 @@ void FreeBlock::timestep(float deltatime) {
 void FreeBlock::resolve_timestep(float deltatime) {
   
   
-  debuglines->render(box);
+  // debuglines->render(box);
   // debuglines->render(box.global_midpoint(), box.global_midpoint() + box.angularvel, vec3(1,0,0));
   // debuglines->render(box.global_midpoint(), box.global_midpoint() + box.velocity);
   
@@ -1281,11 +1335,12 @@ void FreeBlock::resolve_timestep(float deltatime) {
   
   // cout << "END " << endl;
   // set_box(box);
-  debuglines->render(highparent->hitbox(), vec3(1,1,0));
-  debuglines->render(highparent->freebox(), vec3(1,0,0));
+  // debuglines->render(highparent->hitbox(), vec3(1,1,0));
+  // debuglines->render(highparent->freebox(), vec3(1,0,0));
 }
 
 void FreeBlock::set_box(Movingbox newbox) {
+  std::lock_guard<Block> guard(*this);
   
   if (!highparent->freebox().contains(newbox)) {
     // cout << "CHANGING higbox " << newbox << endl;
@@ -1318,9 +1373,10 @@ void FreeBlock::set_box(Movingbox newbox) {
 void FreeBlock::expand(ivec3 dir) { // Todo: this method only works for csize=2
   cout << "Expanding " << endl;
   cout << highparent << endl;
-  lock();
+  std::lock_guard<Block> guard(*this);
   // dir = (dir + 1) / 2;
   cout << " old " << *this << endl;
+  cout << continues << endl;
   Block* copyblock = new Block();
   copyblock->swap(this);
   cout << " new " << *copyblock << endl;
@@ -1329,11 +1385,11 @@ void FreeBlock::expand(ivec3 dir) { // Todo: this method only works for csize=2
   
   cout << highparent << endl;
   // expanding box and correcting highparent;
-  // box.negbox -= vec3(scale * dir);
-  // box.posbox += vec3(scale * (1 - dir));
+  box.negbox -= vec3(scale * dir);
+  box.posbox += vec3(scale * (1 - dir));
   
-  box.position -= vec3(scale * dir);
-  box.posbox += float(scale);
+  // box.position -= vec3(scale * dir);
+  // box.posbox += float(scale);
   
   Block* newparent = highparent->parent;
   cout << highparent << endl;
@@ -1345,7 +1401,6 @@ void FreeBlock::expand(ivec3 dir) { // Todo: this method only works for csize=2
   set_child(dir, copyblock);
   cout << " new " << *copyblock << endl;
   
-  unlock();
   set_flag(RENDER_FLAG | LIGHT_FLAG);
 }
 
@@ -1420,7 +1475,7 @@ void FreeBlock::unfix() {
 Pixel::Pixel(int val, int direct, int njoints[6]):
 value(val) {
   if (value != 0) {
-    if (value >= blockstorage.size()) {
+    if (value > blockstorage.size()) {
       cout << "ERR: unknown char code " << int(value) << " (corrupted file?)" << endl;
     }
     if (direct == -1) {
@@ -1501,7 +1556,7 @@ void Pixel::rotate(int axis, int dir) {
       direction = negative[axis*6 +direction];
     }
   }
-  parbl->set_flag(RENDER_FLAG);
+  parbl->set_flag(Block::RENDER_FLAG);
 }
 
 void Pixel::rotate_from_origin(int* mats, int* dirs, int rotation) {
@@ -1747,7 +1802,7 @@ void Pixel::set(int val, int newdirection, int newjoints[6]) {
 }
   
 void Pixel::render_update() {
-  parbl->set_flag(RENDER_FLAG | LIGHT_FLAG);
+  parbl->set_flag(Block::RENDER_FLAG | Block::LIGHT_FLAG);
 }
 
 void Pixel::random_tick() {
@@ -1876,12 +1931,12 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>* next_poses) {
           if (tilepos == SAFEDIV(pix->parbl->globalpos, World::chunksize) and next_poses != nullptr) {
             next_poses->emplace(pix->parbl->globalpos);
           } else {
-            pix->parbl->set_flag(LIGHT_FLAG);
+            pix->parbl->set_flag(Block::LIGHT_FLAG);
           }
         } else if (tilepos != SAFEDIV(pix->parbl->globalpos, World::chunksize) and dir.y == -1 and pix->sunlight == lightmax) {
-          pix->parbl->set_flag(LIGHT_FLAG);
+          pix->parbl->set_flag(Block::LIGHT_FLAG);
         }
-        if (changed) pix->parbl->set_flag(RENDER_FLAG);
+        if (changed) pix->parbl->set_flag(Block::RENDER_FLAG);
       }
     }
   }
@@ -1928,10 +1983,10 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>* next_poses) {
           if (tilepos == SAFEDIV(pix->parbl->globalpos, World::chunksize) and next_poses != nullptr) {
             next_poses->emplace(pix->parbl->globalpos);
           } else {
-            pix->parbl->set_flag(LIGHT_FLAG);
+            pix->parbl->set_flag(Block::LIGHT_FLAG);
           }
         }
-        if (changed) pix->parbl->set_flag(RENDER_FLAG);
+        if (changed) pix->parbl->set_flag(Block::RENDER_FLAG);
       }
     }
     index ++;

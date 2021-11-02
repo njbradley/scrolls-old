@@ -13,9 +13,6 @@
 
 extern const uint8 lightmax;
 
-#define RENDER_FLAG 0b1
-#define LIGHT_FLAG 0b10
-
 // Blocks are the main structural class of the world, they create a three dimentional tree, where each node
 // has 8 (or more, change csize) children. The scale of a block is the side length, so each child
 // is half the scale of their parent.
@@ -34,17 +31,24 @@ extern const uint8 lightmax;
 class Block: public Collider { public:
 	ivec3 parentpos;
 	ivec3 globalpos; // should be called localpos, but i really dont want to change everything
-	uint8 flags = 0b00000000;
 	int scale;
 	Block* parent = nullptr;
 	Container* world;
 	FreeBlock* freecontainer = nullptr;
 	bool continues;
-	char locked = 0;
+	uint8 flags = 0b00000000;
+	uint8 locked = 0;
 	FreeBlock* freechild = nullptr;
 	union {
 		Pixel* pixel;
 		Block* children[csize3];
+	};
+	
+	enum BlockFlags : uint8 {
+		RENDER_FLAG = 0b00000001,
+		LIGHT_FLAG = 0b00000010,
+		UPDATE_FLAG = 0b00010000,
+		PROPAGATING_FLAGS = 0b00001111,
 	};
 	
 	// Initializes to undef
@@ -135,11 +139,18 @@ class Block: public Collider { public:
 	// reading should be done to undef type
 	void to_file(ostream& ofile) const;
 	void from_file(istream& ifile);
-	// sets the render/light flags all up to top node
+	// sets or resets the passed flag
+	// flags are specified in the enum above,
+	// some propagate up, like render, and light flag
+	// other flags, like the change flag are specific to the block
+	// and are not propagated up
+	// when reseting, no values are propagated, as it cannot be determined
+	// if the flag was set by other blocks
 	void set_flag(uint8 flag);
-	// void set_render_flag();
-	// void set_light_flag();
+	void reset_flag(uint8 flag);
+	// sets/resets the flags all up to top node
 	void set_all_flags(uint8 flag);
+	void reset_all_flags(uint8 flag);
 	
 	void tick();
 	void timestep(float deltatime);
