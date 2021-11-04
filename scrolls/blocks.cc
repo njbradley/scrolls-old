@@ -1672,8 +1672,10 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
       if (parbl->is_air(dir, value)) {
         renderdata.type.faces[i].tex = mat[i];
         renderdata.type.faces[i].rot = dirs[i];
-        renderdata.type.faces[i].blocklight = (parbl->freecontainer == nullptr) ? parbl->get_blocklight(dir) : 20;
-        renderdata.type.faces[i].sunlight = (parbl->freecontainer == nullptr) ? parbl->get_sunlight(dir) : 20;
+        // renderdata.type.faces[i].blocklight = (parbl->freecontainer == nullptr) ? parbl->get_blocklight(dir) : 20;
+        // renderdata.type.faces[i].sunlight = (parbl->freecontainer == nullptr) ? parbl->get_sunlight(dir) : 20;
+        renderdata.type.faces[i].blocklight = parbl->get_blocklight(dir);
+        renderdata.type.faces[i].sunlight = parbl->get_sunlight(dir);
         exposed = true;
       }
     }
