@@ -95,7 +95,7 @@ void Player::right_mouse(double deltatime) {
 	//cout << "riht" << endl;
 	bool shifting = controls->key_pressed(controls->KEY_SHIFT);
 	
-	if (placing_block == nullptr and placing_freeblock == nullptr and moving_freeblock == nullptr) {
+	if (placing_block == nullptr and placing_freeblock == nullptr and moving_freeblock == nullptr and timeout >= 0) {
 		
 		vec3 hitpos;
 		ivec3 dir;
@@ -147,6 +147,7 @@ void Player::right_mouse(double deltatime) {
 				moving_range = glm::length(hitpos - position);
 			}
 		}
+		timeout = -0.2f;
 	} else if (moving_freeblock != nullptr) {
 		const float mul = 20.0f;
 		// const float lim = 0.05f;
