@@ -325,8 +325,6 @@ void sig_int(int sig) {
   exit(sig);
 }
 
-
-
 void DwarfDebugger::setup_backtrace() {
   #ifdef SCROLLS_DEBUG
   //dwstExceptionDialog( __DATE__ " - " __TIME__ );
@@ -344,7 +342,9 @@ void DwarfDebugger::setup_backtrace() {
 
 #endif
 
-
+DwarfDebugger::DwarfDebugger() {
+  setup_backtrace();
+}
 
 
 

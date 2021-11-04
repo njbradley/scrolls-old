@@ -4,6 +4,7 @@
 #include "scrolls/debug.h"
 
 class DwarfDebugger: public Debugger { public:
+	DwarfDebugger();
 	virtual void setup_backtrace();
 };
 

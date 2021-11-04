@@ -56,7 +56,6 @@ int game_main() {
 	cout << "Starting " << endl;
 	logger.init();
 	debugger.init();
-	debugger->setup_backtrace();
 	settings.init();
 	audio.init();
 	graphics.init();
