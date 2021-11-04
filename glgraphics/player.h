@@ -12,6 +12,7 @@ class GLControls : public Controls { public:
 	virtual bool mouse_button(int button);
 	virtual ivec2 mouse_pos();
 	virtual void mouse_pos(ivec2 newpos);
+	virtual int scroll_rel();
 };
 
 #endif

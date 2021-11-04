@@ -405,6 +405,7 @@ void Player::computeMatricesFromInputs(){
 	
 	// Compute new orientation
 	angle += vec2(float(mouseSpeed) * vec2(settings->screen_dims/2 - controls->mouse_pos()));
+	
 	//cout << horizontalAngle << ' ' << verticalAngle << endl;
 	if (angle.y > 1.55f) {
 		angle.y = 1.55f;
@@ -536,11 +537,14 @@ void Player::computeMatricesFromInputs(){
 	use_stamina(stamina_cost/30 * deltaTime);
 	
 	for (int i = 0; i < 10; i ++) {
-		if (controls->key_pressed((i != 9) ? '1' + i : '0') and i <= blockstorage.size()) {
+		if (controls->key_pressed((i != 9) ? '1' + i : '0')) {
 			selitem = i;
 			break;
 		}
 	}
+	
+	selitem += controls->scroll_rel();
+	selitem = std::max(0, std::min(selitem, (int)blockstorage.size()));
 	
 	if (controls->mouse_button(0)) {
 		if (timeout >= 0) {

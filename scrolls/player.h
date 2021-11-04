@@ -16,6 +16,7 @@ class Controls { public:
 	virtual bool mouse_button(int button) = 0;
 	virtual ivec2 mouse_pos() = 0;
 	virtual void mouse_pos(ivec2 newpos) = 0;
+	virtual int scroll_rel() = 0;
 };
 
 extern Plugin<Controls> controls;
