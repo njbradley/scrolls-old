@@ -1,5 +1,5 @@
 #include "conversions.h"
-#include "scrolls/entity.h"
+#include "scrolls/physics.h"
 #include "scrolls/tests.h"
 
 Hitbox q3tobox(q3Box* qbox1) {

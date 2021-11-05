@@ -2,7 +2,7 @@
 
 #include "ui.h"
 #include "rendervecs.h"
-#include "player.h"
+#include "physics.h"
 
 DEFINE_PLUGIN(Logger);
 DEFINE_PLUGIN(Debugger);

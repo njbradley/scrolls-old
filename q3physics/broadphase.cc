@@ -1,6 +1,6 @@
 #include "broadphase.h"
 #include "conversions.h"
-#include "entity.h"
+#include "physics.h"
 #include "scrolls/blocks.h"
 #include "scrolls/blockiter.h"
 #include "scrolls/world.h"

@@ -2,7 +2,7 @@
 #define BLOCKITER_PREDEF
 
 #include "classes.h"
-#include "entity.h"
+#include "physics.h"
 
 
 class BlockIter { public:

@@ -3,7 +3,7 @@
 
 #include "classes.h"
 #include "broadphase.h"
-#include "scrolls/entity.h"
+#include "scrolls/physics.h"
 
 #include "q3.h"
 

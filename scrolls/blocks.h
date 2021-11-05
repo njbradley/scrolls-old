@@ -9,7 +9,7 @@
 
 #include "collider.h"
 #include "rendervecs.h"
-#include "entity.h"
+#include "physics.h"
 
 extern const uint8 lightmax;
 
@@ -223,6 +223,8 @@ class FreeBlock : public Block { public:
 	Block* highparent = nullptr;
 	FreeBlock* allfreeblocks = nullptr;
 	PhysicsBody* physicsbody = nullptr;
+	bool allow_sleep = true;
+	bool allow_rotation = true;
 	
 	FreeBlock();
 	FreeBlock(Movingbox newbox);

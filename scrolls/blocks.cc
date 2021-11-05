@@ -40,25 +40,10 @@ const uint8 lightmax = 20;
 #endif
 
 
-int children_begin(Block** children) {
-  for (int i = 0; i < csize3; i ++) {
-    if (children[i] != nullptr) {
-      return i;
-    }
-  }
-  return csize3;
-}
-
-int children_inc(Block** children, int i) {
-  i ++;
-  while (i < csize3 and children[i] == nullptr) i ++;
-  return i;
-}
 // Shorthand for:
 // for (int i = 0; i < csize3; i ++) {
 //    if (children[i] != nullptr) {
 //      .....
-// #define CHILDREN_LOOP(varname) int varname = children_begin(children); varname < csize3; varname = children_inc(children, varname)
 #define CHILDREN_LOOP(varname) int varname = 0; varname < 8; varname ++) if (children[varname] != nullptr
 
 #define FREECHILDREN_LOOP(varname) FreeBlock* varname = freechild; varname != nullptr; varname = varname->freechild
@@ -120,7 +105,6 @@ void Block::swap(Block* other) {
       swap_child(posof(i), other->swap_child(posof(i), children[i]));
     }
   } else if (continues and !other->continues) {
-    cout << "HERE " << endl;
     Pixel* pix = other->swap_pixel(nullptr);
     other->divide();
     for (int i = 0; i < csize3; i ++) {
@@ -129,7 +113,6 @@ void Block::swap(Block* other) {
     join();
     set_pixel(pix);
   } else if (!continues and other->continues) {
-    cout << "fdhdfghdghfdghdfgh" << endl;
     Pixel* pix = swap_pixel(nullptr);
     divide();
     for (int i = 0; i < csize3; i ++) {
@@ -1364,23 +1347,26 @@ void FreeBlock::set_box(Movingbox newbox) {
   }
   
   box = newbox;
-  set_flag(RENDER_FLAG);
-  set_all_flags(RENDER_FLAG);
+  
+  for (Pixel* pix : iter()) {
+    if (pix->lastvecs != nullptr) {
+      pix->render(pix->lastvecs, nullptr, 0xFF, false);
+    } else {
+      pix->parbl->set_flag(RENDER_FLAG);
+    }
+  }
+  
+  // set_flag(RENDER_FLAG);
+  // set_all_flags(RENDER_FLAG);
 }
 
 
 
 void FreeBlock::expand(ivec3 dir) { // Todo: this method only works for csize=2
-  cout << "Expanding " << endl;
-  cout << highparent << endl;
   std::lock_guard<Block> guard(*this);
   // dir = (dir + 1) / 2;
-  cout << " old " << *this << endl;
-  cout << continues << endl;
   Block* copyblock = new Block();
   copyblock->swap(this);
-  cout << " new " << *copyblock << endl;
-  cout << "copyblock " << copyblock << endl;
   divide();
   
   cout << highparent << endl;
@@ -1392,14 +1378,13 @@ void FreeBlock::expand(ivec3 dir) { // Todo: this method only works for csize=2
   // box.posbox += float(scale);
   
   Block* newparent = highparent->parent;
-  cout << highparent << endl;
+  
   highparent->remove_freechild(this);
   newparent->add_freechild(this);
   // set_parent(highparent->parent, world, parentpos, scale * csize);
   set_box(box);
   
   set_child(dir, copyblock);
-  cout << " new " << *copyblock << endl;
   
   set_flag(RENDER_FLAG | LIGHT_FLAG);
 }
