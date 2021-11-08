@@ -22,6 +22,21 @@
 #define DLLSUFFIX ".so"
 #endif
 
+
+
+
+string PluginId::name() const {
+	string str ("............");
+	id_t tmpid = id;
+	int len = tmpid%16;
+	tmpid /= 16;
+	for (int i = 0; i < len; i ++) {
+		str[i] = decompress_char(tmpid % 32);
+		tmpid /= 32;
+	}
+	return str;
+}
+
 PluginLib::PluginLib(string path) {
 	struct stat info;
 	string dllpath = path + "/" + path + DLLSUFFIX;
@@ -41,6 +56,11 @@ PluginLib::~PluginLib() {
 		FREELIB(handle);
 	}
 }
+
+
+
+
+
 
 
 

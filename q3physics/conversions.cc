@@ -22,6 +22,7 @@ void boxtoq3(Hitbox box, q3Box* qbox) {
 
 
 struct Q3ConversionTests : Test {
+	PLUGIN_HEAD(Q3ConversionTests);
 	Q3ConversionTests() {
 		name = "Q3ConversionTests";
 	}

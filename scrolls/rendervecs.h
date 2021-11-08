@@ -68,7 +68,7 @@ class RenderIndex { public:
 };
 
 class RenderVecs { public:
-  PLUGIN_HEAD(RenderVecs, ());
+  BASE_PLUGIN_HEAD(RenderVecs, ());
   // the base class that holds all of the render vectors
   int num_verts = 0;
   int offset = 0;
@@ -80,7 +80,7 @@ class RenderVecs { public:
 };
   
 class UIVecs { public:
-  PLUGIN_HEAD(UIVecs, ());
+  BASE_PLUGIN_HEAD(UIVecs, ());
   int num_verts = 0;
 	
 	virtual void add(UIRect rect) = 0;

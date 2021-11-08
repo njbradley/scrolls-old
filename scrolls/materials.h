@@ -14,7 +14,7 @@ struct MaterialParams {
 };
 
 class Material : public MaterialParams { public:
-	PLUGIN_HEAD(Material, ());
+	BASE_PLUGIN_HEAD(Material, ());
 	
 	Material(MaterialParams&& data): MaterialParams(data) {}
 	// calculates a score based on the outlined impact. The score will be

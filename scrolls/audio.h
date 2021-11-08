@@ -5,7 +5,7 @@
 #include "plugins.h"
 
 class AudioContext { public:
-	PLUGIN_HEAD(AudioContext, ());
+	BASE_PLUGIN_HEAD(AudioContext, ());
 	
 	virtual ~AudioContext() {};
 	

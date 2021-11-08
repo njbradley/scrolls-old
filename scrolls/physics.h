@@ -184,7 +184,7 @@ class PhysicsBox { public:
 };
 
 class PhysicsEngine { public:
-  PLUGIN_HEAD(PhysicsEngine, (World*, float));
+  BASE_PLUGIN_HEAD(PhysicsEngine, (World*, float));
   
   World* world;
   float deltatime;

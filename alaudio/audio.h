@@ -39,6 +39,8 @@ class PlayingSound { public:
 };
 
 class ALAudioContext : public AudioContext { public:
+	PLUGIN_HEAD(ALAudioContext);
+	
 	ALCdevice* device;
 	ALCcontext* context;
 	

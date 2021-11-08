@@ -18,7 +18,7 @@ struct BlockDataParams {
   
 
 class BlockData : public BlockDataParams { public:
-  PLUGIN_HEAD(BlockData, ());
+  BASE_PLUGIN_HEAD(BlockData, ());
   
   Blocktype id;
   

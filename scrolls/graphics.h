@@ -14,7 +14,7 @@ struct ViewParams {
 };
 
 class ViewBox { public:
-  PLUGIN_HEAD(ViewBox, ());
+  BASE_PLUGIN_HEAD(ViewBox, ());
   
 	ViewParams params;
 	bool in_water = false;
@@ -35,7 +35,7 @@ private:
 extern Plugin<ViewBox> viewbox;
 
 class GraphicsContext { public:
-	PLUGIN_HEAD(GraphicsContext, ());
+	BASE_PLUGIN_HEAD(GraphicsContext, ());
 	
 	virtual ~GraphicsContext() {}
 	

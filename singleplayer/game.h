@@ -6,6 +6,7 @@
 #include "scrolls/game.h"
 
 class SingleGame : public Game { public:
+	PLUGIN_HEAD(SingleGame);
 	
 	SingleGame();
 	~SingleGame();

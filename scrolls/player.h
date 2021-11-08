@@ -5,7 +5,7 @@
 #include "entity.h"
 
 class Controls { public:
-	PLUGIN_HEAD(Controls, ());
+	BASE_PLUGIN_HEAD(Controls, ());
 	
 	int KEY_SHIFT;
 	int KEY_CTRL;

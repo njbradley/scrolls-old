@@ -11,6 +11,7 @@
 #include "items.h"
 #include "player.h"
 #include "tests.h"
+#include "world.h"
 
 
 int test_main(int numargs, char** args) {

@@ -62,7 +62,7 @@ void BlockBroadPhase::update_collision(Block* block1, Block* block2) {
 	}
 }
 
-void BlockBroadPhase::update_freeblock(FreeBlock* freeblock) {
+void BlockBroadPhase::update_freeblock(FreeBlock* freeblock) { /// Crashing in freeblockiters ??
 	FreeBlockIter freeiter (freeblock->highparent, expandbox(freeblock->box));
 	
 	for (int i = 0; i < freeiter.num_bases; i ++) {

@@ -47,7 +47,7 @@ class Tile : public Container {
 };
 
 class TileLoader { public:
-	PLUGIN_HEAD(TileLoader, (World*));
+	BASE_PLUGIN_HEAD(TileLoader, (World*));
 	
 	virtual void begin_serving() = 0;
 	

@@ -5,6 +5,7 @@
 #include "scrolls/rendervecs.h"
 
 class AsyncGLVecs: public RenderVecs { public:
+  PLUGIN_HEAD(AsyncGLVecs);
   GLVecsDestination* destination;
   
   std::mutex addlock;
@@ -36,6 +37,7 @@ class GLVecsDestination { public:
 
 
 class GLUIVecs : public UIVecs { public:
+  PLUGIN_HEAD(GLUIVecs);
   vector<GLfloat> datavec;
   UIRect* atlas = nullptr;
   

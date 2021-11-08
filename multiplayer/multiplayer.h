@@ -25,7 +25,7 @@ class BufIn : public std::streambuf { public:
 };
 
 struct Packet {
-	PLUGIN_HEAD(Packet, (char* data, int* read));
+	BASE_PLUGIN_HEAD(Packet, (char* data, int* read));
 	static const int packetsize = 1024;
 	string name;
 	time_t sent;

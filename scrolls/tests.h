@@ -8,7 +8,7 @@ struct TestParams {
 };
 
 class Test : public TestParams { public:
-	PLUGIN_HEAD(Test, ());
+	BASE_PLUGIN_HEAD(Test, ());
 	string name;
 	int ntests = 1;
 	int nrand = 0;

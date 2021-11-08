@@ -6,7 +6,7 @@
 #include <mutex>
 
 class Debugger { public:
-	PLUGIN_HEAD(Debugger, ());
+	BASE_PLUGIN_HEAD(Debugger, ());
 	
 	Debugger() {};
 	virtual ~Debugger() {};
@@ -14,7 +14,7 @@ class Debugger { public:
 };
 
 class Logger { public:
-	PLUGIN_HEAD(Logger, ());
+	BASE_PLUGIN_HEAD(Logger, ());
 	
 	int sel_page = 0;
 	
@@ -60,7 +60,7 @@ class UILogger : public Logger { public:
 };
 
 class DebugLines { public:
-	PLUGIN_HEAD(DebugLines, ());
+	BASE_PLUGIN_HEAD(DebugLines, ());
 	
 	virtual void render(vec3 start, vec3 end, vec3 color = vec3(1,1,1)) { }
 	void render(Hitbox hitbox, vec3 color = vec3(1,1,1));

@@ -5,7 +5,7 @@
 #include "plugins.h"
 
 class Settings { public:
-	PLUGIN_HEAD(Settings, ());
+	BASE_PLUGIN_HEAD(Settings, ());
 	
 	int max_fps;
 	bool framerate_sync = true;

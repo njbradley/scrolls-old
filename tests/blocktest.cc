@@ -6,6 +6,7 @@
 #include "scrolls/blockdata.h"
 
 struct BlockTest : Test { public:
+	PLUGIN_HEAD(BlockTest);
 	
 	BlockTest() {
 		name = "blocktest";

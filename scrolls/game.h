@@ -5,7 +5,7 @@
 #include "plugins.h"
 
 class Game { public:
-	PLUGIN_HEAD(Game, ());
+	BASE_PLUGIN_HEAD(Game, ());
 	
 	bool playing = true;
 	bool errors = false;

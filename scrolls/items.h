@@ -75,7 +75,7 @@ struct ItemDataParams {
 };
 
 class ItemData : public ItemDataParams { public:
-  PLUGIN_HEAD(ItemData, ());
+  BASE_PLUGIN_HEAD(ItemData, ());
   
   ItemData(ItemDataParams&& params);
   void init();

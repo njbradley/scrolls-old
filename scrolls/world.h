@@ -59,7 +59,7 @@ public:
 
 
 class World: public Collider { public:
-  PLUGIN_HEAD(World, (string name));
+  BASE_PLUGIN_HEAD(World, (string name));
   
   static const int chunksize = 64;
   

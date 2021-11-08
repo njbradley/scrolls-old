@@ -11,16 +11,116 @@
 #define LIBHANDLE void*
 #endif
 
-
-
-struct PluginDef {
-	void* getfunc;
-	void* delfunc;
-	struct PluginDef* next;
+struct PluginId {
+	using id_t = unsigned long int;
+	using half_id_t = unsigned int;
+	id_t id;
+	
+	constexpr char compress_char(char let) const {
+		if ('a' <= let and let <= 'z') {
+			let = let - ('a' - 'A');
+		}
+		if (let != 'Q' and let != 'J') {
+			if (let == 'W') let = 'Q';
+			if (let == 'Y') let = 'J';
+			if ('A' <= let and let <= 'V') {
+				return let - 'A';
+			} else if ('0' <= let and let <= '9') {
+				return let - '0' + 22;
+			}
+		}
+		return 32;
+	}
+	constexpr char decompress_char(char let) const {
+		if (let < 22) {
+			let += 'A';
+		} else {
+			let += '0' - 22;
+		}
+		if (let == 'Q') let = 'W';
+		if (let == 'J') let = 'Y';
+		return let;
+	}
+	
+	constexpr PluginId(): id(0) {};
+	explicit constexpr PluginId(const char* str): id(0) {
+		half_id_t multiplier = 1;
+		half_id_t first_part = 0;
+		half_id_t last_part = 0;
+		
+		int len = 0;
+		int i = 0;
+		for (i = 0; str[i] != 0 and multiplier*16 != 0; i ++) {
+			char let = compress_char(str[i]);
+			if (let < 32) {
+				first_part += let * multiplier;
+				multiplier *= 32;
+				len ++;
+			}
+		}
+		
+		int last_bit = sizeof(half_id_t)*8/5*5;
+		half_id_t max_mul = 1;
+		while (max_mul*32*16 != 0) max_mul *= 32;
+		multiplier = max_mul;
+		
+		int j = 0;
+		while (str[j] != 0) j ++;
+		for (j = j-1; j >= i and multiplier != 0; j --) {
+			char let = compress_char(str[j]);
+			if (let < 32) {
+				last_part += let * multiplier;
+				multiplier /= 32;
+				len ++;
+			}
+		}
+		
+		if (last_part == 0) {
+			id = first_part;
+		} else if (multiplier == 0) {
+			id = id_t(last_part) * max_mul * 32 + first_part;
+		} else {
+			id = id_t(last_part/(multiplier)) * max_mul + first_part;
+		}
+		id = id * 16 + len;
+	}
+	explicit constexpr PluginId(id_t newid): id(newid) {};
+	
+	string name() const;
+	
+	friend bool operator==(const PluginId& id1, const PluginId& id2) {return id1.id == id2.id;}
+	friend bool operator!=(const PluginId& id1, const PluginId& id2) {return !(id1 == id2);}
 };
 
-template <typename Ptype>
-extern PluginDef* plugin_headptr;
+template <typename BaseType>
+struct PluginDef {
+	using ctor_func = typename BaseType::ctor_func;
+	using destr_func = void (*) (BaseType*);
+	
+	ctor_func getfunc;
+	destr_func delfunc;
+	PluginId id;
+	PluginDef<BaseType>* next;
+	
+	PluginDef(ctor_func new_getfunc, destr_func new_delfunc, const char* name);
+	
+	PluginDef<BaseType>* find(PluginId search_id) {
+		PluginDef<BaseType>* def = this;
+		while (def != nullptr and def->id != search_id) {
+			def = def->next;
+		}
+		return def;
+	}
+};
+
+template <typename BaseType>
+extern PluginDef<BaseType>* pluginhead;
+
+template <typename BaseType>
+PluginDef<BaseType>::PluginDef(ctor_func new_getfunc, destr_func new_delfunc, const char* name):
+getfunc(new_getfunc), delfunc(new_delfunc), id(name), next(pluginhead<BaseType>) {
+	pluginhead<BaseType> = this;
+}
 
 template <typename Func, typename ... Args>
 struct IsFunction {
@@ -39,12 +139,14 @@ struct IsFunction<Type(Args...),Args...> {
 
 template <typename PluginType>
 class BasePlugin { public:
+	PluginDef<PluginType>* def;
 	PluginType* pointer = nullptr;
-	void (*delfunc)(PluginType*);
+	
+	
 	
 	void close() {
 		if (pointer != nullptr) {
-			delfunc(pointer);
+			def->delfunc(pointer);
 			pointer = nullptr;
 		}
 	}
@@ -53,21 +155,19 @@ class BasePlugin { public:
 		close();
 	}
 	
-	template <typename Ptype = PluginType, typename ... Args,
-		std::enable_if_t<IsFunction<typename Ptype::ctor_func, Args...>::value, int> = 0>
-	static Ptype* create(Args ... args) {
-		if (plugin_headptr<Ptype> != nullptr) {
-			typename Ptype::ctor_func getfunc = (typename Ptype::ctor_func) plugin_headptr<Ptype>->getfunc;
-			return getfunc(args...);
+	template <typename ... Args>
+	void init(Args ... args) {
+		def = pluginhead<PluginType>;
+		if (def != nullptr) {
+			pointer = def->getfunc(args...);
 		}
-		return nullptr;
 	}
 	
 	template <typename ... Args>
-	void init(Args ... args) {
-		pointer = create(args...);
-		if (plugin_headptr<PluginType> != nullptr) {
-			delfunc = (void (*) (PluginType*)) plugin_headptr<PluginType>->delfunc;
+	void init(PluginId id, Args ... args) {
+		def = pluginhead<PluginType>.find(id);
+		if (def != nullptr) {
+			pointer = def->getfunc(args...);
 		}
 	}
 	
@@ -81,21 +181,25 @@ class BasePlugin { public:
 	
 	template <typename UpCast>
 	UpCast* as() {
-		return dynamic_cast<UpCast*>(pointer);
+		return (UpCast*) pointer;
 	}
 };
 
 template <typename PluginType>
 class Plugin : public BasePlugin<PluginType> { public:
-	Plugin() { }
+	
 };
 
 template <typename PluginType>
 class PluginNow : public BasePlugin<PluginType> { public:
 	template <typename ... Args>
 	PluginNow(Args ... args) {
-		cout << "Plugin now init " << typeid(PluginType).name() << endl;
 		this->init(args...);
+	}
+	
+	template <typename ... Args>
+	PluginNow(PluginId id, Args ... args) {
+		this->init(id, args...);
 	}
 };
 
@@ -104,11 +208,15 @@ template <typename BaseType, typename UpCastType>
 class PluginUpCast { public:
 	BasePlugin<BaseType>* plugin_ref;
 	UpCastType* operator->() {
-		UpCastType* newptr = dynamic_cast<UpCastType*>((BaseType*) *plugin_ref);
-		if (newptr == nullptr) {
-			cout << "ERR: plugin " << typeid(BaseType).name() << " is required to be " << typeid(UpCastType).name() << " by another plugin " << endl;
+		static bool checked = false;
+		if (!checked) {
+			UpCastType* newptr = dynamic_cast<UpCastType*>((BaseType*) *plugin_ref);
+			if (newptr == nullptr) {
+				cout << "ERR: plugin " << typeid(BaseType).name() << " is required to be " << typeid(UpCastType).name() << " by another plugin " << endl;
+			}
+			checked = true;
 		}
-		return newptr;
+		return (UpCastType*)((BaseType*) *plugin_ref);
 	}
 };
 
@@ -129,27 +237,27 @@ struct GetPluginType<PluginNow<PluginType>> {
 
 template <typename PluginType>
 class BasePluginList { public:
+	vector<PluginDef<PluginType>*> defs;
 	vector<PluginType*> pointers;
-	vector<void (*)(PluginType*)> delfuncs;
 	
-	template <typename Ptype = PluginType, typename ... Args,
-		std::enable_if_t<IsFunction<typename Ptype::ctor_func, Args...>::value, int> = 0>
+	
+	
+	template <typename ... Args>
 	void init(Args ... args) {
-		PluginDef* def = plugin_headptr<Ptype>;
+		PluginDef<PluginType>* def = pluginhead<PluginType>;
 		while (def != nullptr) {
-			typename Ptype::ctor_func getfunc = (typename Ptype::ctor_func) def->getfunc;
-			pointers.push_back(getfunc(args...));
-			delfuncs.push_back((void (*) (PluginType*)) def->delfunc);
+			defs.push_back(def);
+			pointers.push_back(def->getfunc(args...));
 			def = def->next;
 		}
 	}
 	
 	void close() {
 		for (int i = 0; i < pointers.size(); i ++) {
-			delfuncs[i](pointers[i]);
+			defs[i]->delfunc(pointers[i]);
 		}
 		pointers.clear();
-		delfuncs.clear();
+		defs.clear();
 	}
 	
 	~BasePluginList() {
@@ -158,6 +266,15 @@ class BasePluginList { public:
 	
 	PluginType* operator[](int index) {
 		return pointers[index];
+	}
+	
+	PluginType* operator[](PluginId id) {
+		for (int i = 0; i < pointers; i ++) {
+			if (defs[i]->id == id) {
+				return pointers;
+			}
+		}
+		return nullptr;
 	}
 	
 	size_t size() const {
@@ -210,22 +327,15 @@ struct PluginGetCtorArgs<Btype* (*)(Args...)> {
 	};
 };
 
-
-
-
-
-
 template <typename Ptype>
 struct ExportPlugin {
 	using BaseType = typename Ptype::Plugin_BaseType;
-	// template <T>
-	// using TmpType = typename PluginGetCtorArgs<typename Ptype::ctor_func>::GetFunc<T>;
-	// using GArgs = TmpType<Ptype>;
 	typedef typename PluginGetCtorArgs<typename Ptype::ctor_func>::template GetFunc<Ptype> GArgs;
-	PluginDef plugindef {(void*) GArgs::getfunc, (void*) GArgs::delfunc, plugin_headptr<BaseType>};
-	ExportPlugin() {
-		cout << "exporting plugin " << typeid(BaseType).name() << ' ' << typeid(Ptype).name() << ' ' << plugin_headptr<BaseType> << ' ' << &plugin_headptr<BaseType> << endl;
-		plugin_headptr<BaseType> = &plugindef;
+	
+	PluginDef<BaseType> plugindef;
+	
+	ExportPlugin(): plugindef(GArgs::getfunc, GArgs::delfunc, Ptype::plugin_name) {
+		cout << "exporting plugin " << Ptype::plugin_id.name() << ' ' << BaseType::plugin_baseid.name() << endl;
 	}
 };
 
@@ -234,9 +344,10 @@ struct ExportPluginSingleton {
 	static_assert(IsFunction<typename Ptype::ctor_func>::value,
 		"ExportPluginSingleton can only be used with objects with no constructor parameters");
 	using BaseType = typename Ptype::Plugin_BaseType;
-	PluginDef plugindef {(void*)&getfunc, (void*)&delfunc, plugin_headptr<BaseType>};
-	ExportPluginSingleton() {
-		plugin_headptr<BaseType> = &plugindef;
+	
+	PluginDef<BaseType> plugindef;
+	ExportPluginSingleton(const char* name): plugindef(getfunc, delfunc, name) {
+		
 	}
 	static BaseType* getfunc() {
 		return ptr;
@@ -276,7 +387,6 @@ class Storage : public BasePluginList<PluginType> { public:
 
 class PluginLib { public:
 	LIBHANDLE handle = nullptr;
-	vector<PluginDef> plugins;
 	string dirname;
 	
 	PluginLib(string path);
@@ -292,16 +402,31 @@ class PluginLoader { public:
 	~PluginLoader();
 };
 
+
+#define CONCAT(a, b) CONCAT_INNER(a, b)
+#define CONCAT_INNER(a, b) a ## b
+
+#define UNIQUENAME CONCAT(_unique_name_, __COUNTER__)
+
 extern PluginLoader pluginloader;
 
-#define DEFINE_PLUGIN(X) template <> PluginDef* plugin_headptr<X> = nullptr;
+#define DEFINE_PLUGIN(X) template <> PluginDef<X>* pluginhead<X> = nullptr;
 
-#define EXPORT_PLUGIN(X) ExportPlugin<X> _exported_plugin_ ## X;
+#define EXPORT_PLUGIN(X) static ExportPlugin<X> UNIQUENAME;
 
-#define EXPORT_PLUGIN_SINGLETON(X) ExportPluginSingleton<decltype(X),&X> _exported_plugin_singleton_ ## X;
+#define EXPORT_PLUGIN_SINGLETON(X) static ExportPluginSingleton<decltype(X),&X> UNIQUENAME (#X);
 
-#define PLUGIN_HEAD(X, params) typedef X Plugin_BaseType; \
-	typedef X* (*ctor_func) params;
+#define BASE_PLUGIN_HEAD(X, params) typedef X Plugin_BaseType; \
+	typedef X* (*ctor_func) params; \
+	static constexpr const char* plugin_basename = #X; \
+	static constexpr PluginId plugin_baseid = PluginId(#X); \
+	static constexpr const char* plugin_name = #X; \
+	static constexpr PluginId plugin_id = PluginId(#X); \
+	static const unsigned int plugin_level = 0;
+
+#define PLUGIN_HEAD(X) static constexpr const char* plugin_name = #X; \
+	static constexpr PluginId plugin_id = PluginId(#X); \
+	static const unsigned int plugin_level = plugin_level + 1;
 
 #define PLUGIN_REQUIRES(prefix, plugin, NewType) \
 	PluginUpCast<GetPluginType<decltype(prefix plugin)>::type, NewType> plugin {&(prefix plugin)};

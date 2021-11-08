@@ -36,6 +36,7 @@ class Q3PhysicsBox : public PhysicsBox { public:
 };
 
 class Q3PhysicsEngine : public PhysicsEngine { public:
+	PLUGIN_HEAD(Q3PhysicsEngine);
 	q3Scene scene;
 	BlockBroadPhase broadphase;
 	

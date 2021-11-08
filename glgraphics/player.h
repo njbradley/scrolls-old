@@ -5,6 +5,7 @@
 #include "scrolls/player.h"
 
 class GLControls : public Controls { public:
+	PLUGIN_HEAD(GLControls);
 	
 	GLControls();
 	

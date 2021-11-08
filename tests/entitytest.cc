@@ -4,6 +4,7 @@
 #include "scrolls/blocks.h"
 
 struct EntityTest : Test {
+	PLUGIN_HEAD(EntityTest);
 	static constexpr vec3 ones = vec3(1,1,1);
 	static constexpr vec3 zeros = vec3(0,0,0);
 	

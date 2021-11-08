@@ -79,9 +79,12 @@ void SingleGame::gametick() {
 	
 	graphics->swap();
 	
-	if (controls->key_pressed('Q') and controls->key_pressed(controls->KEY_CTRL)) {
-		playing = false;
-		world->saving = !controls->key_pressed(controls->KEY_SHIFT);
+	if (controls->key_pressed('Q')) {
+		if (controls->key_pressed(controls->KEY_CTRL)
+		or (controls->key_pressed('U') and controls->key_pressed('I') and controls->key_pressed('T'))) {
+			playing = false;
+			world->saving = !controls->key_pressed(controls->KEY_SHIFT);
+		}
 	} else if (controls->key_pressed('X') and controls->key_pressed(controls->KEY_CTRL)) {
 		std::terminate();
 	} else if (controls->key_pressed('X')) {

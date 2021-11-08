@@ -11,6 +11,7 @@
 extern GLFWwindow* window;
 
 class GLGraphicsContext : public GraphicsContext { public:
+	PLUGIN_HEAD(GLGraphicsContext);
 	// PluginUpCast<DebugLines, GLDebugLines> debuglines {&::debuglines};
 	PLUGIN_REQUIRES(::, debuglines, GLDebugLines);
 	PLUGIN_REQUIRES(GraphicsContext::, blockvecs, AsyncGLVecs);

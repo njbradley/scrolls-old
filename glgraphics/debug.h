@@ -5,6 +5,8 @@
 #include "scrolls/debug.h"
 
 class GLDebugLines : public DebugLines { public:
+	PLUGIN_HEAD(GLDebugLines);
+	
 	vector<GLfloat> data;
 	
 	GLuint vertexid;

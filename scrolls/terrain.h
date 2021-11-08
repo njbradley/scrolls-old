@@ -105,7 +105,7 @@ class Plains : public LandGen { public:
 };
 
 class TerrainLoader { public:
-	PLUGIN_HEAD(TerrainLoader, (int seed));
+	BASE_PLUGIN_HEAD(TerrainLoader, (int seed));
 	int seed;
 	
 	TerrainLoader(int newseed);
