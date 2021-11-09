@@ -426,11 +426,15 @@ extern PluginLoader pluginloader;
 	static constexpr PluginId plugin_baseid = PluginId(#X); \
 	static constexpr const char* plugin_name = #X; \
 	static constexpr PluginId plugin_id = PluginId(#X); \
-	static const unsigned int plugin_level = 0;
+	static const unsigned int plugin_level = 0; \
+	virtual int get_plugin_level() const { return plugin_level; } \
+	virtual PluginId get_plugin_id() const { return plugin_id; }
 
 #define PLUGIN_HEAD(X) static constexpr const char* plugin_name = #X; \
 	static constexpr PluginId plugin_id = PluginId(#X); \
-	static const unsigned int plugin_level = plugin_level + 1;
+	static const unsigned int plugin_level = plugin_level + 1; \
+	virtual int get_plugin_level() const { return plugin_level; } \
+	virtual PluginId get_plugin_id() const { return plugin_id; }
 
 #define PLUGIN_REQUIRES(prefix, plugin, NewType) \
 	PluginUpCast<GetPluginType<decltype(prefix plugin)>::type, NewType> plugin {&(prefix plugin)};
