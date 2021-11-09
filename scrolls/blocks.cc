@@ -12,6 +12,7 @@
 #include "debug.h"
 #include "graphics.h"
 #include "player.h"
+#include "fileformat.h"
 
 const uint8 lightmax = 20;
 
@@ -852,37 +853,6 @@ bool Block::is_air(int dx, int dy, int dz, char otherval) const {
   return false;
 }
 
-void Block::write_pix_val(ostream& ofile, char type, unsigned int value) {
-  ofile << char((type << 6) | ((value%32) << 1) | (value/32 > 0));
-  value /= 32;
-  while (value > 0) {
-    ofile << char(((value%128) << 1) | (value/128 > 0));
-    value /= 128;
-  }
-}
-
-void Block::read_pix_val(istream& ifile, char* type, unsigned int* value) {
-  unsigned char data = ifile.get();
-  *type = (data & 0b11000000) >> 6;
-  *value = (data & 0b00111110) >> 1;
-  int multiplier = 32;
-  while ((data & 0b00000001) and !ifile.eof()) {
-    data = ifile.get();
-    *value = *value | (multiplier * ((data & 0b11111110) >> 1));
-    multiplier *= 128;
-  }
-}
-
-void Block::write_pix_val_float(ostream& ofile, char type, float val) {
-  unsigned int* ptr = (unsigned int*) &val;
-  Block::write_pix_val(ofile, type, *ptr);
-}
-
-void Block::read_pix_val_float(istream& ifile, char* type, float* val) {
-  unsigned int* ptr = (unsigned int*) val;
-  Block::read_pix_val(ifile, type, ptr);
-}
-
 void Block::to_log(ostream& out) const {
   out << "Block " << this << " {" << endl;
   out << "   " << globalpos << " by " << scale << endl;
@@ -1206,52 +1176,52 @@ void FreeBlock::to_file(ostream& ofile) {
   
   char type = 0b00; // type not used
   
-  Block::write_pix_val_float(ofile, type, box.position.x);
-  Block::write_pix_val_float(ofile, type, box.position.y);
-  Block::write_pix_val_float(ofile, type, box.position.z);
+  FileFormat::write_fixed(ofile, box.position.x);
+  FileFormat::write_fixed(ofile, box.position.y);
+  FileFormat::write_fixed(ofile, box.position.z);
   
-  Block::write_pix_val_float(ofile, type, box.negbox.x);
-  Block::write_pix_val_float(ofile, type, box.negbox.y);
-  Block::write_pix_val_float(ofile, type, box.negbox.z);
+  FileFormat::write_fixed(ofile, box.negbox.x);
+  FileFormat::write_fixed(ofile, box.negbox.y);
+  FileFormat::write_fixed(ofile, box.negbox.z);
   
-  Block::write_pix_val_float(ofile, type, box.velocity.x);
-  Block::write_pix_val_float(ofile, type, box.velocity.y);
-  Block::write_pix_val_float(ofile, type, box.velocity.z);
+  FileFormat::write_fixed(ofile, box.velocity.x);
+  FileFormat::write_fixed(ofile, box.velocity.y);
+  FileFormat::write_fixed(ofile, box.velocity.z);
   
-  Block::write_pix_val_float(ofile, type, box.angularvel.x);
-  Block::write_pix_val_float(ofile, type, box.angularvel.y);
-  Block::write_pix_val_float(ofile, type, box.angularvel.z);
+  FileFormat::write_fixed(ofile, box.angularvel.x);
+  FileFormat::write_fixed(ofile, box.angularvel.y);
+  FileFormat::write_fixed(ofile, box.angularvel.z);
   
-  Block::write_pix_val_float(ofile, type, box.rotation.w);
-  Block::write_pix_val_float(ofile, type, box.rotation.x);
-  Block::write_pix_val_float(ofile, type, box.rotation.y);
-  Block::write_pix_val_float(ofile, type, box.rotation.z);
+  FileFormat::write_fixed(ofile, box.rotation.w);
+  FileFormat::write_fixed(ofile, box.rotation.x);
+  FileFormat::write_fixed(ofile, box.rotation.y);
+  FileFormat::write_fixed(ofile, box.rotation.z);
 }
 
 void FreeBlock::from_file(istream& ifile) {
   Block::from_file(ifile);
   char type;
   
-  Block::read_pix_val_float(ifile, &type, &box.position.x);
-  Block::read_pix_val_float(ifile, &type, &box.position.y);
-  Block::read_pix_val_float(ifile, &type, &box.position.z);
+  FileFormat::read_fixed(ifile, &box.position.x);
+  FileFormat::read_fixed(ifile, &box.position.y);
+  FileFormat::read_fixed(ifile, &box.position.z);
   
-  Block::read_pix_val_float(ifile, &type, &box.negbox.x);
-  Block::read_pix_val_float(ifile, &type, &box.negbox.y);
-  Block::read_pix_val_float(ifile, &type, &box.negbox.z);
+  FileFormat::read_fixed(ifile, &box.negbox.x);
+  FileFormat::read_fixed(ifile, &box.negbox.y);
+  FileFormat::read_fixed(ifile, &box.negbox.z);
   
-  Block::read_pix_val_float(ifile, &type, &box.velocity.x);
-  Block::read_pix_val_float(ifile, &type, &box.velocity.y);
-  Block::read_pix_val_float(ifile, &type, &box.velocity.z);
+  FileFormat::read_fixed(ifile, &box.velocity.x);
+  FileFormat::read_fixed(ifile, &box.velocity.y);
+  FileFormat::read_fixed(ifile, &box.velocity.z);
   
-  Block::read_pix_val_float(ifile, &type, &box.angularvel.x);
-  Block::read_pix_val_float(ifile, &type, &box.angularvel.y);
-  Block::read_pix_val_float(ifile, &type, &box.angularvel.z);
+  FileFormat::read_fixed(ifile, &box.angularvel.x);
+  FileFormat::read_fixed(ifile, &box.angularvel.y);
+  FileFormat::read_fixed(ifile, &box.angularvel.z);
   
-  Block::read_pix_val_float(ifile, &type, &box.rotation.w);
-  Block::read_pix_val_float(ifile, &type, &box.rotation.x);
-  Block::read_pix_val_float(ifile, &type, &box.rotation.y);
-  Block::read_pix_val_float(ifile, &type, &box.rotation.z);
+  FileFormat::read_fixed(ifile, &box.rotation.w);
+  FileFormat::read_fixed(ifile, &box.rotation.x);
+  FileFormat::read_fixed(ifile, &box.rotation.y);
+  FileFormat::read_fixed(ifile, &box.rotation.z);
   
   box.posbox = box.negbox + float(scale);
 }
@@ -1484,11 +1454,11 @@ value(val) {
 Pixel::Pixel(Block* newblock, istream& ifile):
 parbl(newblock) {
   bool value_set = false;
-  char type;
-  unsigned int data;
   direction = 0xff;
   while (!value_set and !ifile.eof()) {
-    Block::read_pix_val(ifile, &type, &data);
+    unsigned long int data = FileFormat::read_variable(ifile);
+    char type = data % 4;
+    data /= 4;
     if (type == blockformat::valuetype) {
       value = data;
       value_set = true;
@@ -2032,12 +2002,12 @@ void Pixel::to_file(ostream& of) {
     }
   }
   if (jointval != 0) {
-    Block::write_pix_val(of, blockformat::jointstype, jointval);
+    FileFormat::write_variable(of, jointval<<2 + blockformat::jointstype);
   }
   if (value != 0 and direction != blockstorage[value]->default_direction) {
-    Block::write_pix_val(of, blockformat::dirtype, direction);
+    FileFormat::write_variable(of, direction<<2 + blockformat::dirtype);
   }
-  Block::write_pix_val(of, blockformat::valuetype, value);
+  FileFormat::write_variable(of, value<<2 + blockformat::valuetype);
 }
 
 

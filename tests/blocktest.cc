@@ -4,6 +4,7 @@
 #include "scrolls/blocks.h"
 #include "scrolls/blockiter.h"
 #include "scrolls/blockdata.h"
+#include "scrolls/fileformat.h"
 
 struct BlockTest : Test { public:
 	PLUGIN_HEAD(BlockTest);
@@ -38,8 +39,10 @@ struct BlockTest : Test { public:
 		
 		std::stringstream stream;
 		
-		Block::write_pix_val(stream, 0b00, val);
-		Block::read_pix_val(stream, &type, &result);
+		FileFormat::write_variable(stream, val<<2);
+		result = FileFormat::read_variable(stream);
+		type = result % 4;
+		result /= 4;
 		
 		out << std::hex << val << ' ' << result << std::dec << endl;
 		

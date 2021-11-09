@@ -177,11 +177,6 @@ class Block: public Collider { public:
 	vec3 force(vec3 amount);
 	void to_log(ostream& out) const;
 	
-	static void write_pix_val(ostream& ofile, char type, unsigned int val);
-	static void read_pix_val(istream& ifile, char* type, unsigned int* val);
-	static void write_pix_val_float(ostream& ofile, char type, float val);
-	static void read_pix_val_float(istream& ifile, char* type, float* val);
-	
 	friend ostream& operator<<(ostream& out, const Block& block);
 };
 

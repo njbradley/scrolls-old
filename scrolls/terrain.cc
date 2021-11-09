@@ -2,7 +2,7 @@
 #include "world.h"
 #include "blockdata.h"
 #include "blocks.h"
-
+#include "fileformat.h"
 
 DEFINE_PLUGIN(TerrainLoader);
 EXPORT_PLUGIN(TerrainLoader);
@@ -194,7 +194,7 @@ Blocktype TerrainLoader::gen_block(ostream& ofile, int gx, int gy, int gz, int s
   // cout << int(val) << ' ' << ivec3(gx,gy,gz) << ' ' << scale << endl;
   if (scale == 1) {// or val != -1) {
 		Blocktype val = gen_func(ivec3(gx, gy, gz));
-    Block::write_pix_val(ofile, 0b00, val);
+    FileFormat::write_variable(ofile, val<<2);
     return val;
   } else {
     stringstream ss;
@@ -212,7 +212,7 @@ Blocktype TerrainLoader::gen_block(ostream& ofile, int gx, int gy, int gz, int s
       }
     }
     if (all_same) {
-      Block::write_pix_val(ofile, 0b00, val);
+      FileFormat::write_variable(ofile, val<<2);
       return val;
     } else {
       ofile << ss.rdbuf();
