@@ -47,7 +47,6 @@ void GLAPIENTRY errorCallback( GLenum source,
 }
 
 void GLGraphicsContext::init_graphics() {
-	cout << "initing graphics " << endl;
 	// Initialise GLFW
 	if( !glfwInit() )
 	{

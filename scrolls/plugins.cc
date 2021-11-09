@@ -43,9 +43,8 @@ PluginLib::PluginLib(string path) {
 	dirname = path;
 	if (stat(dllpath.c_str(), &info) == 0) {
 		handle = LOADLIB(dllpath.c_str());
-		cout << "loaded " << dllpath << " into address space " << endl;
 		if (!handle) {
-			cout << "Plugin error: [" << path << "]: cannot open dll" << endl;
+			cout << "Plugin error: [" << path << "]: cannot load dll" << endl;
 			handle = nullptr;
 		}
 	}
@@ -70,13 +69,11 @@ PluginLoader::PluginLoader() {
 }
 
 void PluginLoader::load() {
-	cout << "Loading plugins " << endl;
 	struct stat info;
 	for (std::filesystem::path fspath : std::filesystem::directory_iterator("./")) {
 		string path = fspath.filename().string();
 		if (stat((path + "/" + path + DLLSUFFIX).c_str(), &info) == 0 or stat((path + "/" + path + ".txt").c_str(), &info) == 0) {
 			plugins.push_back(new PluginLib(path));
-			cout << " loaded " << path << endl;
 		}
 	}
 }

@@ -7,8 +7,13 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 	scroll_rel_val += yoffset;
 }
 
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	
+}
+
 GLControls::GLControls() {
 	glfwSetScrollCallback(window, scroll_callback);
+	// glfwSetKeyCallback(window, key_callback);
 	
 	KEY_SHIFT = GLFW_KEY_LEFT_SHIFT;
 	KEY_CTRL = GLFW_KEY_LEFT_CONTROL;

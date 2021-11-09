@@ -3,7 +3,6 @@
 #include "shader.h"
 
 GLDebugLines::GLDebugLines() {
-	cout << "generating gldebuglines" << endl;
 	glGenVertexArrays(1, &vertexid);
 	
 	program = LoadShaders(

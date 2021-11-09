@@ -158,8 +158,12 @@ class BasePlugin { public:
 	template <typename ... Args>
 	void init(Args ... args) {
 		def = pluginhead<PluginType>;
+		cout << "Plugin " << PluginType::plugin_baseid.name() << " = ";
 		if (def != nullptr) {
+			cout << def->id.name() << endl;
 			pointer = def->getfunc(args...);
+		} else {
+			cout << PluginId("").name() << endl;
 		}
 	}
 	
@@ -335,7 +339,7 @@ struct ExportPlugin {
 	PluginDef<BaseType> plugindef;
 	
 	ExportPlugin(): plugindef(GArgs::getfunc, GArgs::delfunc, Ptype::plugin_name) {
-		cout << "exporting plugin " << Ptype::plugin_id.name() << ' ' << BaseType::plugin_baseid.name() << endl;
+		
 	}
 };
 

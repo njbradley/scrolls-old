@@ -68,14 +68,16 @@ void ThreadedTileLoader::request_del_tile(ivec3 pos) {
 void ThreadedTileLoader::end_serving() {
 	render_running = false;
 	//cout << "joining rendering thread" << endl;
+	cout << "Rendering thread ending" << endl;
 	rendering_thread.join();
+	cout << "Tick thread ending" << endl;
 	tick_thread.join();
 	for (int i = 0; i < num_threads; i ++) {
 		load_running[i] = false;
-		//cout << "joining load " << i << endl;
+		cout << "Loading thread " << i << " ending" << endl;
 		loading_threads[i].join();
 		del_running[i] = false;
-		//cout << "joining del " << i << endl;
+		cout << "Deleting thread " << i << " ending" << endl;
 		deleting_threads[i].join();
 	}
 }
@@ -123,7 +125,6 @@ void LoadingThread::operator()() {
 		// }
 		//cout << "hello from thread " << index << endl;
 	}
-	cout << "loading thread " << index << " exited" << endl;
 }
 
 
@@ -143,7 +144,6 @@ void DeletingThread::operator()() {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	}
-	cout << "deleting thread " << index << " exited" << endl;
 }
 
 
@@ -171,7 +171,6 @@ void RenderingThread::operator()() {
 		}
 	}
 	
-	cout << "rendering thread exited" << endl;
 }
 
 TickThread::TickThread(ThreadedTileLoader* newparent): parent(newparent) {
@@ -190,7 +189,6 @@ void TickThread::operator()() {
 			std::this_thread::sleep_for(std::chrono::milliseconds(25 - ms));
 		}
 	}
-	cout << "tick thread exited" << endl;
 }
 
 

@@ -125,8 +125,6 @@ Q3PhysicsBox* Q3PhysicsBox::from_pix(Pixel* pix, q3Body* worldbody) {
 
 Q3PhysicsEngine::Q3PhysicsEngine(World* world, float dt):
 PhysicsEngine(world, dt), scene(deltatime, &broadphase), broadphase(&scene, world) {
-	cout << this << ' ' << &scene << endl;
-	cout << "Initialized physics " << endl;
 	wbody = broadphase.worldbody;
 }
 

@@ -176,7 +176,6 @@ void ALAudioContext::load_sounds() {
 			library[sound->name] = sound;
 		}
 	}
-	cout << "loaded in " << paths.size() << " sound files " << endl;
 }
 
 void ALAudioContext::play_sound(string name, vec3 pos, float gain, float pitch) {

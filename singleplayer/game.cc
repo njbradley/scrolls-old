@@ -12,14 +12,11 @@ SingleGame::SingleGame() {
 	
 	ifstream ifile(SAVES_PATH "latest.txt");
 	if (!ifile.good()) {
-		cout << "making saves dir " << endl;
 		create_dir(SAVES_PATH);
-		cout << "made dir " << endl;
 		ofstream ofile(SAVES_PATH "saves.txt");
 		ofile << "";
 		world.init(string("Starting-World"));
 	} else {
-		cout << " getting latest" << endl;
 		string latest;
 		ifile >> latest;
 		if (latest != "") {
@@ -40,8 +37,6 @@ SingleGame::SingleGame() {
 SingleGame::~SingleGame() {
 	if (errors) {
 		cout << "completed WITH errors BADDDDDAAAA!!" << endl;
-	} else {
-		cout << "completed without errors" << endl;
 	}
 }
 
