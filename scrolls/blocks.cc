@@ -590,7 +590,12 @@ void Block::from_file(istream& ifile) {
   std::lock_guard<Block> guard(*this);
   while (ifile.peek() == blockformat::free) {
     ifile.get();
-    FreeBlock* free = new FreeBlock();
+    FreeBlock* free;
+    if (ifile.peek() == blockformat::entity) {
+      free = Entity::create_from_file(ifile);
+    } else {
+      free = new FreeBlock();
+    }
     add_freechild(free);
     free->from_file(ifile);
   }
@@ -919,22 +924,24 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) {
   
   FreeBlockFreeIter freeiter (this, linebox);
   for (FreeBlock* free : freeiter) {
-    // FreeBlockIter initer (free, free->box.transform_in(linebox));
-    for (Pixel* pix : free->iter()) {
-      // debuglines->render(pix->parbl->hitbox());
-      if (pix->value != 0) {
-        Plane faces[6];
-        pix->parbl->hitbox().faces(faces);
-        for (Plane face : faces) {
-          vec3 colpoint = face.collision(line);
-          if (!std::isnan(colpoint.x) and pix->parbl->hitbox().contains(colpoint)) {
-            float dist = glm::dot(colpoint - startpos, dir);
-            // debuglines->render(pix->parbl->hitbox());
-            if (dist < closest_dist) {
-              closest_dist = dist;
-              closest_block = pix->parbl;
-              closest_pos = colpoint;
-              closest_norm = face.normal;
+    if (free != nullptr and free->allow_raycast) {
+      // FreeBlockIter initer (free, free->box.transform_in(linebox));
+      for (Pixel* pix : free->iter()) {
+        // debuglines->render(pix->parbl->hitbox());
+        if (pix->value != 0) {
+          Plane faces[6];
+          pix->parbl->hitbox().faces(faces);
+          for (Plane face : faces) {
+            vec3 colpoint = face.collision(line);
+            if (!std::isnan(colpoint.x) and pix->parbl->hitbox().contains(colpoint)) {
+              float dist = glm::dot(colpoint - startpos, dir);
+              // debuglines->render(pix->parbl->hitbox());
+              if (dist < closest_dist) {
+                closest_dist = dist;
+                closest_block = pix->parbl;
+                closest_pos = colpoint;
+                closest_norm = face.normal;
+              }
             }
           }
         }
@@ -1171,7 +1178,7 @@ FreeBlock::~FreeBlock() {
   }
 }
 
-void FreeBlock::to_file(ostream& ofile) {
+void FreeBlock::to_file(ostream& ofile) const {
   Block::to_file(ofile);
   
   char type = 0b00; // type not used
@@ -1271,6 +1278,10 @@ void FreeBlock::timestep(float deltatime) {
   
   // nextbox.velocity *= 1.0f / (1.0f + deltatime * 0.1f);
   // nextbox.angularvel *= 1.0f / (1.0f + deltatime * 0.1f);
+}
+
+Entity* FreeBlock::entity_cast() {
+  return nullptr;
 }
 
 void FreeBlock::resolve_timestep(float deltatime) {

@@ -220,20 +220,22 @@ class FreeBlock : public Block { public:
 	PhysicsBody* physicsbody = nullptr;
 	bool allow_sleep = true;
 	bool allow_rotation = true;
+	bool allow_raycast = true;
 	
 	FreeBlock();
 	FreeBlock(Movingbox newbox);
 	FreeBlock(istream& ifile);
 	~FreeBlock();
-	void to_file(ostream& ofile);
+	virtual void to_file(ostream& ofile) const;
 	void from_file(istream& ifile);
 	void set_parent(Block* nparent);
 	void set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale);
 	void expand(ivec3 dir);
 	void set_box(Movingbox newbox);
 	void tick();
-	void timestep(float deltatime);
+	virtual void timestep(float deltatime);
 	void resolve_timestep(float deltatime);
+	virtual Entity* entity_cast();
 	
 	void calculate_mass();
 	
@@ -255,7 +257,7 @@ class Pixel { public:
 	uint8 lightsource = -1;
 	uint8 joints[6] = {0,0,0,0,0,0};
 	RenderIndex render_index = RenderIndex::npos;
-	RenderVecs* lastvecs;
+	RenderVecs* lastvecs = nullptr;
 	BlockGroup* group = nullptr;
 	PhysicsBox* physicsbox = nullptr;
 	
@@ -295,6 +297,7 @@ namespace blockformat {
 	const unsigned char chunk = 0b11000000;
 	const unsigned char null = 0b11111111;
 	const unsigned char free = 0b11110000;
+	const unsigned char entity = 0b11100000;
 	
 	const unsigned char valuetype = 0b00;
 	const unsigned char dirtype = 0b01;

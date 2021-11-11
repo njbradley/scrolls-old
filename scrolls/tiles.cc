@@ -69,8 +69,8 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
     }
     //chunk->calculate_lightlevel();
     if (!deleting) { // ERR: starts deleting during render
-      if (!world->player->spectator and optimized_render) {
-        vec3 playpos = world->player->position;// + float(ivec3_hash()(pos) % (chunksize/3) - chunksize/6);
+      if (world->player != nullptr and !world->player->spectator and optimized_render) {
+        vec3 playpos = world->player->box.position;// + float(ivec3_hash()(pos) % (chunksize/3) - chunksize/6);
         ivec3 player_chunk((playpos.x/world->chunksize) - (playpos.x<0),
                            (playpos.y/world->chunksize) - (playpos.y<0),
                            (playpos.z/world->chunksize) - (playpos.z<0));

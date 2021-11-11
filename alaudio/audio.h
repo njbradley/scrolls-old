@@ -44,9 +44,9 @@ class ALAudioContext : public AudioContext { public:
 	ALCdevice* device;
 	ALCcontext* context;
 	
-	vec3* listenerpos;
-	vec3* listenervel;
-	vec2* listenerdir;
+	vec3* listenerpos = nullptr;
+	vec3* listenervel = nullptr;
+	vec2* listenerdir = nullptr;
 	
 	map<string,Sound*> library;
 	vector<PlayingSound*> onetime_sounds;

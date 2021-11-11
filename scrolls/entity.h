@@ -2,11 +2,29 @@
 #define ENTITY_PREDEF
 
 #include "classes.h"
-
-#include "collider.h"
+#include "plugins.h"
+#include "blocks.h"
 #include "items.h"
 
 
+class Entity : public FreeBlock { public:
+  BASE_PLUGIN_HEAD(Entity, ());
+  
+  Entity();
+  virtual ~Entity();
+  
+  virtual void init();
+  virtual void from_file(istream& ifile);
+  virtual void to_file(ostream& ofile) const;
+  
+  virtual void set_position(vec3 pos, quat rot = quat(1,0,0,0));
+  
+  virtual void timestep(float deltatime);
+  virtual Entity* entity_cast();
+  
+  static Entity* create_from_file(istream& ifile);
+};
+/*
 class Entity { public:
     static constexpr float axis_gap = 0.2f;
     vec3 position;
@@ -51,7 +69,7 @@ class Entity { public:
     bool colliding(const Entity* other);
     virtual void kill();
 };
-
+*/
 
 
 #endif

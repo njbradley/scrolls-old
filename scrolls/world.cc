@@ -194,6 +194,9 @@ void World::load_config(istream& ifile) {
       ifile >> gen;
       generation = gen == "on";
     }
+    if (buff == "last_player_pos") {
+      ifile >> last_player_pos.x >> last_player_pos.y >> last_player_pos.z;
+    }
     getline(ifile, buff);
     getline(ifile,buff,':');
   }
@@ -205,6 +208,7 @@ void World::save_config(ostream& ofile) {
   ofile << "difficulty:" << difficulty << endl;
   ofile << "daytime:" << daytime << endl;
   ofile << "generation:" << (generation ? "on" : "off") << endl;
+  ofile << "last_player_pos:" << last_player_pos.x << ' ' << last_player_pos.y << ' ' << last_player_pos.z << endl;
   ofile << "end:" << endl;
 }
 
@@ -219,43 +223,54 @@ void World::setup_files() {
 void World::startup() {
   ifstream ifile(path("player.txt"));
   if (ifile.good()) {
-    player = new Player(this, ifile);
-    set_player_vars();
+    // player = new Player(this, ifile);
+    // set_player_vars();
   } else {
-    spawn_player();
+    last_player_pos = ivec3(10,terrainloader->get_height(ivec2(10,10))+4,10);
+    // spawn_player();
   }
 }
 
 void World::spawn_player() {
-  ivec3 spawnpos(10,terrainloader->get_height(ivec2(10,10))+4,10);
+  ivec3 spawnpos(15,terrainloader->get_height(ivec2(15,15))+8,15);
   int i = 0;
   // while (loader.gen_func(ivec4(spawnpos.x, spawnpos.y, spawnpos.z, 1)) != 0 and i < 100) {
   //   i ++;
   //   spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
   // }
-  player = new Player(this, vec3(spawnpos));
+  player = new Player();
+  player->init();
+  Block* spawnblock = get_global(spawnpos, 8);
+  cout << spawnblock << ' ' << spawnpos << ' ' << last_player_pos << " block " << endl;
+  for (Tile* tile : tiles) {
+    cout << " pos " << tile->pos << endl;
+  }
+  spawnblock->add_freechild(player);
+  player->set_position(spawnpos);
   // player->spectator = true;
-  player->autojump = true;
-  player->health = 10;
-  player->max_health = 10;
   set_player_vars();
 }
 
 void World::set_player_vars() {
-  audio->set_listener(&player->position, &player->vel, &player->angle);
-  graphics->set_camera(&player->position, &player->angle);
-  viewbox->playerpos = &player->position;
+  audio->set_listener(&player->box.position, &player->box.velocity, &player->angle);
+  graphics->set_camera(&player->box.position, &player->angle);
+  viewbox->playerpos = &player->box.position;
+  player->controller = controls;
 }
 
 void World::load_nearby_chunks() {
   static double start_time = getTime();
-  if (!player->spectator) {
+  if (player == nullptr or !player->spectator) {
     
     bool loaded_chunks = false;
     
-    int px = player->position.x/chunksize - (player->position.x<0);
-    int py = player->position.y/chunksize - (player->position.y<0);
-    int pz = player->position.z/chunksize - (player->position.z<0);
+    if (player != nullptr) {
+      last_player_pos = player->box.position;
+    }
+    
+    int px = last_player_pos.x/chunksize - (last_player_pos.x<0);
+    int py = last_player_pos.y/chunksize - (last_player_pos.y<0);
+    int pz = last_player_pos.z/chunksize - (last_player_pos.z<0);
     
     const int maxrange = settings->view_dist;
     
@@ -295,7 +310,6 @@ void World::load_nearby_chunks() {
       }
     }
     
-    static bool initial_generation = true;
     if (loading_chunks.size() == 0 and initial_generation) {
       cout << "Initial generation finished: " << getTime() - start_time << 's' << endl;
       initial_generation = false;
@@ -316,11 +330,12 @@ void World::timestep() {
   last_time = now;
   
   debuglines->clear();
-  ivec3 chunk(player->position/float(chunksize) - vec3(player->position.x<0, player->position.y<0, player->position.z<0));
-  if (tileat(chunk) != nullptr or player->spectator) {
-    player->timestep();
-    player->computeMatricesFromInputs();
-  }
+  // ivec3 chunk(SAFEDIV(player->box.position, (float)chunksize);
+  // //player->position/float(chunksize) - vec3(player->position.x<0, player->position.y<0, player->position.z<0));
+  // if (player != nullptr and (tileat(chunk) != nullptr or player->spectator)) {
+  //   player->timestep();
+  //   player->computeMatricesFromInputs();
+  // }
   
   static double total_time = 0;
   static int num_times = 0;
@@ -328,11 +343,26 @@ void World::timestep() {
   
   
   for (Tile* tile : tiles) {
+    if (player == nullptr) {
+      for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
+        player = dynamic_cast<Player*>(free);
+        if (player != nullptr) {
+          cout << "got player from world" << endl;
+          set_player_vars();
+          break;
+        }
+      }
+    }
     tile->timestep(dt);
   }
   for (Tile* tile : tiles) {
     tile->resolve_timestep(dt);
   }
+  
+  if (player == nullptr and !initial_generation) {
+    spawn_player();
+  }
+  
   total_time += getTime() - start;
   num_times ++;
   
@@ -373,7 +403,7 @@ void World::tick() {
 }
 
 void World::drop_ticks() {
-  player->drop_ticks();
+  // player->drop_ticks();
   for (Tile* tile : tiles) {
     tile->drop_ticks();
   }
@@ -390,10 +420,12 @@ void World::block_update(ivec3 pos) {
 bool World::render() {
   bool changed = false;
   double start = getTime();
-  ivec3 ppos(player->position);
-  ppos = ppos / chunksize - ivec3(ppos.x < 0, ppos.y < 0, ppos.z < 0);
-  Tile* playertile = tileat(ppos);
-  
+  Tile* playertile = nullptr;
+  if (player != nullptr) {
+    ivec3 ppos(player->box.position);
+    ppos = ppos / chunksize - ivec3(ppos.x < 0, ppos.y < 0, ppos.z < 0);
+    Tile* playertile = tileat(ppos);
+  }
   
   if (playertile != nullptr and playertile->chunk->flags & Block::RENDER_FLAG and !playertile->lightflag) {
     playertile->render(graphics->blockvecs, graphics->transvecs);
@@ -501,10 +533,10 @@ void World::close_world() {
   
   if (saving) {
     ofstream ofile(path("player.txt"));
-    player->save_to_file(ofile);
+    ofile << ',' << endl;
+    // player->save_to_file(ofile);
     ofile.close();
   }
-  delete player;
   
   if (saving) {
     cout << "all tiles saved sucessfully: " << tiles.size() << endl;

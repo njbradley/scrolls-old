@@ -31,6 +31,8 @@ void ViewBox::timestep(double deltatime, double daytime) {
   
   vec3 sundirection = vec3(sin(daytime*3.14/1000), -cos(daytime*3.14/1000), 0);
   
+	if (playerpos == nullptr) return;
+	
   RenderData data;
   data.pos.loc.pos = *playerpos + sundirection * 1000.0f;
   data.pos.loc.rot = quat(cos(daytime*3.14/1000/2), 0, 0, sin(daytime*3.14/1000/2));

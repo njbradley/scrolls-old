@@ -68,6 +68,7 @@ class World: public Collider { public:
   int difficulty = 1;
   bool generation = true;
   bool saving = true;
+  ivec3 last_player_pos = ivec3(0,0,0);
   
   double daytime = 500;
   
@@ -76,11 +77,12 @@ class World: public Collider { public:
   PluginNow<TileLoader> tileloader;
   PluginNow<PhysicsEngine> physics;
   
-  Player* player;
+  Player* player = nullptr;
   
   std::set<ivec3,ivec3_comparator> loading_chunks;
   std::set<ivec3,ivec3_comparator> deleting_chunks;
   bool world_closing = false;
+  bool initial_generation = true;
   
   World(string name);
   virtual ~World();

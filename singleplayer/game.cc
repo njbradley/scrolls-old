@@ -68,7 +68,9 @@ void SingleGame::gametick() {
 	
 	graphics->block_draw_call();
 	
-	world->player->render_ui(graphics->uivecs);
+	if (world->player != nullptr) {
+		world->player->render_ui(graphics->uivecs);
+	}
 	logger->render(graphics->uivecs);
 	graphics->ui_draw_call();
 	
@@ -93,10 +95,14 @@ void SingleGame::gametick() {
 	} else if (controls->key_pressed('T')) {
 		for (Tile* tile : world->tiles) {
 			for (FreeBlock* free = tile->allfreeblocks; free != nullptr;) {
-				free->highparent->remove_freechild(free);
-				FreeBlock* next = free->allfreeblocks;
-				delete free;
-				free = next;
+				if (free->entity_cast() == nullptr or free->entity_cast()->get_plugin_id() != Player::plugin_id) {
+					free->highparent->remove_freechild(free);
+					FreeBlock* next = free->allfreeblocks;
+					delete free;
+					free = next;
+				} else {
+					free = free->allfreeblocks;
+				}
 			}
 		}
 	}

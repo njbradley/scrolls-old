@@ -10,33 +10,20 @@
 using boost::asio::ip::udp;
 using boost::asio::ip::address;
 
-class BufOut : public std::streambuf { public:
-	char* data;
-	int* written;
-	BufOut(char* ndata, int* nwritten);
-	virtual std::streambuf::int_type overflow(std::streambuf::int_type val);
-};
 
-class BufIn : public std::streambuf { public:
-	char* data;
-	int* read;
-	BufIn(char* ndata, int* nread);
-	virtual std::streambuf::int_type underflow();
+class MemBuf : public std::streambuf { public:
+	MemBuf(char* data, int max_len);
+	int written() const;
+	int read() const;
 };
 
 struct Packet {
-	BASE_PLUGIN_HEAD(Packet, (char* data, int* read));
+	BASE_PLUGIN_HEAD(Packet, (istream& idata));
 	static const int packetsize = 1024;
-	string name;
 	time_t sent;
-	Packet(string newname);
-	Packet(char* data, int* read);
-	virtual void pack(char* data, int* written);
-	
-	template <typename T>
-	static void packval(char* data, int* written, T val);
-	template <typename T>
-	static T getval(char* data, int* written);
+	Packet();
+	Packet(istream& idata);
+	virtual void pack(ostream& odata);
 };
 
 struct ServerPacket : Packet {

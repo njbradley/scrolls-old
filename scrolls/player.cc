@@ -13,6 +13,7 @@
 #include "tiles.h"
 #include "settings.h"
 #include "debug.h"
+#include "fileformat.h"
 
 /*
 // Initial position : on +Z
@@ -28,58 +29,49 @@ DEFINE_PLUGIN(Controls);
 
 Plugin<Controls> controls;
 
-float speed = 80.0f; // 3 units / second
+float speed = 80.0f * 8; // 3 units / second
 float mouseSpeed = 0.003f;
 
-
-
-Player::Player(World* newworld, vec3 pos):
-Entity(newworld, pos, vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7)),
-inven(10), backpack(10) {
-	if (newworld == nullptr) {
-		cout << 61 << endl;
-	}
-	//char arr[] = {1,0,1,0,1,0,1,0}
+Player::Player(): inven(10), backpack(10) {
+	allow_rotation = false;
+	allow_raycast = false;
 	selitem = 0;
-	
-	//inven.add( ItemStack(Item(itemstorage->items["chips"]), 10) );
-	//inven.add( ItemStack(Item(itemstorage->items["crafting"]), 1));
+	box.negbox = vec3(-1, -3, -1);
 }
 
-Player::Player(World* newworld, istream& ifile):
-Entity(newworld, vec3(0,0,0), vec3(-0.7,-2.5,-0.7), vec3(0.7,0.9,0.7)),
-inven(ifile), backpack(ifile) {
-	ifile >> selitem;
-	ifile >> position.x >> position.y >> position.z;
-	ifile >> vel.x >> vel.y >> vel.z >> angle.x >> angle.y;
-	ifile >> health >> max_health >> damage_health >> healing_health >> healing_speed;
-	ifile >> spectator >> autojump;
+void Player::init() {
+	std::lock_guard<Player> guard(*this);
+	divide();
+	set_child(ivec3(0,0,0), new Block(new Pixel(blocktypes::dirt.id)));
+	set_child(ivec3(0,1,0), new Block(new Pixel(blocktypes::dirt.id)));
 }
 
-void Player::set_block_breaking_vecs(Pixel* pixref, ivec3 hitpos, int level) {
-	
+void Player::from_file(istream& ifile) {
+	std::lock_guard<Player> guard(*this);
+	FreeBlock::from_file(ifile);
+	selitem = FileFormat::read_variable(ifile);
+	FileFormat::read_fixed(ifile, &angle.x);
+	FileFormat::read_fixed(ifile, &angle.y);
 }
 
-void Player::save_to_file(ostream& ofile) {
-	inven.save_to_file(ofile);
-	backpack.save_to_file(ofile);
-	ofile << selitem << ' ';
-	ofile << position.x << ' ' << position.y << ' ' << position.z << ' ';
-	ofile << vel.x << ' ' << vel.y << ' ' << vel.z << ' ' << angle.x << ' ' << angle.y << ' ';
-	ofile << health << ' ' << max_health << ' ' << damage_health << ' ' << healing_health << ' ' << healing_speed << ' ';
-	ofile << spectator << ' ' << autojump << ' ';
+void Player::to_file(ostream& ofile) {
+	FreeBlock::to_file(ofile);
+	FileFormat::write_variable(ofile, selitem);
+	FileFormat::write_fixed(ofile, angle.x);
+	FileFormat::write_fixed(ofile, angle.y);
 }
 	
-mat4 Player::getViewMatrix(){
+mat4 Player::getViewMatrix() {
 	return ViewMatrix;
 }
-mat4 Player::getProjectionMatrix(){
+mat4 Player::getProjectionMatrix() {
 	return ProjectionMatrix;
 }
 
 void Player::raycast(Block** hit, ivec3* dir, vec3* hitpos) {
-	*hitpos = position;
-	*hit = world->raycast(hitpos, pointing, 8);
+	*hitpos = box.position;
+	*hit = highparent->raycast(hitpos, pointing, 8);
+	cout << *hit << " hit " << endl;
 	if (*hit != nullptr) {
 		if ((*hit)->freecontainer != nullptr) {
 			vec3 pos = (*hit)->freecontainer->box.transform_in(*hitpos);
@@ -93,7 +85,7 @@ void Player::raycast(Block** hit, ivec3* dir, vec3* hitpos) {
 
 void Player::right_mouse(double deltatime) {
 	//cout << "riht" << endl;
-	bool shifting = controls->key_pressed(controls->KEY_SHIFT);
+	bool shifting = controller->key_pressed(controller->KEY_SHIFT);
 	
 	if (placing_block == nullptr and placing_freeblock == nullptr and moving_freeblock == nullptr and timeout >= 0) {
 		
@@ -144,7 +136,7 @@ void Player::right_mouse(double deltatime) {
 			} else if (block->freecontainer != nullptr) {
 				moving_freeblock = block->freecontainer;
 				moving_point = moving_freeblock->box.transform_in(hitpos);
-				moving_range = glm::length(hitpos - position);
+				moving_range = glm::length(hitpos - box.position);
 			}
 		}
 		timeout = -0.2f;
@@ -152,7 +144,7 @@ void Player::right_mouse(double deltatime) {
 		const float mul = 20.0f;
 		// const float lim = 0.05f;
 		
-		vec3 dest_point = position + pointing * moving_range;
+		vec3 dest_point = box.position + pointing * moving_range;
 		vec3 cur_point = moving_freeblock->box.transform_out(moving_point);
 		Movingpoint movpoint = moving_freeblock->box.transform_out(Movingpoint(cur_point, moving_freeblock->box.mass));
 		// cur_point += movpoint.momentum();
@@ -380,24 +372,13 @@ void Player::die() {
 	// }
 }
 
-void Player::computeMatricesFromInputs(){
+void Player::timestep(float deltatime) {
+	Entity::timestep(deltatime);
+	computeMatricesFromInputs(deltatime);
+}
 
-	// glfwGetTime is called only once, the first time this function is called
-	static double lastTime = getTime();
-	
-	Block* camerablock = world->get_global(int(position.x), int(position.y), int(position.z), 1);
-	if (camerablock != 0) {
-		// if (camerablock->pixel->value == 7) {
-		// 	game->set_display_env(vec3(0.2,0.2,0.6), 10);
-		// } else {
-		// 	game->set_display_env(vec3(0.4,0.7,1.0), 2000000);
-		// }
-	}
-	
-	
-	// Compute time difference between current and last frame
-	double currentTime = getTime();
-	float deltaTime = float(currentTime - lastTime);
+void Player::computeMatricesFromInputs(float deltaTime) {
+	if (controller == nullptr) return;
 	
 	if (attack_recharge > 0) {
 		attack_recharge -= deltaTime;
@@ -405,7 +386,7 @@ void Player::computeMatricesFromInputs(){
 	
 	
 	// Compute new orientation
-	angle += vec2(float(mouseSpeed) * vec2(settings->screen_dims/2 - controls->mouse_pos()));
+	angle += vec2(float(mouseSpeed) * vec2(settings->screen_dims/2 - controller->mouse_pos()));
 	
 	//cout << horizontalAngle << ' ' << verticalAngle << endl;
 	if (angle.y > 1.55f) {
@@ -422,7 +403,7 @@ void Player::computeMatricesFromInputs(){
 	}
 	
 	// Reset mouse position for next frame
-	controls->mouse_pos(settings->screen_dims/2);
+	controller->mouse_pos(settings->screen_dims/2);
 	
 	// Direction : Spherical coordinates to Cartesian coordinates conversion
 	glm::vec3 direction(
@@ -452,108 +433,98 @@ void Player::computeMatricesFromInputs(){
 	
 	float nspeed = speed;
 	
-	if (!consts[4]) {
-		nspeed /= 3;
-	}
+	// if (!consts[4]) {
+		// nspeed /= 3;
+	// }
 	
 	double stamina_cost = 0;
 	
-	if (controls->key_pressed('F')) {
+	if (controller->key_pressed('F')) {
 		spectator = true;
-	} else if (controls->key_pressed('G')) {
+	} else if (controller->key_pressed('G')) {
 		spectator = false;
 	}
 	
-	if (!controls->key_pressed(controls->KEY_CTRL)) {
+	if (!controller->key_pressed(controller->KEY_CTRL)) {
 		if (!spectator) {
 			// Move forward
 			
-			if (controls->key_pressed(controls->KEY_SHIFT)) {
+			if (controller->key_pressed(controller->KEY_SHIFT)) {
 				nspeed /= 4;
 			}
 			
-			if (controls->key_pressed('W')){
-				// vec3 dir_const = vec3(1,0,0)*(float)consts[0] + vec3(0,0,1)*(float)consts[2] + vec3(-1,0,0)*(float)consts[3] + vec3(0,0,-1)*(float)consts[5];
-				// if (length(dir_const-forward) < 0.9f and (consts[0] or consts[2] or consts[3] or consts[5]) and autojump and not consts[6]) {
-				// 	vel.y = 6;
-				// 	if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS) {
-				// 		vel.y = 10;
-				// 	}
-				// }
-				vel += forward * deltaTime * nspeed;
-				stamina_cost += glm::dot(vel, forward);
+			if (controller->key_pressed('W')){
+				physicsbody->apply_impulse(forward * deltaTime * nspeed);
 			}
 			// Move backward
-			if (controls->key_pressed('S')){
-				vel -= forward * deltaTime * nspeed;
-				stamina_cost += glm::dot(vel, -forward);
+			if (controller->key_pressed('S')){
+				physicsbody->apply_impulse(-forward * deltaTime * nspeed);
 			}
 			// Strafe right
-			if (controls->key_pressed('D')){
-					vel += right * deltaTime * nspeed;
-					stamina_cost += glm::dot(vel, right);
+			if (controller->key_pressed('D')){
+				physicsbody->apply_impulse(right * deltaTime * nspeed);
 			}
 			// Strafe left
-			if (controls->key_pressed('A')){
-					vel -= right * deltaTime * nspeed;
-					stamina_cost += glm::dot(vel, -right);
+			if (controller->key_pressed('A')){
+				physicsbody->apply_impulse(-right * deltaTime * nspeed);
 			}
-			if (controls->key_pressed(' ')){
-				if (in_water) {
-					vel.y += 3 * deltaTime * nspeed;
-				} else if (consts[4] and vel.y > -10) {
-					vel.y = 15;// = vec3(0,10,0);//up * deltaTime * speed;
-					stamina_cost += vel.y;
-				}
+			if (controller->key_pressed(' ')){
+				// if (in_water) {
+					// vel.y += 3 * deltaTime * nspeed;
+				// } else if (consts[4]) {
+					physicsbody->apply_impulse(vec3(0,15,0));
+				// }
 			}
 			
 		} else {
 			
 			nspeed = 75;
 			
-			if (controls->key_pressed('W')){
-				position += forward * deltaTime * nspeed;
+			if (controller->key_pressed('W')){
+				box.position += forward * deltaTime * nspeed;
 			}
 			// Move backward
-			if (controls->key_pressed('S')){
-				position -= forward * deltaTime * nspeed;
+			if (controller->key_pressed('S')){
+				box.position -= forward * deltaTime * nspeed;
 			}
 			// Strafe right
-			if (controls->key_pressed('D')){
-				position += right * deltaTime * nspeed;
+			if (controller->key_pressed('D')){
+				box.position += right * deltaTime * nspeed;
 			}
 			// Strafe left
-			if (controls->key_pressed('A')){
-				position -= right * deltaTime * nspeed;
+			if (controller->key_pressed('A')){
+				box.position -= right * deltaTime * nspeed;
 			}
-			if (controls->key_pressed(' ')){
-				position += up * deltaTime * speed;
+			if (controller->key_pressed(' ')){
+				box.position += up * deltaTime * speed;
 			}
-			if (controls->key_pressed(controls->KEY_SHIFT)){
-				position -= up * deltaTime * speed;
+			if (controller->key_pressed(controller->KEY_SHIFT)){
+				box.position -= up * deltaTime * speed;
 			}
+			
+			set_box(box);
 		}
 	}
 	
-	use_stamina(stamina_cost/30 * deltaTime);
+	// use_stamina(stamina_cost/30 * deltaTime);
 	
 	for (int i = 0; i < 10; i ++) {
-		if (controls->key_pressed((i != 9) ? '1' + i : '0')) {
+		if (controller->key_pressed((i != 9) ? '1' + i : '0')) {
 			selitem = i;
 			break;
 		}
 	}
 	
-	selitem += controls->scroll_rel();
+	selitem += controller->scroll_rel();
 	selitem = std::max(0, std::min(selitem, (int)blockstorage.size()));
 	
-	if (controls->mouse_button(0)) {
+	if (controller->mouse_button(0)) {
 		if (timeout >= 0) {
 			left_mouse(deltaTime);
 			timeout = -0.5f;
 		}
 		timeout += deltaTime;
-	} else if (controls->mouse_button(1)) {
+	} else if (controller->mouse_button(1)) {
 		right_mouse(deltaTime);
 		// if (timeout >= 0) {
 			// timeout = -0.5f;
@@ -578,7 +549,7 @@ void Player::computeMatricesFromInputs(){
 	
 
 	// For the next frame, the "last time" will be "now"
-	lastTime = currentTime;
+	// lastTime = currentTime;
 }
 
 void Player::render_ui(UIVecs* uivecs) {
@@ -627,3 +598,5 @@ void Player::render_ui(UIVecs* uivecs) {
 	// }
 	// sel->render(uivecs, 0.75, -1 - 0.5 * (attack_recharge / total_attack_recharge), 0.25);
 }
+
+EXPORT_PLUGIN(Player);

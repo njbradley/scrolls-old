@@ -46,21 +46,29 @@ class Player: public Entity {
 		ItemContainer inven;
 		ItemContainer backpack;
 		
-		Player(World* newworld, vec3 pos);
-    Player(World* newworld, istream& ifile);
-    void init_block_breaking_vecs();
-    void set_block_breaking_vecs(Pixel* pix, ivec3 hitpos, int level);
-    void save_to_file(ostream& ofile);
-    virtual void die();
-    //virtual void calc_constraints();
+		vec2 angle;
+    double health = 0;
+    double healing_health = 0;
+    double damage_health = 0;
+    double healing_speed = 0;
+		
+		bool spectator = false;
+		Controls* controller = nullptr;
+		
+		Player();
+		
+		virtual void init();
+		virtual void from_file(istream& ifile);
+		virtual void to_file(ostream& ifile);
 		mat4 getViewMatrix();
 		mat4 getProjectionMatrix();
 		void right_mouse(double dt);
 		void left_mouse(double dt);
     void raycast(Block** hit, ivec3* dir, vec3* hitpos);
 		void mouse_button();
-		void computeMatricesFromInputs();
-    void update_held_light();
+		void die();
+		virtual void timestep(float deltatime);
+		void computeMatricesFromInputs(float deltatime);
 		void render_ui(UIVecs* uivecs);
 };
 

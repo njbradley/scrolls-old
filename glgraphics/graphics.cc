@@ -199,6 +199,8 @@ void GLGraphicsContext::load_textures() {
 }
 
 void GLGraphicsContext::block_draw_call() {
+	if (camera_rot == nullptr or camera_pos == nullptr) return;
+	
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 	glDepthMask(GL_TRUE);
@@ -340,6 +342,12 @@ void GLGraphicsContext::swap() {
 	
 	glfwSwapBuffers(window);
 	glfwPollEvents();
+}
+
+
+
+void free_mouse() {
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 

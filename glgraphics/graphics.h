@@ -55,8 +55,8 @@ class GLGraphicsContext : public GraphicsContext { public:
 	
 	vector<UIRect> ui_atlas;
 	
-	vec3* camera_pos;
-	vec2* camera_rot;
+	vec3* camera_pos = nullptr;
+	vec2* camera_rot = nullptr;
 	
 	GLGraphicsContext();
 	~GLGraphicsContext();

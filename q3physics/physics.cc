@@ -14,11 +14,15 @@ q3Body* wbody;
 Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free, q3Scene* nscene): PhysicsBody(free), scene(nscene) {
 	q3BodyDef bodydef;
 	bodydef.bodyType = eDynamicBody;
-	bodydef.position = freeblock->box.global_center();
+	bodydef.position = freeblock->box.position;
 	bodydef.linearVelocity = freeblock->box.velocity;
 	bodydef.angularVelocity = freeblock->box.angularvel;
 	bodydef.angle = glm::angle(freeblock->box.rotation);
 	bodydef.axis = glm::axis(freeblock->box.rotation);
+	bodydef.lockAxisX = !freeblock->allow_rotation;
+	bodydef.lockAxisY = !freeblock->allow_rotation;
+	bodydef.lockAxisZ = !freeblock->allow_rotation;
+	bodydef.allowSleep = freeblock->allow_sleep;
 	body = scene->CreateBody(bodydef);
 	
 	// add_box(Hitbox(vec3(0), vec3(-0.5), vec3(0.5)));
@@ -124,7 +128,7 @@ Q3PhysicsBox* Q3PhysicsBox::from_pix(Pixel* pix, q3Body* worldbody) {
 
 
 Q3PhysicsEngine::Q3PhysicsEngine(World* world, float dt):
-PhysicsEngine(world, dt), scene(deltatime, &broadphase), broadphase(&scene, world) {
+PhysicsEngine(world, dt), scene(deltatime, &broadphase, vec3(0,-9.8*2,0)), broadphase(&scene, world) {
 	wbody = broadphase.worldbody;
 }
 

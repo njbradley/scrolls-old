@@ -3,33 +3,63 @@
 
 #include "entity.h"
 
-#include "items.h"
 #include "world.h"
-#include "tiles.h"
 #include "blockdata.h"
-#include "cross-platform.h"
 #include "blocks.h"
 #include "blockiter.h"
-#include "materials.h"
 #include "debug.h"
 #include "graphics.h"
-#include "libraries.h"
+#include "fileformat.h"
 
-#include <algorithm>
+DEFINE_PLUGIN(Entity);
 
-using namespace glm;
+Entity::Entity(): FreeBlock() {
+  
+}
 
-using namespace std;
+Entity::~Entity() {
+  
+}
 
-void print(vec3 v) {
-    cout << v.x << ' ' << v.y << ' ' << v.z << endl;
+void Entity::init() {
+  set_pixel(new Pixel(blocktypes::leaves.id));
+}
+
+void Entity::set_position(vec3 pos, quat rot) {
+  box.position = pos;
+  box.rotation = rot;
+  set_box(box);
+}
+
+void Entity::from_file(istream& ifile) {
+  FreeBlock::from_file(ifile);
+}
+
+void Entity::to_file(ostream& ofile) const {
+  ofile << blockformat::entity;
+  FileFormat::write_fixed(ofile, get_plugin_id().id);
+  FreeBlock::to_file(ofile);
+}
+
+void Entity::timestep(float deltatime) {
+  
+}
+
+Entity* Entity::entity_cast() {
+  return this;
+}
+
+Entity* Entity::create_from_file(istream& ifile) {
+  if (ifile.peek() == blockformat::entity) {
+    ifile.get();
+  }
+  PluginId id;
+  FileFormat::read_fixed(ifile, &id.id);
+  return pluginhead<Entity>->find(id)->getfunc();
 }
 
 
-
-
-
-
+/*
 Entity::Entity(World* nworld, vec3 pos, vec3 hitbox1, vec3 hitbox2):
 world(nworld), position(pos), box1(hitbox1), box2(hitbox2), alive(true), immune(false), flying(false)
 {
@@ -623,7 +653,7 @@ bool Entity::colliding(const Entity* other) {
 void Entity::kill() {
   
 }
-
+*/
 
 
 #endif

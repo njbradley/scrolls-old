@@ -2,92 +2,57 @@
 #define MULTIPLAYER
 
 #include "multiplayer.h"
-#include "world.h"
-#include "tiles.h"
-#include "game.h"
-#include "entity.h"
+#include "scrolls/world.h"
+#include "scrolls/tiles.h"
+#include "scrolls/game.h"
+#include "scrolls/entity.h"
+#include "scrolls/fileformat.h"
 
-BufOut::BufOut(char* ndata, int* nwritten): data(ndata), written(nwritten) {
+MemBuf::MemBuf(char* data, int max_len) {
+	setg(data, data, data+max_len);
+	setp(data, data, data+max_len);
+}
+
+int MemBuf::written() const {
+	return int(pptr - pbase);
+}
+
+int MemBuf::read() const {
+	return int(gptr - gbase);
+}
+
+
+
+Packet::Packet(): sent(time(NULL)) {
 	
 }
 
-std::streambuf::int_type BufOut::overflow(std::streambuf::int_type val) {
-	data[*written] = val;
-	*written ++;
-	return val;
-}
-
-BufIn::BufIn(char* ndata, int* nread): data(ndata), read(nread) {
+Packet::Packet(istream& idata): sent(FileFormat::read_variable(idata)) {
 	
 }
 
-std::streambuf::int_type BufIn::underflow() {
-	return data[*read ++];
+void Packet::pack(ostream& odata) {
+	FileFormat::write_fixed(odata, get_plugin_id());
+	FileFormat::write_variable(sent);
 }
 
 
-Packet::Packet(string name): name(newname), sent(time(NULL)) {
+
+ServerPacket::ServerPacket() {
 	
 }
 
-Packet::Packet(char* data, int* read): name(getval<string>(data, read)), sent(getval<int>(data, read)) {
+ServerPacket::ServerPacket(istream& idata): Packet(idata) {
 	
 }
 
-void Packet::pack(char* data, int* written) {
-	packval<string>(data, written, type);
-	packval<int>(data, written, sent);
-}
-
-template <typename T>
-void Packet::packval(char* data, int* written, T val) {
-	*((T*)(data+*written)) = val;
-	*written += sizeof(T);
-}
-
-template <>
-void Packet::packval<string>(char* data, int* written, string val) {
-	for (char c : val) {
-		((char*)data)[*written] = c;
-		*written += 1;
-	}
-	((char*)data)[*written] = 0;
-	*written += 1;
-}
-
-template <typename T>
-T Packet::getval(char* data, int* read) {
-	T val = *((T*)(data+*read));
-	*read += sizeof(T);
-	return val;
-}
-
-template <>
-string Packet::getval<string>(char* data, int* read) {
-	char* cdata = (char*)data;
-	string result;
-	while (cdata[*read] != 0) {
-		result.push_back(cdata[*read]);
-		*read += 1;
-	}
-	return result;
-}
-
-ServerPacket::ServerPacket(string name): Packet(name) {
-	
-}
-
-ServerPacket::ServerPacket(char* data, int* read): Packet(data, read) {
-	
-}
-
-void ServerPacket::pack(char* data, int* written) {
-	Packet::pack(data, written);
+void ServerPacket::pack(ostream& odata) {
+	Packet::pack(odata);
 }
 
 
 
-ClientPacket::ClientPacket(string name, int newid): Packet(name), clientid(newid) {
+ClientPacket::ClientPacket( newid): Packet(name), clientid(newid) {
 	
 }
 
