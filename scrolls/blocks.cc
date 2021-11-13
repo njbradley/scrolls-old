@@ -1274,6 +1274,9 @@ void FreeBlock::timestep(float deltatime) {
   }
   
   
+  // box.timestep(deltatime);
+  // set_box(box);
+  
   // nextbox.dampen(0.001f,0.01f,0);
   
   // nextbox.velocity *= 1.0f / (1.0f + deltatime * 0.1f);

@@ -36,6 +36,8 @@ using std::pair;
 
 typedef uint8_t uint8;
 typedef unsigned int uint;
+typedef uint64_t uint64;
+typedef uint32_t uint32;
 
 #define SAFEMOD(a,b) ( ((b) + ((a)%(b))) % (b) )
 #define SAFEDIV(a,b) ( (a) / (b) + (((a) % (b)) >> 31) )

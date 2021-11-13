@@ -134,6 +134,13 @@ void q3Body::AddBox( q3Box* box ) {
 //--------------------------------------------------------------------------------------------------
 void q3Body::RemoveBox( const q3Box* box )
 {
+	RemoveBoxNoFree(box);
+	m_scene->m_heap.Free( (void*)box );
+}
+
+//--------------------------------------------------------------------------------------------------
+void q3Body::RemoveBoxNoFree( const q3Box* box )
+{
 	assert( box );
 	assert( box->body == this );
 
@@ -163,7 +170,15 @@ void q3Body::RemoveBox( const q3Box* box )
 
 	// This shape was not connected to this body.
 	assert( found );
+	
+	RemoveContacts(box);
+	
+	m_scene->m_contactManager.m_broadphase->RemoveBox( box );
+	
+	CalculateMassData( );
+}
 
+void q3Body::RemoveContacts(const q3Box* box) {
 	// Remove all contacts associated with this shape
 	q3ContactEdge* edge = m_contactList;
 	while ( edge )
@@ -177,12 +192,6 @@ void q3Body::RemoveBox( const q3Box* box )
 		if ( box == A || box == B )
 			m_scene->m_contactManager.RemoveContact( contact );
 	}
-
-	m_scene->m_contactManager.m_broadphase->RemoveBox( box );
-
-	CalculateMassData( );
-
-	m_scene->m_heap.Free( (void*)box );
 }
 
 //--------------------------------------------------------------------------------------------------

@@ -12,8 +12,8 @@
 #endif
 
 struct PluginId {
-	using id_t = unsigned long int;
-	using half_id_t = unsigned int;
+	using id_t = uint64_t;
+	using half_id_t = uint32_t;
 	id_t id;
 	
 	constexpr char compress_char(char let) const {
@@ -410,15 +410,15 @@ class PluginLoader { public:
 #define CONCAT(a, b) CONCAT_INNER(a, b)
 #define CONCAT_INNER(a, b) a ## b
 
-#define UNIQUENAME CONCAT(_unique_name_, __COUNTER__)
+#define UNIQUENAME(name) CONCAT(name, __COUNTER__)
 
 extern PluginLoader pluginloader;
 
 #define DEFINE_PLUGIN(X) template <> PluginDef<X>* pluginhead<X> = nullptr;
 
-#define EXPORT_PLUGIN(X) static ExportPlugin<X> UNIQUENAME;
+#define EXPORT_PLUGIN(X) static ExportPlugin<X> UNIQUENAME(_export_plugin_);
 
-#define EXPORT_PLUGIN_SINGLETON(X) static ExportPluginSingleton<decltype(X),&X> UNIQUENAME (#X);
+#define EXPORT_PLUGIN_SINGLETON(X) static ExportPluginSingleton<decltype(X),&X> UNIQUENAME(_export_singleton_) (#X);
 
 #define BASE_PLUGIN_HEAD(X, params) typedef X Plugin_BaseType; \
 	typedef X* (*ctor_func) params; \
@@ -438,5 +438,13 @@ extern PluginLoader pluginloader;
 
 #define PLUGIN_REQUIRES(prefix, plugin, NewType) \
 	PluginUpCast<GetPluginType<decltype(prefix plugin)>::type, NewType> plugin {&(prefix plugin)};
+
+#define PLUGIN_REQUIRES_RUNTIME(oldname, newname, NewType) \
+	struct UNIQUENAME(_plugin_requires_) { \
+		typedef GetPluginType<decltype(oldname)>::type OldType; \
+		NewType* operator->() { \
+			return (NewType*) ((OldType*) oldname); \
+		} \
+	} newname;
 
 #endif

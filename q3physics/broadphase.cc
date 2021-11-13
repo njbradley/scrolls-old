@@ -24,8 +24,8 @@ bool BlockBroadPhase::can_collide(Pixel* pix) {
 }
 
 void BlockBroadPhase::add_contact(Pixel* pix1, Pixel* pix2) {
-	Q3PhysicsBox* box1 = Q3PhysicsBox::from_pix(pix1, worldbody);
-	Q3PhysicsBox* box2 = Q3PhysicsBox::from_pix(pix2, worldbody);
+	Q3PhysicsBox* box1 = Q3PhysicsBox::from_pix(pix1);
+	Q3PhysicsBox* box2 = Q3PhysicsBox::from_pix(pix2);
 	m_manager->AddContact(&box1->qbox, &box2->qbox);
 }
 

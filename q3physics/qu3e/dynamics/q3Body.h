@@ -64,6 +64,8 @@ public:
 	// to recompute its mass if the body is dynamic. Frees the memory
 	// pointed to by the box pointer.
 	void RemoveBox( const q3Box* box );
+	void RemoveBoxNoFree( const q3Box* box );
+	void RemoveContacts( const q3Box* box );
 
 	// Removes all boxes from this body and the broadphase.
 	void RemoveAllBoxes( );

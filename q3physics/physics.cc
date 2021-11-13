@@ -5,13 +5,15 @@
 #include "scrolls/world.h"
 #include "scrolls/tiles.h"
 #include "scrolls/blockdata.h"
+#include "scrolls/game.h"
+
+// PLUGIN_REQUIRES(game->world->, physics, Q3PhysicsEngine);
 
 
 
+PLUGIN_REQUIRES_RUNTIME(game->world->physics, physics, Q3PhysicsEngine);
 
-q3Body* wbody;
-
-Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free, q3Scene* nscene): PhysicsBody(free), scene(nscene) {
+Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free): PhysicsBody(free) {
 	q3BodyDef bodydef;
 	bodydef.bodyType = eDynamicBody;
 	bodydef.position = freeblock->box.position;
@@ -23,13 +25,13 @@ Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free, q3Scene* nscene): PhysicsBody(free
 	bodydef.lockAxisY = !freeblock->allow_rotation;
 	bodydef.lockAxisZ = !freeblock->allow_rotation;
 	bodydef.allowSleep = freeblock->allow_sleep;
-	body = scene->CreateBody(bodydef);
+	body = physics->scene.CreateBody(bodydef);
 	
 	// add_box(Hitbox(vec3(0), vec3(-0.5), vec3(0.5)));
 	
 	for (Pixel* pix : free->iter()) {
 		if (pix != 0) {
-			Q3PhysicsBox* tmp = Q3PhysicsBox::from_pix(pix, wbody);
+			Q3PhysicsBox* tmp = Q3PhysicsBox::from_pix(pix);
 		}
 	}
 	
@@ -37,7 +39,7 @@ Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free, q3Scene* nscene): PhysicsBody(free
 }
 
 Q3PhysicsBody::~Q3PhysicsBody() {
-	scene->RemoveBody(body);
+	physics->scene.RemoveBody(body);
 }
 
 void Q3PhysicsBody::sync_q3() {
@@ -77,24 +79,26 @@ void Q3PhysicsBody::apply_impulse(vec3 impulse, vec3 point) {
 	body->ApplyLinearImpulseAtWorldPoint(impulse, point);
 }
 
-Q3PhysicsBody* Q3PhysicsBody::from_block(FreeBlock* free, q3Scene* scene) {
-	if (free->physicsbody == nullptr) {
-		return new Q3PhysicsBody(free, scene);
+
+
+
+
+Q3PhysicsBox::Q3PhysicsBox(Pixel* pix): PhysicsBox(pix) {
+	update();
+	if (pixel->parbl->freecontainer == nullptr) {
+		qbox.body = physics->worldbody();
 	} else {
-		return (Q3PhysicsBody*) free->physicsbody;
+		Q3PhysicsBody* body = Q3PhysicsBody::from_block(pixel->parbl->freecontainer);
+		body->body->AddBox(&qbox);
 	}
 }
 
-
-
-
-Q3PhysicsBox::Q3PhysicsBox(Pixel* pix, q3Body* worldbody): PhysicsBox(pix) {
-	update();
-	if (pixel->parbl->freecontainer == nullptr) {
-		qbox.body = worldbody;
+Q3PhysicsBox::~Q3PhysicsBox() {
+	if (pixel->parbl->freecontainer != nullptr) {
+		Q3PhysicsBody* body = Q3PhysicsBody::from_block(pixel->parbl->freecontainer);
+		body->body->RemoveBoxNoFree(&qbox);
 	} else {
-		Q3PhysicsBody* body = (Q3PhysicsBody*) pixel->parbl->freecontainer->physicsbody;
-		body->body->AddBox(&qbox);
+		physics->worldbody()->RemoveContacts(&qbox);
 	}
 }
 
@@ -108,18 +112,11 @@ void Q3PhysicsBox::update() {
 	boxtoq3(box, &qbox);
 	
 	// box.body = worldbody;
-	qbox.friction = 0.4;
-	qbox.restitution = 0.2;
-	qbox.density = 1.0;
+	BlockData* data = blockstorage[pixel->value];
+	qbox.friction = data->friction;
+	qbox.restitution = data->restitution;
+	qbox.density = data->density;
 	qbox.sensor = false;
-}
-
-Q3PhysicsBox* Q3PhysicsBox::from_pix(Pixel* pix, q3Body* worldbody) {
-	if (pix->physicsbox == nullptr) {
-		return new Q3PhysicsBox(pix, worldbody);
-	} else {
-		return (Q3PhysicsBox*) pix->physicsbox;
-	}
 }
 
 
@@ -129,7 +126,11 @@ Q3PhysicsBox* Q3PhysicsBox::from_pix(Pixel* pix, q3Body* worldbody) {
 
 Q3PhysicsEngine::Q3PhysicsEngine(World* world, float dt):
 PhysicsEngine(world, dt), scene(deltatime, &broadphase, vec3(0,-9.8*2,0)), broadphase(&scene, world) {
-	wbody = broadphase.worldbody;
+	
+}
+
+q3Body* Q3PhysicsEngine::worldbody() const {
+	return broadphase.worldbody;
 }
 
 void Q3PhysicsEngine::tick() {
@@ -137,7 +138,7 @@ void Q3PhysicsEngine::tick() {
 	Q3PhysicsBody* body = nullptr;
 	for (Tile* tile : world->tiles) {
 		for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
-			body = Q3PhysicsBody::from_block(free, &scene);
+			body = Q3PhysicsBody::from_block(free);
 			body->sync_glm();
 		}
 	}

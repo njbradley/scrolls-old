@@ -154,7 +154,7 @@ void TileMap::status(ostream& ofile) {
 }
 
 
-World::World(string oldname): terrainloader(seed), tileloader(this), name(oldname), physics(this, 1/30.0f),
+World::World(string oldname): terrainloader(seed), tileloader(this), name(oldname), physics(this, 1/20.0f),
 tiles( ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) + 3) {
   ifstream ifile(path("worlddata.txt"));
   if (ifile.good()) {
@@ -380,7 +380,7 @@ void World::timestep() {
 
 void World::tick() {
   static bool n_pressed = false;
-  static bool paused = true;
+  static bool paused = false;
   
   if (controls->key_pressed('M')) {
     paused = false;

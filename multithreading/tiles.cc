@@ -185,9 +185,10 @@ void TickThread::operator()() {
 		}
 		ms = (getTime() - start_time) * 1000;
 		parent->tick_ms = ms;
-		if (ms < 25) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(25 - ms));
+		if (ms < 35) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(35 - ms));
 		}
+		// cout << getTime() - start_time << endl;
 	}
 }
 
