@@ -29,9 +29,8 @@ class Tile : public Container {
 		
 		Tile(ivec3 position, World* world);
 		~Tile();
-		void tick();
-		void timestep(float deltatime);
-		void resolve_timestep(float deltatime);
+		void tick(float curtime, float deltatime);
+		void timestep(float curtime, float deltatime);
 		void drop_ticks();
 		void render(RenderVecs* vecs, RenderVecs* transvecs);
 		void save();

@@ -146,7 +146,12 @@ void Block::update() {
   } else {
     if (!continues and pixel != nullptr) {
       if (pixel->physicsbox != nullptr) {
-        pixel->physicsbox->update();
+        if (pixel->value == 0) {
+          delete pixel->physicsbox;
+          pixel->physicsbox = nullptr;
+        } else {
+          pixel->physicsbox->update();
+        }
       }
     }
   }
@@ -666,23 +671,23 @@ void Block::reset_all_flags(uint8 flag) {
   }
 }
 
-void Block::tick() {
+void Block::tick(float curtime, float deltatime) {
   
 }
 
-void Block::timestep(float deltatime) {
+void Block::timestep(float curtime, float deltatime) {
   if (freecontainer != nullptr) {
-    freecontainer->timestep(deltatime);
+    freecontainer->timestep(curtime, deltatime);
     return;
   }
   
   if (freechild != nullptr) {
-    freechild->timestep(deltatime);
+    freechild->timestep(curtime, deltatime);
   }
   
   if (continues) {
     for (int i = 0; i < csize3; i ++) {
-      children[i]->timestep(deltatime);
+      children[i]->timestep(curtime, deltatime);
     }
   }
 }
@@ -705,6 +710,19 @@ void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool re
     for (FREECHILDREN_LOOP(free)) {
       free->render(vecs, transvecs, faces, render_null);
     }
+  }
+}
+
+void Block::render_position() {
+  if (continues) {
+    for (CHILDREN_LOOP(i)) {
+      children[i]->render_position();
+    }
+  } else {
+    pixel->render_position();
+  }
+  for (FREECHILDREN_LOOP(free)) {
+    free->render_position();
   }
 }
 
@@ -1247,11 +1265,7 @@ void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int ns
   box.posbox = box.negbox + float(scale);
 }
 
-void FreeBlock::tick() {
-  
-}
-
-void FreeBlock::timestep(float deltatime) {
+void FreeBlock::tick(float curtime, float deltatime) {
   if (physicsbody == nullptr) return;
   
   float mag = 10 * scale;
@@ -1272,6 +1286,10 @@ void FreeBlock::timestep(float deltatime) {
   if (controls->key_pressed('U')) {
     physicsbody->apply_impulse(vec3(0,mag*2,0) * deltatime);
   }
+}
+
+void FreeBlock::timestep(float curtime, float deltatime) {
+  
   
   
   // box.timestep(deltatime);
@@ -1285,25 +1303,6 @@ void FreeBlock::timestep(float deltatime) {
 
 Entity* FreeBlock::entity_cast() {
   return nullptr;
-}
-
-void FreeBlock::resolve_timestep(float deltatime) {
-  
-  
-  // debuglines->render(box);
-  // debuglines->render(box.global_midpoint(), box.global_midpoint() + box.angularvel, vec3(1,0,0));
-  // debuglines->render(box.global_midpoint(), box.global_midpoint() + box.velocity);
-  
-  // Movingpoint points[8];
-  // box.points(points);
-  // for (Movingpoint point : points) {
-  //   debuglines->render(point.position, point.position + point.velocity, vec3(1,0,1));
-  // }
-  
-  // cout << "END " << endl;
-  // set_box(box);
-  // debuglines->render(highparent->hitbox(), vec3(1,1,0));
-  // debuglines->render(highparent->freebox(), vec3(1,0,0));
 }
 
 void FreeBlock::set_box(Movingbox newbox) {
@@ -1332,16 +1331,18 @@ void FreeBlock::set_box(Movingbox newbox) {
   
   box = newbox;
   
-  for (Pixel* pix : iter()) {
-    if (pix->lastvecs != nullptr) {
-      pix->render(pix->lastvecs, nullptr, 0xFF, false);
-    } else {
-      pix->parbl->set_flag(RENDER_FLAG);
-    }
-  }
+  // render_position();
+  // return;
+  // for (Pixel* pix : iter()) {
+  //   if (false and pix->lastvecs != nullptr) {
+  //     // pix->render(pix->lastvecs, nullptr, 0xFF, false);
+  //   } else {
+  //     pix->parbl->set_flag(RENDER_FLAG);
+  //   }
+  // }
   
   // set_flag(RENDER_FLAG);
-  // set_all_flags(RENDER_FLAG);
+  set_all_flags(RENDER_FLAG);
 }
 
 
@@ -1682,6 +1683,27 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
   }
 }
 
+
+void Pixel::render_position() {
+  if (render_index.isnull()) {
+    parbl->set_flag(Block::RENDER_FLAG);
+  } else {
+    RenderData renderdata;
+    
+    quat rot = parbl->getrotation();
+    renderdata.pos.loc.pos = parbl->fglobalpos() + rot * vec3(parbl->scale/2.0f, parbl->scale/2.0f, parbl->scale/2.0f);
+    renderdata.pos.loc.rot = rot;
+    renderdata.pos.loc.scale = parbl->scale;
+    
+    for (int i = 0; i < 12; i ++) {
+      renderdata.type.data[i] = 0;
+    }
+    
+    lastvecs->edit(render_index, renderdata);
+  }
+}
+
+
 void Pixel::set(int val, int newdirection, int newjoints[6]) {
   WRITE_LOCK;
   if (val == 0) {
@@ -1780,17 +1802,8 @@ void Pixel::random_tick() {
   
 }
 
-void Pixel::tick() { // ERR: race condition, render and tick threads race, render renders, tick causes falling
-  return;
-  if (value == 0) {
-    if (group != nullptr) {
-      // group->del(this);
-    }
-    group = nullptr;
-  } else if (group == nullptr) {
-    // BlockGroup* newgroup = new BlockGroup(world);
-    // newgroup->spread(this, nullptr, ivec3(0,0,0), 1000);
-  }
+void Pixel::tick(float curtime, float deltatime) {
+  
 }
 
 void Pixel::erase_render() {

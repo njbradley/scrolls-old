@@ -278,7 +278,7 @@ double Item::collision(Pixel* pix) {
   if (head == nullptr or head->isnull or !head->data->sharpenable) {
     sharpness = 1;
     force = 1;
-    mat = &materials::fist;
+    mat = &materials::dirt;
   } else {
     mat = head->data->material;
   }
@@ -764,9 +764,9 @@ namespace items {
     .block = 2,
   });
   
-  EXPORT_PLUGIN_SINGLETON(dirt);
-  EXPORT_PLUGIN_SINGLETON(wood);
-  EXPORT_PLUGIN_SINGLETON(leaves);
+  EXPORT_PLUGIN_SINGLETON(&dirt);
+  EXPORT_PLUGIN_SINGLETON(&wood);
+  EXPORT_PLUGIN_SINGLETON(&leaves);
 }
 
 

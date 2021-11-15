@@ -418,7 +418,7 @@ extern PluginLoader pluginloader;
 
 #define EXPORT_PLUGIN(X) static ExportPlugin<X> UNIQUENAME(_export_plugin_);
 
-#define EXPORT_PLUGIN_SINGLETON(X) static ExportPluginSingleton<decltype(X),&X> UNIQUENAME(_export_singleton_) (#X);
+#define EXPORT_PLUGIN_SINGLETON(X) static ExportPluginSingleton<std::remove_pointer<decltype(X)>::type,X> UNIQUENAME(_export_singleton_) (#X);
 
 #define BASE_PLUGIN_HEAD(X, params) typedef X Plugin_BaseType; \
 	typedef X* (*ctor_func) params; \

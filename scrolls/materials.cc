@@ -86,37 +86,30 @@ double Material::collision_force(Material* other, double sharpness, double force
 namespace materials {
 	Material dirt ({
 		.name = "dirt",
-		.toughness = 1,
-		.elastic = 1,
 		.hitsound = "dirt-hit",
-		.density = 2,
+		.density = 4,
 	});
 	
 	Material stone ({
 		.name = "stone",
-		.toughness = 22,
-		.elastic = 0,
 		.density = 22,
 	});
 	
+	Material wood ({
+		.name = "wood",
+		.density = 2,
+	});
+	
 	Material leaves ({
-		.name = "dirt",
-		.toughness = 0.5,
-		.elastic = 3,
+		.name = "leaves",
 		.hitsound = "sand-hit",
+		.density = 0.2
 	});
 	
-	Material fist ({
-		.name = "fist",
-		.toughness = 1,
-		.elastic = 1,
-		.hitsound = "sand-hit",
-	});
-	
-	EXPORT_PLUGIN_SINGLETON(dirt);
-	EXPORT_PLUGIN_SINGLETON(stone);
-	EXPORT_PLUGIN_SINGLETON(leaves);
-	EXPORT_PLUGIN_SINGLETON(fist);
+	EXPORT_PLUGIN_SINGLETON(&dirt);
+	EXPORT_PLUGIN_SINGLETON(&stone);
+	EXPORT_PLUGIN_SINGLETON(&wood);
+	EXPORT_PLUGIN_SINGLETON(&leaves);
 }
 
 

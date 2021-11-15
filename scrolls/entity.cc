@@ -41,7 +41,7 @@ void Entity::to_file(ostream& ofile) const {
   FreeBlock::to_file(ofile);
 }
 
-void Entity::timestep(float deltatime) {
+void Entity::timestep(float curtime, float deltatime) {
   
 }
 

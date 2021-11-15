@@ -62,6 +62,7 @@ class World: public Collider { public:
   BASE_PLUGIN_HEAD(World, (string name));
   
   static const int chunksize = 64;
+  static constexpr float tick_deltatime = 1/20.0f;
   
   string name;
   int seed;
@@ -76,6 +77,7 @@ class World: public Collider { public:
   PluginNow<TerrainLoader> terrainloader;
   PluginNow<TileLoader> tileloader;
   PluginNow<PhysicsEngine> physics;
+  Plugin<TickRunner> tickrunner;
   
   Player* player = nullptr;
   
@@ -98,8 +100,8 @@ class World: public Collider { public:
   
   vec3 get_position() const;
   bool render();
-  void timestep();
-  void tick();
+  void timestep(float curtime, float deltatime);
+  void tick(float curtime, float deltatime);
   void drop_ticks();
   
   void block_update(ivec3);

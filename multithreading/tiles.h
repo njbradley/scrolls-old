@@ -43,7 +43,6 @@ public:
 	std::thread loading_threads[num_threads];
 	std::thread deleting_threads[num_threads];
 	std::thread rendering_thread;
-	std::thread tick_thread;
 	int tick_ms;
 	World* world;
 	
@@ -82,12 +81,5 @@ public:
 	void operator()();
 };
 
-class TickThread {
-	ThreadedTileLoader* parent;
-	int ms;
-public:
-	TickThread(ThreadedTileLoader* newparent);
-	void operator()();
-};
 
 #endif

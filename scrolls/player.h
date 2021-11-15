@@ -3,6 +3,8 @@
 
 #include "classes.h"
 #include "entity.h"
+#include "blockdata.h"
+#include "materials.h"
 
 class Controls { public:
 	BASE_PLUGIN_HEAD(Controls, ());
@@ -67,9 +69,13 @@ class Player: public Entity {
     void raycast(Block** hit, ivec3* dir, vec3* hitpos);
 		void mouse_button();
 		void die();
-		virtual void timestep(float deltatime);
+		virtual void tick(float curtime, float deltatime);
+		virtual void timestep(float curtime, float deltatime);
 		void computeMatricesFromInputs(float deltatime);
 		void render_ui(UIVecs* uivecs);
+		
+		static BlockData blockdata;
+		static Material material;
 };
 
 #endif

@@ -42,8 +42,8 @@ Player::Player(): inven(10), backpack(10) {
 void Player::init() {
 	std::lock_guard<Player> guard(*this);
 	divide();
-	set_child(ivec3(0,0,0), new Block(new Pixel(blocktypes::dirt.id)));
-	set_child(ivec3(0,1,0), new Block(new Pixel(blocktypes::dirt.id)));
+	set_child(ivec3(0,0,0), new Block(new Pixel(blockdata.id)));
+	set_child(ivec3(0,1,0), new Block(new Pixel(blockdata.id)));
 }
 
 void Player::from_file(istream& ifile) {
@@ -372,19 +372,13 @@ void Player::die() {
 	// }
 }
 
-void Player::timestep(float deltatime) {
-	Entity::timestep(deltatime);
+void Player::tick(float curtime, float deltatime) {
+	Entity::tick(curtime, deltatime);
 	computeMatricesFromInputs(deltatime);
 }
 
-void Player::computeMatricesFromInputs(float deltaTime) {
-	if (controller == nullptr) return;
-	
-	if (attack_recharge > 0) {
-		attack_recharge -= deltaTime;
-	}
-	
-	
+void Player::timestep(float curtime, float deltatime) {
+	Entity::timestep(curtime, deltatime);
 	// Compute new orientation
 	angle += vec2(float(mouseSpeed) * vec2(settings->screen_dims/2 - controller->mouse_pos()));
 	
@@ -412,6 +406,47 @@ void Player::computeMatricesFromInputs(float deltaTime) {
 		cos(angle.y) * cos(angle.x)
 	);
 	pointing = direction;
+	
+	for (int i = 0; i < 10; i ++) {
+		if (controller->key_pressed((i != 9) ? '1' + i : '0')) {
+			selitem = i;
+			break;
+		}
+	}
+	
+	selitem += controller->scroll_rel();
+	selitem = std::max(0, std::min(selitem, (int)blockstorage.size()));
+	
+	if (controller->mouse_button(0)) {
+		if (timeout >= 0) {
+			left_mouse(deltatime);
+			timeout = -0.5f;
+		}
+		timeout += deltatime;
+	} else if (controller->mouse_button(1)) {
+		right_mouse(deltatime);
+		// if (timeout >= 0) {
+			// timeout = -0.5f;
+		// }
+		timeout += deltatime;
+	} else {
+		timeout = 0;
+		placing_block = nullptr;
+		placing_freeblock = nullptr;
+		moving_freeblock = nullptr;
+	}
+}
+
+void Player::computeMatricesFromInputs(float deltaTime) {
+	if (controller == nullptr) return;
+	
+	if (attack_recharge > 0) {
+		attack_recharge -= deltaTime;
+	}
+	
+	
+	// Direction : Spherical coordinates to Cartesian coordinates conversion
+	glm::vec3 direction = pointing;
 	// Right vector
 	glm::vec3 right = glm::vec3(
 		sin(angle.x - 3.14f/2.0f),
@@ -507,35 +542,6 @@ void Player::computeMatricesFromInputs(float deltaTime) {
 	}
 	
 	// use_stamina(stamina_cost/30 * deltaTime);
-	
-	for (int i = 0; i < 10; i ++) {
-		if (controller->key_pressed((i != 9) ? '1' + i : '0')) {
-			selitem = i;
-			break;
-		}
-	}
-	
-	selitem += controller->scroll_rel();
-	selitem = std::max(0, std::min(selitem, (int)blockstorage.size()));
-	
-	if (controller->mouse_button(0)) {
-		if (timeout >= 0) {
-			left_mouse(deltaTime);
-			timeout = -0.5f;
-		}
-		timeout += deltaTime;
-	} else if (controller->mouse_button(1)) {
-		right_mouse(deltaTime);
-		// if (timeout >= 0) {
-			// timeout = -0.5f;
-		// }
-		timeout += deltaTime;
-	} else {
-		timeout = 0;
-		placing_block = nullptr;
-		placing_freeblock = nullptr;
-		moving_freeblock = nullptr;
-	}
 	//mouse = false;
 	
 	if (health <= 0) {
@@ -598,5 +604,19 @@ void Player::render_ui(UIVecs* uivecs) {
 	// }
 	// sel->render(uivecs, 0.75, -1 - 0.5 * (attack_recharge / total_attack_recharge), 0.25);
 }
+
+Material Player::material ({
+	.name = "playermaterial",
+	.density = 0.5,
+});
+
+BlockData Player::blockdata ({
+	.name = "playerblock",
+	.material = &Player::material,
+	.texture_names = {"dirt.bmp"},
+});
+
+EXPORT_PLUGIN_SINGLETON(&Player::material);
+EXPORT_PLUGIN_SINGLETON(&Player::blockdata);
 
 EXPORT_PLUGIN(Player);

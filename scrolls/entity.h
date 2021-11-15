@@ -19,7 +19,7 @@ class Entity : public FreeBlock { public:
   
   virtual void set_position(vec3 pos, quat rot = quat(1,0,0,0));
   
-  virtual void timestep(float deltatime);
+  virtual void timestep(float curtime, float deltatime);
   virtual Entity* entity_cast();
   
   static Entity* create_from_file(istream& ifile);

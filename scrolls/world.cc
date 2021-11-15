@@ -154,7 +154,7 @@ void TileMap::status(ostream& ofile) {
 }
 
 
-World::World(string oldname): terrainloader(seed), tileloader(this), name(oldname), physics(this, 1/20.0f),
+World::World(string oldname): terrainloader(seed), tileloader(this), name(oldname), physics(this, tick_deltatime),
 tiles( ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) + 3) {
   ifstream ifile(path("worlddata.txt"));
   if (ifile.good()) {
@@ -164,6 +164,7 @@ tiles( ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) * ((setting
   }
   startup();
   tileloader->begin_serving();
+  tickrunner.init(this, tick_deltatime);
 }
 
 World::~World() {
@@ -323,11 +324,7 @@ void World::add_tile(Tile* tile) {
   loading_chunks.erase(tile->pos);
 }
 
-void World::timestep() {
-  static double last_time = getTime();
-  double now = getTime();
-  double dt = now - last_time;
-  last_time = now;
+void World::timestep(float curtime, float deltatime) {
   
   debuglines->clear();
   // ivec3 chunk(SAFEDIV(player->box.position, (float)chunksize);
@@ -336,11 +333,6 @@ void World::timestep() {
   //   player->timestep();
   //   player->computeMatricesFromInputs();
   // }
-  
-  static double total_time = 0;
-  static int num_times = 0;
-  double start = getTime();
-  
   
   for (Tile* tile : tiles) {
     if (player == nullptr) {
@@ -353,22 +345,14 @@ void World::timestep() {
         }
       }
     }
-    tile->timestep(dt);
-  }
-  for (Tile* tile : tiles) {
-    tile->resolve_timestep(dt);
+    tile->timestep(curtime, deltatime);
   }
   
   if (player == nullptr and !initial_generation) {
     spawn_player();
   }
   
-  total_time += getTime() - start;
-  num_times ++;
-  
-  // cout << total_time / num_times << ' ' << num_times << endl;
-  
-  daytime += dt;
+  daytime += deltatime;
   if (daytime > 2000) {
     daytime -= 2000;
   }
@@ -378,7 +362,7 @@ void World::timestep() {
   
 }
 
-void World::tick() {
+void World::tick(float curtime, float deltatime) {
   static bool n_pressed = false;
   static bool paused = false;
   
@@ -396,17 +380,10 @@ void World::tick() {
   }
   n_pressed = cur_n_pressed;
   
-  physics->tick();
   for (Tile* tile : tiles) {
-    tile->tick();
+    tile->tick(curtime, deltatime);
   }
-}
-
-void World::drop_ticks() {
-  // player->drop_ticks();
-  for (Tile* tile : tiles) {
-    tile->drop_ticks();
-  }
+  physics->tick(curtime, deltatime);
 }
 
 vec3 World::get_position() const {
@@ -530,6 +507,7 @@ bool World::is_world_closed() {
 
 void World::close_world() {
   tileloader->end_serving();
+  tickrunner.close();
   
   if (saving) {
     ofstream ofile(path("player.txt"));

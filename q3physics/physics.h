@@ -44,7 +44,7 @@ class Q3PhysicsEngine : public PhysicsEngine { public:
 	
 	Q3PhysicsEngine(World* world, float dt);
 	q3Body* worldbody() const;
-	virtual void tick();
+	virtual void tick(float curtime, float deltatime);
 };
 
 

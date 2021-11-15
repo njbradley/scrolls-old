@@ -89,8 +89,14 @@ void GLVecsDestination::write(RenderIndex index, RenderData data) {
   // cout << "writing to " << endl;
   glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
   glBufferSubData(GL_ARRAY_BUFFER, index.vert_index()*sizeof(GLfloat), index.vert_size*sizeof(GLfloat), data.pos.data);
-  glBindBuffer(GL_ARRAY_BUFFER, databuffer);
-  glBufferSubData(GL_ARRAY_BUFFER, index.data_index()*sizeof(GLint), index.data_size*sizeof(GLint), data.type.data);
+  int sum = 0;
+  for (int i = 0; i < 12; i ++) {
+    sum += data.type.data[i];
+  }
+  if (sum != 0) {
+    glBindBuffer(GL_ARRAY_BUFFER, databuffer);
+    glBufferSubData(GL_ARRAY_BUFFER, index.data_index()*sizeof(GLint), index.data_size*sizeof(GLint), data.type.data);
+  }
 }
 
 

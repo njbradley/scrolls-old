@@ -6,6 +6,7 @@
 #include "scrolls/tiles.h"
 #include "scrolls/blockdata.h"
 #include "scrolls/game.h"
+#include "scrolls/materials.h"
 
 // PLUGIN_REQUIRES(game->world->, physics, Q3PhysicsEngine);
 
@@ -112,10 +113,10 @@ void Q3PhysicsBox::update() {
 	boxtoq3(box, &qbox);
 	
 	// box.body = worldbody;
-	BlockData* data = blockstorage[pixel->value];
-	qbox.friction = data->friction;
-	qbox.restitution = data->restitution;
-	qbox.density = data->density;
+	Material* mat = blockstorage[pixel->value]->material;
+	qbox.friction = mat->friction;
+	qbox.restitution = mat->restitution;
+	qbox.density = mat->density;
 	qbox.sensor = false;
 }
 
@@ -133,19 +134,25 @@ q3Body* Q3PhysicsEngine::worldbody() const {
 	return broadphase.worldbody;
 }
 
-void Q3PhysicsEngine::tick() {
+void Q3PhysicsEngine::tick(float curtime, float dt) {
 	double start = getTime();
 	Q3PhysicsBody* body = nullptr;
+	// for (Tile* tile : world->tiles) {
+	// 	for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
+	// 		body = Q3PhysicsBody::from_block(free);
+	// 		body->sync_glm();
+	// 	}
+	// }
+	
+	double mid = getTime();
+	scene.Step();
+	
 	for (Tile* tile : world->tiles) {
 		for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
 			body = Q3PhysicsBody::from_block(free);
 			body->sync_glm();
 		}
 	}
-	
-	double mid = getTime();
-	scene.Step();
-	
 	// cout << getTime() - mid << " Step  " << mid - start << " sync " << endl;
 }
 

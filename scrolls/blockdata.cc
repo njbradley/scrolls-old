@@ -59,14 +59,20 @@ namespace blocktypes {
   });
   
   BlockData bark ({
-    .name = "wood",
-    .material = &materials::dirt,
+    .name = "bark",
+    .material = &materials::wood,
     .texture_names = {"bark.bmp"},
+  });
+  
+  BlockData stone ({
+    .name = "stone",
+    .material = &materials::stone,
+    .texture_names = {"stone.bmp"},
   });
   
   BlockData wood ({
     .name = "wood",
-    .material = &materials::dirt,
+    .material = &materials::wood,
     .texture_names = {"wood.bmp"},
   });
   
@@ -83,10 +89,11 @@ namespace blocktypes {
     .transparent = true,
   });
   
-  EXPORT_PLUGIN_SINGLETON(dirt);
-  EXPORT_PLUGIN_SINGLETON(grass);
-  EXPORT_PLUGIN_SINGLETON(wood);
-  EXPORT_PLUGIN_SINGLETON(leaves);
+  EXPORT_PLUGIN_SINGLETON(&dirt);
+  EXPORT_PLUGIN_SINGLETON(&grass);
+  EXPORT_PLUGIN_SINGLETON(&wood);
+  EXPORT_PLUGIN_SINGLETON(&leaves);
+  EXPORT_PLUGIN_SINGLETON(&stone);
 }
 
 

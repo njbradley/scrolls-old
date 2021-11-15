@@ -148,14 +148,15 @@ class Block: public Collider { public:
 	// if the flag was set by other blocks
 	void set_flag(uint8 flag);
 	void reset_flag(uint8 flag);
-	// sets/resets the flags all up to top node
+	// sets the flags all up to top node
 	void set_all_flags(uint8 flag);
 	void reset_all_flags(uint8 flag);
 	
-	void tick();
-	void timestep(float deltatime);
+	void tick(float curtime, float deltatime);
+	void timestep(float curtime, float deltatime);
 	
 	void render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null);
+	void render_position();
 	void lighting_update(bool spread = true);
 	
 	BlockIter iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(csize-1,csize-1,csize-1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr);
@@ -212,12 +213,17 @@ class Block: public Collider { public:
 
 class FreeBlock : public Block { public:
 	Movingbox box;
-	bool fixed = false;
-	bool paused = false;
-	bool asleep = false;
+	Hitbox renderbox;
+	Hitbox nextbox;
+	float tick_time = 0;
+	
 	Block* highparent = nullptr;
 	FreeBlock* allfreeblocks = nullptr;
 	PhysicsBody* physicsbody = nullptr;
+	
+	bool fixed = false;
+	bool paused = false;
+	bool asleep = false;
 	bool allow_sleep = true;
 	bool allow_rotation = true;
 	bool allow_raycast = true;
@@ -232,9 +238,8 @@ class FreeBlock : public Block { public:
 	void set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale);
 	void expand(ivec3 dir);
 	void set_box(Movingbox newbox);
-	void tick();
-	virtual void timestep(float deltatime);
-	void resolve_timestep(float deltatime);
+	virtual void tick(float curtime, float deltatime);
+	virtual void timestep(float curtime, float deltatime);
 	virtual Entity* entity_cast();
 	
 	void calculate_mass();
@@ -267,9 +272,10 @@ class Pixel { public:
 	void set_block(Block* nblock);
 	void rotate(int axis, int dir);
 	void render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null);
+	void render_position();
 	void set(Blocktype val, int direction = -1, int joints[6] = nullptr);
 	void render_update();
-	void tick();
+	void tick(float curtime, float deltatime);
 	void random_tick();
 	void erase_render();
 	void calculate_sunlight(unordered_set<ivec3,ivec3_hash>* next_poses = nullptr);

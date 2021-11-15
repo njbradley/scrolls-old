@@ -10,7 +10,9 @@ struct MaterialParams {
 	double elastic = 0;
 	string breaksound = "null";
 	string hitsound = "null";
-	double density = 0.5;
+	float density = 1;
+	float restitution = 0.2;
+	float friction = 0.4;
 };
 
 class Material : public MaterialParams { public:
@@ -31,8 +33,8 @@ extern Storage<Material> materialstorage;
 namespace materials {
 	extern Material dirt;
 	extern Material stone;
+	extern Material wood;
 	extern Material leaves;
-	extern Material fist;
 }
 
 #endif

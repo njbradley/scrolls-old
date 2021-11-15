@@ -191,7 +191,17 @@ class PhysicsEngine { public:
   
   PhysicsEngine(World* nworld, float deltatime);
   
-  virtual void tick() = 0;
+  virtual void tick(float curtime, float deltatime) = 0;
+};
+
+class TickRunner { public:
+  BASE_PLUGIN_HEAD(TickRunner, (World* world, float deltatime));
+  
+  World* world;
+  float deltatime;
+  
+  TickRunner(World* nworld, float dt): world(nworld), deltatime(dt) {}
+  virtual ~TickRunner() {};
 };
 
 #endif

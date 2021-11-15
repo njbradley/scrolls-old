@@ -306,7 +306,8 @@ void sig_abort(int sig) {
   
   ofile << endl << "ALL THREADS:" << endl;
   get_all_threads_trace(ofile);
-  exit(sig);
+  // exit(sig);
+  abort();
 }
 
 void sig_int(int sig) {
@@ -322,7 +323,8 @@ void sig_int(int sig) {
   std::cerr << sigtrace_str.str();
   ofile << sigtrace_str.str();
   
-  exit(sig);
+  // exit(sig);
+  abort();
 }
 
 void DwarfDebugger::setup_backtrace() {

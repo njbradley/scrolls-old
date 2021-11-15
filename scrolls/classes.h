@@ -126,6 +126,7 @@ class RenderVecs;
 class ThreadManager;
 class Tile;
 class TileLoader;
+class TickRunner;
 class TerrainLoader;
 class GraphicsContext;
 class AudioContext;

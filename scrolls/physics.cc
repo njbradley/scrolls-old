@@ -657,3 +657,5 @@ DEFINE_PLUGIN(PhysicsEngine);
 PhysicsEngine::PhysicsEngine(World* nworld, float dt): world(nworld), deltatime(dt) {
   
 }
+
+DEFINE_PLUGIN(TickRunner);

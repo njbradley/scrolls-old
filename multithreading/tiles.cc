@@ -44,8 +44,6 @@ void ThreadedTileLoader::begin_serving() {
 	
 	rendering_thread = thread(RenderingThread(this));
 	
-	tick_thread = thread(TickThread(this));
-	
 	for (int i = 0; i < num_threads; i ++) {
 		loading[i] = nullptr;
 		deleting[i] = nullptr;
@@ -70,8 +68,6 @@ void ThreadedTileLoader::end_serving() {
 	//cout << "joining rendering thread" << endl;
 	cout << "Rendering thread ending" << endl;
 	rendering_thread.join();
-	cout << "Tick thread ending" << endl;
-	tick_thread.join();
 	for (int i = 0; i < num_threads; i ++) {
 		load_running[i] = false;
 		cout << "Loading thread " << i << " ending" << endl;
@@ -172,26 +168,6 @@ void RenderingThread::operator()() {
 	}
 	
 }
-
-TickThread::TickThread(ThreadedTileLoader* newparent): parent(newparent) {
-	
-}
-
-void TickThread::operator()() {
-	while (parent->render_running) {
-		double start_time = getTime();
-		if (parent->world != nullptr) {
-			parent->world->tick();
-		}
-		ms = (getTime() - start_time) * 1000;
-		parent->tick_ms = ms;
-		if (ms < 35) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(35 - ms));
-		}
-		// cout << getTime() - start_time << endl;
-	}
-}
-
 
 
 template class JobQueue<ivec3>;
