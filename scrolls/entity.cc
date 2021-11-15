@@ -49,7 +49,7 @@ Entity* Entity::entity_cast() {
   return this;
 }
 
-Entity* Entity::create_from_file(istream& ifile) {
+Entity* Entity::create_from_id(istream& ifile) {
   if (ifile.peek() == blockformat::entity) {
     ifile.get();
   }

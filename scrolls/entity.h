@@ -22,7 +22,7 @@ class Entity : public FreeBlock { public:
   virtual void timestep(float curtime, float deltatime);
   virtual Entity* entity_cast();
   
-  static Entity* create_from_file(istream& ifile);
+  static Entity* create_from_id(istream& ifile);
 };
 /*
 class Entity { public:

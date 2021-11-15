@@ -573,9 +573,11 @@ void Block::try_join() {
 }
 
 void Block::to_file(ostream& ofile) const {
-  for (FREECHILDREN_LOOP(free)) {
-    ofile << blockformat::free;
-    free->to_file(ofile);
+  if (freecontainer == nullptr) {
+    for (FREECHILDREN_LOOP(free)) {
+      ofile << blockformat::free;
+      free->to_file(ofile);
+    }
   }
   if (continues) {
     ofile << blockformat::chunk;
@@ -597,7 +599,7 @@ void Block::from_file(istream& ifile) {
     ifile.get();
     FreeBlock* free;
     if (ifile.peek() == blockformat::entity) {
-      free = Entity::create_from_file(ifile);
+      free = Entity::create_from_id(ifile);
     } else {
       free = new FreeBlock();
     }
@@ -1198,8 +1200,6 @@ FreeBlock::~FreeBlock() {
 
 void FreeBlock::to_file(ostream& ofile) const {
   Block::to_file(ofile);
-  
-  char type = 0b00; // type not used
   
   FileFormat::write_fixed(ofile, box.position.x);
   FileFormat::write_fixed(ofile, box.position.y);

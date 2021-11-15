@@ -61,7 +61,7 @@ class Player: public Entity {
 		
 		virtual void init();
 		virtual void from_file(istream& ifile);
-		virtual void to_file(ostream& ifile);
+		virtual void to_file(ostream& ifile) const;
 		mat4 getViewMatrix();
 		mat4 getProjectionMatrix();
 		void right_mouse(double dt);

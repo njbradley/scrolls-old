@@ -48,14 +48,14 @@ void Player::init() {
 
 void Player::from_file(istream& ifile) {
 	std::lock_guard<Player> guard(*this);
-	FreeBlock::from_file(ifile);
+	Entity::from_file(ifile);
 	selitem = FileFormat::read_variable(ifile);
 	FileFormat::read_fixed(ifile, &angle.x);
 	FileFormat::read_fixed(ifile, &angle.y);
 }
 
-void Player::to_file(ostream& ofile) {
-	FreeBlock::to_file(ofile);
+void Player::to_file(ostream& ofile) const {
+	Entity::to_file(ofile);
 	FileFormat::write_variable(ofile, selitem);
 	FileFormat::write_fixed(ofile, angle.x);
 	FileFormat::write_fixed(ofile, angle.y);

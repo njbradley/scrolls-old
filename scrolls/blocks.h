@@ -233,7 +233,7 @@ class FreeBlock : public Block { public:
 	FreeBlock(istream& ifile);
 	~FreeBlock();
 	virtual void to_file(ostream& ofile) const;
-	void from_file(istream& ifile);
+	virtual void from_file(istream& ifile);
 	void set_parent(Block* nparent);
 	void set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale);
 	void expand(ivec3 dir);
