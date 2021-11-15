@@ -1,5 +1,7 @@
 This is version 0.4 (in dev) of scrolls alpha: the adventure game!
 
+The physics engine qu3e (https://github.com/RandyGaul/qu3e/) is used for the physics in this game. Many thanks to the developers!
+
 Getting started:
 
 Precompiled distributions:
@@ -27,44 +29,39 @@ On linux, apt can be used:
 	libglm-dev
 	libboost-all-dev
 On mac and linux, the libraries can be installed with atp-get or brew.
-The compile command is rather simple with make, run the command "make main" in the
+The compile command is rather simple with make, run the command "make" in the
 root directory. Specify the platform by adding PLAT=MAC or PLAT=LINUX.
-on windows with mingw the command is "mingw32-make main" but otherwise
+on windows with mingw the command is "mingw32-make" but otherwise
 it is the same.
-Thats it! now you should have an executable! However, it has to be kept with the resources folder wherever you run it.
+Thats it! now you should have an executable!
 
 Playing the game:
-To play the game, double click on main.exe. A window should pop up with a new world open.
-The controls are listed below, so walk around and explore! I am working on a tutorial, but for now, there is not
-much guidance for what to do. A few pointers:
- -You can create a crafting table by collecting crafting table blocks (normally in the terrain structures)
-  and place them in a square. A 2x2 crafting table is level 2, a 3x3 table is level 3, and so on. Each level unlocks more
-  and more recipes.
- -Skeletons spawn in the snow, so watch out for them sneaking up on you, they blend right in
- -Pigs are a great source of food, they spawn in the grassy areas
- -The night is pitch black, so make sure to craft some lanterns and place them down when it starts to get dark
+To play the game, double click on scrolls.exe. A window should pop up with a new world open.
+The controls are listed below, so walk around and explore! Right now there are not many game features, I have
+mostly been working on efficient block physics.
  
 Controls:
 WASD - movement
 Mouse - look around
 Scroll - change holding item
 Number Keys - select holding item
-Left click - destroy item (takes time)
-Right click - place item or interact with special blocks
-E - inventory
-C - hand crafting
-M - main menu
+Left click - destroy block
+Right click - place block, or grab block if selected item is nothing
+Shift-Right click - place free block, that follows physics
 Ctr-Q - quit
 
 Debug:
-O/P - show/hide debug menu
-R - force cleaning of memory vectors
 F/G - enter/exit spectator mode
+B - Pause physics simulation (will pause player movement too)
+M - Resume physics simulation
+N - Step forward one physics tick
 
 Version 0.4:
  Additions:
- -implemented transparent blocks, including water!
- -water has physics and flows (almost working)
+ -Added "Free blocks" which are blocks that are not on the grid, either rotated or moved over.
+ -Used the physics engine qu3e to add real world rigid body physics for the new freeblocks.
+ -Reorganized the scripts into separate plugins, for different parts of the game, like graphics, audio, game, world.
+ -
 
 Version 0.3:
  Additions:
