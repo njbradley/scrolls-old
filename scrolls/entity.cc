@@ -42,7 +42,7 @@ void Entity::to_file(ostream& ofile) const {
 }
 
 void Entity::timestep(float curtime, float deltatime) {
-  
+  FreeBlock::timestep(curtime, deltatime);
 }
 
 Entity* Entity::entity_cast() {

@@ -45,9 +45,9 @@ const uint8 lightmax = 20;
 // for (int i = 0; i < csize3; i ++) {
 //    if (children[i] != nullptr) {
 //      .....
-#define CHILDREN_LOOP(varname) int varname = 0; varname < 8; varname ++) if (children[varname] != nullptr
+#define CHILDREN_LOOP(varname) int varname = 0; varname < csize3; varname ++) if (children[varname] != nullptr
 
-#define FREECHILDREN_LOOP(varname) FreeBlock* varname = freechild; varname != nullptr; varname = varname->freechild
+#define FREECHILDREN_LOOP(varname) FreeBlock* varname = freechild; varname != nullptr; varname = varname->next
 
 Block::Block(): continues(false), pixel(nullptr) {
   // for (int i = 0; i < csize3; i ++) {
@@ -129,11 +129,11 @@ void Block::swap(Block* other) {
   freechild = other->freechild;
   other->freechild = tmp;
   
-  for (FreeBlock* free = freechild; free != nullptr; free = free->freechild) {
+  for (FreeBlock* free = freechild; free != nullptr; free = free->next) {
     free->set_parent(this, world, ivec3(0,0,0), scale/2);
   }
   
-  for (FreeBlock* free = other->freechild; free != nullptr; free = free->freechild) {
+  for (FreeBlock* free = other->freechild; free != nullptr; free = free->next) {
     free->set_parent(other, other->world, ivec3(0,0,0), other->scale/2);
   }
 }
@@ -243,7 +243,7 @@ void Block::add_freechild(FreeBlock* newfree) {
   std::lock_guard<Block> guard(*this);
   FreeBlock** freedest = &freechild;
   while (*freedest != nullptr) {
-    freedest = &(*freedest)->freechild;
+    freedest = &(*freedest)->next;
   }
   
   *freedest = newfree;
@@ -254,10 +254,10 @@ void Block::remove_freechild(FreeBlock* newfree) {
   std::lock_guard<Block> guard(*this);
   FreeBlock** freedest = &freechild;
   while (*freedest != nullptr and *freedest != newfree) {
-    freedest = &(*freedest)->freechild;
+    freedest = &(*freedest)->next;
   }
   if (*freedest != nullptr) {
-    FreeBlock* next = (*freedest)->freechild;
+    FreeBlock* next = (*freedest)->next;
     *freedest = next;
   }
   if (parent != nullptr) {
@@ -683,12 +683,12 @@ void Block::timestep(float curtime, float deltatime) {
     return;
   }
   
-  if (freechild != nullptr) {
-    freechild->timestep(curtime, deltatime);
+  for (FREECHILDREN_LOOP(free)) {
+    free->timestep(curtime, deltatime);
   }
   
   if (continues) {
-    for (int i = 0; i < csize3; i ++) {
+    for (CHILDREN_LOOP(i)) {
       children[i]->timestep(curtime, deltatime);
     }
   }
@@ -737,9 +737,9 @@ void Block::lighting_update(bool spread)  {
       }
     } else {
       pixel->lighting_update(spread);
-      for (FREECHILDREN_LOOP(free)) {
-        free->lighting_update(spread);
-      }
+    }
+    for (FREECHILDREN_LOOP(free)) {
+      free->lighting_update(spread);
     }
   }
 }
@@ -1131,7 +1131,7 @@ bool Block::collide(Hitbox newbox, Hitbox* boxhit, float deltatime, FreeBlock* i
 
 bool Block::collide_free(Hitbox newbox, Block* block, Hitbox* boxhit, float deltatime, FreeBlock* ignore) {
   while (block != nullptr) {
-    for (FreeBlock* free = block->freechild; free != nullptr; free = free->freechild) {
+    for (FreeBlock* free = block->freechild; free != nullptr; free = free->next) {
       if (free != ignore) {
         if (collide(newbox, free, boxhit, deltatime, ignore)) {
           return true;
@@ -1290,7 +1290,11 @@ void FreeBlock::tick(float curtime, float deltatime) {
 
 void FreeBlock::timestep(float curtime, float deltatime) {
   
-  
+  Movingbox newbox = box;
+  newbox.timestep(curtime - update_time);
+  renderbox = newbox;
+  // cout << renderbox << ' ' << curtime << ' ' << update_time << endl;
+  render_position();
   
   // box.timestep(deltatime);
   // set_box(box);
@@ -1305,7 +1309,7 @@ Entity* FreeBlock::entity_cast() {
   return nullptr;
 }
 
-void FreeBlock::set_box(Movingbox newbox) {
+void FreeBlock::set_box(Movingbox newbox, float curtime) {
   std::lock_guard<Block> guard(*this);
   
   if (!highparent->freebox().contains(newbox)) {
@@ -1330,6 +1334,12 @@ void FreeBlock::set_box(Movingbox newbox) {
   }
   
   box = newbox;
+  renderbox = newbox;
+  if (curtime < 0) {
+    update_time = getTime();
+  } else {
+    update_time = curtime;
+  }
   
   // render_position();
   // return;
@@ -1608,9 +1618,16 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
     
     bool exposed = false;
     
-    quat rot = parbl->getrotation();
-    renderdata.pos.loc.pos = parbl->fglobalpos() + rot * vec3(parbl->scale/2.0f, parbl->scale/2.0f, parbl->scale/2.0f);
-    renderdata.pos.loc.rot = rot;
+    Hitbox mybox = parbl->local_hitbox();
+    FreeBlock* freecont = parbl->freecontainer;
+    while (freecont != nullptr) {
+      mybox = freecont->renderbox.transform_out(mybox);
+      freecont = freecont->highparent->freecontainer;
+    }
+    
+    // quat rot = parbl->getrotation();
+    renderdata.pos.loc.pos = mybox.global_midpoint();//parbl->fglobalpos() + rot * vec3(parbl->scale/2.0f, parbl->scale/2.0f, parbl->scale/2.0f);
+    renderdata.pos.loc.rot = mybox.rotation;
     renderdata.pos.loc.scale = parbl->scale;
     
     int mat[6];
@@ -1686,13 +1703,20 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
 
 void Pixel::render_position() {
   if (render_index.isnull()) {
+    cout << "waiting " << endl;
     parbl->set_flag(Block::RENDER_FLAG);
   } else {
     RenderData renderdata;
     
-    quat rot = parbl->getrotation();
-    renderdata.pos.loc.pos = parbl->fglobalpos() + rot * vec3(parbl->scale/2.0f, parbl->scale/2.0f, parbl->scale/2.0f);
-    renderdata.pos.loc.rot = rot;
+    Hitbox mybox = parbl->local_hitbox();
+    FreeBlock* freecont = parbl->freecontainer;
+    while (freecont != nullptr) {
+      mybox = freecont->renderbox.transform_out(mybox);
+      freecont = freecont->highparent->freecontainer;
+    }
+    
+    renderdata.pos.loc.pos = mybox.global_midpoint();
+    renderdata.pos.loc.rot = mybox.rotation;
     renderdata.pos.loc.scale = parbl->scale;
     
     for (int i = 0; i < 12; i ++) {

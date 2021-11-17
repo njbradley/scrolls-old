@@ -29,7 +29,7 @@ DEFINE_PLUGIN(Controls);
 
 Plugin<Controls> controls;
 
-float speed = 80.0f * 8; // 3 units / second
+float speed = 40.0f * 8; // 3 units / second
 float mouseSpeed = 0.003f;
 
 Player::Player(): inven(10), backpack(10) {
@@ -141,7 +141,7 @@ void Player::right_mouse(double deltatime) {
 		}
 		timeout = -0.2f;
 	} else if (moving_freeblock != nullptr) {
-		const float mul = 20.0f;
+		const float mul = 100.0f;
 		// const float lim = 0.05f;
 		
 		vec3 dest_point = box.position + pointing * moving_range;
@@ -507,7 +507,7 @@ void Player::computeMatricesFromInputs(float deltaTime) {
 				// if (in_water) {
 					// vel.y += 3 * deltaTime * nspeed;
 				// } else if (consts[4]) {
-					physicsbody->apply_impulse(vec3(0,15,0));
+					physicsbody->apply_impulse(vec3(0,35,0));
 				// }
 			}
 			

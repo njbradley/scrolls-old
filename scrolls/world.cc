@@ -253,9 +253,9 @@ void World::spawn_player() {
 }
 
 void World::set_player_vars() {
-  audio->set_listener(&player->box.position, &player->box.velocity, &player->angle);
-  graphics->set_camera(&player->box.position, &player->angle);
-  viewbox->playerpos = &player->box.position;
+  audio->set_listener(&player->renderbox.position, &player->box.velocity, &player->angle);
+  graphics->set_camera(&player->renderbox.position, &player->angle);
+  viewbox->playerpos = &player->renderbox.position;
   player->controller = controls;
 }
 

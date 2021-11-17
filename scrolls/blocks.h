@@ -214,10 +214,10 @@ class Block: public Collider { public:
 class FreeBlock : public Block { public:
 	Movingbox box;
 	Hitbox renderbox;
-	Hitbox nextbox;
-	float tick_time = 0;
+	float update_time = 0;
 	
 	Block* highparent = nullptr;
+	FreeBlock* next = nullptr;
 	FreeBlock* allfreeblocks = nullptr;
 	PhysicsBody* physicsbody = nullptr;
 	
@@ -237,7 +237,7 @@ class FreeBlock : public Block { public:
 	void set_parent(Block* nparent);
 	void set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale);
 	void expand(ivec3 dir);
-	void set_box(Movingbox newbox);
+	void set_box(Movingbox newbox, float curtime = -1);
 	virtual void tick(float curtime, float deltatime);
 	virtual void timestep(float curtime, float deltatime);
 	virtual Entity* entity_cast();

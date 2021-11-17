@@ -43,7 +43,7 @@ Q3PhysicsBody::~Q3PhysicsBody() {
 	physics->scene.RemoveBody(body);
 }
 
-void Q3PhysicsBody::sync_q3() {
+void Q3PhysicsBody::sync_q3(float curtime, float dt) {
 	body->SetTransform(
 		freeblock->box.position, glm::axis(freeblock->box.rotation),
 		glm::angle(freeblock->box.rotation)
@@ -54,7 +54,7 @@ void Q3PhysicsBody::sync_q3() {
 	}
 }
 
-void Q3PhysicsBody::sync_glm() {
+void Q3PhysicsBody::sync_glm(float curtime, float dt) {
 	// freeblock->box.change_center(vec3(0,0,0));
 	freeblock->box.position = body->GetTransform().position;
 	freeblock->box.rotation = body->GetQuaternion();
@@ -64,7 +64,7 @@ void Q3PhysicsBody::sync_glm() {
 	}
 	freeblock->box.mass = body->GetMass();
 	// freeblock->box.change_center(body->GetLocalCenter());
-	freeblock->set_box(freeblock->box);
+	freeblock->set_box(freeblock->box, curtime);
 }
 
 
@@ -126,7 +126,7 @@ void Q3PhysicsBox::update() {
 
 
 Q3PhysicsEngine::Q3PhysicsEngine(World* world, float dt):
-PhysicsEngine(world, dt), scene(deltatime, &broadphase, vec3(0,-9.8*2,0)), broadphase(&scene, world) {
+PhysicsEngine(world, dt/4), scene(deltatime, &broadphase, vec3(0,-9.8*2,0)), broadphase(&scene, world) {
 	
 }
 
@@ -146,11 +146,14 @@ void Q3PhysicsEngine::tick(float curtime, float dt) {
 	
 	double mid = getTime();
 	scene.Step();
+	scene.Step();
+	scene.Step();
+	scene.Step();
 	
 	for (Tile* tile : world->tiles) {
 		for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
 			body = Q3PhysicsBody::from_block(free);
-			body->sync_glm();
+			body->sync_glm(curtime, dt);
 		}
 	}
 	// cout << getTime() - mid << " Step  " << mid - start << " sync " << endl;

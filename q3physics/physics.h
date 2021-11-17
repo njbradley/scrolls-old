@@ -12,8 +12,8 @@ class Q3PhysicsBody : public PhysicsBody { public:
 	
 	Q3PhysicsBody(FreeBlock* free);
 	virtual ~Q3PhysicsBody();
-	void sync_q3();
-	void sync_glm();
+	void sync_q3(float curtime, float dt);
+	void sync_glm(float curtime, float dt);
 	
 	virtual void update();
 	
