@@ -122,6 +122,8 @@ class Hitbox { public:
   void change_center(vec3 newcenter);
   void dampen(float posthresh, float angthresh);
   
+  Hitbox lerp(Hitbox box2, float val) const;
+  
   friend ostream& operator<<(ostream& ofile, const Hitbox& hitbox);
   
   static Hitbox boundingbox_points(vec3 pos, vec3* points, int num);
@@ -170,9 +172,12 @@ class PhysicsBody { public:
   virtual ~PhysicsBody() {};
   virtual void update() {};
   
-	virtual void apply_impulse(vec3 impulse) {};
-	virtual void apply_impulse(vec3 impulse, vec3 point) {};
+	virtual void apply_impulse(vec3 impulse) = 0;
+	virtual void apply_impulse(vec3 impulse, vec3 point) = 0;
 	virtual void apply_impulse(Movingpoint point);
+  
+  virtual vec3 closest_contact(vec3 dir) = 0;
+  virtual bool in_air() = 0;
 };
 
 class PhysicsBox { public:

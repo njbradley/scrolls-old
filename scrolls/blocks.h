@@ -213,6 +213,7 @@ class Block: public Collider { public:
 
 class FreeBlock : public Block { public:
 	Movingbox box;
+	Hitbox lastbox;
 	Hitbox renderbox;
 	float update_time = 0;
 	

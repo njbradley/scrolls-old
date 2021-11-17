@@ -482,6 +482,13 @@ void Hitbox::dampen(float posthresh, float angthresh) {
   rotation = ::dampen(rotation, angthresh);
 }
 
+Hitbox Hitbox::lerp(Hitbox other, float amount) const {
+  Hitbox box = *this;
+  box.position += (other.position - position) * amount;
+  box.rotation = glm::slerp(rotation, other.rotation, amount);
+  return box;
+}
+
 ostream& operator<<(ostream& ofile, const Hitbox& hitbox) {
   ofile << "Hitbox(pos=" << hitbox.position << " negbox=" << hitbox.negbox << " posbox=" << hitbox.posbox;
   if (hitbox.rotation != quat(1,0,0,0)) {

@@ -326,7 +326,7 @@ void World::add_tile(Tile* tile) {
 
 void World::timestep(float curtime, float deltatime) {
   
-  debuglines->clear();
+  // debuglines->clear();
   // ivec3 chunk(SAFEDIV(player->box.position, (float)chunksize);
   // //player->position/float(chunksize) - vec3(player->position.x<0, player->position.y<0, player->position.z<0));
   // if (player != nullptr and (tileat(chunk) != nullptr or player->spectator)) {
@@ -365,6 +365,7 @@ void World::timestep(float curtime, float deltatime) {
 void World::tick(float curtime, float deltatime) {
   static bool n_pressed = false;
   static bool paused = false;
+  debuglines->clear();
   
   if (controls->key_pressed('M')) {
     paused = false;

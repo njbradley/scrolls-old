@@ -556,6 +556,10 @@ void q3Body::Dump( FILE* file, i32 index ) const
 	fprintf( file, "}\n\n" );
 }
 
+q3ContactEdge* q3Body::GetContactList() {
+	return m_contactList;
+}
+
 //--------------------------------------------------------------------------------------------------
 void q3Body::CalculateMassData( )
 {

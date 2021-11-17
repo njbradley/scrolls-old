@@ -1181,7 +1181,7 @@ FreeBlock::FreeBlock() {
   
 }
 
-FreeBlock::FreeBlock(Movingbox newbox): Block(), box(newbox) {
+FreeBlock::FreeBlock(Movingbox newbox): Block(), box(newbox), lastbox(newbox), renderbox(newbox) {
   
 }
 
@@ -1286,13 +1286,19 @@ void FreeBlock::tick(float curtime, float deltatime) {
   if (controls->key_pressed('U')) {
     physicsbody->apply_impulse(vec3(0,mag*2,0) * deltatime);
   }
+  
+  debuglines->render(box);
+  
 }
 
 void FreeBlock::timestep(float curtime, float deltatime) {
   
-  Movingbox newbox = box;
-  newbox.timestep(curtime - update_time);
-  renderbox = newbox;
+  // Movingbox newbox = box;
+  // newbox.timestep(curtime - update_time);
+  // renderbox = newbox;
+  
+  float ratio = std::max(0.0f, std::min((curtime - update_time) / World::tick_deltatime, 1.0f));
+  renderbox = lastbox.lerp(box, ratio);
   // cout << renderbox << ' ' << curtime << ' ' << update_time << endl;
   render_position();
   
@@ -1333,8 +1339,9 @@ void FreeBlock::set_box(Movingbox newbox, float curtime) {
     guess->add_freechild(this);
   }
   
+  lastbox = box;
+  renderbox = box;
   box = newbox;
-  renderbox = newbox;
   if (curtime < 0) {
     update_time = getTime();
   } else {

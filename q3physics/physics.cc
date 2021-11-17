@@ -7,6 +7,9 @@
 #include "scrolls/blockdata.h"
 #include "scrolls/game.h"
 #include "scrolls/materials.h"
+#include "scrolls/debug.h"
+
+#include "qu3e/dynamics/q3Contact.h"
 
 // PLUGIN_REQUIRES(game->world->, physics, Q3PhysicsEngine);
 
@@ -56,15 +59,16 @@ void Q3PhysicsBody::sync_q3(float curtime, float dt) {
 
 void Q3PhysicsBody::sync_glm(float curtime, float dt) {
 	// freeblock->box.change_center(vec3(0,0,0));
-	freeblock->box.position = body->GetTransform().position;
-	freeblock->box.rotation = body->GetQuaternion();
+	Movingbox newbox = freeblock->box;
+	newbox.position = body->GetTransform().position;
+	newbox.rotation = body->GetQuaternion();
 	if (freeblock->box.movable()) {
-		freeblock->box.velocity = body->GetLinearVelocity();
-		freeblock->box.angularvel = body->GetAngularVelocity();
+		newbox.velocity = body->GetLinearVelocity();
+		newbox.angularvel = body->GetAngularVelocity();
 	}
-	freeblock->box.mass = body->GetMass();
+	newbox.mass = body->GetMass();
 	// freeblock->box.change_center(body->GetLocalCenter());
-	freeblock->set_box(freeblock->box, curtime);
+	freeblock->set_box(newbox, curtime);
 }
 
 
@@ -80,8 +84,58 @@ void Q3PhysicsBody::apply_impulse(vec3 impulse, vec3 point) {
 	body->ApplyLinearImpulseAtWorldPoint(impulse, point);
 }
 
+vec3 Q3PhysicsBody::closest_contact(vec3 dir) {
+	vec3 max_dir (0,0,0);
+	float max_dot = 0;
+	q3ContactEdge* edge = body->GetContactList();
+	while (edge != nullptr) {
+		
+		q3Contact* contacts = edge->constraint->manifold.contacts;
+		int num_contacts = edge->constraint->manifold.contactCount;
+		
+		vec3 newdir (0,0,0);
+		
+		if (num_contacts == 1) {
+			newdir = glm::normalize(contacts[0].position - body->GetTransform().position);
+		} else if (num_contacts == 2) {
+			vec3 between_contacts = glm::normalize(contacts[1].position - contacts[0].position);
+			vec3 from_center = contacts[0].position - body->GetTransform().position;
+			from_center -= glm::dot(from_center, between_contacts) * between_contacts;
+			newdir = glm::normalize(from_center);
+		} else if (num_contacts >= 3) {
+			newdir = glm::normalize(glm::cross(contacts[1].position - contacts[0].position, contacts[2].position - contacts[1].position));
+			if (glm::dot(newdir, contacts[0].position - body->GetTransform().position) < 0) {
+				newdir *= -1;
+			}
+		}
+		
+		if (num_contacts > 0) {
+			debuglines->render(contacts[0].position, contacts[0].position - newdir);
+		}
+		
+		if (glm::dot(newdir, dir) > max_dot) {
+			max_dir = newdir;
+			max_dot = glm::dot(newdir, dir);
+		}
+		
+		//
+		// for (int i = 0; i < edge->constraint->manifold.contactCount; i ++) {
+		// 	vec3 contactpos = edge->constraint->manifold.contacts[i].position;
+		// 	debuglines->render(contactpos, body->GetTransform().position);
+		// 	vec3 newdir = glm::normalize(contactpos - body->GetTransform().position);
+		// 	if (glm::dot(newdir, dir) > max_dot) {
+		// 		max_dir = newdir;
+		// 		max_dot = glm::dot(newdir, dir);
+		// 	}
+		// }
+		edge = edge->next;
+	}
+	return max_dir;
+}
 
-
+bool Q3PhysicsBody::in_air() {
+	return body->GetContactList() == nullptr;
+}
 
 
 Q3PhysicsBox::Q3PhysicsBox(Pixel* pix): PhysicsBox(pix) {

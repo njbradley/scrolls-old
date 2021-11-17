@@ -506,38 +506,47 @@ void Player::computeMatricesFromInputs(float deltaTime) {
 			if (controller->key_pressed(' ')){
 				// if (in_water) {
 					// vel.y += 3 * deltaTime * nspeed;
-				// } else if (consts[4]) {
-					physicsbody->apply_impulse(vec3(0,35,0));
-				// }
+				// } else
+				vec3 closest_dir = physicsbody->closest_contact(-up);
+				static bool last_jump = false;
+				if (!last_jump and glm::dot(closest_dir, -up) > 0.4f) {
+					cout << "JUMP " << endl;
+					physicsbody->apply_impulse(-closest_dir * 15.0f * box.mass);
+					last_jump = true;
+				} else {
+					last_jump = false;
+				}
 			}
 			
 		} else {
 			
 			nspeed = 75;
 			
+			Movingbox newbox = box;
+			
 			if (controller->key_pressed('W')){
-				box.position += forward * deltaTime * nspeed;
+				newbox.position += forward * deltaTime * nspeed;
 			}
 			// Move backward
 			if (controller->key_pressed('S')){
-				box.position -= forward * deltaTime * nspeed;
+				newbox.position -= forward * deltaTime * nspeed;
 			}
 			// Strafe right
 			if (controller->key_pressed('D')){
-				box.position += right * deltaTime * nspeed;
+				newbox.position += right * deltaTime * nspeed;
 			}
 			// Strafe left
 			if (controller->key_pressed('A')){
-				box.position -= right * deltaTime * nspeed;
+				newbox.position -= right * deltaTime * nspeed;
 			}
 			if (controller->key_pressed(' ')){
-				box.position += up * deltaTime * speed;
+				newbox.position += up * deltaTime * speed;
 			}
 			if (controller->key_pressed(controller->KEY_SHIFT)){
-				box.position -= up * deltaTime * speed;
+				newbox.position -= up * deltaTime * speed;
 			}
 			
-			set_box(box);
+			set_box(newbox);
 		}
 	}
 	

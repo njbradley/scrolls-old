@@ -26,9 +26,10 @@ void Entity::init() {
 }
 
 void Entity::set_position(vec3 pos, quat rot) {
-  box.position = pos;
-  box.rotation = rot;
-  set_box(box);
+  Movingbox newbox = box;
+  newbox.position = pos;
+  newbox.rotation = rot;
+  set_box(newbox);
 }
 
 void Entity::from_file(istream& ifile) {

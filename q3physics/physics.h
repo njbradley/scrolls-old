@@ -20,6 +20,9 @@ class Q3PhysicsBody : public PhysicsBody { public:
 	virtual void apply_impulse(vec3 impulse);
 	virtual void apply_impulse(vec3 impulse, vec3 point);
 	
+	virtual vec3 closest_contact(vec3 dir);
+	virtual bool in_air();
+	
 	template <typename ... Args>
 	static Q3PhysicsBody* from_block(FreeBlock* free, Args ... args);
 };
