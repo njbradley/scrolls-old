@@ -1287,8 +1287,9 @@ void FreeBlock::tick(float curtime, float deltatime) {
     physicsbody->apply_impulse(vec3(0,mag*2,0) * deltatime);
   }
   
-  debuglines->render(box);
-  
+  if (entity_cast() == nullptr or entity_cast()->get_plugin_id() != Player::plugin_id) {
+    debuglines->render(box);
+  }
 }
 
 void FreeBlock::timestep(float curtime, float deltatime) {

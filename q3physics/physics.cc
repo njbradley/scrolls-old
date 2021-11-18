@@ -180,7 +180,7 @@ void Q3PhysicsBox::update() {
 
 
 Q3PhysicsEngine::Q3PhysicsEngine(World* world, float dt):
-PhysicsEngine(world, dt/4), scene(deltatime, &broadphase, vec3(0,-9.8*2,0)), broadphase(&scene, world) {
+PhysicsEngine(world, dt), scene(deltatime, &broadphase, vec3(0,-9.8*2,0)), broadphase(&scene, world) {
 	
 }
 
@@ -199,9 +199,6 @@ void Q3PhysicsEngine::tick(float curtime, float dt) {
 	// }
 	
 	double mid = getTime();
-	scene.Step();
-	scene.Step();
-	scene.Step();
 	scene.Step();
 	
 	for (Tile* tile : world->tiles) {

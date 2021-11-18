@@ -47,10 +47,49 @@ ostream& operator<<(ostream& out, quat rot) {
 	return out;
 }
 
-double getTime() {
-  static std::chrono::time_point<std::chrono::steady_clock> startTime = std::chrono::steady_clock::now();
-  return std::chrono::duration<double>(std::chrono::steady_clock::now() - startTime).count();
+#ifdef _WIN32
+#include <profileapi.h>
+
+using TimeTicks = unsigned LONGLONG;
+
+TimeTicks get_ticks_per_sec() {
+  LARGE_INTEGER val;
+  QueryPerformanceFrequency(&val);
+  return val.QuadPart;
 }
+
+TimeTicks get_raw_ticks() {
+  LARGE_INTEGER val;
+  QueryPerformanceCounter(&val);
+  return val.QuadPart;
+}
+
+#else
+
+using TimeTicks = unsigned long long int;
+
+TimeTicks get_ticks_per_sec() {
+  return 1000000000;
+}
+
+TimeTicks get_raw_ticks() {
+  timespec vals;
+  clock_gettime(CLOCK_MONOTONIC, &vals);
+  return (TimeTicks)vals.tv_sec * get_ticks_per_sec() + vals.tv_nsec;
+}
+
+#endif
+
+double getTime() {
+  static double ticks_per_sec = get_ticks_per_sec();
+  static TimeTicks start_ticks = get_raw_ticks();
+  return (double) (get_raw_ticks() - start_ticks) / ticks_per_sec;
+}
+
+// double getTime() {
+//   static std::chrono::time_point<std::chrono::steady_clock> startTime = std::chrono::steady_clock::now();
+//   return std::chrono::duration<double>(std::chrono::steady_clock::now() - startTime).count();
+// }
 
 const ivec3 dir_array[6] =    {{1,0,0}, {0,1,0}, {0,0,1}, {-1,0,0}, {0,-1,0}, {0,0,-1}};
 

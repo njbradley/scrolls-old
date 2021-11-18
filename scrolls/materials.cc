@@ -88,22 +88,26 @@ namespace materials {
 		.name = "dirt",
 		.hitsound = "dirt-hit",
 		.density = 4,
+		.restitution = 0.1,
 	});
 	
 	Material stone ({
 		.name = "stone",
 		.density = 22,
+		.restitution = 0.1,
 	});
 	
 	Material wood ({
 		.name = "wood",
 		.density = 2,
+		.restitution = 0.2,
 	});
 	
 	Material leaves ({
 		.name = "leaves",
 		.hitsound = "sand-hit",
-		.density = 0.2
+		.density = 0.2,
+		.restitution = 0.3,
 	});
 	
 	EXPORT_PLUGIN_SINGLETON(&dirt);

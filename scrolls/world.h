@@ -62,7 +62,7 @@ class World: public Collider { public:
   BASE_PLUGIN_HEAD(World, (string name));
   
   static const int chunksize = 64;
-  static constexpr float tick_deltatime = 1/10.0f;
+  static constexpr float tick_deltatime = 1/30.0f;
   
   string name;
   int seed;

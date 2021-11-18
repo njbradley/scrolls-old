@@ -71,7 +71,6 @@ mat4 Player::getProjectionMatrix() {
 void Player::raycast(Block** hit, ivec3* dir, vec3* hitpos) {
 	*hitpos = box.position;
 	*hit = highparent->raycast(hitpos, pointing, 8);
-	cout << *hit << " hit " << endl;
 	if (*hit != nullptr) {
 		if ((*hit)->freecontainer != nullptr) {
 			vec3 pos = (*hit)->freecontainer->box.transform_in(*hitpos);
@@ -480,12 +479,19 @@ void Player::computeMatricesFromInputs(float deltaTime) {
 		spectator = false;
 	}
 	
-	if (!controller->key_pressed(controller->KEY_CTRL)) {
+	if (!controller->key_pressed(controller->KEY_CTRL) and physicsbody != nullptr) {
 		if (!spectator) {
 			// Move forward
 			
 			if (controller->key_pressed(controller->KEY_SHIFT)) {
 				nspeed /= 4;
+			}
+			
+			vec3 closest_dir_down = physicsbody->closest_contact(-up);
+			bool standing = glm::dot(closest_dir_down, -up) > 0.4f;
+			
+			if (!standing) {
+				nspeed /= 3;
 			}
 			
 			if (controller->key_pressed('W')){
@@ -507,11 +513,9 @@ void Player::computeMatricesFromInputs(float deltaTime) {
 				// if (in_water) {
 					// vel.y += 3 * deltaTime * nspeed;
 				// } else
-				vec3 closest_dir = physicsbody->closest_contact(-up);
 				static bool last_jump = false;
-				if (!last_jump and glm::dot(closest_dir, -up) > 0.4f) {
-					cout << "JUMP " << endl;
-					physicsbody->apply_impulse(-closest_dir * 15.0f * box.mass);
+				if (!last_jump and standing) {
+					physicsbody->apply_impulse(-closest_dir_down * 12.0f * box.mass);
 					last_jump = true;
 				} else {
 					last_jump = false;
@@ -617,6 +621,8 @@ void Player::render_ui(UIVecs* uivecs) {
 Material Player::material ({
 	.name = "playermaterial",
 	.density = 0.5,
+	.restitution = 0.1,
+	.friction = 0.6
 });
 
 BlockData Player::blockdata ({

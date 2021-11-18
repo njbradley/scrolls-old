@@ -243,9 +243,6 @@ void World::spawn_player() {
   player->init();
   Block* spawnblock = get_global(spawnpos, 8);
   cout << spawnblock << ' ' << spawnpos << ' ' << last_player_pos << " block " << endl;
-  for (Tile* tile : tiles) {
-    cout << " pos " << tile->pos << endl;
-  }
   spawnblock->add_freechild(player);
   player->set_position(spawnpos);
   // player->spectator = true;
