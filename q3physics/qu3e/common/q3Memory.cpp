@@ -42,6 +42,7 @@ q3Stack::q3Stack( )
 	, m_entryCapacity( 64 )
 	, m_stackSize( 0 )
 {
+	
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -59,8 +60,9 @@ void q3Stack::Reserve( u32 size )
 
 	if ( size == 0 )
 		return;
-
-	if ( size >= m_stackSize )
+	
+	
+	if ( size > m_stackSize )
 	{
 		if ( m_memory ) q3Free( m_memory );
 		m_memory = (u8*)q3Alloc( size );

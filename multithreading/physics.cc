@@ -4,12 +4,15 @@
 #ifdef _WIN32
 
 #include <windows.h>
+#include <mutex>
 
 static World* global_world;
 static float global_deltatime;
+std::mutex tick_lock;
 
 void __stdcall
 TimerCallback(PVOID lpParameter, BOOLEAN TimerOrWaitFired) {
+	std::unique_lock<std::mutex> lock(tick_lock, std::try_to_lock);
 	// static double lastTime = getTime();
 	// static int times = 0;
   // times ++;
@@ -20,7 +23,11 @@ TimerCallback(PVOID lpParameter, BOOLEAN TimerOrWaitFired) {
   // }
 	// lastTime = curtime;
 	
-  global_world->tick(getTime(), global_deltatime);
+	if(lock.owns_lock()){
+		global_world->tick(getTime(), global_deltatime);
+	} else {
+		cout << "dropping tick " << endl;
+	}
 }
 
 TimedTickRunner::TimedTickRunner(World* world, float deltatime): TickRunner(world, deltatime) {

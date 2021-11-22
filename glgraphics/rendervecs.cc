@@ -40,7 +40,7 @@ void AsyncGLVecs::del(RenderIndex index) {
   synclock.unlock();
 }
 
-void AsyncGLVecs::edit(RenderIndex index, RenderData data) {
+void AsyncGLVecs::edit(RenderIndex index, RenderData data) { // ERR: heap error from changes[...], heap modified, called in tick thread
   if (ignore) return;
   synclock.lock();
   

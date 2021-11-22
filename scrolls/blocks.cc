@@ -1336,8 +1336,9 @@ void FreeBlock::set_box(Movingbox newbox, float curtime) {
       guess = guess->get_global(guesspos, scale*2);
     }
     
-    highparent->remove_freechild(this);
+    Block* oldparent = highparent;
     guess->add_freechild(this);
+    oldparent->remove_freechild(this);
   }
   
   lastbox = box;

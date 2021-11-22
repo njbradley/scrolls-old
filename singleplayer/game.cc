@@ -82,7 +82,9 @@ void SingleGame::gametick() {
 			world->saving = !controls->key_pressed(controls->KEY_SHIFT);
 		}
 	} else if (controls->key_pressed('X') and controls->key_pressed(controls->KEY_CTRL)) {
-		std::terminate();
+		// std::terminate();
+		int* i = nullptr;
+		cout << *i <<  endl;
 	} else if (controls->key_pressed('X')) {
 		exit(1);
 	} else if (controls->key_pressed(controls->KEY_CTRL) and controls->key_pressed('S')) {
