@@ -2,6 +2,8 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <thread>
+#include <signal.h>
+
 
 const char gdb_command[] = "gdb %s %i "
 " -ex \"set pagination off\""
@@ -61,14 +63,16 @@ void format_command() {
 
 void format_command() {
 	char path[100];
-	readlink("/proc/self/exe", path, 100)
+	int len = readlink("/proc/self/exe", path, 100);
+	path[len] = 0;
 	sprintf(formatted_gdb_command, gdb_command, path, getpid());
 }
 
 #endif
 
 void handler(int sig) {
-	cout << "Recieved signal " << sig << " on thread " << std::hex << GetCurrentThreadId() << std::dec << endl;
+	cout << "Recieved signal " << sig << " on thread " << endl;//std::hex << GetCurrentThreadId() << std::dec << endl;
+	puts(formatted_gdb_command);
 	system(formatted_gdb_command);
 	cleanup(sig);
 }
@@ -77,8 +81,13 @@ GDBDebugger::GDBDebugger() {
 	format_command();
 	
 	struct stat stat_info;
-	if (!stat("crash-reports/", &stat_info)) {
+	if (stat("crash-reports/", &stat_info)) {
+		cout << "creating dir " << endl;
+#ifdef _WIN32
 		mkdir("crash-reports/");
+#else
+		mkdir("crash-reports/", 0777);
+#endif
 	}
 	
 	make_log_filename(log_filename);

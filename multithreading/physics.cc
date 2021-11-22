@@ -43,6 +43,8 @@ TimedTickRunner::~TimedTickRunner() {
 
 #else
 
+volatile bool running = true;
+
 void TickThread::operator()() {
 	double curtime = getTime();
 	double lasttime = curtime;
@@ -61,11 +63,12 @@ void TickThread::operator()() {
 }
 
 TimedTickRunner::TimedTickRunner(World* world, float deltatime): TickRunner(world, deltatime),
-tickthread(TickThread{world, deltatime, true}) {
+tickobj {world, deltatime}, tickthread(tickobj) {
 	
 }
 
 TimedTickRunner::~TimedTickRunner() {
+	running = false;
 	tickthread.join();
 }
 

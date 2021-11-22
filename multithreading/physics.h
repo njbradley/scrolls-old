@@ -21,12 +21,12 @@ class TimedTickRunner : public TickRunner { public:
 struct TickThread {
 	World* world;
 	float goal_deltatime;
-	bool running;
 	void operator()();
 };
 
 class TimedTickRunner : public TickRunner { public:
 	PLUGIN_HEAD(TimedTickRunner);
+	TickThread tickobj;
 	std::thread tickthread;
 	
 	TimedTickRunner(World* world, float deltatime);
