@@ -23,7 +23,9 @@ class Controls { public:
 
 extern Plugin<Controls> controls;
 
-class Player: public Entity {
+class Player: public Entity { public:
+	PLUGIN_HEAD(Player);
+private:
 	
 	mat4 ViewMatrix;
 	mat4 ProjectionMatrix;

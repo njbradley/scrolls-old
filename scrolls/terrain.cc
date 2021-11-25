@@ -4,8 +4,7 @@
 #include "blocks.h"
 #include "fileformat.h"
 
-DEFINE_PLUGIN(TerrainLoader);
-EXPORT_PLUGIN(TerrainLoader);
+DEFINE_AND_EXPORT_PLUGIN(TerrainLoader);
 
 
 

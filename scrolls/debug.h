@@ -28,6 +28,7 @@ class Logger { public:
 };
 
 class UILogger : public Logger { public:
+	PLUGIN_HEAD(UILogger);
 	
 	class Page : public std::streambuf { public:
 		static const int numlines = 80;

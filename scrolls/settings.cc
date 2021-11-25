@@ -1,8 +1,7 @@
 #include "settings.h"
 #include "scrolls/cross-platform.h"
 
-DEFINE_PLUGIN(Settings);
-EXPORT_PLUGIN(Settings);
+DEFINE_AND_EXPORT_PLUGIN(Settings);
 
 double Settings::aspect_ratio() {
 	return screen_dims.x / double(screen_dims.y);

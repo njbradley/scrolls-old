@@ -56,7 +56,7 @@ Entity* Entity::create_from_id(istream& ifile) {
   }
   PluginId id;
   FileFormat::read_fixed(ifile, &id.id);
-  return pluginhead<Entity>->find(id)->getfunc();
+  return Entity::plugnew(id);
 }
 
 

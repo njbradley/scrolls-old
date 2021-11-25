@@ -1,10 +1,8 @@
 #include "graphics.h"
 #include "libraries.h"
 
-DEFINE_PLUGIN(ViewBox);
+DEFINE_AND_EXPORT_PLUGIN(ViewBox);
 DEFINE_PLUGIN(GraphicsContext);
-
-EXPORT_PLUGIN(ViewBox);
 
 ViewBox::ViewBox() {
 	suntexture = graphics->block_textures()->getindex("sun.bmp");

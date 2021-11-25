@@ -7,7 +7,6 @@
 #include "materials.h"
 
 DEFINE_PLUGIN(BlockData);
-DEFINE_PLUGIN(BlockStorage);
 
 BlockData::BlockData(BlockDataParams&& data): BlockDataParams(data) {
   

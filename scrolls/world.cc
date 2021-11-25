@@ -19,8 +19,7 @@
 #include <map>
 
 
-DEFINE_PLUGIN(World);
-EXPORT_PLUGIN(World);
+DEFINE_AND_EXPORT_PLUGIN(World);
 
 
 Tile* TileMap::iterator::operator*() {

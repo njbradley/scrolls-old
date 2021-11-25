@@ -6,7 +6,7 @@
 
 DEFINE_PLUGIN(Logger);
 DEFINE_PLUGIN(Debugger);
-DEFINE_PLUGIN(DebugLines);
+DEFINE_AND_EXPORT_PLUGIN(DebugLines);
 
 
 UILogger::Page::Page(): lines(60), ostr(this) {
@@ -132,4 +132,3 @@ Plugin<Logger> logger;
 Plugin<DebugLines> debuglines;
 
 EXPORT_PLUGIN(UILogger);
-EXPORT_PLUGIN(DebugLines);
