@@ -25,6 +25,7 @@
 
 
 
+
 string PluginId::name() const {
 	string str ("............");
 	id_t tmpid = id;
@@ -36,6 +37,59 @@ string PluginId::name() const {
 	}
 	return str;
 }
+
+
+PluginReq::PluginReq(istream& ifile) {
+	string buf;
+	getline(ifile, buf, '=');
+	baseid = PluginId(buf.c_str());
+	char let;
+	ifile >> let >> buf;
+	if (let == '>') {
+		exact = false;
+	} else {
+		exact = true;
+		buf = let + buf;
+	}
+	reqid = PluginId(buf.c_str());
+}
+
+
+PluginFilter::PluginFilter() {
+	ifstream ifile("plugins.txt");
+	string linebuf;
+	while (!ifile.eof()) {
+		getline(ifile, linebuf);
+		linebuf = linebuf.substr(0, linebuf.find('#'));
+		
+		stringstream line(linebuf);
+		
+		if (linebuf.find('=') == string::npos) {
+			char let = 0;
+			line >> let;
+			if (let == '!') {
+				string ignore;
+				line >> ignore;
+				if (ignore.length() > 0) {
+					ignored_plugins.push_back(ignore);
+					cout << "Ignoring plugin " << ignore << '/' << ignore << endl;
+				}
+			}
+		} else {
+			PluginReq req(line);
+			if (req.baseid != PluginId()) {
+				requirements[req.baseid] = req;
+				cout << req.baseid.name() << " = " << req.reqid.name() << endl;
+			}
+		}
+	}
+}
+
+PluginFilter* pluginfilter() {
+	static PluginFilter filter;
+	return &filter;
+}
+
 
 PluginLib::PluginLib(string path) {
 	struct stat info;
@@ -65,14 +119,17 @@ PluginLib::~PluginLib() {
 
 
 PluginLoader::PluginLoader() {
-	
+	load();
 }
 
 void PluginLoader::load() {
 	struct stat info;
+	vector<string>* ignored = &pluginfilter()->ignored_plugins;
 	for (std::filesystem::path fspath : std::filesystem::directory_iterator("./")) {
 		string path = fspath.filename().string();
-		if (stat((path + "/" + path + DLLSUFFIX).c_str(), &info) == 0 or stat((path + "/" + path + ".txt").c_str(), &info) == 0) {
+		if (std::find(ignored->begin(), ignored->end(), path) == ignored->end()
+			and (stat((path + "/" + path + DLLSUFFIX).c_str(), &info) == 0
+			or stat((path + "/" + path + ".txt").c_str(), &info) == 0)) {
 			plugins.push_back(new PluginLib(path));
 		}
 	}

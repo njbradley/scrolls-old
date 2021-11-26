@@ -2,6 +2,7 @@
 #define PLUGINS_PREDEF
 
 #include "classes.h"
+#include <map>
 
 #ifdef _WIN32
 #include <libloaderapi.h>
@@ -90,7 +91,30 @@ struct PluginId {
 	
 	friend bool operator==(const PluginId& id1, const PluginId& id2) {return id1.id == id2.id;}
 	friend bool operator!=(const PluginId& id1, const PluginId& id2) {return !(id1 == id2);}
+	friend bool operator<(const PluginId& id1, const PluginId& id2) {return id1.id < id2.id;}
 };
+
+
+struct PluginReq {
+	PluginId baseid;
+	PluginId reqid;
+	bool exact = false;
+	
+	PluginReq() {}
+	PluginReq(istream& ifile);
+};
+
+
+class PluginFilter { public:
+	std::map<PluginId,PluginReq> requirements;
+	std::vector<string> ignored_plugins;
+	
+	PluginFilter();
+};
+
+
+PluginFilter* pluginfilter();
+
 
 template <typename BaseType>
 struct PluginDef {
@@ -105,11 +129,10 @@ struct PluginDef {
 	PluginDef<BaseType>* children = nullptr;
 	
 	PluginDef(PluginId newid): id(newid), level(0) {
-		cout << "Init plugindef base " << typeid(BaseType).name() << endl;
+		
 	}
 	
 	PluginDef(PluginId newid, PluginDef<BaseType>* parent): id(newid) {
-		cout << "Init plugindef not base " << typeid(BaseType).name() << endl;
 		next = parent->children;
 		parent->children = this;
 		level = parent->level + 1;
@@ -132,7 +155,6 @@ struct PluginDef {
 	}
 	
 	PluginDef<BaseType>* find_deepest() {
-		cout << "FINDING " << typeid(BaseType).name() << endl;
 		PluginDef<BaseType>* def = children;
 		PluginDef<BaseType>* chosen = this;
 		while (def != nullptr) {
@@ -145,6 +167,18 @@ struct PluginDef {
 		return chosen;
 	}
   
+	PluginDef<BaseType>* choose_plugin() {
+		PluginReq req = pluginfilter()->requirements[BaseType::plugindef()->id];
+		PluginDef<BaseType>* def = this;
+		if (req.reqid != PluginId()) {
+			def = find(req.reqid);
+		}
+		if (!req.exact) {
+			def = def->find_deepest();
+		}
+		return def;
+	}
+	
   void export_plugin(ctor_func nfunc, destr_func dfunc) {
     newfunc = nfunc;
     delfunc = dfunc;
@@ -205,16 +239,13 @@ struct ExportPluginSingleton {
 
 #define DEFINE_PLUGIN(X) \
 	PluginDef<X>* X::selected_plugin = nullptr;
-	// PluginDef<X> X::plugindef(PluginId(#X)); \
 
 #define DEFINE_AND_EXPORT_PLUGIN(X) \
 	PluginDef<X>* X::selected_plugin = nullptr; \
 	static ExportPlugin<X> UNIQUENAME(_export_plugin_);
-	// PluginDef<X> X::plugindef(PluginId(#X)); \
 
 #define EXPORT_PLUGIN(X) \
 	static ExportPlugin<X> UNIQUENAME(_export_plugin_);
-	// PluginDef<typename X::Plugin_BaseType> X::plugindef(PluginId(#X), &X::Plugin_ParentType::plugindef); \
 
 #define EXPORT_PLUGIN_SINGLETON(X) \
 	static ExportPluginSingleton<std::remove_pointer<decltype(X)>::type,X> UNIQUENAME(_export_singleton_) (#X);
@@ -233,7 +264,7 @@ struct ExportPluginSingleton {
 	static PluginDef<X>* selected_plugin; \
 	\
 	static void choose_plugin() { \
-		selected_plugin = plugindef()->find_deepest(); \
+		selected_plugin = plugindef()->choose_plugin(); \
 	} \
 	\
 	template <typename ... Args> \
@@ -487,21 +518,22 @@ class Storage : public BasePluginList<PluginType> { public:
 };
 
 
+
 class PluginLib { public:
-	LIBHANDLE handle = nullptr;
-	string dirname;
-	
-	PluginLib(string path);
-	
-	~PluginLib();
+LIBHANDLE handle = nullptr;
+string dirname;
+
+PluginLib(string path);
+
+~PluginLib();
 };
 
 class PluginLoader { public:
-	vector<PluginLib*> plugins;
-	
-	PluginLoader();
-	void load();
-	~PluginLoader();
+vector<PluginLib*> plugins;
+
+PluginLoader();
+void load();
+~PluginLoader();
 };
 
 extern PluginLoader pluginloader;

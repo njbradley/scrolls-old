@@ -89,6 +89,8 @@ template <typename T> int sign(T val) {
 class Game;
 class PluginLib;
 class PluginLoader;
+template <typename BaseType>
+class PluginDef;
 class PathLib;
 class UIRect;
 class UIObj;

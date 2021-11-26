@@ -15,7 +15,6 @@
 
 
 int test_main(int numargs, char** args) {
-	pluginloader.load();
 	Storage<Test> tests;
 	tests.init();
 	
@@ -52,7 +51,6 @@ int test_main(int numargs, char** args) {
 }
 
 int game_main() {
-	pluginloader.load();
 	
 	cout << "Starting " << endl;
 	logger.init();
