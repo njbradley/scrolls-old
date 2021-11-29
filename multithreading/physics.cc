@@ -1,28 +1,25 @@
 #include "physics.h"
 #include "scrolls/world.h"
 
-#ifdef _WIN32
-
-#include <windows.h>
 #include <mutex>
+#include <cstring>
 
 static World* global_world;
 static float global_deltatime;
 std::mutex tick_lock;
 
-void __stdcall
-TimerCallback(PVOID lpParameter, BOOLEAN TimerOrWaitFired) {
-	std::unique_lock<std::mutex> lock(tick_lock, std::try_to_lock);
-	// static double lastTime = getTime();
+void timer_callback() {
 	// static int times = 0;
-  // times ++;
-  // double curtime = getTime();
-  // if (int(lastTime) < int(curtime)) {
-  //   cout << times << endl;
-  //   times = 0;
-  // }
-	// lastTime = curtime;
+	// static double last_time = getTime();
+	// double this_time = getTime();
+	// times ++;
+	// if (int(last_time) != int(this_time)) {
+	// 	cout << " times " << times << endl;
+	// 	times = 0;
+	// }
+	// last_time = this_time;
 	
+	std::unique_lock<std::mutex> lock(tick_lock, std::try_to_lock);
 	if(lock.owns_lock()){
 		global_world->tick(getTime(), global_deltatime);
 	} else {
@@ -30,48 +27,81 @@ TimerCallback(PVOID lpParameter, BOOLEAN TimerOrWaitFired) {
 	}
 }
 
-TimedTickRunner::TimedTickRunner(World* world, float deltatime): TickRunner(world, deltatime) {
-	global_world = world;
-	global_deltatime = deltatime;
-	int milliseconds = int(deltatime*1000);
-  CreateTimerQueueTimer(&timerhandle, NULL, TimerCallback, NULL, milliseconds, milliseconds, WT_EXECUTEDEFAULT );
+#ifdef _WIN32
+#include <windows.h>
+
+HANDLE timerhandle;
+
+void __stdcall
+TimerCallback(PVOID lpParameter, BOOLEAN TimerOrWaitFired) {
+	timer_callback();
 }
 
-TimedTickRunner::~TimedTickRunner() {
-  DeleteTimerQueueTimer(NULL, timerhandle, NULL);
+void create_timer() {
+	int milliseconds = int(global_deltatime*1000);
+	CreateTimerQueueTimer(&timerhandle, NULL, TimerCallback, NULL, milliseconds, milliseconds, WT_EXECUTEDEFAULT );
+}
+
+void del_timer() {
+	DeleteTimerQueueTimer(NULL, timerhandle, NULL);
 }
 
 #else
+#include <signal.h>
 
-volatile bool running = true;
+timer_t timerid;
 
-void TickThread::operator()() {
-	double curtime = getTime();
-	double lasttime = curtime;
-	while (running) {
-		curtime = getTime();
-		double deltatime = curtime - lasttime;
-		lasttime = curtime;
-		world->tick(curtime, World::tick_deltatime);
-		
-		int ms = (deltatime) * 1000;
-		if (ms < 35) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(35 - ms));
+void TimerCallback(union sigval val) {
+	timer_callback();
+}
+
+void create_timer() {
+	
+	struct sigevent sig;
+	memset(&sig, '\0', sizeof(struct sigevent));
+	sig.sigev_notify = SIGEV_THREAD;
+	sig.sigev_notify_function = TimerCallback;
+	sig.sigev_value.sival_int = 0;
+	
+  if (!timer_create(CLOCK_MONOTONIC, &sig, &timerid)) {
+		struct itimerspec in;
+		memset(&in, '\0', sizeof(struct itimerspec));
+		in.it_interval.tv_sec = 0;
+		in.it_interval.tv_nsec = long(global_deltatime * 1000000000);
+		in.it_value.tv_sec = 0;
+		in.it_value.tv_nsec = in.it_interval.tv_nsec;
+		//issue the periodic timer request here.
+		if (timer_settime(timerid, 0, &in, nullptr)) {
+			perror("setting time failed");
 		}
-		// cout << getTime() - start_time << endl;
+	} else {
+		perror("creating timer failed");
+		cout << errno << ' ' << EINVAL << endl;
 	}
 }
 
-TimedTickRunner::TimedTickRunner(World* world, float deltatime): TickRunner(world, deltatime),
-tickobj {world, deltatime}, tickthread(tickobj) {
-	
-}
-
-TimedTickRunner::~TimedTickRunner() {
-	running = false;
-	tickthread.join();
+void del_timer() {
+	struct itimerspec in;
+	memset(&in, '\0', sizeof(struct itimerspec));
+	if (timer_settime(timerid, 0, &in, nullptr)) {
+		perror("setting (disable) time failed");
+	}
+	if (timer_delete(timerid)) {
+		perror("deleting time failed");
+	}
 }
 
 #endif
+
+TimedTickRunner::TimedTickRunner(World* world, float deltatime): TickRunner(world, deltatime) {
+	global_world = world;
+	global_deltatime = deltatime;
+	create_timer();
+}
+
+TimedTickRunner::~TimedTickRunner() {
+	del_timer();
+}
+
 
 EXPORT_PLUGIN(TimedTickRunner);

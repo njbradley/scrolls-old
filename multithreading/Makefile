@@ -3,7 +3,7 @@ SCROLLSDEPS := scrolls
 ISDLL := TRUE
 
 ifeq ($(PLAT),LINUX)
-EXTRALIBS := -pthread
+EXTRALIBS := -pthread -lrt
 endif
 
 SOURCES := $(wildcard *.cc)

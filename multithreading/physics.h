@@ -4,35 +4,14 @@
 #include "scrolls/physics.h"
 #include <thread>
 
-#ifdef _WIN32
 
-#include <windef.h>
 
 class TimedTickRunner : public TickRunner { public:
 	PLUGIN_HEAD(TimedTickRunner);
-	HANDLE timerhandle;
 	
 	TimedTickRunner(World* world, float deltatime);
 	~TimedTickRunner();
 };
 
-#else
-
-struct TickThread {
-	World* world;
-	float goal_deltatime;
-	void operator()();
-};
-
-class TimedTickRunner : public TickRunner { public:
-	PLUGIN_HEAD(TimedTickRunner);
-	TickThread tickobj;
-	std::thread tickthread;
-	
-	TimedTickRunner(World* world, float deltatime);
-	~TimedTickRunner();
-};
-
-#endif
 
 #endif

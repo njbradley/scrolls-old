@@ -391,16 +391,27 @@ void World::block_update(ivec3 pos) {
 }
 
 bool World::render() {
+  //
+  // for (Tile* tile : tiles) {
+  //   if (!tile->lightflag) {
+  //     tile->render(graphics->blockvecs, graphics->transvecs);
+  //   }
+  // }
+  //
+  // return false;
+  
   bool changed = false;
   double start = getTime();
   Tile* playertile = nullptr;
   if (player != nullptr) {
-    ivec3 ppos(player->box.position);
-    ppos = ppos / chunksize - ivec3(ppos.x < 0, ppos.y < 0, ppos.z < 0);
-    Tile* playertile = tileat(ppos);
+    playertile = tileat_global(player->box.position);
+    // ivec3 ppos(player->box.position);
+    // ppos = ppos / chunksize - ivec3(ppos.x < 0, ppos.y < 0, ppos.z < 0);
+    // Tile* playertile = tileat(ppos);
+    // cout << playertile->pos << ' ';
   }
-  
   if (playertile != nullptr and playertile->chunk->flags & Block::RENDER_FLAG and !playertile->lightflag) {
+    // cout << "playertile " << endl;
     playertile->render(graphics->blockvecs, graphics->transvecs);
     changed = true;
   } else {
@@ -408,6 +419,7 @@ bool World::render() {
       changed = changed or (tile->chunk->flags & Block::RENDER_FLAG and tile->fully_loaded);
       if (changed) {
         tile->render(graphics->blockvecs, graphics->transvecs);
+        // cout << tile->pos << " fully loaded " << endl;
         break;
       }
     }
@@ -416,6 +428,7 @@ bool World::render() {
         if (!tile->lightflag) {
           changed = changed or (tile->chunk->flags & Block::RENDER_FLAG);
           tile->render(graphics->blockvecs, graphics->transvecs);
+          // cout << tile->pos << "not loaded " << endl;
           if (changed) {
             break;
           }
