@@ -239,7 +239,6 @@ void World::spawn_player() {
   //   spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
   // }
   player = new Player();
-  player->init();
   Block* spawnblock = get_global(spawnpos, 8);
   spawnblock->add_freechild(player);
   player->set_position(spawnpos);

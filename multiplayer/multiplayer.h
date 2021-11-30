@@ -27,13 +27,15 @@ struct Packet {
 };
 
 struct ServerPacket : Packet {
+	PLUGIN_HEAD(ServerPacket);
 	ServerPacket(string name);
-	ServerPacket(char* data, int* read);
+	ServerPacket(ostream& );
 	virtual void pack(char* data, int* written);
 	virtual void run(ClientSocketManager* game, udp::endpoint from) = 0;
 };
 
 struct ClientPacket : Packet {
+	PLUGIN_HEAD(ClientPacket);
 	int clientid;
 	ClientPacket(string name, int newid);
 	ClientPacket(char* data, int* read);
@@ -42,6 +44,7 @@ struct ClientPacket : Packet {
 };
 
 struct JoinPacket : ClientPacket {
+	PLUGIN_HEAD(JoinPacket);
 	string username;
 	JoinPacket(string name);
 	JoinPacket(char* data, int* read);
@@ -50,6 +53,7 @@ struct JoinPacket : ClientPacket {
 };
 
 struct NewIdPacket : ServerPacket {
+	PLUGIN_HEAD(NewIdPacket);
 	int newclientid;
 	World* newworld;
 	Player* newplayer;
@@ -60,6 +64,7 @@ struct NewIdPacket : ServerPacket {
 };
 
 struct BlockPacket : ServerPacket {
+	PLUGIN_HEAD(BlockPacket);
 	Tile* tile;
 	BlockPacket(Tile* newtile);
 	BlockPacket(char* data, int* read);
@@ -68,17 +73,13 @@ struct BlockPacket : ServerPacket {
 };
 
 struct LeavePacket : ClientPacket {
+	PLUGIN_HEAD(LeavePacket);
 	LeavePacket(int clientid);
 	LeavePacket(char* data, int* read);
 	virtual void pack(char* data, int* written);
 	virtual void run(ServerSocketManager* game, udp::endpoint from);
 };
 
-class PacketGroup : Storage<Packet> { public:
-	PacketGroup();
-	ServerPacket* get_server_packet(char* data);
-	ClientPacket* get_client_packet(char* data);
-};
 
 class ClientSocketManager { public:
 	boost::asio::io_service io_service;

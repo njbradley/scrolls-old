@@ -37,19 +37,21 @@ Player::Player(): inven(10), backpack(10) {
 	allow_raycast = false;
 	selitem = 0;
 	box.negbox = vec3(-1, -3, -1);
-}
-
-void Player::init() {
+	
 	std::lock_guard<Player> guard(*this);
 	divide();
 	set_child(ivec3(0,0,0), new Block(new Pixel(blockdata.id)));
 	set_child(ivec3(0,1,0), new Block(new Pixel(blockdata.id)));
 }
 
-void Player::from_file(istream& ifile) {
-	std::lock_guard<Player> guard(*this);
-	Entity::from_file(ifile);
+Player::Player(istream& ifile): Entity(ifile), inven(10), backpack(10) {
+	cout << "Player() " << (int) ifile.peek() << endl;
+	allow_rotation = false;
+	allow_raycast = false;
+	box.negbox = vec3(-1, -3, -1);
+	cout << ifile.eof() << ' ' << ifile.good() << endl;
 	selitem = FileFormat::read_variable(ifile);
+	cout << 54 << endl;
 	FileFormat::read_fixed(ifile, &angle.x);
 	FileFormat::read_fixed(ifile, &angle.y);
 }

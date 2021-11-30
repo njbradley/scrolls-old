@@ -268,12 +268,12 @@ struct ExportPluginSingleton {
 	} \
 	\
 	template <typename ... Args> \
-	static X* plugnew(Args ... args) { \
-		return selected_plugin->newfunc(args...); \
+	static X* plugnew(Args&& ... args) { \
+		return selected_plugin->newfunc(std::forward<Args>(args)...); \
 	} \
 	template <typename ... Args> \
-	static X* plugnew(PluginId search_id, Args ... args) { \
-		return plugindef()->find(search_id)->newfunc(args...); \
+	static X* plugnew(PluginId search_id, Args&& ... args) { \
+		return plugindef()->find(search_id)->newfunc(std::forward<Args>(args)...); \
 	} \
 	static void plugdelete(X* ptr) { \
 		ptr->get_plugindef()->delfunc(ptr); \

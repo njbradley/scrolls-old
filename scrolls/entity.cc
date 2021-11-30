@@ -17,23 +17,20 @@ Entity::Entity(): FreeBlock() {
   
 }
 
+Entity::Entity(istream& ifile): FreeBlock(ifile) {
+  
+}
+
 Entity::~Entity() {
   
 }
 
-void Entity::init() {
-  set_pixel(new Pixel(blocktypes::leaves.id));
-}
 
 void Entity::set_position(vec3 pos, quat rot) {
   Movingbox newbox = box;
   newbox.position = pos;
   newbox.rotation = rot;
   set_box(newbox);
-}
-
-void Entity::from_file(istream& ifile) {
-  FreeBlock::from_file(ifile);
 }
 
 void Entity::to_file(ostream& ofile) const {
@@ -56,7 +53,11 @@ Entity* Entity::create_from_id(istream& ifile) {
   }
   PluginId id;
   FileFormat::read_fixed(ifile, &id.id);
-  return Entity::plugnew(id);
+  cout << id.name() << endl;
+  cout << (int) ifile.peek() << endl;
+  Entity* result = Entity::plugnew(id, ifile);
+  cout << result << endl;
+  return result;
 }
 
 

@@ -8,13 +8,12 @@
 
 
 class Entity : public FreeBlock { public:
-  BASE_PLUGIN_HEAD(Entity, ());
+  BASE_PLUGIN_HEAD(Entity, (istream& ifile));
   
   Entity();
+  Entity(istream& ifile);
   virtual ~Entity();
   
-  virtual void init();
-  virtual void from_file(istream& ifile);
   virtual void to_file(ostream& ofile) const;
   
   virtual void set_position(vec3 pos, quat rot = quat(1,0,0,0));

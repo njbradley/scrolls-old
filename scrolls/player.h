@@ -60,9 +60,8 @@ private:
 		Controls* controller = nullptr;
 		
 		Player();
+		Player(istream& ifile);
 		
-		virtual void init();
-		virtual void from_file(istream& ifile);
 		virtual void to_file(ostream& ifile) const;
 		mat4 getViewMatrix();
 		mat4 getProjectionMatrix();
