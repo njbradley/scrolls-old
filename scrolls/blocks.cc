@@ -600,11 +600,12 @@ void Block::from_file(istream& ifile) {
     FreeBlock* free;
     if (ifile.peek() == blockformat::entity) {
       free = Entity::create_from_id(ifile);
+      add_freechild(free);
     } else {
       free = new FreeBlock();
+      add_freechild(free);
+      free->from_file(ifile);
     }
-    add_freechild(free);
-    free->from_file(ifile);
   }
   if (ifile.peek() == blockformat::chunk) {
     ifile.get();

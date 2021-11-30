@@ -17,8 +17,10 @@ Entity::Entity(): FreeBlock() {
   
 }
 
-Entity::Entity(istream& ifile): FreeBlock(ifile) {
-  
+Entity::Entity(istream& ifile) {
+  cout << "Entity() " << ifile.peek() << endl;
+  FreeBlock::from_file(ifile);
+  cout << "donw " << ifile.peek() << endl;
 }
 
 Entity::~Entity() {
@@ -54,7 +56,7 @@ Entity* Entity::create_from_id(istream& ifile) {
   PluginId id;
   FileFormat::read_fixed(ifile, &id.id);
   cout << id.name() << endl;
-  cout << (int) ifile.peek() << endl;
+  cout << (int) ifile.peek() << ' ' << &ifile << endl;
   Entity* result = Entity::plugnew(id, ifile);
   cout << result << endl;
   return result;
