@@ -45,17 +45,13 @@ Player::Player(): inven(10), backpack(10) {
 }
 
 Player::Player(istream& ifile): Entity(ifile), inven(10), backpack(10) {
-	cout << "Player() " << (int) ifile.peek() << ' ' << &ifile << endl;
+	// cout << "Player() " << (int) ifile.peek() << ' ' << &ifile << endl;
 	allow_rotation = false;
 	allow_raycast = false;
 	box.negbox = vec3(-1, -3, -1);
-	cout << ifile.eof() << ' ' << ifile.good() << endl;
 	selitem = FileFormat::read_variable(ifile);
-	cout << 54 << endl;
 	FileFormat::read_fixed(ifile, &angle.x);
 	FileFormat::read_fixed(ifile, &angle.y);
-	cout  << selitem << ' ' << angle.x << ',' << angle.y << endl;
-	cout << box << endl;
 }
 
 void Player::to_file(ostream& ofile) const {

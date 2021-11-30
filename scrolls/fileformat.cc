@@ -54,9 +54,9 @@ unsigned long int FileFormat::read_variable(istream& ifile) {
 	uint64 multiplier = 1;
 	unsigned char data;
 	do {
-		unsigned char data = ifile.get();
+		data = ifile.get();
 		value += (data >> 1) * multiplier;
 		multiplier *= 128;
-	} while (data & 0b00000001);
+	} while ((data & 0b00000001) and !ifile.eof());
 	return value;
 }

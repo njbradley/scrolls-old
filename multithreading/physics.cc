@@ -100,6 +100,7 @@ TimedTickRunner::TimedTickRunner(World* world, float deltatime): TickRunner(worl
 }
 
 TimedTickRunner::~TimedTickRunner() {
+	std::lock_guard<std::mutex> guard(tick_lock);
 	del_timer();
 }
 
