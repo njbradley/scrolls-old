@@ -109,9 +109,9 @@ vec3 Q3PhysicsBody::closest_contact(vec3 dir) {
 			}
 		}
 		
-		if (num_contacts > 0) {
-			debuglines->render(contacts[0].position, contacts[0].position - newdir);
-		}
+		// if (num_contacts > 0) {
+		// 	debuglines->render(contacts[0].position, contacts[0].position - newdir);
+		// }
 		
 		if (glm::dot(newdir, dir) > max_dot) {
 			max_dir = newdir;

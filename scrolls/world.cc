@@ -359,7 +359,7 @@ void World::timestep(float curtime, float deltatime) {
 void World::tick(float curtime, float deltatime) {
   static bool n_pressed = false;
   static bool paused = false;
-  debuglines->clear();
+  // debuglines->clear();
   
   if (controls->key_pressed('M')) {
     paused = false;

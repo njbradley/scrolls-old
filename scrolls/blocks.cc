@@ -916,6 +916,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) {
   
   Hitbox linebox (startpos, vec3(0,0,0), vec3(timeleft, 0, 0), rot);
   Line line (startpos, dir);
+  // debuglines->render(linebox);
   
   float closest_dist = timeleft;
   Block* closest_block = nullptr;
@@ -924,7 +925,7 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) {
   
   FreeBlockIter iter (this, linebox);
   for (Pixel* pix : iter) {
-    // debuglines->render(pix->parbl->hitbox());
+    // debuglines->render(pix->parbl->hitbox(), vec3(0.5,1,1));
     if (pix->value != 0) {
       Plane faces[6];
       pix->parbl->hitbox().faces(faces);

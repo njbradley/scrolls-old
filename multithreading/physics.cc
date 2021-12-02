@@ -19,6 +19,11 @@ void timer_callback() {
 	// }
 	// last_time = this_time;
 	
+	// static double last_time = getTime();
+	// double this_time = getTime();
+	// cout << (this_time - last_time) * 1000 << endl;
+	// last_time = this_time;
+	
 	std::unique_lock<std::mutex> lock(tick_lock, std::try_to_lock);
 	if(lock.owns_lock()){
 		global_world->tick(getTime(), global_deltatime);
