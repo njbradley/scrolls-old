@@ -104,16 +104,30 @@ struct PluginReq {
 	PluginReq(istream& ifile);
 };
 
+class PluginLib { public:
+	LIBHANDLE handle = nullptr;
+	string dirname;
 
-class PluginFilter { public:
-	std::map<PluginId,PluginReq> requirements;
-	std::vector<string> ignored_plugins;
-	
-	PluginFilter();
+	PluginLib(string path);
+
+	~PluginLib();
 };
 
+class PluginLoader { public:
+	std::map<PluginId,PluginReq> requirements;
+	std::vector<string> ignored_plugins;
+	vector<PluginLib*> plugins;
 
-PluginFilter* pluginfilter();
+	PluginLoader();
+	void load(string plugin_path);
+	void load_reqs(string path);
+	void choose_plugins();
+	~PluginLoader();
+};
+
+extern PluginLoader pluginloader;
+
+vector<void(*)()>* plugin_choosers();
 
 
 template <typename BaseType>
@@ -129,7 +143,7 @@ struct PluginDef {
 	PluginDef<BaseType>* children = nullptr;
 	
 	PluginDef(PluginId newid): id(newid), level(0) {
-		
+		plugin_choosers()->push_back(BaseType::choose_plugin);
 	}
 	
 	PluginDef(PluginId newid, PluginDef<BaseType>* parent): id(newid) {
@@ -168,7 +182,8 @@ struct PluginDef {
 	}
   
 	PluginDef<BaseType>* choose_plugin() {
-		PluginReq req = pluginfilter()->requirements[BaseType::plugindef()->id];
+		cout << "Choosing plugin " << BaseType::plugindef()->id.name() << " = ";
+		PluginReq req = pluginloader.requirements[BaseType::plugindef()->id];
 		PluginDef<BaseType>* def = this;
 		if (req.reqid != PluginId()) {
 			def = find(req.reqid);
@@ -176,13 +191,17 @@ struct PluginDef {
 		if (!req.exact) {
 			def = def->find_deepest();
 		}
+		if (def != nullptr) {
+			cout << def->id.name() << endl;
+		} else {
+			cout << PluginId().name() << endl;
+		}
 		return def;
 	}
 	
   void export_plugin(ctor_func nfunc, destr_func dfunc) {
     newfunc = nfunc;
     delfunc = dfunc;
-		BaseType::choose_plugin();
   }
 };
 
@@ -519,24 +538,6 @@ class Storage : public BasePluginList<PluginType> { public:
 
 
 
-class PluginLib { public:
-LIBHANDLE handle = nullptr;
-string dirname;
-
-PluginLib(string path);
-
-~PluginLib();
-};
-
-class PluginLoader { public:
-vector<PluginLib*> plugins;
-
-PluginLoader();
-void load();
-~PluginLoader();
-};
-
-extern PluginLoader pluginloader;
 
 #define PLUGIN_REQUIRES(prefix, plugin, NewType) \
 	PluginUpCast<GetPluginType<decltype(prefix plugin)>::type, NewType> plugin {&(prefix plugin)};

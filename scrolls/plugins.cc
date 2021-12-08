@@ -55,39 +55,10 @@ PluginReq::PluginReq(istream& ifile) {
 }
 
 
-PluginFilter::PluginFilter() {
-	ifstream ifile("plugins.txt");
-	string linebuf;
-	while (!ifile.eof()) {
-		getline(ifile, linebuf);
-		linebuf = linebuf.substr(0, linebuf.find('#'));
-		
-		stringstream line(linebuf);
-		
-		if (linebuf.find('=') == string::npos) {
-			char let = 0;
-			line >> let;
-			if (let == '!') {
-				string ignore;
-				line >> ignore;
-				if (ignore.length() > 0) {
-					ignored_plugins.push_back(ignore);
-					cout << "Ignoring plugin " << ignore << '/' << ignore << endl;
-				}
-			}
-		} else {
-			PluginReq req(line);
-			if (req.baseid != PluginId()) {
-				requirements[req.baseid] = req;
-				cout << req.baseid.name() << " = " << req.reqid.name() << endl;
-			}
-		}
-	}
-}
 
-PluginFilter* pluginfilter() {
-	static PluginFilter filter;
-	return &filter;
+vector<void(*)()>* plugin_choosers() {
+	static vector<void(*)()> choosers;
+	return &choosers;
 }
 
 
@@ -119,22 +90,60 @@ PluginLib::~PluginLib() {
 
 
 PluginLoader::PluginLoader() {
-	load();
+	
 }
 
-void PluginLoader::load() {
+void PluginLoader::load(string path) {
+	load_reqs(path);
+	
 	struct stat info;
-	vector<string>* ignored = &pluginfilter()->ignored_plugins;
 	for (std::filesystem::path fspath : std::filesystem::directory_iterator("./")) {
 		string path = fspath.filename().string();
-		if (std::find(ignored->begin(), ignored->end(), path) == ignored->end()
+		if (std::find(ignored_plugins.begin(), ignored_plugins.end(), path) == ignored_plugins.end()
 			and (stat((path + "/" + path + DLLSUFFIX).c_str(), &info) == 0
 			or stat((path + "/" + path + ".txt").c_str(), &info) == 0)) {
 			plugins.push_back(new PluginLib(path));
 		}
 	}
+	
+	choose_plugins();
 }
 
+void PluginLoader::load_reqs(string path) {
+	ifstream ifile(path);
+	string linebuf;
+	while (ifile.good()) {
+		getline(ifile, linebuf);
+		linebuf = linebuf.substr(0, linebuf.find('#'));
+		
+		stringstream line(linebuf);
+		
+		if (linebuf.find('=') == string::npos) {
+			char let = 0;
+			line >> let;
+			if (let == '!') {
+				string ignore;
+				line >> ignore;
+				if (ignore.length() > 0) {
+					ignored_plugins.push_back(ignore);
+					cout << "Ignoring plugin " << ignore << '/' << ignore << endl;
+				}
+			}
+		} else {
+			PluginReq req(line);
+			if (req.baseid != PluginId()) {
+				requirements[req.baseid] = req;
+				cout << req.baseid.name() << " = " << req.reqid.name() << endl;
+			}
+		}
+	}
+}
+
+void PluginLoader::choose_plugins() {
+	for (void (*func)() : *plugin_choosers()) {
+		func();
+	}
+}
 
 PluginLoader::~PluginLoader() {
 	for (PluginLib* plugin : plugins) {

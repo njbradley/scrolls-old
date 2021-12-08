@@ -49,7 +49,7 @@ void FileFormat::read_fixed(istream& ifile, float* value) {
 	read_fixed(ifile, (unsigned int*) value);
 }
 
-unsigned long int FileFormat::read_variable(istream& ifile) {
+uint64 FileFormat::read_variable(istream& ifile) {
 	uint64 value = 0;
 	uint64 multiplier = 1;
 	unsigned char data;

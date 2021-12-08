@@ -33,8 +33,8 @@ struct BlockTest : Test { public:
 	
 	void test() {
 		
-		unsigned int val = 2374982379;
-		unsigned int result;
+		uint64 val = 2374982379;
+		uint64 result;
 		char type;
 		
 		std::stringstream stream;
