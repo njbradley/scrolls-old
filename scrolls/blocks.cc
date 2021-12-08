@@ -739,9 +739,9 @@ void Block::lighting_update(bool spread)  {
     } else {
       pixel->lighting_update(spread);
     }
-    for (FREECHILDREN_LOOP(free)) {
-      free->lighting_update(spread);
-    }
+    // for (FREECHILDREN_LOOP(free)) {
+      // free->lighting_update(spread);
+    // }
   }
 }
 
@@ -1484,7 +1484,7 @@ value(val) {
     }
   }
   reset_lightlevel();
-  
+  cout << "begin render index " << render_index.index << endl;
 }
 
 Pixel::Pixel(Block* newblock, istream& ifile):
@@ -1616,7 +1616,9 @@ void Pixel::rotate_to_origin(int* mats, int* dirs, int rotation) {
 }
 
 void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
-  
+  if (parbl->freecontainer != nullptr and parbl->freecontainer->entity_cast() == nullptr) {
+    cout << render_index.index << " index " << endl;
+  }
   // if (render_index.index > -1) {
   //   lastvecs->del(render_index);
   //   render_index = RenderIndex::npos;
@@ -1713,10 +1715,13 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
 
 
 void Pixel::render_position() {
-  if (render_index.isnull()) {
+  if (render_index.isnull() or parbl->flags) {
     cout << "waiting " << endl;
     parbl->set_flag(Block::RENDER_FLAG);
   } else {
+    if (parbl->freecontainer->entity_cast() == nullptr) {
+      cout << " position " << render_index.index << endl;
+    }
     RenderData renderdata;
     
     Hitbox mybox = parbl->local_hitbox();
