@@ -68,7 +68,14 @@ void Q3PhysicsBody::sync_glm(float curtime, float dt) {
 	}
 	newbox.mass = body->GetMass();
 	// freeblock->box.change_center(body->GetLocalCenter());
-	freeblock->set_box(newbox, curtime);
+	if (!freeblock->set_box(newbox, curtime)) {
+		body->SetTransform(
+			freeblock->box.position, glm::axis(freeblock->box.rotation),
+			glm::angle(freeblock->box.rotation)
+		);
+		body->SetLinearVelocity(vec3(0,0,0));
+		body->SetAngularVelocity(vec3(0,0,0));
+	}
 }
 
 

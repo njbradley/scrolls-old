@@ -241,28 +241,43 @@ Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ISPIXEL or ISUNDEF)
 
 void Block::add_freechild(FreeBlock* newfree) {
   std::lock_guard<Block> guard(*this);
+  // cout << "ADD begin " << newfree << " to " << this << endl;
   FreeBlock** freedest = &freechild;
+  // FreeBlock* tmp = nullptr;
   while (*freedest != nullptr) {
+    // if (*freedest == (*freedest)->next) {
+      // std::terminate();
+    // }
+    // tmp = *freedest;
     freedest = &(*freedest)->next;
   }
   
+  // cout << "  setting (" << tmp << ")->next which is (" << *freedest << ") = (" << newfree << ") in " << this << endl;
   *freedest = newfree;
+  newfree->next = nullptr;
   newfree->set_parent(this, world, ivec3(0,0,0), scale/2);
+  // cout << "ADD end " << newfree << " to " << this << endl;
 }
 
 void Block::remove_freechild(FreeBlock* newfree) {
+  // cout << "REMOVE Begin " << newfree << " from " << this << endl;
   std::lock_guard<Block> guard(*this);
   FreeBlock** freedest = &freechild;
+  // FreeBlock* tmp = nullptr;
   while (*freedest != nullptr and *freedest != newfree) {
+    // tmp = *freedest;
     freedest = &(*freedest)->next;
   }
   if (*freedest != nullptr) {
     FreeBlock* next = (*freedest)->next;
+    // cout << "  setting (" << tmp << ")->next which is (" << *freedest << ") = (" << (*freedest)->next << ") in " << this << endl;
     *freedest = next;
+    newfree->next = nullptr;
+  } else {
+    cout << "REMOVE NOT DOUNF" << endl;
+    std::terminate();
   }
-  if (parent != nullptr) {
-    parent->try_join();
-  }
+  // cout << "REMOVE End " << newfree << " from " << this << endl;
 }
 
 
@@ -549,6 +564,10 @@ void Block::join() { ASSERT(ISCHUNK)
 }
 
 void Block::try_join() {
+  if (freechild != nullptr) {
+    return;
+  }
+  
   Blocktype type = -1;
   for (CHILDREN_LOOP(i)) {
     if (children[i]->continues or children[i]->freechild != nullptr) {
@@ -561,7 +580,13 @@ void Block::try_join() {
     }
   }
   
-  if (type != -1) {
+  if (type == -1) {
+    if (parent != nullptr) {
+      Block* oldparent = parent;
+      oldparent->set_child(parentpos, nullptr);
+      oldparent->try_join();
+    }
+  } else if (type != -1) {
     lock();
     join();
     set_pixel(new Pixel(type));
@@ -1255,6 +1280,7 @@ void FreeBlock::from_file(istream& ifile) {
 
 void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale) {
   std::lock_guard<Block> guard(*this);
+  // cout << " setting parent = " << nparent << " of " << this << endl;
   bool changed_world = highparent == nullptr or nparent == nullptr or highparent->world != nparent->world;
   if (changed_world and highparent != nullptr and highparent->world != nullptr) {
     highparent->world->remove_freeblock(this);
@@ -1318,7 +1344,7 @@ Entity* FreeBlock::entity_cast() {
   return nullptr;
 }
 
-void FreeBlock::set_box(Movingbox newbox, float curtime) {
+bool FreeBlock::set_box(Movingbox newbox, float curtime) {
   std::lock_guard<Block> guard(*this);
   
   if (!highparent->freebox().contains(newbox)) {
@@ -1329,9 +1355,7 @@ void FreeBlock::set_box(Movingbox newbox, float curtime) {
     
     if (guess == nullptr) {
       cout << "IM OUT " << newbox << endl;
-      // highparent->remove_freechild(this);
-      // delete this;
-      return;
+      return false;
     }
     while (guess->scale > scale*2) {
       guess->subdivide();
@@ -1339,8 +1363,13 @@ void FreeBlock::set_box(Movingbox newbox, float curtime) {
     }
     
     Block* oldparent = highparent;
-    guess->add_freechild(this);
+    // if (oldparent == guess) cout << "NO CHANGE IN HIGHPARENT " << endl;
+    // cout << "CHANGING " << this << " parent: " << oldparent << " -> " << guess << endl;
     oldparent->remove_freechild(this);
+    guess->add_freechild(this);
+    if (oldparent->parent != nullptr) {
+      oldparent->parent->try_join();
+    }
   }
   
   lastbox = box;
@@ -1364,6 +1393,7 @@ void FreeBlock::set_box(Movingbox newbox, float curtime) {
   
   // set_flag(RENDER_FLAG);
   set_all_flags(RENDER_FLAG);
+  return true;
 }
 
 
