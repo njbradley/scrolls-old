@@ -37,8 +37,10 @@ struct RenderTypeData {
     struct {
       RenderFaceData faces[6];
     };
-    uint data[12];
+    uint data[12] = {(uint)-1};
   };
+  
+  bool isnull() const;
 };
   
 
@@ -77,6 +79,7 @@ class RenderVecs { public:
   virtual RenderIndex add(RenderData data) = 0;
   virtual void del(RenderIndex) = 0;
   virtual void edit(RenderIndex, RenderData data) = 0;
+  virtual void edit(RenderIndex, RenderPosData posdata) = 0;
 };
   
 class UIVecs { public:

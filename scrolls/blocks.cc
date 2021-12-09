@@ -1484,7 +1484,6 @@ value(val) {
     }
   }
   reset_lightlevel();
-  cout << "begin render index " << render_index.index << endl;
 }
 
 Pixel::Pixel(Block* newblock, istream& ifile):
@@ -1616,9 +1615,6 @@ void Pixel::rotate_to_origin(int* mats, int* dirs, int rotation) {
 }
 
 void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
-  if (parbl->freecontainer != nullptr and parbl->freecontainer->entity_cast() == nullptr) {
-    cout << render_index.index << " index " << endl;
-  }
   // if (render_index.index > -1) {
   //   lastvecs->del(render_index);
   //   render_index = RenderIndex::npos;
@@ -1715,14 +1711,10 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
 
 
 void Pixel::render_position() {
-  if (render_index.isnull() or parbl->flags) {
-    cout << "waiting " << endl;
+  if (render_index.isnull()) {
     parbl->set_flag(Block::RENDER_FLAG);
   } else {
-    if (parbl->freecontainer->entity_cast() == nullptr) {
-      cout << " position " << render_index.index << endl;
-    }
-    RenderData renderdata;
+    RenderPosData posdata;
     
     Hitbox mybox = parbl->local_hitbox();
     FreeBlock* freecont = parbl->freecontainer;
@@ -1731,15 +1723,11 @@ void Pixel::render_position() {
       freecont = freecont->highparent->freecontainer;
     }
     
-    renderdata.pos.loc.pos = mybox.global_midpoint();
-    renderdata.pos.loc.rot = mybox.rotation;
-    renderdata.pos.loc.scale = parbl->scale;
+    posdata.loc.pos = mybox.global_midpoint();
+    posdata.loc.rot = mybox.rotation;
+    posdata.loc.scale = parbl->scale;
     
-    for (int i = 0; i < 12; i ++) {
-      renderdata.type.data[i] = 0;
-    }
-    
-    lastvecs->edit(render_index, renderdata);
+    lastvecs->edit(render_index, posdata);
   }
 }
 

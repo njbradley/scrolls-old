@@ -20,6 +20,7 @@ class AsyncGLVecs: public RenderVecs { public:
   RenderIndex add(RenderData data);
   void del(RenderIndex);
   void edit(RenderIndex index, RenderData);
+  void edit(RenderIndex index, RenderPosData);
   void sync();
   void status(std::ostream& ofile);
 };

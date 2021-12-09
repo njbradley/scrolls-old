@@ -38,7 +38,9 @@ bool RenderIndex::isnull() const {
 
 const RenderIndex RenderIndex::npos(-1);
 
-
+bool RenderTypeData::isnull() const {
+  return data[0] == (uint)-1;
+}
 
 void UIVecs::add(UIObj* obj) {
 	obj->render(this);
