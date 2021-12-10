@@ -240,6 +240,10 @@ void World::spawn_player() {
   // }
   player = new Player();
   Block* spawnblock = get_global(spawnpos, 8);
+  while (spawnblock->scale > 8) {
+    spawnblock->subdivide();
+    spawnblock = spawnblock->get_global(spawnpos, 8);
+  }
   spawnblock->add_freechild(player);
   player->set_position(spawnpos);
   // player->spectator = true;

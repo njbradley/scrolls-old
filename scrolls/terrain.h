@@ -116,13 +116,19 @@ class TerrainLoader { public:
 	char get_biome(ivec3 pos, ClimateParams params);
 	template <typename Elev, typename Land>
 	char get_biome(ivec3 pos, ClimateParams params);
-	int get_height(ivec2 pos);
-	int gen_func(ivec3 pos);
+	virtual int get_height(ivec2 pos);
+	virtual int gen_func(ivec3 pos);
 	
 	virtual Block* generate_chunk(ivec3 pos);
 	Blocktype gen_block(ostream& ofile, int gx, int gy, int gz, int scale);
 };
 
-
+class FlatTerrainLoader : public TerrainLoader { public:
+	PLUGIN_HEAD(FlatTerrainLoader);
+	using TerrainLoader::TerrainLoader;
+	
+	virtual int get_height(ivec2 pos);
+	virtual int gen_func(ivec3 pos);
+};
 
 #endif

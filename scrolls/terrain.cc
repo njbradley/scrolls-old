@@ -425,7 +425,7 @@ int TerrainLoader::gen_func(ivec3 pos) {
 	// return below;
 	// if (pos.w == 1) {
 		// return pos.y*2 < pos.x;
-		char val = get_biome(ivec3(pos.x, pos.y, pos.z));
+		int val = get_biome(ivec3(pos.x, pos.y, pos.z));
 		//Biome<Shallow,Plains,TallTree,Tree<0>,BigTree>().gen_func(this, ivec3(pos.x, pos.y, pos.z));
 		if (val == 0 and pos.y < 96) {
 			return blocktypes::water.id;
@@ -620,4 +620,17 @@ char Plains::gen_func(TerrainLoader* loader, ivec3 pos) {
 		}
 	}
 	return 0;
+}
+
+EXPORT_PLUGIN(FlatTerrainLoader);
+
+int FlatTerrainLoader::get_height(ivec2 pos) {
+  return 31;
+}
+
+int FlatTerrainLoader::gen_func(ivec3 pos) {
+  if (pos.y < 31) {
+    return blocktypes::stone.id;
+  }
+  return 0;
 }
