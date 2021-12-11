@@ -153,6 +153,9 @@ void TileMap::status(ostream& ofile) {
 }
 
 
+float World::tick_deltatime = 1/60.0f;
+
+
 World::World(string oldname): terrainloader(seed), tileloader(this), name(oldname), physics(this, tick_deltatime),
 tiles( ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) + 3) {
   ifstream ifile(path("worlddata.txt"));

@@ -522,21 +522,7 @@ void q3BoxtoBox( q3Manifold* m, q3Box* a, q3Box* b )
 	q3Vec3 nE;
 
 	// Face axis checks
-	
-	// const r32 corner_gap = 0.5f;
-	
-	// if (q3Length(t) > (q3Length(eA) + q3Length(eB)) * corner_gap) {
-		// return;
-	// }
-	
-	// for (int i = 0; i < 3; i ++) {
-	// 	glm::vec2 newAe (eA[i], eA[(i+1)%3]);
-	// 	glm::vec2 newBe (eA[i], eA[(i+1)%3]);
-	// 	glm::vec2 newt (t[i], t[(i+1)%3]);
-	//
-	// 	cout << glm::length(glm::abs(newt) - glm::abs(newAe) - glm::abs(newBe)) << endl;
-	// }
-	
+
 	// a's x axis
 	s = q3Abs( t.x ) - (eA.x + q3Dot( absC.Column0( ), eB ));
 	if ( q3TrackFaceAxis( &aAxis, 0, s, &aMax, atx.rotation.ex, &nA ) )

@@ -1316,7 +1316,7 @@ void FreeBlock::tick(float curtime, float deltatime) {
   }
   
   // if (entity_cast() == nullptr or entity_cast()->get_plugin_id() != Player::plugindef()->id) {
-    debuglines->render(box);
+    // debuglines->render(box);
   // }
 }
 
