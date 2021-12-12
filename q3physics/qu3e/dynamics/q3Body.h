@@ -78,6 +78,7 @@ public:
 	void SetToAwake( );
 	void SetToSleep( );
 	bool IsAwake( ) const;
+	bool IsStatic( ) const;
 	r32 GetGravityScale( ) const;
 	void SetGravityScale( r32 scale );
 	const q3Vec3 GetLocalPoint( const q3Vec3& p ) const;

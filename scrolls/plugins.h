@@ -257,13 +257,27 @@ struct ExportPluginSingleton {
 #define UNIQUENAME(name) CONCAT(name, __COUNTER__)
 
 #define DEFINE_PLUGIN(X) \
+	static_assert(std::is_same<X,X::Plugin_BaseType>::value, \
+		"Only base plugins (defined with the macro BASE_PLUGIN_HEAD in the class definition) " \
+		"can be used with the DEFINE_PLUGIN macro"); \
+	PluginDef<X>* X::plugindef() { \
+		static PluginDef<X> plugdef (PluginId(#X)); \
+		return &plugdef; \
+	} \
 	PluginDef<X>* X::selected_plugin = nullptr;
 
 #define DEFINE_AND_EXPORT_PLUGIN(X) \
-	PluginDef<X>* X::selected_plugin = nullptr; \
+	DEFINE_PLUGIN(X); \
 	static ExportPlugin<X> UNIQUENAME(_export_plugin_);
 
 #define EXPORT_PLUGIN(X) \
+	static_assert(!std::is_same<X,X::Plugin_BaseType>::value, \
+		"Only non base plugins can be used with the EXPORT_PLUGIN macro. " \
+		"If you are trying to export a base plugin, use the DEFINE_AND_EXPORT_PLUGIN macro"); \
+	PluginDef<X::Plugin_BaseType>* X::plugindef() { \
+		static PluginDef<X::Plugin_BaseType> plugdef (PluginId(#X), X::Plugin_ParentType::plugindef()); \
+		return &plugdef; \
+	} \
 	static ExportPlugin<X> UNIQUENAME(_export_plugin_);
 
 #define EXPORT_PLUGIN_SINGLETON(X) \
@@ -276,10 +290,7 @@ struct ExportPluginSingleton {
 	typedef X* (*ctor_func) params; \
 	typedef void (*destr_func) (X*); \
 	\
-	static PluginDef<X>* plugindef() { \
-		static PluginDef<X> plugdef (PluginId(#X)); \
-		return &plugdef; \
-	} \
+	static PluginDef<X>* plugindef(); \
 	static PluginDef<X>* selected_plugin; \
 	\
 	static void choose_plugin() { \
@@ -303,10 +314,7 @@ struct ExportPluginSingleton {
 
 
 #define PLUGIN_HEAD(X) \
-	static PluginDef<Plugin_BaseType>* plugindef() { \
-		static PluginDef<Plugin_BaseType> plugdef (PluginId(#X), Plugin_ParentType::plugindef()); \
-		return &plugdef; \
-	} \
+	static PluginDef<Plugin_BaseType>* plugindef(); \
 	typedef Plugin_Type Plugin_ParentType; \
 	typedef X Plugin_Type; \
 	virtual PluginDef<Plugin_BaseType>* get_plugindef() const { return plugindef(); } \

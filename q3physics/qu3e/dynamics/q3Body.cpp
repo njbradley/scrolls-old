@@ -107,7 +107,8 @@ const q3Box* q3Body::AddBox( const q3BoxDef& def )
 	box->restitution = def.m_restitution;
 	box->density = def.m_density;
 	box->sensor = def.m_sensor;
-
+	box->face_mask = 0b111111;
+	
 	CalculateMassData( );
 
 	m_scene->m_contactManager.m_broadphase->InsertBox( box, aabb );
@@ -275,6 +276,11 @@ void q3Body::SetToSleep( )
 bool q3Body::IsAwake( ) const
 {
 	return m_flags & eAwake ? true : false;
+}
+
+bool q3Body::IsStatic( ) const
+{
+	return m_flags & eStatic ? true : false;
 }
 
 //--------------------------------------------------------------------------------------------------

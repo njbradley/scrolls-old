@@ -35,7 +35,13 @@ inline bool q3TrackFaceAxis( i32* axis, i32 n, r32 s, r32* sMax, const q3Vec3& n
 {
 	if ( s > r32( 0.0 ) )
 		return true;
-
+	
+	// for (int i = 0; i < num_banned; i ++) {
+	// 	if (q3Dot(normal, banned_dirs[i]) > 0) {
+	// 		return false;
+	// 	}
+	// }
+	
 	if ( s > *sMax )
 	{
 		*sMax = s;
@@ -520,9 +526,63 @@ void q3BoxtoBox( q3Manifold* m, q3Box* a, q3Box* b )
 	q3Vec3 nA;
 	q3Vec3 nB;
 	q3Vec3 nE;
-
+	
 	// Face axis checks
-
+	
+	// if (a->face_mask != 0b111111) cout << (int)a->face_mask << endl;
+	// if (b->face_mask != 0b111111) cout << (int)b->face_mask << endl;
+	
+	// for (int i = 0; i < 6; i ++) {
+	// 	cout << !!(a->face_mask & (1<<i));
+	// } cout << ' ' << a->body->IsStatic() << ' ';
+	//
+	// for (int i = 0; i < 6; i ++) {
+	// 	cout << !!(b->face_mask & (1<<i));
+	// } cout << ' ' << b->body->IsStatic() << ' ';
+	//
+	// cout << (t.x > 0) << (t.y > 0) << (t.z > 0) << endl;
+	
+	// q3Vec3 banned_dirs[12] = {
+	// 	-atx.rotation.ex, -atx.rotation.ey, -atx.rotation.ez,
+	// 	atx.rotation.ex, atx.rotation.ey, atx.rotation.ez,
+	// 	btx.rotation.ex, btx.rotation.ey, btx.rotation.ez,
+	// 	-btx.rotation.ex, -btx.rotation.ey, -btx.rotation.ez,
+	// };
+	
+	// int num_banned = 0;
+	// for (int i = 0; i < 6; i ++) {
+	// 	if (!(a->face_mask & (1<<i))) {
+	// 		banned_dirs[num_banned++] = banned_dirs[i];
+	// 	}
+	// }
+	//
+	// for (int i = 6; i < 12; i ++) {
+	// 	if (!(b->face_mask & (1<<(i-6)))) {
+	// 		banned_dirs[num_banned++] = banned_dirs[i];
+	// 	}
+	// }
+	
+	if (q3Length(t) > q3Length(eA+eB)) {
+		return;
+	}
+	
+	const float corner_gap = 0.15f;
+	
+	q3Vec3 cols[3] = {absC.Column0(), absC.Column1(), absC.Column2()};
+	
+	for (int i = 0; i < 3; i ++) {
+		glm::vec2 newt (t[i], t[(i+1)%3]);
+		glm::vec2 aext (eA[i], eA[(i+1)%3]);
+		// glm::vec2 bext (eB[i], eB[(i+1)%3]);
+		glm::vec2 bext (q3Dot( cols[i], eB), q3Dot( cols[(i+1)%3], eB));
+		
+		if (glm::length(newt) > glm::length(aext + bext) - corner_gap) {
+			//cout << "hi" << endl;
+			return;
+		}
+	}
+	
+	
 	// a's x axis
 	s = q3Abs( t.x ) - (eA.x + q3Dot( absC.Column0( ), eB ));
 	if ( q3TrackFaceAxis( &aAxis, 0, s, &aMax, atx.rotation.ex, &nA ) )

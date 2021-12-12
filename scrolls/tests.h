@@ -4,10 +4,7 @@
 #include "scrolls/classes.h"
 #include "scrolls/plugins.h"
 
-struct TestParams {
-};
-
-class Test : public TestParams { public:
+struct Test { public:
 	BASE_PLUGIN_HEAD(Test, ());
 	string name;
 	int ntests = 1;

@@ -171,11 +171,7 @@ class Block: public Collider { public:
 	int get_blocklight(ivec3 dir);
 	Block* raycast(vec3* pos, vec3 dir, double time);
 	vec3 get_position() const;
-	bool collide(Hitbox newbox, Hitbox* boxhit, float deltatime, FreeBlock* ignore);
-	bool collide(Hitbox newbox, Block* block, Hitbox* boxhit, float deltatime, FreeBlock* ignore);
-	bool collide_free(Hitbox newbox, Block* block, Hitbox* boxhit, float deltatime, FreeBlock* ignore);
 	
-	vec3 force(vec3 amount);
 	void to_log(ostream& out) const;
 	
 	friend ostream& operator<<(ostream& out, const Block& block);
@@ -200,11 +196,10 @@ class Block: public Collider { public:
 // normal block													(-------(---------)-------)
 //
 // Freeblocks are stored in a block with the freeblock attribute, which points to a child.
-// Freeblocks can't be inside freeblocks (no nesting), so instead the freeblock attr on freeblocks
-// is used to make a linked list of all freeblocks in the normal parent block.
+// Multiple freeblocks that are in one parent are stored in a linked list, using the next pointer in freeblocks
 //
-// [Parent block] -> [freeblock] -> [other freeblock] -> nullptr
-//   (scale 4)					(scale 2)				(scale 1)
+// [Parent block] ->freechild [freeblock] ->next [other freeblock] ->next nullptr
+//   (scale 4)									(scale 2)						(scale 2)
 // these two freeblocks are both in parentblock, and have separate rotations/positions
 //
 // In addition, to speed up collisions, a second linked list is maintained through all freeblocks
@@ -261,6 +256,7 @@ class Pixel { public:
 	uint8 sunlight;
 	uint8 entitylight;
 	uint8 lightsource = -1;
+	uint8 face_mask = 0b111111;
 	uint8 joints[6] = {0,0,0,0,0,0};
 	RenderIndex render_index = RenderIndex::npos;
 	RenderVecs* lastvecs = nullptr;

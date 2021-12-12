@@ -1141,66 +1141,6 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) {
   return curblock;*/
 }
 
-bool Block::collide(Hitbox newbox, Hitbox* boxhit, float deltatime, FreeBlock* ignore) {
-  for (int x = -1; x < 2; x ++) {
-    for (int y = -1; y < 2; y ++) {
-      for (int z = -1; z < 2; z ++) {
-        ivec3 off (x,y,z);
-        Block* block = get_global(globalpos + off * scale, scale);
-        if (collide(newbox, block, boxhit, deltatime, ignore)) {
-          return true;
-        }
-      }
-    }
-  }
-  return false;
-}
-
-bool Block::collide_free(Hitbox newbox, Block* block, Hitbox* boxhit, float deltatime, FreeBlock* ignore) {
-  while (block != nullptr) {
-    for (FreeBlock* free = block->freechild; free != nullptr; free = free->next) {
-      if (free != ignore) {
-        if (collide(newbox, free, boxhit, deltatime, ignore)) {
-          return true;
-        }
-      }
-    }
-    block = block->parent;
-  }
-  return false;
-}
-
-bool Block::collide(Hitbox newbox, Block* block, Hitbox* boxhit, float deltatime, FreeBlock* ignore) {
-  if (block == nullptr) {
-    return false;
-  }
-  
-  if (block->continues) {
-    for (int i = 0; i < csize3; i ++) {
-      if (collide(newbox, block->children[i], boxhit, deltatime, ignore)) {
-        return true;
-      }
-    }
-  } else if (block->pixel->value != 0) {
-    if (block->hitbox().collide(newbox)) {
-      *boxhit = block->hitbox();
-      return true;
-    }
-  }
-  
-  if (collide_free(newbox, block, boxhit, deltatime, ignore)) {
-    return true;
-  }
-  return false;
-}
-  
-vec3 Block::force(vec3 amount) {
-  if (freecontainer != nullptr) {
-    // freecontainer->move(amount);
-    return vec3(0,0,0);
-  }
-  return amount;
-}
 
 
 
@@ -1682,6 +1622,7 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
      
     int minscale = 1;//blockdata->minscale;
     int i = 0;
+    uint8 new_face_mask = 0;
     for (int i = 0; i < 6; i ++) {
       ivec3 dir = dir_array[i];
       // Block* block = parbl->get_global((vec3(gpos) + parbl->scale/2.0f) + vec3(dir) * (parbl->scale/2.0f), parbl->scale, dir);
@@ -1703,6 +1644,23 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
         renderdata.type.faces[i].blocklight = parbl->get_blocklight(dir);
         renderdata.type.faces[i].sunlight = parbl->get_sunlight(dir);
         exposed = true;
+        new_face_mask |= 1 << i;
+      } else if (parbl->get_local(parbl->globalpos + dir * parbl->scale, parbl->scale) == nullptr) {
+        new_face_mask |= 1 << i;
+      }
+    }
+    
+    // cout << (int) face_mask << endl;
+    if (new_face_mask != face_mask) {
+      face_mask = new_face_mask;
+      if ((parbl->freecontainer != nullptr or (face_mask != 2 and parbl->globalpos.y > 31)) and face_mask != 0) {
+        cout << parbl->globalpos << ' ';
+        for (int i = 0; i < 6; i ++) {
+      		cout << !!(face_mask & (1<<i));
+      	} cout << endl;
+      }
+      if (physicsbox != nullptr) {
+        physicsbox->update();
       }
     }
     

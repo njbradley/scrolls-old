@@ -5,8 +5,7 @@
 #include "physics.h"
 
 DEFINE_PLUGIN(Logger);
-DEFINE_PLUGIN(Debugger);
-EXPORT_PLUGIN(Debugger);
+DEFINE_AND_EXPORT_PLUGIN(Debugger);
 DEFINE_AND_EXPORT_PLUGIN(DebugLines);
 
 
