@@ -1622,7 +1622,6 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
      
     int minscale = 1;//blockdata->minscale;
     int i = 0;
-    uint8 new_face_mask = 0;
     for (int i = 0; i < 6; i ++) {
       ivec3 dir = dir_array[i];
       // Block* block = parbl->get_global((vec3(gpos) + parbl->scale/2.0f) + vec3(dir) * (parbl->scale/2.0f), parbl->scale, dir);
@@ -1644,23 +1643,6 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
         renderdata.type.faces[i].blocklight = parbl->get_blocklight(dir);
         renderdata.type.faces[i].sunlight = parbl->get_sunlight(dir);
         exposed = true;
-        new_face_mask |= 1 << i;
-      } else if (parbl->get_local(parbl->globalpos + dir * parbl->scale, parbl->scale) == nullptr) {
-        new_face_mask |= 1 << i;
-      }
-    }
-    
-    // cout << (int) face_mask << endl;
-    if (new_face_mask != face_mask) {
-      face_mask = new_face_mask;
-      if ((parbl->freecontainer != nullptr or (face_mask != 2 and parbl->globalpos.y > 31)) and face_mask != 0) {
-        cout << parbl->globalpos << ' ';
-        for (int i = 0; i < 6; i ++) {
-      		cout << !!(face_mask & (1<<i));
-      	} cout << endl;
-      }
-      if (physicsbox != nullptr) {
-        physicsbox->update();
       }
     }
     

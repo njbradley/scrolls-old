@@ -59,8 +59,6 @@ struct q3Box
 	i32 broadPhaseIndex;
 	mutable void* userData;
 	mutable bool sensor;
-	
-	u8 face_mask;
 
 	void SetUserdata( void* data ) const;
 	void* GetUserdata( ) const;

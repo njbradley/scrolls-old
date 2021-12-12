@@ -496,7 +496,14 @@ void q3BoxtoBox( q3Manifold* m, q3Box* a, q3Box* b )
 
 	// B's frame in A's space
 	q3Mat3 C = q3Transpose( atx.rotation ) * btx.rotation;
-
+	
+	// Vector from center A to center B in A's space
+	q3Vec3 t = q3MulT( atx.rotation, btx.position - atx.position );
+	
+	if (q3Length(t) > q3Length(eA+eB)) {
+		return;
+	}
+	
 	q3Mat3 absC;
 	bool parallel = false;
 	const r32 kCosTol = r32( 1.0e-6 );
@@ -511,10 +518,7 @@ void q3BoxtoBox( q3Manifold* m, q3Box* a, q3Box* b )
 				parallel = true;
 		}
 	}
-
-	// Vector from center A to center B in A's space
-	q3Vec3 t = q3MulT( atx.rotation, btx.position - atx.position );
-
+	
 	// Query states
 	r32 s;
 	r32 aMax = -Q3_R32_MAX;
@@ -527,45 +531,7 @@ void q3BoxtoBox( q3Manifold* m, q3Box* a, q3Box* b )
 	q3Vec3 nB;
 	q3Vec3 nE;
 	
-	// Face axis checks
-	
-	// if (a->face_mask != 0b111111) cout << (int)a->face_mask << endl;
-	// if (b->face_mask != 0b111111) cout << (int)b->face_mask << endl;
-	
-	// for (int i = 0; i < 6; i ++) {
-	// 	cout << !!(a->face_mask & (1<<i));
-	// } cout << ' ' << a->body->IsStatic() << ' ';
-	//
-	// for (int i = 0; i < 6; i ++) {
-	// 	cout << !!(b->face_mask & (1<<i));
-	// } cout << ' ' << b->body->IsStatic() << ' ';
-	//
-	// cout << (t.x > 0) << (t.y > 0) << (t.z > 0) << endl;
-	
-	// q3Vec3 banned_dirs[12] = {
-	// 	-atx.rotation.ex, -atx.rotation.ey, -atx.rotation.ez,
-	// 	atx.rotation.ex, atx.rotation.ey, atx.rotation.ez,
-	// 	btx.rotation.ex, btx.rotation.ey, btx.rotation.ez,
-	// 	-btx.rotation.ex, -btx.rotation.ey, -btx.rotation.ez,
-	// };
-	
-	// int num_banned = 0;
-	// for (int i = 0; i < 6; i ++) {
-	// 	if (!(a->face_mask & (1<<i))) {
-	// 		banned_dirs[num_banned++] = banned_dirs[i];
-	// 	}
-	// }
-	//
-	// for (int i = 6; i < 12; i ++) {
-	// 	if (!(b->face_mask & (1<<(i-6)))) {
-	// 		banned_dirs[num_banned++] = banned_dirs[i];
-	// 	}
-	// }
-	
-	if (q3Length(t) > q3Length(eA+eB)) {
-		return;
-	}
-	
+	// corner checks
 	const float corner_gap = 0.15f;
 	
 	q3Vec3 cols[3] = {absC.Column0(), absC.Column1(), absC.Column2()};
@@ -582,6 +548,7 @@ void q3BoxtoBox( q3Manifold* m, q3Box* a, q3Box* b )
 		}
 	}
 	
+	// Face axis checks
 	
 	// a's x axis
 	s = q3Abs( t.x ) - (eA.x + q3Dot( absC.Column0( ), eB ));

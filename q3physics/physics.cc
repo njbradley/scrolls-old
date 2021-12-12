@@ -173,12 +173,6 @@ void Q3PhysicsBox::update() {
 	box.posbox -= tiny_thresh;
 	boxtoq3(box, &qbox);
 	
-	qbox.face_mask = pixel->face_mask;
-	// cout << (int) qbox.face_mask << endl;
-	// for (int i = 0; i < 6; i ++) {
-	// 	cout << !!(qbox.face_mask & (1<<i));
-	// } cout << endl;
-	
 	// box.body = worldbody;
 	Material* mat = blockstorage[pixel->value]->material;
 	qbox.friction = mat->friction;

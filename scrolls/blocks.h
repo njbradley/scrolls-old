@@ -256,7 +256,6 @@ class Pixel { public:
 	uint8 sunlight;
 	uint8 entitylight;
 	uint8 lightsource = -1;
-	uint8 face_mask = 0b111111;
 	uint8 joints[6] = {0,0,0,0,0,0};
 	RenderIndex render_index = RenderIndex::npos;
 	RenderVecs* lastvecs = nullptr;

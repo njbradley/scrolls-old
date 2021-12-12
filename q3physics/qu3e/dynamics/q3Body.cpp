@@ -107,7 +107,6 @@ const q3Box* q3Body::AddBox( const q3BoxDef& def )
 	box->restitution = def.m_restitution;
 	box->density = def.m_density;
 	box->sensor = def.m_sensor;
-	box->face_mask = 0b111111;
 	
 	CalculateMassData( );
 
