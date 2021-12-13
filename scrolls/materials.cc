@@ -88,13 +88,13 @@ namespace materials {
 		.name = "dirt",
 		.hitsound = "dirt-hit",
 		.density = 4,
-		.restitution = 0.1,
+		.restitution = 0.0,
 	});
 	
 	Material stone ({
 		.name = "stone",
 		.density = 22,
-		.restitution = 0.1,
+		.restitution = 0.0,
 	});
 	
 	Material wood ({
