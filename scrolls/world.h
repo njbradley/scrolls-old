@@ -4,6 +4,7 @@
 #include "classes.h"
 #include "plugins.h"
 #include "collider.h"
+#include "player.h"
 
 #include <set>
 #include <mutex>
@@ -80,6 +81,7 @@ class World: public Collider { public:
   Plugin<TickRunner> tickrunner;
   
   Player* player = nullptr;
+  Spectator spectator;
   
   std::set<ivec3,ivec3_comparator> loading_chunks;
   std::set<ivec3,ivec3_comparator> deleting_chunks;
@@ -97,6 +99,7 @@ class World: public Collider { public:
   virtual void startup();
   virtual void spawn_player();
   virtual void set_player_vars();
+  virtual void set_spectator_vars();
   
   vec3 get_position() const;
   bool render();

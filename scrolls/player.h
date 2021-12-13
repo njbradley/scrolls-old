@@ -79,4 +79,15 @@ private:
 		static Material material;
 };
 
+
+class Spectator { public:
+	vec3 position;
+	vec2 angle;
+	Controls* controller = nullptr;
+	
+	void timestep(float curtime, float deltatime);
+};
+
+
+
 #endif

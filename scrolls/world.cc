@@ -258,6 +258,15 @@ void World::set_player_vars() {
   graphics->set_camera(&player->renderbox.position, &player->angle);
   viewbox->playerpos = &player->renderbox.position;
   player->controller = controls;
+  spectator.controller = nullptr;
+}
+
+void World::set_spectator_vars() {
+  // audio->set_listener(&player->renderbox.position, &player->box.velocity, &player->angle);
+  graphics->set_camera(&spectator.position, &spectator.angle);
+  viewbox->playerpos = &player->renderbox.position;
+  spectator.controller = controls;
+  player->controller = nullptr;
 }
 
 void World::load_nearby_chunks() {
@@ -352,6 +361,16 @@ void World::timestep(float curtime, float deltatime) {
   if (player == nullptr and !initial_generation) {
     spawn_player();
   }
+  
+  if (controls->key_pressed('F')) {
+    spectator.position = player->box.position;
+    spectator.angle = player->angle;
+    set_spectator_vars();
+  } else if (controls->key_pressed('G')) {
+    set_player_vars();
+  }
+  
+  spectator.timestep(curtime, deltatime);
   
   daytime += deltatime;
   if (daytime > 2000) {

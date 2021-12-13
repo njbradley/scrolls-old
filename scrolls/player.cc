@@ -378,6 +378,7 @@ void Player::tick(float curtime, float deltatime) {
 
 void Player::timestep(float curtime, float deltatime) {
 	Entity::timestep(curtime, deltatime);
+	if (controller == nullptr) return;
 	// Compute new orientation
 	angle += vec2(float(mouseSpeed) * vec2(settings->screen_dims/2 - controller->mouse_pos()));
 	
@@ -436,11 +437,11 @@ void Player::timestep(float curtime, float deltatime) {
 	}
 }
 
-void Player::computeMatricesFromInputs(float deltaTime) {
+void Player::computeMatricesFromInputs(float deltatime) {
 	if (controller == nullptr) return;
 	
 	if (attack_recharge > 0) {
-		attack_recharge -= deltaTime;
+		attack_recharge -= deltatime;
 	}
 	
 	
@@ -473,11 +474,6 @@ void Player::computeMatricesFromInputs(float deltaTime) {
 	
 	double stamina_cost = 0;
 	
-	if (controller->key_pressed('F')) {
-		spectator = true;
-	} else if (controller->key_pressed('G')) {
-		spectator = false;
-	}
 	
 	if (!controller->key_pressed(controller->KEY_CTRL) and physicsbody != nullptr) {
 		if (!spectator) {
@@ -495,23 +491,23 @@ void Player::computeMatricesFromInputs(float deltaTime) {
 			}
 			
 			if (controller->key_pressed('W')){
-				physicsbody->apply_impulse(forward * deltaTime * nspeed);
+				physicsbody->apply_impulse(forward * deltatime * nspeed);
 			}
 			// Move backward
 			if (controller->key_pressed('S')){
-				physicsbody->apply_impulse(-forward * deltaTime * nspeed);
+				physicsbody->apply_impulse(-forward * deltatime * nspeed);
 			}
 			// Strafe right
 			if (controller->key_pressed('D')){
-				physicsbody->apply_impulse(right * deltaTime * nspeed);
+				physicsbody->apply_impulse(right * deltatime * nspeed);
 			}
 			// Strafe left
 			if (controller->key_pressed('A')){
-				physicsbody->apply_impulse(-right * deltaTime * nspeed);
+				physicsbody->apply_impulse(-right * deltatime * nspeed);
 			}
 			if (controller->key_pressed(' ')){
 				// if (in_water) {
-					// vel.y += 3 * deltaTime * nspeed;
+					// vel.y += 3 * deltatime * nspeed;
 				// } else
 				static bool last_jump = false;
 				if (!last_jump and standing) {
@@ -529,32 +525,32 @@ void Player::computeMatricesFromInputs(float deltaTime) {
 			Movingbox newbox = box;
 			
 			if (controller->key_pressed('W')){
-				newbox.position += forward * deltaTime * nspeed;
+				newbox.position += forward * deltatime * nspeed;
 			}
 			// Move backward
 			if (controller->key_pressed('S')){
-				newbox.position -= forward * deltaTime * nspeed;
+				newbox.position -= forward * deltatime * nspeed;
 			}
 			// Strafe right
 			if (controller->key_pressed('D')){
-				newbox.position += right * deltaTime * nspeed;
+				newbox.position += right * deltatime * nspeed;
 			}
 			// Strafe left
 			if (controller->key_pressed('A')){
-				newbox.position -= right * deltaTime * nspeed;
+				newbox.position -= right * deltatime * nspeed;
 			}
 			if (controller->key_pressed(' ')){
-				newbox.position += up * deltaTime * speed;
+				newbox.position += up * deltatime * speed;
 			}
 			if (controller->key_pressed(controller->KEY_SHIFT)){
-				newbox.position -= up * deltaTime * speed;
+				newbox.position -= up * deltatime * speed;
 			}
 			
 			set_box(newbox);
 		}
 	}
 	
-	// use_stamina(stamina_cost/30 * deltaTime);
+	// use_stamina(stamina_cost/30 * deltatime);
 	//mouse = false;
 	
 	if (health <= 0) {
@@ -635,3 +631,69 @@ EXPORT_PLUGIN_SINGLETON(&Player::material);
 EXPORT_PLUGIN_SINGLETON(&Player::blockdata);
 
 EXPORT_PLUGIN(Player);
+
+
+
+
+
+
+void Spectator::timestep(float curtime, float deltatime) {
+	if (controller == nullptr) return;
+	
+	angle += vec2(float(mouseSpeed) * vec2(settings->screen_dims/2 - controller->mouse_pos()));
+	
+	//cout << horizontalAngle << ' ' << verticalAngle << endl;
+	if (angle.y > 1.55f) {
+		angle.y = 1.55f;
+	}
+	if (angle.y < -1.55) {
+		angle.y = -1.55f;
+	}
+	if (angle.x > 6.28f) {
+		angle.x = 0;
+	}
+	if (angle.x < 0) {
+		angle.x = 6.28;
+	}
+	
+	// Reset mouse position for next frame
+	controller->mouse_pos(settings->screen_dims/2);
+	
+	float nspeed = 75;
+	
+	glm::vec3 right = glm::vec3(
+		sin(angle.x - 3.14f/2.0f),
+		0,
+		cos(angle.x - 3.14f/2.0f)
+	);
+	vec3 forward = -glm::vec3(
+		-cos(angle.x - 3.14f/2.0f),
+		0,
+		sin(angle.x - 3.14f/2.0f)
+	);
+	
+	// Up vector
+	glm::vec3 up = glm::cross( right, forward );
+	
+	if (controller->key_pressed('W')){
+		position += forward * deltatime * nspeed;
+	}
+	// Move backward
+	if (controller->key_pressed('S')){
+		position -= forward * deltatime * nspeed;
+	}
+	// Strafe right
+	if (controller->key_pressed('D')){
+		position += right * deltatime * nspeed;
+	}
+	// Strafe left
+	if (controller->key_pressed('A')){
+		position -= right * deltatime * nspeed;
+	}
+	if (controller->key_pressed(' ')){
+		position += up * deltatime * nspeed;
+	}
+	if (controller->key_pressed(controller->KEY_SHIFT)){
+		position -= up * deltatime * nspeed;
+	}
+}
