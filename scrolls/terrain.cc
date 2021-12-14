@@ -97,22 +97,23 @@ float fractal_perlin3d(vec3 pos, float scale, float divider, int seed, int layer
   return val;
 }
 
-template <int max_scale, int divider, int seed, int layer>
+template <int max_scale, int divider, int layer>
 struct Perlin2d {
-	static float gen_value(ivec3 pos) {
+	static float gen_value(int seed, vec3 pos) {
 		float val = 0;
 	  int i = 0;
 		int scale = max_scale;
 	  while (scale > 1) {
-	    val += perlin2d(pos / scale, seed, layer*100 + i) * scale;
+	    val += perlin2d(vec2(pos.x, pos.z) / float(scale), seed, layer*100 + i) * scale;
 	    scale /= divider;
 	    i ++;
 	  }
+		val -= pos.y;
 	  return val;
 	}
 	
 	static float max_deriv() {
-		return std::log(max_scale) / std::log(divider);
+		return std::max(1.0, std::log(max_scale) / std::log(divider));
 	}
 };
 
@@ -130,30 +131,46 @@ TerrainLoader::TerrainLoader(int nseed): seed(nseed) {
 
 
 
-Block* SimpleTerrainLoader::generate_chunk(ivec3 pos) {
-	pos *= World::chunksize;
-	stringstream ss;
-	gen_block(ss, pos.x, pos.y, pos.z, World::chunksize);
-	return new Block(ss);
+
+template <typename ... Shapes>
+template <typename FirstShape, typename SecondShape, typename ... OtherShapes>
+Blocktype TerrainResolver<Shapes...>::gen_func(ivec3 globalpos, int scale) {
+	Blocktype val = gen_func<FirstShape>(globalpos, scale);
+	if (val != -1) {
+		return val;
+	} else {
+		return gen_func<SecondShape,OtherShapes...>(globalpos, scale);
+	}
 }
 
-Blocktype SimpleTerrainLoader::gen_block(ostream& ofile, int gx, int gy, int gz, int scale) {
-  // Blocktype val = gen_func(ivec4(gx, gy, gz, scale));
-  // cout << int(val) << ' ' << ivec3(gx,gy,gz) << ' ' << scale << endl;
-  if (scale == 1) {// or val != -1) {
-		Blocktype val = gen_func(ivec3(gx, gy, gz));
-    FileFormat::write_variable(ofile, val<<2);
-    return val;
+template <typename ... Shapes>
+template <typename Shape>
+Blocktype TerrainResolver<Shapes...>::gen_func(ivec3 globalpos, int scale) {
+	float val = Shape::gen_value(seed, vec3(globalpos) + float(scale)/2);
+	if (val > (scale-1) * Shape::max_deriv() * 1.5f) {
+		return Shape::block_val();
+	} else {
+		return -1;
+	}
+}
+
+template <typename ... Shapes>
+Blocktype TerrainResolver<Shapes...>::gen_block(ostream& ofile, ivec3 globalpos, int scale) {
+	Blocktype myval = gen_func<Shapes...>(globalpos, scale);
+  if (myval != -1 or scale == 1) {
+		if (myval == -1) myval = 0;
+    FileFormat::write_variable(ofile, myval<<2);
+    return myval;
   } else {
     stringstream ss;
-    ss << char(0b11000000);
-    Blocktype val = gen_block(ss, gx, gy, gz, scale/csize);
+    ss << blockformat::chunk;
+    Blocktype val = gen_block(ss, globalpos, scale/csize);
     bool all_same = val != -1;
     for (int x = 0; x < csize; x ++) {
       for (int y = 0; y < csize; y ++) {
         for (int z = 0; z < csize; z ++) {
           if (x > 0 or y > 0 or z > 0) {
-            Blocktype newval = gen_block(ss, gx+x*(scale/csize), gy+y*(scale/csize), gz+z*(scale/csize), scale/csize);
+            Blocktype newval = gen_block(ss, globalpos + ivec3(x,y,z)*(scale/csize), scale/csize);
             all_same = all_same and newval == val;
           }
         }
@@ -169,33 +186,29 @@ Blocktype SimpleTerrainLoader::gen_block(ostream& ofile, int gx, int gy, int gz,
   }
 }
 
-
-
-EXPORT_PLUGIN(FlatTerrainLoader);
-
-int FlatTerrainLoader::get_height(ivec2 pos) {
-  return 31;
+template <typename ... Shapes>
+Block* TerrainResolver<Shapes...>::generate_chunk(ivec3 pos) {
+	stringstream ss;
+	gen_block(ss, pos * World::chunksize, World::chunksize);
+	return new Block(ss);
 }
 
-int FlatTerrainLoader::gen_func(ivec3 pos) {
-  if (pos.y < 31) {
-    return blocktypes::stone.id;
-  }
-  return 0;
+template <typename Terrain, typename Objects>
+int TwoPassTerrainLoader<Terrain, Objects>::get_height(ivec2 pos) {
+	return 0;
 }
 
-
-EXPORT_PLUGIN(PerlinTerrainLoader);
-
-int PerlinTerrainLoader::get_height(ivec2 pos) {
-	// return SAFEFLOOR(perlin2d(vec2(pos)/64.0f, seed, 0) * 64);
-	float height = fractal_perlin2d(vec2(pos), 64, 8, seed, 0);
-	return SAFEFLOOR(height);
+template <typename Terrain, typename Objects>
+Block* TwoPassTerrainLoader<Terrain, Objects>::generate_chunk(ivec3 pos) {
+	Terrain terrain {seed};
+	Block* block = terrain.generate_chunk(pos);
+	return block;
 }
 
-int PerlinTerrainLoader::gen_func(ivec3 pos) {
-  if (pos.y < get_height(ivec2(pos.x, pos.z))) {
-    return blocktypes::stone.id;
-  }
-  return 0;
-}
+struct StonePerlin : Perlin2d<16,4,0> {
+	static Blocktype block_val() {
+		return blocktypes::stone.id;
+	}
+};
+
+EXPORT_PLUGIN_TEMPLATE(TwoPassTerrainLoader<TerrainResolver<StonePerlin>,int>);

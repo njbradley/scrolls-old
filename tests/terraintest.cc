@@ -11,12 +11,14 @@ struct TerrainTest : Test {
 	}
 	
 	void speed_tests() {
-		PerlinTerrainLoader loader (12345);
+		TerrainLoader* loader = TerrainLoader::plugnew(12345);
 		
 		double start = getTime();
-		Block* chunk = loader.generate_chunk(ivec3(0,loader.get_height(ivec2(0,0)),0));
+		Block* chunk = loader->generate_chunk(ivec3(0,loader->get_height(ivec2(0,0)),0));
 		double time = getTime() - start;
 		out << "chunk time " << time << endl;
+		
+		TerrainLoader::plugdelete(loader);
 	}
 	
 	void test() {
