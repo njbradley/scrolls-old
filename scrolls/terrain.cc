@@ -117,7 +117,8 @@ struct Perlin2d {
 	}
 };
 
-
+const Blocktype BLOCK_NULL = -1;
+const Blocktype BLOCK_SPLIT = -2;
 
 
 
@@ -136,7 +137,7 @@ template <typename ... Shapes>
 template <typename FirstShape, typename SecondShape, typename ... OtherShapes>
 Blocktype TerrainResolver<Shapes...>::gen_func(ivec3 globalpos, int scale) {
 	Blocktype val = gen_func<FirstShape>(globalpos, scale);
-	if (val != -1) {
+	if (val != BLOCK_NULL) {
 		return val;
 	} else {
 		return gen_func<SecondShape,OtherShapes...>(globalpos, scale);
@@ -147,18 +148,21 @@ template <typename ... Shapes>
 template <typename Shape>
 Blocktype TerrainResolver<Shapes...>::gen_func(ivec3 globalpos, int scale) {
 	float val = Shape::gen_value(seed, vec3(globalpos) + float(scale)/2);
-	if (val > (scale-1)/2 * Shape::max_deriv() * 1.5f) {
+	float level_needed = (scale-1)/2 * Shape::max_deriv() * 1.5f;
+	if (val >= level_needed) {
 		return Shape::block_val();
+	} else if (val <= -level_needed) {
+		return BLOCK_NULL;
 	} else {
-		return -1;
+		return BLOCK_SPLIT;
 	}
 }
 
 template <typename ... Shapes>
 Blocktype TerrainResolver<Shapes...>::gen_block(ostream& ofile, ivec3 globalpos, int scale) {
 	Blocktype myval = gen_func<Shapes...>(globalpos, scale);
-  if (myval != -1 or scale == 1) {
-		if (myval == -1) myval = 0;
+  if (myval != BLOCK_SPLIT or scale == 1) {
+		if (myval == BLOCK_NULL) myval = 0;
     FileFormat::write_variable(ofile, myval<<2);
     return myval;
   } else {
@@ -212,7 +216,7 @@ struct StonePerlin : Perlin2d<16,4,0> {
 };
 
 
-template <int height>
+template <int height, BlockData& data>
 struct FlatTerrain {
 	static float gen_value(int seed, vec3 pos) {
 		return height - pos.y;
@@ -223,10 +227,31 @@ struct FlatTerrain {
 	}
 	
 	static Blocktype block_val() {
-		return blocktypes::stone.id;
+		return data.id;
+	}
+};
+
+template <int height, BlockData& data>
+struct SlopedTerrain {
+	static float gen_value(int seed, vec3 pos) {
+		return height + pos.x/2 - pos.y;
+	}
+	
+	static float max_deriv() {
+		return 1.5;
+	}
+	
+	static Blocktype block_val() {
+		return data.id;
 	}
 };
 
 
+typedef TerrainResolver<
+	FlatTerrain<8,blocktypes::stone>,
+	FlatTerrain<10,blocktypes::dirt>
+	// SlopedTerrain<0,blocktypes::dirt>
+> FlatWorld;
 
-EXPORT_PLUGIN_TEMPLATE(TwoPassTerrainLoader<TerrainResolver<FlatTerrain<10>>,int>);
+
+EXPORT_PLUGIN_TEMPLATE(TwoPassTerrainLoader<FlatWorld,int>);
