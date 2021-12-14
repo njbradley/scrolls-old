@@ -97,26 +97,6 @@ float fractal_perlin3d(vec3 pos, float scale, float divider, int seed, int layer
   return val;
 }
 
-template <int max_scale, int divider, int layer>
-struct Perlin2d {
-	static float gen_value(int seed, vec3 pos) {
-		float val = 0;
-	  int i = 0;
-		int scale = max_scale;
-	  while (scale > 1) {
-	    val += perlin2d(vec2(pos.x, pos.z) / float(scale), seed, layer*100 + i) * scale;
-	    scale /= divider;
-	    i ++;
-	  }
-		val -= pos.y * max_deriv();
-	  return val;
-	}
-	
-	static float max_deriv() {
-		return std::max(1.0, std::log(max_scale) / std::log(divider));
-	}
-};
-
 const Blocktype BLOCK_NULL = -1;
 const Blocktype BLOCK_SPLIT = -2;
 
@@ -137,7 +117,7 @@ template <typename ... Shapes>
 template <typename Shape>
 Blocktype TerrainResolver<Shapes...>::gen_func(ivec3 globalpos, int scale) {
 	float val = Shape::gen_value(seed, vec3(globalpos) + float(scale)/2);
-	float level_needed = (scale-1)/2 * Shape::max_deriv() * 1.5f;
+	float level_needed = float(scale-1)/2 * Shape::max_deriv() * 2.1f;
 	if (val >= level_needed) {
 		return Shape::block_val();
 	} else if (val <= -level_needed) {
@@ -217,7 +197,7 @@ Block* TerrainResolver<Shapes...>::generate_chunk(ivec3 pos) {
 
 template <typename Terrain, typename Objects>
 int TwoPassTerrainLoader<Terrain, Objects>::get_height(ivec2 pos) {
-	return 10;
+	return 32;
 }
 
 template <typename Terrain, typename Objects>
@@ -228,7 +208,23 @@ Block* TwoPassTerrainLoader<Terrain, Objects>::generate_chunk(ivec3 pos) {
 }
 
 
-template <int height, BlockData& data>
+
+template <typename Shape, BlockData& data>
+struct SolidType : public Shape {
+	static Blocktype block_val() {
+		return data.id;
+	}
+};
+
+template <typename Shape, int x, int y, int z>
+struct Shift : public Shape {
+	static float gen_value(int seed, vec3 pos) {
+		return Shape::gen_value(seed, pos - vec3(x,y,z));
+	}
+};
+
+
+template <int height>
 struct FlatTerrain {
 	static float gen_value(int seed, vec3 pos) {
 		return height - pos.y;
@@ -237,13 +233,9 @@ struct FlatTerrain {
 	static float max_deriv() {
 		return 1;
 	}
-	
-	static Blocktype block_val() {
-		return data.id;
-	}
 };
 
-template <int height, int slope_numer, int slope_denom, BlockData& data>
+template <int height, int slope_numer, int slope_denom>
 struct SlopedTerrain {
 	static float gen_value(int seed, vec3 pos) {
 		return height + pos.x * slope_numer / slope_denom - pos.y;
@@ -252,18 +244,36 @@ struct SlopedTerrain {
 	static float max_deriv() {
 		return std::max(std::abs((float)slope_numer/slope_denom), 1.0f);
 	}
+};
+
+template <int max_scale, int divider, int layer>
+struct Perlin2d {
+	static float gen_value(int seed, vec3 pos) {
+		float val = 0;
+	  int i = 0;
+		int scale = max_scale;
+	  while (scale > 1) {
+	    val += perlin2d(vec2(pos.x, pos.z) / float(scale), seed, layer*100 + i) * scale;
+	    scale /= divider;
+	    i ++;
+	  }
+		val -= pos.y * max_deriv();
+	  return val;
+	}
 	
-	static Blocktype block_val() {
-		return data.id;
+	static float max_deriv() {
+		return std::max(1.0, std::log(max_scale) / std::log(divider));
 	}
 };
 
-
 typedef TerrainResolver<
-	FlatTerrain<8,blocktypes::stone>,
-	SlopedTerrain<-10,1,2,blocktypes::dirt>,
-	SlopedTerrain<-10,-1,2,blocktypes::leaves>
+	SolidType<FlatTerrain<32>, blocktypes::stone>
 > FlatWorld;
 
+typedef TerrainResolver<
+	SolidType<Shift<Perlin2d<64,8,0>, 0,0,0>, blocktypes::stone>,
+	SolidType<Shift<Perlin2d<64,8,0>, 0,5,0>, blocktypes::dirt>,
+	SolidType<Shift<Perlin2d<64,8,0>, 0,6,0>, blocktypes::grass>
+> StoneWorld;
 
-EXPORT_PLUGIN_TEMPLATE(TwoPassTerrainLoader<FlatWorld,int>);
+EXPORT_PLUGIN_TEMPLATE(TwoPassTerrainLoader<StoneWorld,int>);

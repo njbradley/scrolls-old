@@ -156,7 +156,7 @@ void TileMap::status(ostream& ofile) {
 float World::tick_deltatime = 1/30.0f;
 
 
-World::World(string oldname): terrainloader(seed), tileloader(this), name(oldname), physics(this, tick_deltatime),
+World::World(string oldname): seed(std::hash<string>()(name)), terrainloader(seed), tileloader(this), name(oldname), physics(this, tick_deltatime),
 tiles( ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) + 3) {
   ifstream ifile(path("worlddata.txt"));
   if (ifile.good()) {
@@ -185,6 +185,7 @@ void World::load_config(istream& ifile) {
   while ( !ifile.eof() and buff != "end" ) {
     if (buff == "seed") {
       ifile >> seed;
+      terrainloader->seed = seed;
     }
     if (buff == "daytime") {
       ifile >> daytime;
