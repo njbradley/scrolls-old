@@ -134,17 +134,6 @@ TerrainLoader::TerrainLoader(int nseed): seed(nseed) {
 
 
 template <typename ... Shapes>
-template <typename FirstShape, typename SecondShape, typename ... OtherShapes>
-Blocktype TerrainResolver<Shapes...>::gen_func(ivec3 globalpos, int scale) {
-	Blocktype val = gen_func<FirstShape>(globalpos, scale);
-	if (val != BLOCK_NULL) {
-		return val;
-	} else {
-		return gen_func<SecondShape,OtherShapes...>(globalpos, scale);
-	}
-}
-
-template <typename ... Shapes>
 template <typename Shape>
 Blocktype TerrainResolver<Shapes...>::gen_func(ivec3 globalpos, int scale) {
 	float val = Shape::gen_value(seed, vec3(globalpos) + float(scale)/2);
@@ -158,23 +147,50 @@ Blocktype TerrainResolver<Shapes...>::gen_func(ivec3 globalpos, int scale) {
 	}
 }
 
+
 template <typename ... Shapes>
+template <typename FirstShape, typename SecondShape, typename ... OtherShapes>
 Blocktype TerrainResolver<Shapes...>::gen_block(ostream& ofile, ivec3 globalpos, int scale) {
-	Blocktype myval = gen_func<Shapes...>(globalpos, scale);
+	Blocktype val = gen_func<FirstShape>(globalpos, scale);
+	if (val == BLOCK_NULL) {
+		return gen_block<SecondShape,OtherShapes...>(ofile, globalpos, scale);
+	} else {
+		return gen_block<FirstShape,SecondShape,OtherShapes...>(ofile, globalpos, scale, val);
+	}
+}
+
+template <typename ... Shapes>
+template <typename Shape>
+Blocktype TerrainResolver<Shapes...>::gen_block(ostream& ofile, ivec3 globalpos, int scale) {
+	Blocktype val = gen_func<Shape>(globalpos, scale);
+	if (val == BLOCK_NULL) {
+		val = 0;
+	}
+	return gen_block<Shape>(ofile, globalpos, scale, val);
+}
+
+
+
+template <typename ... Shapes>
+template <typename ... CurShapes>
+Blocktype TerrainResolver<Shapes...>::gen_block(ostream& ofile, ivec3 globalpos, int scale, Blocktype myval) {
   if (myval != BLOCK_SPLIT or scale == 1) {
 		if (myval == BLOCK_NULL) myval = 0;
+		if (myval < 0 or myval > 100) {
+			cout << "BADD " << endl;
+		}
     FileFormat::write_variable(ofile, myval<<2);
     return myval;
   } else {
     stringstream ss;
     ss << blockformat::chunk;
-    Blocktype val = gen_block(ss, globalpos, scale/csize);
+    Blocktype val = gen_block<CurShapes...>(ss, globalpos, scale/csize);
     bool all_same = val != -1;
     for (int x = 0; x < csize; x ++) {
       for (int y = 0; y < csize; y ++) {
         for (int z = 0; z < csize; z ++) {
           if (x > 0 or y > 0 or z > 0) {
-            Blocktype newval = gen_block(ss, globalpos + ivec3(x,y,z)*(scale/csize), scale/csize);
+            Blocktype newval = gen_block<CurShapes...>(ss, globalpos + ivec3(x,y,z)*(scale/csize), scale/csize);
             all_same = all_same and newval == val;
           }
         }
@@ -190,10 +206,12 @@ Blocktype TerrainResolver<Shapes...>::gen_block(ostream& ofile, ivec3 globalpos,
   }
 }
 
+
+
 template <typename ... Shapes>
 Block* TerrainResolver<Shapes...>::generate_chunk(ivec3 pos) {
 	stringstream ss;
-	gen_block(ss, pos * World::chunksize, World::chunksize);
+	gen_block<Shapes...>(ss, pos * World::chunksize, World::chunksize);
 	return new Block(ss);
 }
 
@@ -208,12 +226,6 @@ Block* TwoPassTerrainLoader<Terrain, Objects>::generate_chunk(ivec3 pos) {
 	Block* block = terrain.generate_chunk(pos);
 	return block;
 }
-
-struct StonePerlin : Perlin2d<16,4,0> {
-	static Blocktype block_val() {
-		return blocktypes::stone.id;
-	}
-};
 
 
 template <int height, BlockData& data>
@@ -231,14 +243,14 @@ struct FlatTerrain {
 	}
 };
 
-template <int height, BlockData& data>
+template <int height, int slope_numer, int slope_denom, BlockData& data>
 struct SlopedTerrain {
 	static float gen_value(int seed, vec3 pos) {
-		return height + pos.x/2 - pos.y;
+		return height + pos.x * slope_numer / slope_denom - pos.y;
 	}
 	
 	static float max_deriv() {
-		return 1.5;
+		return std::max(std::abs((float)slope_numer/slope_denom), 1.0f);
 	}
 	
 	static Blocktype block_val() {
@@ -249,8 +261,8 @@ struct SlopedTerrain {
 
 typedef TerrainResolver<
 	FlatTerrain<8,blocktypes::stone>,
-	FlatTerrain<10,blocktypes::dirt>
-	// SlopedTerrain<0,blocktypes::dirt>
+	SlopedTerrain<-10,1,2,blocktypes::dirt>,
+	SlopedTerrain<-10,-1,2,blocktypes::leaves>
 > FlatWorld;
 
 
