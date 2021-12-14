@@ -108,7 +108,7 @@ struct Perlin2d {
 	    scale /= divider;
 	    i ++;
 	  }
-		val -= pos.y;
+		val -= pos.y * max_deriv();
 	  return val;
 	}
 	
@@ -147,7 +147,7 @@ template <typename ... Shapes>
 template <typename Shape>
 Blocktype TerrainResolver<Shapes...>::gen_func(ivec3 globalpos, int scale) {
 	float val = Shape::gen_value(seed, vec3(globalpos) + float(scale)/2);
-	if (val > (scale-1) * Shape::max_deriv() * 1.5f) {
+	if (val > (scale-1)/2 * Shape::max_deriv() * 1.5f) {
 		return Shape::block_val();
 	} else {
 		return -1;
@@ -195,7 +195,7 @@ Block* TerrainResolver<Shapes...>::generate_chunk(ivec3 pos) {
 
 template <typename Terrain, typename Objects>
 int TwoPassTerrainLoader<Terrain, Objects>::get_height(ivec2 pos) {
-	return 0;
+	return 10;
 }
 
 template <typename Terrain, typename Objects>
@@ -211,4 +211,22 @@ struct StonePerlin : Perlin2d<16,4,0> {
 	}
 };
 
-EXPORT_PLUGIN_TEMPLATE(TwoPassTerrainLoader<TerrainResolver<StonePerlin>,int>);
+
+template <int height>
+struct FlatTerrain {
+	static float gen_value(int seed, vec3 pos) {
+		return height - pos.y;
+	}
+	
+	static float max_deriv() {
+		return 1;
+	}
+	
+	static Blocktype block_val() {
+		return blocktypes::stone.id;
+	}
+};
+
+
+
+EXPORT_PLUGIN_TEMPLATE(TwoPassTerrainLoader<TerrainResolver<FlatTerrain<10>>,int>);
