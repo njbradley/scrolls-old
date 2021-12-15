@@ -180,7 +180,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
 			//cout << "generating '" << path.str() << "'\n";
       // dfile << "NTILE" << endl << "gen ";
 			//chunk = generate(pos);
-      chunk = world->terrainloader->generate_chunk(pos);
+      chunk = world->terrainloader.generate_chunk(pos);
       chunk->set_parent(this, pos, chunksize);
       // dfile << "GEN " << endl;
 			//return load_chunk(pos);

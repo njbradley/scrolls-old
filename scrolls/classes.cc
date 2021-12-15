@@ -4,6 +4,7 @@
 #include "classes.h"
 
 #include <chrono>
+#include <sys/stat.h>
 
 //////////////////////// GLOBAL VARIABLES ////////////////////////
 
@@ -84,6 +85,11 @@ double getTime() {
   static double ticks_per_sec = get_ticks_per_sec();
   static TimeTicks start_ticks = get_raw_ticks();
   return (double) (get_raw_ticks() - start_ticks) / ticks_per_sec;
+}
+
+bool stat(string path) {
+  struct stat info;
+  return stat(path.c_str(), &info) == 0;
 }
 
 // double getTime() {

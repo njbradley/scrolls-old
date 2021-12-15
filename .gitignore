@@ -14,3 +14,4 @@ dump*.txt
 crash-reports/
 /stb/
 /*exe
+AUTO_DELETE_SAVES*

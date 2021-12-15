@@ -13,6 +13,7 @@
 #include "tests.h"
 #include "world.h"
 
+#include <filesystem>
 
 int test_main(int numargs, char** args) {
 	Storage<Test> tests;
@@ -51,6 +52,10 @@ int test_main(int numargs, char** args) {
 }
 
 int game_main() {
+	if (stat("AUTO_DELETE_SAVES")) {
+		cout << "revmoing "<< endl;
+		std::filesystem::remove_all("saves");
+	}
 	
 	cout << "Starting " << endl;
 	logger.init();

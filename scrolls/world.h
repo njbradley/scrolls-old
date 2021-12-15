@@ -5,6 +5,7 @@
 #include "plugins.h"
 #include "collider.h"
 #include "player.h"
+#include "terrain.h"
 
 #include <set>
 #include <mutex>
@@ -75,7 +76,7 @@ class World: public Collider { public:
   double daytime = 500;
   
   TileMap tiles;
-  PluginNow<TerrainLoader> terrainloader;
+  TerrainLoader terrainloader;
   PluginNow<TileLoader> tileloader;
   PluginNow<PhysicsEngine> physics;
   Plugin<TickRunner> tickrunner;

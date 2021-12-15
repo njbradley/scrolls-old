@@ -270,7 +270,7 @@ struct ExportPluginSingleton {
 	DEFINE_PLUGIN(X); \
 	static ExportPlugin<X> UNIQUENAME(_export_plugin_);
 
-#define EXPORT_PLUGIN_TEMPLATE(X...) \
+#define EXPORT_PLUGIN_TEMPLATE(X) \
 	static_assert(!std::is_same<X,X::Plugin_BaseType>::value, \
 		"Only non base plugins can be used with the EXPORT_PLUGIN macro. " \
 		"If you are trying to export a base plugin, use the DEFINE_AND_EXPORT_PLUGIN macro"); \

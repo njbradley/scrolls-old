@@ -185,7 +185,7 @@ void World::load_config(istream& ifile) {
   while ( !ifile.eof() and buff != "end" ) {
     if (buff == "seed") {
       ifile >> seed;
-      terrainloader->seed = seed;
+      terrainloader.set_seed(seed);
     }
     if (buff == "daytime") {
       ifile >> daytime;
@@ -230,13 +230,13 @@ void World::startup() {
     // player = new Player(this, ifile);
     // set_player_vars();
   } else {
-    last_player_pos = ivec3(10,terrainloader->get_height(ivec2(10,10))+4,10);
+    last_player_pos = ivec3(10,terrainloader.get_height(ivec2(10,10))+4,10);
     // spawn_player();
   }
 }
 
 void World::spawn_player() {
-  ivec3 spawnpos(15,terrainloader->get_height(ivec2(15,15))+8,15);
+  ivec3 spawnpos(15,terrainloader.get_height(ivec2(15,15))+8,15);
   int i = 0;
   // while (loader.gen_func(ivec4(spawnpos.x, spawnpos.y, spawnpos.z, 1)) != 0 and i < 100) {
   //   i ++;

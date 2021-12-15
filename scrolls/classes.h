@@ -70,6 +70,8 @@ ostream& operator<<(ostream& out, ivec3 pos);
 ostream& operator<<(ostream& out, vec3 pos);
 ostream& operator<<(ostream& out, quat rot);
 
+bool stat(string path);
+
 // #define RESOURCES_PATH "resources/"
 #define SAVES_PATH "saves/"
 
@@ -132,6 +134,7 @@ class TickRunner;
 class TerrainLoader;
 class GraphicsContext;
 class AudioContext;
+class TerrainGenerator;
 
 //////////////////////// GLOBAL VARIABLES ////////////////////////
 

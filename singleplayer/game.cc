@@ -49,13 +49,20 @@ void SingleGame::gametick() {
 	
 	static double lastTime = getTime();
 	static int num_frames = 0;
+	static int fps = 0;
 	double curtime = getTime();
 	double deltatime = curtime - lastTime;
 	if (int(curtime) - int(lastTime) > 0) {
-		logger->clear(3);
-		logger->log(3) << "fps: " << num_frames << endl;
+		fps = num_frames;
 		num_frames = 0;
 	}
+	
+	logger->clear(3);
+	logger->log(3) << "fps: " << fps << endl;
+	if (world->player != nullptr) {
+		logger->log(3) << "playerpos: " << world->player->box.position << endl;
+	}
+	
 	
 	num_frames++;
 	
