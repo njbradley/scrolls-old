@@ -12,13 +12,13 @@ struct SurfaceObject : public TerrainObject {
 		if (block->continues) {
 			for (int x = 0; x < csize; x ++) {
 				for (int z = 0; z < csize; z ++) {
-					place_object(chunkpos, block->get(x,1,z), block->get(x,0,z));
+					find_surface(chunkpos, block, block->get(x,1,z), block->get(x,0,z));
 				}
 			}
 		}
 	}
 	
-	void place_object(ivec3 chunkpos, Block* above, Block* below) {
+	void find_surface(ivec3 chunkpos, Block* chunk, Block* above, Block* below) {
 		if (!above->continues and above->pixel->value != 0) {
 			return;
 		}
@@ -30,67 +30,74 @@ struct SurfaceObject : public TerrainObject {
 			for (int x = 0; x < csize; x ++) {
 				for (int z = 0; z < csize; z ++) {
 					if (above->continues) {
-						place_object(chunkpos, above->get(x,1,z), above->get(x,0,z));
+						find_surface(chunkpos, chunk, above->get(x,1,z), above->get(x,0,z));
 					}
 					if (below->continues) {
-						place_object(chunkpos, below->get(x,1,z), below->get(x,0,z));
+						find_surface(chunkpos, chunk, below->get(x,1,z), below->get(x,0,z));
 					}
-					if (above->continues and below->continues) {
-						place_object(chunkpos, above->get(x,0,z), below->get(x,1,z));
-					}
+					// if (above->continues and below->continues) {
+					// 	place_object(chunkpos, above->get(x,0,z), below->get(x,1,z));
+					// }
 				}
 			}
 		} else {
 			if (hash4(seed, above->globalpos, 0) % rarity == hash4(seed, below->globalpos, 0) % rarity) {
-				FreeBlock* newobj = create_object(above->globalpos);
-				Block* destblock = above;
-				vec3 objpos = above->globalpos;
-				
-				while (destblock->scale < newobj->scale * csize) {
-					destblock = destblock->parent;
-				}
-				while (destblock->scale > newobj->scale * csize) {
-					destblock->subdivide();
-					destblock = destblock->get(0,0,0);
-				}
-				
-				Movingbox newbox = newobj->box;
-				newbox.position = objpos;
-				
-				destblock->add_freechild(newobj);
-				cout << newbox << endl;
-				newobj->set_box(newbox);
-				cout << newobj->highparent << ' ' << newobj->highparent->globalpos << endl;
-				cout << newbox << endl;
+				place_object_at(chunkpos, chunk, above->globalpos);
 			}
 		}
 	}
 	
-	virtual FreeBlock* create_object(ivec3 pos) = 0;
+	void place_object(ivec3 chunkpos, Block* chunk, FreeBlock* newobj) {
+		Block* destblock = chunk->get_global(SAFEFLOOR3(newobj->box.position), newobj->scale*csize);
+		if (destblock == nullptr) return;
+		
+		while (destblock->scale > newobj->scale * csize) {
+			destblock->subdivide();
+			destblock = destblock->get(0,0,0);
+		}
+		
+		destblock->add_freechild(newobj);
+		if (!newobj->set_box(newobj->box)) {
+			destblock->remove_freechild(newobj);
+			delete newobj;
+		}
+	}
+	
+	// virtual FreeBlock* create_object(ivec3 pos) = 0;
+	virtual void place_object_at(ivec3 chunkpos, Block* chunk, ivec3 pos) = 0;
 };
 
 
 
 
-struct BareTree : SurfaceObject<1000> {
+struct BareTree : SurfaceObject<100> {
 	PLUGIN_HEAD(BareTree);
 	
-	using SurfaceObject<1000>::SurfaceObject;
+	using SurfaceObject<100>::SurfaceObject;
 	
-	virtual FreeBlock* create_object(ivec3 pos) {
-		cout << "creating object at " << pos << endl;
-		quat rot = glm::angleAxis(randfloat(seed, pos.x, pos.y, pos.z, 0), vec3(0,1,0));
-		FreeBlock* free = new FreeBlock(Hitbox(vec3(0,0,0), vec3(-2,0,-2), vec3(2,4,2), rot));
-		
-		free->set_parent(nullptr, nullptr, ivec3(0,0,0), 4);
-		
-		free->set_global(ivec3(0,0,0), 1, blocktypes::wood.id, 1);
-		free->set_global(ivec3(0,1,0), 1, blocktypes::wood.id, 1);
-		free->set_global(ivec3(0,2,0), 1, blocktypes::wood.id, 1);
-		free->set_global(ivec3(0,3,0), 1, blocktypes::wood.id, 1);
-		
-		return free;
+	virtual void place_object_at(ivec3 chunkpos, Block* chunk, ivec3 pos) {
+		place_object_at(chunkpos, chunk, vec3(pos) + vec3(0.5f, 0, 0.5f), quat(1,0,0,0));
 	}
+	
+	void place_object_at(ivec3 chunkpos, Block* chunk, vec3 pos, quat rot) {
+		rot = rot * glm::angleAxis(randfloat(seed, pos.x, pos.y, pos.z, 0) - 0.5f, glm::normalize(randvec3(seed, pos.x, pos.y, pos.z, 1)));
+		FreeBlock* free = new FreeBlock(Hitbox(pos, vec3(-0.5f,0,-0.5f), vec3(3.5f,4,3.5f), rot));
+		free->fix();
+		
+		free->set_parent(nullptr, nullptr, ivec3(0,0,0), 8);
+		
+		for (int i = 0; i < 4; i ++) {
+			free->set_global(ivec3(0,i,0), 1, blocktypes::wood.id, 1);
+		}
+		
+		place_object(chunkpos, chunk, free);
+		
+		if (hash4(seed, ivec3(pos), 121)%4 == 1) {
+			place_object_at(chunkpos, chunk, free->box.transform_out(vec3(0.5f,4,0.5f)), rot);
+		}
+	}
+	
+	
 };
 
 EXPORT_PLUGIN(BareTree);

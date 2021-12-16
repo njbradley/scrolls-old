@@ -19,7 +19,12 @@ PLUGIN_REQUIRES_RUNTIME(game->world->physics, physics, Q3PhysicsEngine);
 
 Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free): PhysicsBody(free) {
 	q3BodyDef bodydef;
-	bodydef.bodyType = eDynamicBody;
+	if (free->fixed) {
+		cout << "STATIC body!! " << endl;
+		bodydef.bodyType = eStaticBody;
+	} else {
+		bodydef.bodyType = eDynamicBody;
+	}
 	bodydef.position = freeblock->box.position;
 	bodydef.linearVelocity = freeblock->box.velocity;
 	bodydef.angularVelocity = freeblock->box.angularvel;

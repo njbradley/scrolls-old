@@ -384,9 +384,11 @@ Block* Block::get_global(ivec3 pos, int w) {
         return nullptr;
         // pos = SAFEFLOOR3(curblock->freecontainer->box.transform_out(pos));
         // curblock = curblock->freecontainer->highparent;
-      } else {
+      } else if (world != nullptr) {
         Block* result = world->get_global(pos, w);
         return result;
+      } else {
+        return nullptr;
       }
     } else {
       curblock = curblock->parent;
@@ -513,12 +515,12 @@ void Block::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]
       }
     }
     if (curblock->get(rem) == nullptr) {
-      cout << " sepc " << rem << ' ' << indexof(rem) << endl;
+      // cout << " sepc " << rem << ' ' << indexof(rem) << endl;
       curblock->set_child(rem, new Block());
-      cout << " adding child " << curblock->scale << ' ';
-      for (int i = 0; i < csize3; i ++) {
-        cout << curblock->children[i] << ' ';
-      } cout << endl;
+      // cout << " adding child " << curblock->scale << ' ';
+      // for (int i = 0; i < csize3; i ++) {
+        // cout << curblock->children[i] << ' ';
+      // } cout << endl;
       if (curblock->scale > w) {
         curblock->get(rem)->divide();
       } else {
@@ -1226,12 +1228,12 @@ void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int ns
   std::lock_guard<Block> guard(*this);
   // cout << " setting parent = " << nparent << " of " << this << endl;
   bool changed_world = highparent == nullptr or nparent == nullptr or highparent->world != nparent->world;
-  if (changed_world and highparent != nullptr and highparent->world != nullptr) {
+  if (!fixed and changed_world and highparent != nullptr and highparent->world != nullptr) {
     highparent->world->remove_freeblock(this);
   }
   highparent = nparent;
   Block::set_parent(nullptr, nworld, this, ppos, nscale);
-  if (changed_world and highparent != nullptr and highparent->world != nullptr) {
+  if (!fixed and changed_world and highparent != nullptr and highparent->world != nullptr) {
     highparent->world->add_freeblock(this);
   }
   box.posbox = box.negbox + float(scale);
@@ -1291,14 +1293,14 @@ Entity* FreeBlock::entity_cast() {
 bool FreeBlock::set_box(Movingbox newbox, float curtime) {
   std::lock_guard<Block> guard(*this);
   
-  if (!highparent->freebox().contains(newbox)) {
+  if (highparent != nullptr and !highparent->freebox().contains(newbox)) {
     // cout << "CHANGING higbox " << newbox << endl;
     
     vec3 guesspos = SAFEFLOOR3(newbox.global_midpoint());
     Block* guess = highparent->get_global(guesspos, scale*2);
     
     if (guess == nullptr) {
-      cout << "IM OUT " << newbox << endl;
+      // cout << "IM OUT " << newbox << endl;
       return false;
     }
     while (guess->scale > scale*2) {
@@ -1316,14 +1318,15 @@ bool FreeBlock::set_box(Movingbox newbox, float curtime) {
     }
   }
   
-  lastbox = box;
-  renderbox = box;
-  box = newbox;
   if (curtime < 0) {
     // update_time = getTime();
     lastbox = newbox;
     renderbox = newbox;
+    box = newbox;
   } else {
+    lastbox = box;
+    renderbox = box;
+    box = newbox;
     update_time = curtime;
   }
   
@@ -1359,10 +1362,14 @@ void FreeBlock::expand(ivec3 dir) { // Todo: this method only works for csize=2
   // box.position -= vec3(scale * dir);
   // box.posbox += float(scale);
   
-  Block* newparent = highparent->parent;
-  
-  highparent->remove_freechild(this);
-  newparent->add_freechild(this);
+  if (highparent == nullptr) {
+    set_parent(nullptr, world, parentpos, scale * csize);
+  } else {
+    Block* newparent = highparent->parent;
+    
+    highparent->remove_freechild(this);
+    newparent->add_freechild(this);
+  }
   // set_parent(highparent->parent, world, parentpos, scale * csize);
   set_box(box);
   
@@ -1431,10 +1438,16 @@ void FreeBlock::wake() {
 void FreeBlock::fix() {
   box.velocity = vec3(0,0,0);
   box.angularvel = vec3(0,0,0);
+  if (!fixed and highparent != nullptr and highparent->world != nullptr) {
+    highparent->world->remove_freeblock(this);
+  }
   fixed = true;
 }
 
 void FreeBlock::unfix() {
+  if (fixed and highparent != nullptr and highparent->world != nullptr) {
+    highparent->world->add_freeblock(this);
+  }
   fixed = false;
 }
 
@@ -1737,7 +1750,7 @@ void Pixel::set(int val, int newdirection, int newjoints[6]) {
     // group->del(this);
   }
   
-  parbl->world->block_update(parbl->globalpos);
+  // parbl->world->block_update(parbl->globalpos);
 
   reset_lightlevel();
   render_update();

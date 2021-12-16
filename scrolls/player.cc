@@ -511,7 +511,7 @@ void Player::computeMatricesFromInputs(float deltatime) {
 				// } else
 				static bool last_jump = false;
 				if (!last_jump and standing) {
-					physicsbody->apply_impulse(-closest_dir_down * 12.0f * box.mass);
+					physicsbody->apply_impulse(vec3(0,1,0) * 12.0f * box.mass);
 					last_jump = true;
 				} else {
 					last_jump = false;

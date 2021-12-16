@@ -62,7 +62,9 @@ void SingleGame::gametick() {
 	if (world->player != nullptr) {
 		logger->log(3) << "playerpos: " << world->player->box.position << endl;
 	}
-	
+	if (world->spectator.controller != nullptr) {
+		logger->log(3) << "spectatorpos: " << world->spectator.position << endl;
+	}
 	
 	num_frames++;
 	

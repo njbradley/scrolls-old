@@ -62,13 +62,59 @@ void BlockBroadPhase::update_collision(Block* block1, Block* block2) {
 	}
 }
 
+void BlockBroadPhase::find_freeblocks_around(FreeBlock* free, Block* block) {
+	for (int x = -1; x < 2; x ++) {
+		for (int y = -1; y < 2; y ++) {
+			for (int z = -1; z < 2; z ++) {
+				Hitbox box = block->freebox();
+				box.position += ivec3(x,y,z) * block->scale;
+				if (box.collide(free->box)) {
+					Block* newblock = block->get_global(block->globalpos + ivec3(x,y,z) * block->scale, block->scale);
+					if (newblock != nullptr) {
+						for (FreeBlock* otherfree = newblock->freechild; otherfree != nullptr; otherfree = otherfree->next) {
+							if (otherfree > free or otherfree->fixed) {
+								update_collision(free, otherfree);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void BlockBroadPhase::find_freeblocks_below(FreeBlock* free, Block* block) {
+	if (block != nullptr and block->freebox().collide(free->box)) {
+		for (FreeBlock* otherfree = block->freechild; otherfree != nullptr; otherfree = otherfree->next) {
+			if (otherfree > free or otherfree->fixed) {
+				update_collision(free, otherfree);
+			}
+		}
+		if (block->continues) {
+			for (int i = 0; i < csize3; i ++) {
+				find_freeblocks_below(free, block->children[i]);
+			}
+		}
+	}
+}
+
+
 void BlockBroadPhase::update_freeblock(FreeBlock* freeblock) { /// Crashing in freeblockiters ??
 	FreeBlockIter freeiter (freeblock->highparent, expandbox(freeblock->box));
 	
 	for (int i = 0; i < freeiter.num_bases; i ++) {
 		update_collision(freeblock, freeiter.bases[i]);
+		find_freeblocks_below(freeblock, freeiter.bases[i]);
 	}
 	
+	Block* curblock = freeblock->highparent->parent;
+	
+	while (curblock != nullptr) {
+		find_freeblocks_around(freeblock, curblock);
+		curblock = curblock->parent;
+	}
+	
+	/*
 	FreeBlockFreeIter freefreeiter (freeblock->highparent, expandbox(freeblock->box));
 	
 	for (FreeBlock* free : freefreeiter) {

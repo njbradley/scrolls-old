@@ -27,6 +27,8 @@ public:
 	
 	bool can_collide(Pixel* pix);
 	void add_contact(Pixel* pix1, Pixel* pix2);
+	void find_freeblocks_around(FreeBlock* free, Block* block);
+	void find_freeblocks_below(FreeBlock* free, Block* block);
 	void update_collision(Block* block1, Block* block2);
 	
 	void update_freeblock(FreeBlock* free);
