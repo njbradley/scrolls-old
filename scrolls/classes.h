@@ -135,6 +135,7 @@ class TerrainLoader;
 class GraphicsContext;
 class AudioContext;
 class TerrainGenerator;
+class TerrainObject;
 
 //////////////////////// GLOBAL VARIABLES ////////////////////////
 
