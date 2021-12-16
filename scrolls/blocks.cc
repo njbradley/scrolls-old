@@ -506,7 +506,11 @@ void Block::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]
   while (curblock->scale > w) {
     ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
     if (!curblock->continues) {
-      curblock->subdivide();
+      if (curblock->pixel == nullptr) {
+        curblock->divide();
+      } else {
+        curblock->subdivide();
+      }
     }
     if (curblock->get(rem) == nullptr) {
       cout << " sepc " << rem << ' ' << indexof(rem) << endl;
@@ -1316,7 +1320,9 @@ bool FreeBlock::set_box(Movingbox newbox, float curtime) {
   renderbox = box;
   box = newbox;
   if (curtime < 0) {
-    update_time = getTime();
+    // update_time = getTime();
+    lastbox = newbox;
+    renderbox = newbox;
   } else {
     update_time = curtime;
   }

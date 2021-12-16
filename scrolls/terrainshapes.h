@@ -10,25 +10,6 @@
 #include "world.h"
 
 
-int hash4(int seed, int a, int b, int c, int d);
-
-float randfloat(int seed, int a, int b, int c, int d);
-
-vec3 randvec3(int seed, int a, int b, int c, int d);
-vec2 randvec2(int seed, int a, int b, int c, int d);
-
-float perlin3d(vec3 pos, int seed, int layer);
-float perlin2d(vec2 pos, int seed, int layer);
-
-float fractal_perlin2d(vec2 pos, float scale, float divider, int seed, int layer);
-float fractal_perlin3d(vec3 pos, float scale, float divider, int seed, int layer);
-
-
-
-
-
-
-
 
 
 // These are the methods that terrain shapes must implement
