@@ -102,27 +102,27 @@ void UILogger::render(UIVecs* vecs) {
 
 
 
-void DebugLines::render(Hitbox hitbox, vec3 color) {
+void DebugLines::render(Hitbox hitbox, vec3 color, string tag) {
 	vec3 points[8];
 	hitbox.points(points);
 	// x=0 face
-	render(points[0], (points[0]+points[1])/2.0f, vec3(0,0,1));
-	render((points[0]+points[1])/2.0f, points[1], color);
-	render(points[0], (points[0]+points[2])/2.0f, vec3(0,1,0));
-	render((points[0]+points[2])/2.0f, points[2], color);
-	render(points[2], points[3], color);
-	render(points[1], points[3], color);
+	render(points[0], (points[0]+points[1])/2.0f, vec3(0,0,1), tag);
+	render((points[0]+points[1])/2.0f, points[1], color, tag);
+	render(points[0], (points[0]+points[2])/2.0f, vec3(0,1,0), tag);
+	render((points[0]+points[2])/2.0f, points[2], color, tag);
+	render(points[2], points[3], color, tag);
+	render(points[1], points[3], color, tag);
 	// x=1 face
-	render(points[4], points[5], color);
-	render(points[4], points[6], color);
-	render(points[6], points[7], color);
-	render(points[5], points[7], color);
+	render(points[4], points[5], color, tag);
+	render(points[4], points[6], color, tag);
+	render(points[6], points[7], color, tag);
+	render(points[5], points[7], color, tag);
 	// connectors
-	render(points[0], (points[0]+points[4])/2.0f, vec3(1,0,0));
-	render((points[0]+points[4])/2.0f, points[4], color);
-	render(points[1], points[5], color);
-	render(points[2], points[6], color);
-	render(points[3], points[7], color);
+	render(points[0], (points[0]+points[4])/2.0f, vec3(1,0,0), tag);
+	render((points[0]+points[4])/2.0f, points[4], color, tag);
+	render(points[1], points[5], color, tag);
+	render(points[2], points[6], color, tag);
+	render(points[3], points[7], color, tag);
 }
 
 

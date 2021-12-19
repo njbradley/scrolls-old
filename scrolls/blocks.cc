@@ -76,8 +76,8 @@ Block::~Block() {
     // }
     delete pixel;
   }
-  if (freechild != nullptr) {
-    delete freechild;
+  for (FREECHILDREN_LOOP(free)) {
+    delete free;
   }
 }
 
@@ -534,7 +534,11 @@ void Block::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]
     curblock->join();
     curblock->set_pixel(new Pixel(val, direc, joints));
   } else {
-    curblock->pixel->set(val, direc, joints);
+    if (curblock->pixel == nullptr) {
+      curblock->set_pixel(new Pixel(val, direc, joints));
+    } else {
+      curblock->pixel->set(val, direc, joints);
+    }
   }
 }
 
@@ -939,6 +943,49 @@ ostream& operator<<(ostream& out, const Block& block) {
 
 
 Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) {
+  
+  Line line (*pos, dir);
+  Block* curblock = get_global(SAFEFLOOR3(*pos), 1);
+  
+  debuglines->clear("raycast");
+  
+  cout << curblock->pixel->value << endl;
+  
+  while (curblock != nullptr and (curblock->pixel == nullptr or curblock->pixel->value == 0)) {
+    cout << *pos << ' ' << timeleft << ' ' << endl;
+    // debuglines->render(curblock->hitbox(), vec3(0,1,0), "raycast");
+    vec3 closest_pos;
+    float closest_dist = 999999;
+    
+    Plane faces[6];
+    curblock->hitbox().faces(faces);
+    for (Plane face : faces) {
+      vec3 colpoint = face.collision(line);
+      if (!std::isnan(colpoint.x) and curblock->hitbox().contains(colpoint)) {
+        float dist = glm::dot(colpoint - *pos, dir);
+        if (dist > 0 and dist < closest_dist) {
+          closest_dist = dist;
+          closest_pos = colpoint;
+        }
+      }
+    }
+    
+    *pos = closest_pos + dir * 0.001f;
+    timeleft -= closest_dist;
+    
+    if (timeleft < 0) {
+      return nullptr;
+    }
+    
+    curblock = curblock->get_global(SAFEFLOOR3(*pos), 1);
+  }
+  
+  return curblock;
+  /*
+  
+  
+  
+  
   vec3 axis = glm::cross(vec3(1,0,0), dir);
   axis /= glm::length(axis);
   
@@ -949,14 +996,17 @@ Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) {
   Line line (startpos, dir);
   // debuglines->render(linebox);
   
+  debuglines->clear("raycast");
+  debuglines->render(linebox, vec3(1,1,0), "raycast");
+  
   float closest_dist = timeleft;
-  Block* closest_block = nullptr;
+  Block* closest_block = npix->parblullptr;
   vec3 closest_pos = *pos;
   vec3 closest_norm = vec3(0,0,0);
   
   FreeBlockIter iter (this, linebox);
   for (Pixel* pix : iter) {
-    // debuglines->render(pix->parbl->hitbox(), vec3(0.5,1,1));
+    debuglines->render(pix->parbl->hitbox(), vec3(0.5,1,1), "raycast");
     if (pix->value != 0) {
       Plane faces[6];
       pix->parbl->hitbox().faces(faces);
@@ -1194,6 +1244,11 @@ void FreeBlock::to_file(ostream& ofile) const {
   FileFormat::write_fixed(ofile, box.rotation.x);
   FileFormat::write_fixed(ofile, box.rotation.y);
   FileFormat::write_fixed(ofile, box.rotation.z);
+  
+  ofile.put(fixed);
+  ofile.put(allow_sleep);
+  ofile.put(allow_rotation);
+  ofile.put(allow_raycast);
 }
 
 void FreeBlock::from_file(istream& ifile) {
@@ -1221,7 +1276,16 @@ void FreeBlock::from_file(istream& ifile) {
   FileFormat::read_fixed(ifile, &box.rotation.y);
   FileFormat::read_fixed(ifile, &box.rotation.z);
   
+  if (ifile.get()) {
+    fix();
+  }
+  allow_sleep = ifile.get();
+  allow_rotation = ifile.get();
+  allow_raycast = ifile.get();
+  
   box.posbox = box.negbox + float(scale);
+  renderbox = box;
+  lastbox = box;
 }
 
 void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale) {
@@ -1261,6 +1325,7 @@ void FreeBlock::tick(float curtime, float deltatime) {
     physicsbody->apply_impulse(vec3(0,mag*2,0) * deltatime);
   }
   
+  debuglines->render(box, vec3(1,1,1), "tick");
   // if (entity_cast() == nullptr or entity_cast()->get_plugin_id() != Player::plugindef()->id) {
     // debuglines->render(box);
   // }
@@ -1354,7 +1419,6 @@ void FreeBlock::expand(ivec3 dir) { // Todo: this method only works for csize=2
   copyblock->swap(this);
   divide();
   
-  cout << highparent << endl;
   // expanding box and correcting highparent;
   box.negbox -= vec3(scale * dir);
   box.posbox += vec3(scale * (1 - dir));
@@ -2046,12 +2110,12 @@ void Pixel::to_file(ostream& of) {
     }
   }
   if (jointval != 0) {
-    FileFormat::write_variable(of, jointval<<2 + blockformat::jointstype);
+    FileFormat::write_variable(of, (jointval<<2) | blockformat::jointstype);
   }
   if (value != 0 and direction != blockstorage[value]->default_direction) {
-    FileFormat::write_variable(of, direction<<2 + blockformat::dirtype);
+    FileFormat::write_variable(of, (direction<<2) | blockformat::dirtype);
   }
-  FileFormat::write_variable(of, value<<2 + blockformat::valuetype);
+  FileFormat::write_variable(of, (value<<2) | blockformat::valuetype);
 }
 
 

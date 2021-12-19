@@ -22,11 +22,22 @@ float perlin2d(vec2 pos, int seed, int layer);
 float fractal_perlin2d(vec2 pos, float scale, float divider, int seed, int layer);
 float fractal_perlin3d(vec3 pos, float scale, float divider, int seed, int layer);
 
+class BiomeGenerator { public:
+	BASE_PLUGIN_HEAD(BiomeGenerator, (int seed));
+	int seed;
+	
+	BiomeGenerator(int nseed);
+	virtual ~BiomeGenerator() {}
+	
+	virtual vec3 values_at(ivec3 chunkpos) = 0;
+};
 
 class TerrainLoader { public:
 	int seed;
 	PluginNow<TerrainGenerator> terrain;
 	PluginListNow<TerrainObject> objects;
+	
+	// PluginNow<BiomeGenerator> biomes;
 	
 	TerrainLoader(int newseed);
 	

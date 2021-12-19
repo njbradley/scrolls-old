@@ -122,7 +122,7 @@ vec3 Q3PhysicsBody::closest_contact(vec3 dir) {
 		}
 		
 		if (num_contacts > 0) {
-			debuglines->render(contacts[0].position, contacts[0].position - newdir);
+			debuglines->render(contacts[0].position, contacts[0].position - newdir, vec3(1,1,1), "tick");
 		}
 		
 		if (glm::dot(newdir, dir) > max_dot) {

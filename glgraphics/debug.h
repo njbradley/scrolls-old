@@ -4,10 +4,15 @@
 #include "classes.h"
 #include "scrolls/debug.h"
 
+#include <mutex>
+
 class GLDebugLines : public DebugLines { public:
 	PLUGIN_HEAD(GLDebugLines);
 	
+	std::mutex lock;
+	
 	vector<GLfloat> data;
+	vector<string> tags;
 	
 	GLuint vertexid;
 	GLuint program;
@@ -16,8 +21,9 @@ class GLDebugLines : public DebugLines { public:
 	
 	GLDebugLines();
 	~GLDebugLines();
-	virtual void render(vec3 start, vec3 end, vec3 color = vec3(1,1,1));
+	virtual void render(vec3 start, vec3 end, vec3 color = vec3(1,1,1), string tag = "");
 	virtual void clear();
+	virtual void clear(string tag);
 	void draw_call(glm::mat4 MVP);
 };
 

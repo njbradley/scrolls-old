@@ -59,8 +59,6 @@ struct ShapeResolver : public TerrainGenerator {
 
 
 
-
-
 template <typename ... Shapes>
 float ShapeResolver<Shapes...>::get_max_value(vec3 pos) {
 	float vals[sizeof...(Shapes)] = {Shapes::gen_value(seed, pos)...};
