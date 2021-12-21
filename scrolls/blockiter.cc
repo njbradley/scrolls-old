@@ -47,7 +47,7 @@ void BlockIter<BlockT>::iterator::step_sideways(BlockT* parent, ivec3 curpos, Bl
   // cout << "  Step sideways " << parent << ' ' << curpos << ' ' << block << endl;
   if (parent == nullptr or parent->scale > max_scale) {
     // cout << "   DONE " << endl;
-    curblock = nullptr;
+    finish();
   } else if (curpos == endpos()) {
     // cout << "   Going up " << endl;
     step_sideways(parent->parent, parent->parentpos, parent);

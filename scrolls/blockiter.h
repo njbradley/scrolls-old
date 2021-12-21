@@ -33,6 +33,7 @@ class BlockIter { public:
     void get_safe(BlockT* parent, ivec3 curpos, BlockT* block);
     virtual bool valid_block(BlockT* block) { return block != nullptr; }
     virtual bool skip_block(BlockT* block) { return false; }
+    virtual void finish() { curblock = nullptr; }
     
     iterator operator++();
     BlockT* operator*();
@@ -99,6 +100,7 @@ class DirPixelIter : public PixelIter<BlockT> { public:
   };
   
   DirPixelIter(BlockT* base, ivec3 newdir): PixelIter<BlockT>(base), dir(newdir) {}
+  DirPixelIter() {}
   
   BLOCKITER_BEGIN_END;
 };
@@ -149,14 +151,14 @@ class BlockTouchSideIter { public:
 	Block* base;
 	Collider* world;
 	// union {
-		PixelIter<Block> blockiter;
+		DirPixelIter<Block> blockiter;
 		FreeBlockIter freeiter;
 	// };
 	bool free;
 	class iterator { public:
 		BlockTouchSideIter* parent;
 		// union {
-			PixelIter<Block>::iterator blockiter;
+			DirPixelIter<Block>::iterator blockiter;
 			FreeBlockIter::iterator freeiter;
 		// };
     
