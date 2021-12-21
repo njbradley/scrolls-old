@@ -780,65 +780,24 @@ void Block::lighting_update(bool spread)  {
   }
 }
 
-BlockIter Block::iter(ivec3 startpos, ivec3 endpos, ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end)) {
-  if (iterfunc == nullptr) {
-    iterfunc = [] (ivec3 pos, ivec3 startpos, ivec3 endpos) {
-  		pos.z++;
-  		if (pos.z > endpos.z) {
-  			pos.z = startpos.z;
-  			pos.y ++;
-  			if (pos.y > endpos.y) {
-  				pos.y = startpos.y;
-  				pos.x ++;
-  			}
-  		}
-  		return pos;
-  	};
-  }
-  return BlockIter {this, startpos, endpos, iterfunc};
+PixelIter<Block> Block::iter() {
+  return PixelIter<Block> (this);
 }
 
-ConstBlockIter Block::const_iter(ivec3 startpos, ivec3 endpos, ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end)) const {
-  if (iterfunc == nullptr) {
-    iterfunc = [] (ivec3 pos, ivec3 startpos, ivec3 endpos) {
-  		pos.z++;
-  		if (pos.z > endpos.z) {
-  			pos.z = startpos.z;
-  			pos.y ++;
-  			if (pos.y > endpos.y) {
-  				pos.y = startpos.y;
-  				pos.x ++;
-  			}
-  		}
-      // cout << '-' << pos << ' ' << startpos << endl;
-  		return pos;
-  	};
-  }
-  return ConstBlockIter {this, startpos, endpos, iterfunc};
+PixelIter<const Block> Block::const_iter() const {
+  return PixelIter<const Block> (this);
 }
 
-BlockIter Block::iter_side(ivec3 dir) {
-  ivec3 startpos (0,0,0);
-  ivec3 endpos (csize-1, csize-1, csize-1);
-  startpos += (dir+1)/2 * (csize-1);
-  endpos -= (1-dir)/2 * (csize-1);
-  return iter(startpos, endpos);
+DirPixelIter<Block> Block::iter_side(ivec3 dir) {
+  return DirPixelIter<Block> (this, dir);
 }
 
 BlockTouchSideIter Block::iter_touching_side(ivec3 dir) {
   return BlockTouchSideIter(this, dir);
 }
 
-ConstBlockIter Block::const_iter_side(ivec3 dir) const {
-  ivec3 startpos (0,0,0);
-  ivec3 endpos (csize-1, csize-1, csize-1);
-  startpos += (dir+1)/2 * (csize-1);
-  endpos -= (1-dir)/2 * (csize-1);
-  return const_iter(startpos, endpos);
-}
-
-BlockTouchIter Block::iter_touching() {
-  return BlockTouchIter {this, world};
+DirPixelIter<const Block> Block::const_iter_side(ivec3 dir) const {
+  return DirPixelIter<const Block> (this, dir);
 }
 
 vec3 Block::get_position() const {
@@ -2068,37 +2027,6 @@ BlockData* Pixel::data() const {
   } else {
     return blockstorage[value];
   }
-}
-
-BlockGroupIter Pixel::iter_group() {
-  if (group == nullptr) {
-    return {this, parbl->world, [] (Pixel* base, Pixel* pix) {
-      return pix->value == base->value;
-    }};
-  } else {
-    return {this, parbl->world, [] (Pixel* base, Pixel* pix) {
-      return pix->group == base->group;
-    }};
-  }
-}
-
-BlockGroupIter Pixel::iter_group(bool (*func)(Pixel*,Pixel*)) {
-  return {this, parbl->world, func};
-}
-
-BlockGroupIter Pixel::iter_group(Collider* world, bool (*func)(Pixel*,Pixel*)) {
-  if (func == nullptr) {
-    if (group == nullptr) {
-      func = [] (Pixel* base, Pixel* pix) {
-        return pix->value == base->value;
-      };
-    } else {
-      func = [] (Pixel* base, Pixel* pix) {
-        return pix->group == base->group;
-      };
-    }
-  }
-  return {this, world, func};
 }
 
 void Pixel::to_file(ostream& of) {

@@ -13,6 +13,41 @@ struct BlockTest : Test { public:
 		name = "blocktest";
 	}
 	
+	void iter_verify_block(Block* block, BlockIter<Block>::iterator& iter) {
+		if (block == nullptr) return;
+		TASSERT_EQ(block, *iter);
+		++iter;
+		if (block->continues) {
+			for (int i = 0; i < 8; i ++) {
+				iter_verify_block(block->children[i], iter);
+			}
+		}
+	}
+	
+	void iter_verify_pixel(Block* block, PixelIter<Block>::iterator& iter) {
+		if (block == nullptr) return;
+		if (block->continues) {
+			for (int i = 0; i < 8; i ++) {
+				iter_verify_pixel(block->children[i], iter);
+			}
+		} else {
+			TASSERT_EQ(block->pixel, *iter);
+			++iter;
+		}
+	}
+	
+	void iter_verify_pixel_dir(Block* block, PixelIter<Block>::iterator& iter) {
+		if (block == nullptr) return;
+		if (block->continues) {
+			for (int i = 0; i < 4; i ++) {
+				iter_verify_pixel_dir(block->children[i], iter);
+			}
+		} else {
+			TASSERT_EQ(block->pixel, *iter);
+			++iter;
+		}
+	}
+	
 	void iter_test() {
 		
 		Block* block = new Block();
@@ -24,11 +59,29 @@ struct BlockTest : Test { public:
 		block->get(1,1,1)->subdivide();
 		block->get(1,1,1)->set_child(ivec3(0,0,0), nullptr);
 		
+		
+		BlockIter<Block> blockiter (block);
+		BlockIter<Block>::iterator biter = blockiter.begin();
+		iter_verify_block(block, biter);
+		
+		
+		PixelIter<Block> pixeliter (block);
+		PixelIter<Block>::iterator piter = pixeliter.begin();
+		iter_verify_pixel(block, piter);
+		
+		DirPixelIter<Block> dirpixeliter (block, ivec3(-1,0,0));
+		PixelIter<Block>::iterator dpiter = dirpixeliter.begin();
+		iter_verify_pixel_dir(block, dpiter);
+		
+		
 		out << "START " << endl;
 		
 		for (Pixel* pix : block->iter()) {
 			out << pix << ' ' << pix->parbl->globalpos << ' ' << pix->parbl->scale << endl;
 		}
+		
+		out << "END" << endl;
+		
 	}
 	
 	Block* gen_random_block(int scale) {

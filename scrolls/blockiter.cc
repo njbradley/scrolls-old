@@ -7,73 +7,123 @@
 #include "debug.h"
 #include "player.h"
 
-
-
-
-Pixel* BlockIter::iterator::operator*() {
-  return pix;
-}
-
-Block* BlockIter::iterator::increment(Block* block) {
-  while (block->parent != parent->base->parent and block->parentpos == parent->end_pos) {
-    block = block->parent;
-  }
-  if (block->parent == parent->base->parent) {
-    return nullptr;
-  }
-  ivec3 pos = block->parentpos;
-  do {
-    pos = parent->increment_func(pos, parent->start_pos, parent->end_pos);
-  } while (pos != parent->end_pos and block->parent->get(pos) == nullptr);
-  if (block->parent->get(pos) == nullptr) {
-    block = increment(block->parent);
+template <typename BlockT>
+BlockIter<BlockT>::iterator::iterator(BlockIter<BlockT>* parent): curblock(parent->base) {
+  if (curblock != nullptr) {
+    max_scale = curblock->scale;
   } else {
-    block = block->parent->get(pos);
+    max_scale = 1;
   }
-  return block;
 }
 
-void BlockIter::iterator::move_down(Block* block) {
-  while (block != nullptr and block->continues) {
-    ivec3 pos = parent->start_pos;
-    
-    while (pos != parent->end_pos and block->get(pos) == nullptr) {
-      pos = parent->increment_func(pos, parent->start_pos, parent->end_pos);
-    }
-    if (block->get(pos) == nullptr) {
-      block = increment(block);
-    } else {
-      block = block->get(pos);
+template <typename BlockT>
+ivec3 BlockIter<BlockT>::iterator::increment_func(ivec3 pos) {
+  pos.z++;
+  if (pos.z > endpos().z) {
+    pos.z = startpos().z;
+    pos.y ++;
+    if (pos.y > endpos().y) {
+      pos.y = startpos().y;
+      pos.x ++;
     }
   }
-  if (block == nullptr) {
-    pix = nullptr;
+  return pos;
+}
+
+template <typename BlockT>
+void BlockIter<BlockT>::iterator::step_down(BlockT* parent, ivec3 curpos, BlockT* block) {
+  // cout << "  Step down " << parent << ' ' << curpos << ' ' << block << endl;
+  if (block->continues) {
+    // cout << "   going down " << endl;
+    get_safe(block, startpos(), block->get(startpos()));
   } else {
-    pix = block->pixel;
+    // cout << "   going sideways " << endl;
+    step_sideways(parent, curpos, block);
   }
 }
 
-BlockIter::iterator BlockIter::iterator::operator++() {
-  move_down(increment(pix->parbl));
+template <typename BlockT>
+void BlockIter<BlockT>::iterator::step_sideways(BlockT* parent, ivec3 curpos, BlockT* block) {
+  // cout << "  Step sideways " << parent << ' ' << curpos << ' ' << block << endl;
+  if (parent == nullptr or parent->scale > max_scale) {
+    // cout << "   DONE " << endl;
+    curblock = nullptr;
+  } else if (curpos == endpos()) {
+    // cout << "   Going up " << endl;
+    step_sideways(parent->parent, parent->parentpos, parent);
+  } else {
+    // cout << "   normal increment " << endl;
+    curpos = increment_func(curpos);
+    get_safe(parent, curpos, parent->get(curpos));
+  }
+}
+
+template <typename BlockT>
+void BlockIter<BlockT>::iterator::get_safe(BlockT* parent, ivec3 curpos, BlockT* block) {
+  // cout << "  get safe " << parent << ' ' << curpos << ' ' << block << endl;
+  if (!valid_block(block)) {
+    // cout << "   invalid block " << endl;
+    step_sideways(parent, curpos, block);
+  } else if (skip_block(block)) {
+    // cout << "   skipping block " << block << ' ' << block->continues << ' ' << block->globalpos << ' ' << skip_block(block) << endl;
+    skip_block(block);
+    step_down(parent, curpos, block);
+  } else {
+    curblock = block;
+  }
+}
+
+
+template <typename BlockT>
+typename BlockIter<BlockT>::iterator BlockIter<BlockT>::iterator::operator++() {
+  if (curblock != nullptr) {
+    step_down(curblock->parent, curblock->parentpos, curblock);
+  }
   return *this;
 }
 
-BlockIter::iterator BlockIter::begin() {
-  if (base == nullptr) {
-    return end();
-  }
-  iterator iter {this, nullptr};
-  iter.move_down(base);
-  return iter;
+template <typename BlockT>
+BlockT* BlockIter<BlockT>::iterator::operator*() {
+  return curblock;
 }
 
-BlockIter::iterator BlockIter::end() {
-  return {this, nullptr};
+template <typename BlockT>
+bool BlockIter<BlockT>::iterator::operator != (const typename BlockIter<BlockT>::iterator& other) const {
+  return curblock != other.curblock or max_scale != other.max_scale;
 }
 
-bool operator!=(const BlockIter::iterator& iter1, const BlockIter::iterator& iter2) {
-  return iter1.parent != iter2.parent or iter1.pix != iter2.pix;
+
+
+template class BlockIter<Block>;
+template class BlockIter<const Block>;
+
+
+
+
+
+template <typename BlockT>
+bool PixelIter<BlockT>::iterator::skip_block(BlockT* block) {
+  return block->continues;
 }
+
+template <typename BlockT>
+typename PixelIter<BlockT>::PixelT* PixelIter<BlockT>::iterator::operator*() {
+  return this->curblock->pixel;
+}
+
+
+
+template class PixelIter<Block>;
+template class PixelIter<const Block>;
+
+
+
+
+template class DirPixelIter<Block>;
+template class DirPixelIter<const Block>;
+
+
+
 
 
 
@@ -359,7 +409,6 @@ BlockTouchSideIter::BlockTouchSideIter(Block* block, ivec3 dir) {
       );
     } else {
       free = false;
-      blockiter = BlockIter{.base = nullptr};
     }
   } else {
     free = false;
@@ -368,8 +417,7 @@ BlockTouchSideIter::BlockTouchSideIter(Block* block, ivec3 dir) {
 }
 
 BlockTouchSideIter::iterator BlockTouchSideIter::begin() {
-  iterator iter;
-  iter.parent = this;
+  iterator iter (this);
   if (free) {
     iter.freeiter = freeiter.begin();
   } else {
@@ -379,8 +427,7 @@ BlockTouchSideIter::iterator BlockTouchSideIter::begin() {
 }
 
 BlockTouchSideIter::iterator BlockTouchSideIter::end() {
-  iterator iter;
-  iter.parent = this;
+  iterator iter (this);
   if (free) {
     iter.freeiter = freeiter.end();
   } else {
@@ -402,149 +449,5 @@ bool operator!=(const BlockTouchSideIter::iterator& iter1, const BlockTouchSideI
 
 
 
-
-
-
-
-
-
-Pixel* BlockTouchIter::iterator::operator*() {
-  return *iter;
-}
-
-BlockTouchIter::iterator BlockTouchIter::iterator::operator++() {
-  ++iter;
-  while (!(iter != parent->blockiter.end())) {
-    dir_index ++;
-    if (dir_index >= 6) {
-      dir_index = -1;
-      return *this;
-    }
-    ivec3 pos = parent->base->globalpos;
-    int scale = parent->base->scale;
-    ivec3 dir = dir_array[dir_index];
-    Block* block = parent->base->get_global(pos+dir*scale, scale);
-    if (block != nullptr) {
-      parent->blockiter = block->iter_side(-dir);
-      iter = parent->blockiter.begin();
-    }
-  }
-  return *this;
-}
-
-BlockTouchIter::iterator BlockTouchIter::begin() {
-  int dir_index = -1;
-  Block* block;
-  ivec3 dir;
-  ivec3 pos = base->globalpos;
-  int scale = base->scale;
-  do {
-    dir_index ++;
-    if (dir_index >= 6) {
-      return end();
-    }
-    dir = dir_array[dir_index];
-    block = base->get_global(pos+dir*scale, scale);
-  } while (block == nullptr);
-  blockiter = block->iter_side(-dir);
-  return {this, dir_index, blockiter.begin()};
-}
-
-BlockTouchIter::iterator BlockTouchIter::end() {
-  BlockTouchIter::iterator iter;
-  iter.parent = this;
-  iter.dir_index = -1;
-  return iter;
-}
-
-bool operator!=(const BlockTouchIter::iterator& iter1, const BlockTouchIter::iterator& iter2) {
-  if (iter1.parent == iter2.parent and iter1.dir_index == -1 and iter2.dir_index == -1) {
-    return false;
-  }
-  return iter1.parent != iter2.parent or iter1.iter != iter2.iter;
-}
-
-
-
-BlockGroupIter::BlockGroupIter(Pixel* newbase, Collider* nworld, bool (*func)(Pixel* base, Pixel* pix)):
-base(newbase), world(nworld), includefunc(func) {
-  unordered_set<Pixel*> new_pixels;
-  unordered_set<Pixel*> last_pixels;
-  
-  last_pixels.emplace(base);
-  
-  while (last_pixels.size() > 0) {
-    for (Pixel* pix : last_pixels) {
-      pixels.emplace(pix);
-    }
-    
-    for (Pixel* pix : last_pixels) {
-      for (Pixel* sidepix : pix->parbl->iter_touching()) {
-        if (includefunc(base, sidepix) and pixels.count(sidepix) == 0 and new_pixels.count(sidepix) == 0) {
-          new_pixels.emplace(sidepix);
-        }
-      }
-    }
-    
-    last_pixels.swap(new_pixels);
-    new_pixels.clear();
-  }
-}
-
-
-
-unordered_set<Pixel*>::iterator BlockGroupIter::begin() {
-  return pixels.begin();
-}
-
-unordered_set<Pixel*>::iterator BlockGroupIter::end() {
-  return pixels.end();
-}
-
-void BlockGroupIter::swap(unordered_set<Pixel*>& other) {
-  pixels.swap(other);
-}
-
-
-
-const Pixel* ConstBlockIter::iterator::operator*() {
-  return pix;
-}
-
-ConstBlockIter::iterator ConstBlockIter::iterator::operator++() {
-  const Block* block = pix->parbl;
-  while (block->parent != parent->base->parent and block->parentpos == parent->end_pos) {
-    block = block->parent;
-  }
-  if (block->parent == parent->base->parent) {
-    pix = nullptr;
-    return *this;
-  }
-  ivec3 pos = block->parentpos;
-  pos = parent->increment_func(pos, parent->start_pos, parent->end_pos);
-  block = block->parent->get(pos);
-  while (block->continues) {
-    block = block->get(parent->start_pos);
-  }
-  pix = block->pixel;
-  return *this;
-}
-
-ConstBlockIter::iterator ConstBlockIter::begin() {
-  const Block* block = base;
-  while (block->continues) {
-    block = block->get(start_pos);
-  }
-  // cout << "start p " << block->globalpos << ' ' << block->parentpos << endl;
-  return {this, block->pixel};
-}
-
-ConstBlockIter::iterator ConstBlockIter::end() {
-  return {this, nullptr};
-}
-
-bool operator!=(const ConstBlockIter::iterator& iter1, const ConstBlockIter::iterator& iter2) {
-  return iter1.parent != iter2.parent or iter1.pix != iter2.pix;
-}
 
 #endif

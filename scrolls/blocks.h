@@ -159,12 +159,11 @@ class Block: public Collider { public:
 	void render_position();
 	void lighting_update(bool spread = true);
 	
-	BlockIter iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(csize-1,csize-1,csize-1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr);
-	BlockIter iter_side(ivec3 dir);
+	PixelIter<Block> iter();
+	DirPixelIter<Block> iter_side(ivec3 dir);
 	BlockTouchSideIter iter_touching_side(ivec3 dir);
-	BlockTouchIter iter_touching();
-	ConstBlockIter const_iter(ivec3 startpos = ivec3(0,0,0), ivec3 endpos = ivec3(csize-1,csize-1,csize-1), ivec3 (*iterfunc)(ivec3 pos, ivec3 start, ivec3 end) = nullptr) const;
-	ConstBlockIter const_iter_side(ivec3 dir) const;
+	PixelIter<const Block> const_iter() const;
+	DirPixelIter<const Block> const_iter_side(ivec3 dir) const;
 	bool is_air(ivec3 dir, char otherval = -1);
 	bool is_air(int,int,int, char otherval = -1) const;
 	int get_sunlight(ivec3 dir);
@@ -280,9 +279,9 @@ class Pixel { public:
 	void lighting_update(bool spread = true);
 	bool is_air(int,int,int);
 	BlockData* data() const;
-	BlockGroupIter iter_group();
-	BlockGroupIter iter_group(bool (*func)(Pixel* base, Pixel* pix));
-	BlockGroupIter iter_group(Collider* world, bool (*func)(Pixel* base, Pixel* pix) = nullptr);
+	// BlockGroupIter iter_group();
+	// BlockGroupIter iter_group(bool (*func)(Pixel* base, Pixel* pix));
+	// BlockGroupIter iter_group(Collider* world, bool (*func)(Pixel* base, Pixel* pix) = nullptr);
 	void to_file(ostream& ofile);
 	
   // takes in a glfloat array 12 long and
