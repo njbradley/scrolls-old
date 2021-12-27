@@ -159,11 +159,11 @@ class Block: public Collider { public:
 	void render_position();
 	void lighting_update(bool spread = true);
 	
-	PixelIter<Block> iter();
-	DirPixelIter<Block> iter_side(ivec3 dir);
+	BlockIterable<PixelIterator<Block>> iter();
+	BlockIterable<DirPixelIterator<Block>> iter_side(ivec3 dir);
 	BlockTouchSideIter iter_touching_side(ivec3 dir);
-	PixelIter<const Block> const_iter() const;
-	DirPixelIter<const Block> const_iter_side(ivec3 dir) const;
+	BlockIterable<PixelIterator<const Block>> const_iter() const;
+	BlockIterable<DirPixelIterator<const Block>> const_iter_side(ivec3 dir) const;
 	bool is_air(ivec3 dir, char otherval = -1);
 	bool is_air(int,int,int, char otherval = -1) const;
 	int get_sunlight(ivec3 dir);

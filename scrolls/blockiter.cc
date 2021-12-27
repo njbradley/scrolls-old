@@ -8,16 +8,21 @@
 #include "player.h"
 
 template <typename BlockT>
-BlockIter<BlockT>::iterator::iterator(BlockIter<BlockT>* parent): curblock(parent->base) {
-  if (curblock != nullptr) {
-    max_scale = curblock->scale;
+BlockIterator<BlockT>::BlockIterator(BlockT* base): curblock(base) {
+  if (base != nullptr) {
+    max_scale = base->scale;
   } else {
     max_scale = 1;
   }
 }
 
 template <typename BlockT>
-ivec3 BlockIter<BlockT>::iterator::increment_func(ivec3 pos) {
+void BlockIterator<BlockT>::to_end() {
+  curblock = nullptr;
+}
+
+template <typename BlockT>
+ivec3 BlockIterator<BlockT>::increment_func(ivec3 pos) {
   pos.z++;
   if (pos.z > endpos().z) {
     pos.z = startpos().z;
@@ -31,7 +36,7 @@ ivec3 BlockIter<BlockT>::iterator::increment_func(ivec3 pos) {
 }
 
 template <typename BlockT>
-void BlockIter<BlockT>::iterator::step_down(BlockT* parent, ivec3 curpos, BlockT* block) {
+void BlockIterator<BlockT>::step_down(BlockT* parent, ivec3 curpos, BlockT* block) {
   // cout << "  Step down " << parent << ' ' << curpos << ' ' << block << endl;
   if (block->continues) {
     // cout << "   going down " << endl;
@@ -43,7 +48,7 @@ void BlockIter<BlockT>::iterator::step_down(BlockT* parent, ivec3 curpos, BlockT
 }
 
 template <typename BlockT>
-void BlockIter<BlockT>::iterator::step_sideways(BlockT* parent, ivec3 curpos, BlockT* block) {
+void BlockIterator<BlockT>::step_sideways(BlockT* parent, ivec3 curpos, BlockT* block) {
   // cout << "  Step sideways " << parent << ' ' << curpos << ' ' << block << endl;
   if (parent == nullptr or parent->scale > max_scale) {
     // cout << "   DONE " << endl;
@@ -59,7 +64,7 @@ void BlockIter<BlockT>::iterator::step_sideways(BlockT* parent, ivec3 curpos, Bl
 }
 
 template <typename BlockT>
-void BlockIter<BlockT>::iterator::get_safe(BlockT* parent, ivec3 curpos, BlockT* block) {
+void BlockIterator<BlockT>::get_safe(BlockT* parent, ivec3 curpos, BlockT* block) {
   // cout << "  get safe " << parent << ' ' << curpos << ' ' << block << endl;
   if (!valid_block(block)) {
     // cout << "   invalid block " << endl;
@@ -75,7 +80,7 @@ void BlockIter<BlockT>::iterator::get_safe(BlockT* parent, ivec3 curpos, BlockT*
 
 
 template <typename BlockT>
-typename BlockIter<BlockT>::iterator BlockIter<BlockT>::iterator::operator++() {
+BlockIterator<BlockT> BlockIterator<BlockT>::operator++() {
   if (curblock != nullptr) {
     step_down(curblock->parent, curblock->parentpos, curblock);
   }
@@ -83,44 +88,63 @@ typename BlockIter<BlockT>::iterator BlockIter<BlockT>::iterator::operator++() {
 }
 
 template <typename BlockT>
-BlockT* BlockIter<BlockT>::iterator::operator*() {
+BlockT* BlockIterator<BlockT>::operator*() {
   return curblock;
 }
 
 template <typename BlockT>
-bool BlockIter<BlockT>::iterator::operator != (const typename BlockIter<BlockT>::iterator& other) const {
+bool BlockIterator<BlockT>::operator != (const BlockIterator<BlockT>& other) const {
   return curblock != other.curblock or max_scale != other.max_scale;
 }
 
 
 
-template class BlockIter<Block>;
-template class BlockIter<const Block>;
 
 
+template <typename Iterator>
+Iterator BlockIterable<Iterator>::begin() const {
+  if (iterator.curblock == nullptr) return end();
+  Iterator iter = iterator;
+  iter.get_safe(iter.curblock->parent, iter.curblock->parentpos, iter.curblock);
+  return iter;
+}
+
+template <typename Iterator>
+Iterator BlockIterable<Iterator>::end() const {
+  Iterator iter = iterator;
+  iter.curblock = nullptr;
+  return iter;
+}
+
+template class BlockIterator<Block>;
+template class BlockIterator<const Block>;
+template class BlockIterable<BlockIterator<Block>>;
+template class BlockIterable<BlockIterator<const Block>>;
 
 
 
 template <typename BlockT>
-bool PixelIter<BlockT>::iterator::skip_block(BlockT* block) {
+bool PixelIterator<BlockT>::skip_block(BlockT* block) {
   return block->continues;
 }
 
 template <typename BlockT>
-typename PixelIter<BlockT>::PixelT* PixelIter<BlockT>::iterator::operator*() {
+typename PixelIterator<BlockT>::PixelT* PixelIterator<BlockT>::operator*() {
   return this->curblock->pixel;
 }
 
 
+template class PixelIterator<Block>;
+template class PixelIterator<const Block>;
+template class BlockIterable<PixelIterator<Block>>;
+template class BlockIterable<PixelIterator<const Block>>;
 
-template class PixelIter<Block>;
-template class PixelIter<const Block>;
 
 
-
-
-template class DirPixelIter<Block>;
-template class DirPixelIter<const Block>;
+template class DirPixelIterator<Block>;
+template class DirPixelIterator<const Block>;
+template class BlockIterable<DirPixelIterator<Block>>;
+template class BlockIterable<DirPixelIterator<const Block>>;
 
 
 
@@ -382,7 +406,7 @@ BlockTouchSideIter::iterator BlockTouchSideIter::iterator::operator++() {
   return *this;
 }
 
-BlockTouchSideIter::BlockTouchSideIter(Block* block, ivec3 dir) {
+BlockTouchSideIter::BlockTouchSideIter(Block* block, ivec3 dir): blockiter(nullptr, ivec3(0,0,0)) {
   Block* side = block->get_local(block->globalpos + dir * block->scale, block->scale);
   if (side == nullptr) {
     if (block->freecontainer != nullptr) {

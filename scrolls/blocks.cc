@@ -780,24 +780,24 @@ void Block::lighting_update(bool spread)  {
   }
 }
 
-PixelIter<Block> Block::iter() {
-  return PixelIter<Block> (this);
+BlockIterable<PixelIterator<Block>> Block::iter() {
+  return BlockIterable<PixelIterator<Block>> (this);
 }
 
-PixelIter<const Block> Block::const_iter() const {
-  return PixelIter<const Block> (this);
+BlockIterable<PixelIterator<const Block>> Block::const_iter() const {
+  return BlockIterable<PixelIterator<const Block>> (this);
 }
 
-DirPixelIter<Block> Block::iter_side(ivec3 dir) {
-  return DirPixelIter<Block> (this, dir);
+BlockIterable<DirPixelIterator<Block>> Block::iter_side(ivec3 dir) {
+  return BlockIterable<DirPixelIterator<Block>> (this, dir);
 }
 
 BlockTouchSideIter Block::iter_touching_side(ivec3 dir) {
   return BlockTouchSideIter(this, dir);
 }
 
-DirPixelIter<const Block> Block::const_iter_side(ivec3 dir) const {
-  return DirPixelIter<const Block> (this, dir);
+BlockIterable<DirPixelIterator<const Block>> Block::const_iter_side(ivec3 dir) const {
+  return BlockIterable<DirPixelIterator<const Block>> (this, dir);
 }
 
 vec3 Block::get_position() const {

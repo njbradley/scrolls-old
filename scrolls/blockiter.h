@@ -14,41 +14,44 @@
 // it has customizable functions, increment_func and valid_block for easier
 // specialization
 
+
+
 template <typename BlockT>
-class BlockIter { public:
-  BlockT* base;
+class BlockIterator { public:
+  BlockT* curblock;
+  int max_scale;
   
-  class iterator { public:
-    BlockT* curblock;
-    int max_scale;
-    
-    iterator(BlockIter<BlockT>* parent);
-    
-    virtual ivec3 startpos() { return ivec3(0,0,0); }
-    virtual ivec3 endpos() { return ivec3(1,1,1); }
-    
-    virtual ivec3 increment_func(ivec3 pos);
-    void step_down(BlockT* parent, ivec3 curpos, BlockT* block);
-    void step_sideways(BlockT* parent, ivec3 curpos, BlockT* block);
-    void get_safe(BlockT* parent, ivec3 curpos, BlockT* block);
-    virtual bool valid_block(BlockT* block) { return block != nullptr; }
-    virtual bool skip_block(BlockT* block) { return false; }
-    virtual void finish() { curblock = nullptr; }
-    
-    iterator operator++();
-    BlockT* operator*();
-    bool operator != (const iterator& other) const;
-  };
+  BlockIterator(BlockT* base);
   
-  BlockIter(BlockT* newbase = nullptr): base(newbase) {}
+  virtual void to_end();
   
-  BLOCKITER_BEGIN_END;
+  virtual ivec3 startpos() { return ivec3(0,0,0); }
+  virtual ivec3 endpos() { return ivec3(1,1,1); }
+  
+  virtual ivec3 increment_func(ivec3 pos);
+  void step_down(BlockT* parent, ivec3 curpos, BlockT* block);
+  void step_sideways(BlockT* parent, ivec3 curpos, BlockT* block);
+  void get_safe(BlockT* parent, ivec3 curpos, BlockT* block);
+  virtual bool valid_block(BlockT* block) { return block != nullptr; }
+  virtual bool skip_block(BlockT* block) { return false; }
+  virtual void finish() { curblock = nullptr; }
+  
+  BlockIterator<BlockT> operator++();
+  BlockT* operator*();
+  bool operator != (const BlockIterator<BlockT>& other) const;
 };
 
-// template <typename BlockT>
-// bool operator==(const typename BlockIter<BlockT>::iterator& iter1, const typename BlockIter<BlockT>::iterator& iter2);
-// template <typename BlockT>
-// bool operator!=(const typename BlockIter<BlockT>::iterator& iter1, const typename BlockIter<BlockT>::iterator& iter2) { return !(iter1 == iter2); }
+
+template <typename Iterator>
+class BlockIterable { public:
+  Iterator iterator;
+  
+  template <typename ... Args>
+  BlockIterable(Args ... args): iterator(args...) {}
+  
+  Iterator begin() const;
+  Iterator end() const;
+};
 
 
 
@@ -70,39 +73,29 @@ struct GetPixelT<const Block> {
 
 
 template <typename BlockT>
-class PixelIter : public BlockIter<BlockT> { public:
+class PixelIterator : public virtual BlockIterator<BlockT> { public:
   using PixelT = typename GetPixelT<BlockT>::PixelT;
+  using BlockIterator<BlockT>::BlockIterator;
   
-  class iterator : public BlockIter<BlockT>::iterator { public:
-    using BlockIter<BlockT>::iterator::iterator;
-    
-    virtual bool skip_block(BlockT* block);
-    PixelT* operator*();
-  };
-  
-  using BlockIter<BlockT>::BlockIter;
-  
-  BLOCKITER_BEGIN_END;
+  virtual bool skip_block(BlockT* block);
+  PixelT* operator*();
 };
 
 
 template <typename BlockT>
-class DirPixelIter : public PixelIter<BlockT> { public:
+class DirIterator : public virtual BlockIterator<BlockT> { public:
   ivec3 dir;
   
-  class iterator : public PixelIter<BlockT>::iterator { public:
-    ivec3 dir;
-    
-    iterator(DirPixelIter<BlockT>* parent): PixelIter<BlockT>::iterator(parent), dir(parent->dir) {}
-    
-    virtual ivec3 startpos() { return (dir+1)/2 * (csize-1); }
-    virtual ivec3 endpos() { return (1-(1-dir)/2) * (csize-1); }
-  };
+  DirIterator(BlockT* base, ivec3 newdir): BlockIterator<BlockT>(base), dir(newdir) {}
   
-  DirPixelIter(BlockT* base, ivec3 newdir): PixelIter<BlockT>(base), dir(newdir) {}
-  DirPixelIter() {}
+  virtual ivec3 startpos() { return (dir+1)/2 * (csize-1); }
+  virtual ivec3 endpos() { return (1-(1-dir)/2) * (csize-1); }
+};
+
+template <typename BlockT>
+class DirPixelIterator : public PixelIterator<BlockT>, public DirIterator<BlockT> { public:
   
-  BLOCKITER_BEGIN_END;
+  DirPixelIterator(BlockT* base, ivec3 dir): BlockIterator<BlockT>(base), PixelIterator<BlockT>(base), DirIterator<BlockT>(base, dir) {}
 };
 
 
@@ -151,18 +144,18 @@ class BlockTouchSideIter { public:
 	Block* base;
 	Collider* world;
 	// union {
-		DirPixelIter<Block> blockiter;
+		BlockIterable<DirPixelIterator<Block>> blockiter;
 		FreeBlockIter freeiter;
 	// };
 	bool free;
 	class iterator { public:
 		BlockTouchSideIter* parent;
 		// union {
-			DirPixelIter<Block>::iterator blockiter;
+			DirPixelIterator<Block> blockiter;
 			FreeBlockIter::iterator freeiter;
 		// };
     
-    iterator(BlockTouchSideIter* newparent): parent(newparent), blockiter(&parent->blockiter) {}
+    iterator(BlockTouchSideIter* newparent): parent(newparent), blockiter(nullptr, ivec3(0,0,0)) {}
     
     Pixel* operator*();
     iterator operator++();
