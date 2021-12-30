@@ -12,6 +12,7 @@
 #define LOADLIB(X) LoadLibrary(X)
 #define FREELIB(X) FreeLibrary(X)
 #define GETADDR(HAND, X) GetProcAddress(HAND, X)
+#define PRINTERR ;
 #define DLLSUFFIX ".dll"
 #else
 #include <dlfcn.h>
@@ -19,6 +20,7 @@
 #define LOADLIB(X) dlopen(X, RTLD_NOW)
 #define FREELIB(X) dlclose(X)
 #define GETADDR(HAND, X) dlsym(HAND, X)
+#define PRINTERR cout << dlerror() << endl;
 #define DLLSUFFIX ".so"
 #endif
 
@@ -70,6 +72,7 @@ PluginLib::PluginLib(string path) {
 		handle = LOADLIB(dllpath.c_str());
 		if (!handle) {
 			cout << "Plugin error: [" << path << "]: cannot load dll" << endl;
+			PRINTERR;
 			handle = nullptr;
 		}
 	}

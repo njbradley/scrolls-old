@@ -83,6 +83,24 @@ struct BlockTest : Test { public:
 		
 		out << "END" << endl;
 		
+		Hitbox hitbox (vec3(2), vec3(-0.5), vec3(0.5));
+		cout << hitbox << " start " << endl;
+		
+		FreeBlockIter freeiter (block, hitbox);
+		for (Pixel* pix : freeiter) {
+			cout << pix << endl;
+			cout << pix->parbl->hitbox().contains(hitbox) << endl;
+		}
+		
+		cout << endl;
+		
+		HitboxIterable<FreePixelIterator<Block>> freeiter2 (block, hitbox);
+		for (Pixel* pix : freeiter2) {
+			cout << pix << endl;
+			cout << pix->parbl->hitbox().contains(hitbox) << endl;
+		}
+		
+		cout << "done" << endl;
 	}
 	
 	Block* gen_random_block(int scale) {

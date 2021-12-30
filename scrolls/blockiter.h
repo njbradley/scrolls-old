@@ -73,7 +73,7 @@ struct GetPixelT<const Block> {
 
 
 template <typename BlockT>
-class PixelIterator : public virtual BlockIterator<BlockT> { public:
+class PixelIterator : public BlockIterator<BlockT> { public:
   using PixelT = typename GetPixelT<BlockT>::PixelT;
   using BlockIterator<BlockT>::BlockIterator;
   
@@ -83,20 +83,75 @@ class PixelIterator : public virtual BlockIterator<BlockT> { public:
 
 
 template <typename BlockT>
-class DirIterator : public virtual BlockIterator<BlockT> { public:
+class DirPixelIterator : public PixelIterator<BlockT> { public:
   ivec3 dir;
   
-  DirIterator(BlockT* base, ivec3 newdir): BlockIterator<BlockT>(base), dir(newdir) {}
+  DirPixelIterator(BlockT* base, ivec3 newdir): PixelIterator<BlockT>(base), dir(newdir) {}
   
   virtual ivec3 startpos() { return (dir+1)/2 * (csize-1); }
   virtual ivec3 endpos() { return (1-(1-dir)/2) * (csize-1); }
 };
 
+
 template <typename BlockT>
-class DirPixelIterator : public PixelIterator<BlockT>, public DirIterator<BlockT> { public:
+class FreePixelIterator : public PixelIterator<BlockT> { public:
+  Hitbox box;
   
-  DirPixelIterator(BlockT* base, ivec3 dir): BlockIterator<BlockT>(base), PixelIterator<BlockT>(base), DirIterator<BlockT>(base, dir) {}
+  FreePixelIterator(BlockT* base, Hitbox nbox): PixelIterator<BlockT>(base), box(nbox) {}
+  
+  virtual bool valid_block(Block* block);
 };
+
+template <typename BlockT>
+class FreeBlockIterator: public BlockIterator<BlockT> { public:
+  Hitbox box;
+  
+  FreeBlockIterator(BlockT* base, Hitbox nbox): BlockIterator<BlockT>(base), box(nbox) {}
+  
+  virtual bool valid_block(Block* block);
+  virtual bool skip_block(Block* block);
+  FreeBlock* operator*();
+};
+
+
+
+
+
+
+
+template <typename Iterator>
+class MultiBaseIterable { public:
+  vector<Iterator> bases;
+  
+  template <typename ... Args>
+  void add_base(Args ... args) { bases.emplace_back(args...); }
+  
+  class ComboIterator : public Iterator { public:
+    Iterator* bases;
+    int base_index;
+    
+    ComboIterator(Iterator* base_list, int num_bases);
+    
+    virtual void finish();
+  };
+  
+  ComboIterator begin();
+  ComboIterator end();
+};
+
+
+template <typename Iterator>
+class HitboxIterable : public MultiBaseIterable<Iterator> { public:
+  HitboxIterable(Collider* world, Hitbox box);
+};
+
+template <typename Iterator>
+class FreeboxIterable : public MultiBaseIterable<Iterator> { public:
+  FreeboxIterable(Collider* world, Hitbox box);
+};
+
+
+
 
 
 class FreeBlockIter { public:
@@ -145,17 +200,17 @@ class BlockTouchSideIter { public:
 	Collider* world;
 	// union {
 		BlockIterable<DirPixelIterator<Block>> blockiter;
-		FreeBlockIter freeiter;
+		HitboxIterable<FreePixelIterator<Block>> freeiter;
 	// };
 	bool free;
 	class iterator { public:
 		BlockTouchSideIter* parent;
 		// union {
 			DirPixelIterator<Block> blockiter;
-			FreeBlockIter::iterator freeiter;
+			FreePixelIterator<Block> freeiter;
 		// };
     
-    iterator(BlockTouchSideIter* newparent): parent(newparent), blockiter(nullptr, ivec3(0,0,0)) {}
+    iterator(BlockTouchSideIter* newparent): parent(newparent), blockiter(nullptr, ivec3(0,0,0)), freeiter(nullptr, Hitbox()) {}
     
     Pixel* operator*();
     iterator operator++();
