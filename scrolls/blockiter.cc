@@ -228,6 +228,7 @@ typename MultiBaseIterable<Iterator>::ComboIterator MultiBaseIterable<Iterator>:
 template <typename Iterator>
 HitboxIterable<Iterator>::HitboxIterable(Collider* world, Hitbox box) {
   // cout << "hitbox iteratb;e " << world << ' ' << box << endl;
+  // debuglines->render(box, vec3(1,1,0), "tick");
   if (world == nullptr) {
     this->add_base(nullptr, box);
     return;
@@ -304,6 +305,9 @@ HitboxIterable<Iterator>::HitboxIterable(Collider* world, Hitbox box) {
   
   
   for (int i = 0; i < num_bases; i ++) {
+    if (bases[i] != nullptr) {
+      debuglines->render(bases[i]->hitbox(), vec3(1,0,0), "tick");
+    }
     this->add_base(bases[i], box);
     // cout << "base " << bases[i] << ' ' << bases[i]->globalpos << ' ' << bases[i]->scale << endl;
   }

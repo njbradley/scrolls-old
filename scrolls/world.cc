@@ -386,7 +386,6 @@ void World::timestep(float curtime, float deltatime) {
 void World::tick(float curtime, float deltatime) {
   static bool n_pressed = false;
   static bool paused = false;
-  debuglines->clear("tick");
   
   if (controls->key_pressed('M')) {
     paused = false;
@@ -401,6 +400,8 @@ void World::tick(float curtime, float deltatime) {
     return;
   }
   n_pressed = cur_n_pressed;
+  
+  debuglines->clear("tick");
   
   for (Tile* tile : tiles) {
     tile->tick(curtime, deltatime);
