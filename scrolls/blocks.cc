@@ -809,13 +809,33 @@ int Block::get_sunlight(ivec3 dir) {
   int lightlevel = 0;
   int num = 0;
   
-  for (Pixel* pix : iter_touching_side(dir)) {
+  vector<Block*> blocks;
+  
+  BlockTouchSideIter iter = iter_touching_side(dir);
+  
+  for (Pixel* pix : iter) {
+    if (std::abs(pix->parbl->scale) > 64) {
+      
+      cout << " badddd" << endl;
+    }
+    if (freecontainer != nullptr) {
+      // cout << pix->parbl->globalpos << ' ' << pix->parbl->scale << ' ' << pix->value << ' ' << pix->sunlight;
+    }
     if (pix->value == 0 or pix->value == 7) {
       lightlevel += pix->sunlight;
       num ++;
     }
+    if (freecontainer != nullptr) {
+      // cout << " now " << lightlevel << endl;
+      blocks.push_back(pix->parbl);
+    }
   }
   if (num > 0) {
+    if (freecontainer != nullptr) {
+      // for (Block* block : blocks) {
+      //   debuglines->render(block->hitbox(), vec3(0,1,0), "freeiter");
+      // }
+    }
     return lightlevel / num;
   }
   return 0;

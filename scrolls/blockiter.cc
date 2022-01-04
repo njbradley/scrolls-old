@@ -196,7 +196,9 @@ void MultiBaseIterable<Iterator>::ComboIterator::finish() {
   if (base_index == 0) {
     Iterator::finish();
   } else {
+    cout << "bouta swithc " << base_index << ' ' << this->curblock << endl;
     *((Iterator*)this) = bases[--base_index];
+    cout << "switched " << base_index << ' ' << this->curblock << ' ' << this->curblock->scale << endl;
     if (this->curblock != nullptr) {
       this->get_safe(this->curblock->parent, this->curblock->parentpos, this->curblock);
     } else {
@@ -209,6 +211,7 @@ void MultiBaseIterable<Iterator>::ComboIterator::finish() {
 template <typename Iterator>
 typename MultiBaseIterable<Iterator>::ComboIterator MultiBaseIterable<Iterator>::begin() {
   ComboIterator iter (&bases.front(), bases.size());
+  iter.get_safe(iter.curblock->parent, iter.curblock->parentpos, iter.curblock);
   return iter;
 }
 
@@ -303,13 +306,16 @@ HitboxIterable<Iterator>::HitboxIterable(Collider* world, Hitbox box) {
     }
   }
   
-  
+  // debuglines->clear("freeiter");
   for (int i = 0; i < num_bases; i ++) {
     if (bases[i] != nullptr) {
-      debuglines->render(bases[i]->hitbox(), vec3(1,0,0), "tick");
+      // debuglines->render(bases[i]->hitbox(), vec3(1,0,0), "tick");
     }
     this->add_base(bases[i], box);
     // cout << "base " << bases[i] << ' ' << bases[i]->globalpos << ' ' << bases[i]->scale << endl;
+  }
+  if (num_bases > 1) {
+    // cout << "LARGE ITER" << endl;
   }
   if (this->bases.size() == 0) {
     this->add_base(nullptr, box);
