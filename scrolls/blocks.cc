@@ -521,6 +521,13 @@ void Block::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]
     } else {
       curblock->pixel->set(val, direc, joints);
     }
+    if (val == 0 and curblock->freecontainer != nullptr) {
+      if (curblock->parent == nullptr) {
+        curblock->set_pixel(nullptr);
+      } else {
+        curblock->parent->set_child(curblock->parentpos, nullptr);
+      }
+    }
   }
 }
 

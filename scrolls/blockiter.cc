@@ -331,8 +331,11 @@ FullFreePixelIterable<BlockT>::FullFreePixelIterable(ColliderT* world, Hitbox bo
 HitboxIterable<FreePixelIterator<BlockT>>(ignore_world ? nullptr : world, box) {
   double start = getTime();
   for (typename BlockTypes<BlockT>::FreeBlockT* freeblock : FreeboxIterable<FreeBlockIterator<BlockT>>(world, box)) {
-    if (freeblock != ignore and freeblock->box.collide(box)) {
-      this->add_base(freeblock, box);
+    for (typename BlockTypes<BlockT>::FreeBlockT* free = freeblock; free != nullptr; free = free->next) {
+      // debuglines->render(free->box, vec3(0,0,1), "raycast");
+      if (free != ignore and free->box.collide(box)) {
+        this->add_base(free, box);
+      }
     }
   }
 }

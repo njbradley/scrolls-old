@@ -114,5 +114,5 @@ struct BareTree : SurfaceObject<1000> {
 	
 };
 
-// EXPORT_PLUGIN(BareTree);
+EXPORT_PLUGIN(BareTree);
 		
