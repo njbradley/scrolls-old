@@ -84,15 +84,15 @@ struct BlockTest : Test { public:
 		out << "END" << endl;
 		
 		Hitbox hitbox (vec3(2), vec3(-0.5), vec3(0.5));
-		cout << hitbox << " start " << endl;
-		
-		FreeBlockIter freeiter (block, hitbox);
-		for (Pixel* pix : freeiter) {
-			cout << pix << endl;
-			cout << pix->parbl->hitbox().contains(hitbox) << endl;
-		}
-		
-		cout << endl;
+		// cout << hitbox << " start " << endl;
+		//
+		// FreeBlockIter freeiter (block, hitbox);
+		// for (Pixel* pix : freeiter) {
+		// 	cout << pix << endl;
+		// 	cout << pix->parbl->hitbox().contains(hitbox) << endl;
+		// }
+		//
+		// cout << endl;
 		
 		HitboxIterable<FreePixelIterator<Block>> freeiter2 (block, hitbox);
 		for (Pixel* pix : freeiter2) {
@@ -130,13 +130,13 @@ struct BlockTest : Test { public:
 		double time = getTime() - start;
 		out << "Total time: " << time << " over " << i << " blocks " << endl;
 		
-		start = getTime();
-		i = 0;
-		for (Pixel* pix : FullFreePixelIterable<Block>(block, box)) {
-			i ++;
-		}
-		time = getTime() - start;
-		out << "Total free time: " << time << endl;
+		// start = getTime();
+		// i = 0;
+		// for (Pixel* pix : FullFreePixelIterable<Block>(block, box)) {
+		// 	i ++;
+		// }
+		// time = getTime() - start;
+		// out << "Total free time: " << time << endl;
 		
 		
 		start = getTime();

@@ -165,10 +165,10 @@ class Block: public Collider { public:
 	// BlockTouchSideIter iter_touching_side(ivec3 dir);
 	BlockIterable<PixelIterator<const Block>> const_iter() const;
 	BlockIterable<DirPixelIterator<const Block>> const_iter_side(ivec3 dir) const;
-	bool is_air(ivec3 dir, char otherval = -1);
+	bool is_air(ivec3 dir, char otherval = -1) const;
 	bool is_air(int,int,int, char otherval = -1) const;
-	int get_sunlight(ivec3 dir);
-	int get_blocklight(ivec3 dir);
+	int get_sunlight(ivec3 dir) const;
+	int get_blocklight(ivec3 dir) const;
 	Block* raycast(vec3* pos, vec3 dir, double time);
 	vec3 get_position() const;
 	

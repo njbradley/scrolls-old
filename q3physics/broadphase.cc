@@ -100,11 +100,11 @@ void BlockBroadPhase::find_freeblocks_below(FreeBlock* free, Block* block) {
 
 
 void BlockBroadPhase::update_freeblock(FreeBlock* freeblock) { /// Crashing in freeblockiters ??
-	FreeBlockIter freeiter (freeblock->highparent, expandbox(freeblock->box));
+	HitboxIterable<FreePixelIterator<Block>> freeiter (freeblock->highparent, expandbox(freeblock->box));
 	
-	for (int i = 0; i < freeiter.num_bases; i ++) {
-		update_collision(freeblock, freeiter.bases[i]);
-		find_freeblocks_below(freeblock, freeiter.bases[i]);
+	for (FreePixelIterator<Block>& iter : freeiter.bases) {
+		update_collision(freeblock, iter.curblock);
+		find_freeblocks_below(freeblock, iter.curblock);
 	}
 	
 	Block* curblock = freeblock->highparent->parent;

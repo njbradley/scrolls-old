@@ -795,49 +795,28 @@ vec3 Block::get_position() const {
 }
 
 
-int Block::get_sunlight(ivec3 dir) {
+int Block::get_sunlight(ivec3 dir) const {
   int lightlevel = 0;
   int num = 0;
   
-  vector<Block*> blocks;
-  double start = getTime();
-  auto iter = iter_touching_side(dir);
-  double mid = getTime();
-  for (Pixel* pix : iter) {
-    if (std::abs(pix->parbl->scale) > 64) {
-      
-      cout << " badddd" << endl;
-    }
-    if (freecontainer != nullptr) {
-      // cout << pix->parbl->globalpos << ' ' << pix->parbl->scale << ' ' << pix->value << ' ' << pix->sunlight;
-    }
+  for (const Pixel* pix : iter_touching_side(dir)) {
     if (pix->value == 0 or pix->value == 7) {
       lightlevel += pix->sunlight;
       num ++;
     }
-    if (freecontainer != nullptr) {
-      // cout << " now " << lightlevel << endl;
-      blocks.push_back(pix->parbl);
-    }
   }
-  double last = getTime();
-  // cout << " times " << mid - start << ' ' << last - mid << endl;
+  
   if (num > 0) {
-    if (freecontainer != nullptr) {
-      // for (Block* block : blocks) {
-      //   debuglines->render(block->hitbox(), vec3(0,1,0), "freeiter");
-      // }
-    }
     return lightlevel / num;
   }
   return 0;
 }
 
-int Block::get_blocklight(ivec3 dir) {
+int Block::get_blocklight(ivec3 dir) const {
   int lightlevel = 0;
   int num = 0;
   
-  for (Pixel* pix : iter_touching_side(dir)) {
+  for (const Pixel* pix : iter_touching_side(dir)) {
     if (pix->value == 0 or pix->value == 7) {
       int light = 0;
       if (pix->blocklight != 0) {
@@ -859,18 +838,10 @@ int Block::get_blocklight(ivec3 dir) {
   return 0;
 }
 
-bool Block::is_air(ivec3 dir, char otherval) {
-  // logger->log(9) << "Block isair " << endl;
-  // BlockTouchSideIter blockiter = iter_touching_side(dir);
-  // for (BlockTouchSideIter::iterator iter = blockiter.begin(); iter != blockiter.end(); ) {
+bool Block::is_air(ivec3 dir, char otherval) const {
   bool isair = false;
   for (const Pixel* pix : iter_touching_side(dir)) {
-    // logger->log(9) << pix->parbl << ' ' << pix->parbl->globalpos << ' ' << pix->parbl->scale << ' ' << pix->parbl->freecontainer << endl;
-    // Pixel* pix = *iter;
     isair = isair or (pix->value == 0 or (blockstorage[pix->value]->transparent and otherval != pix->value));
-    // if (isair) {
-    //   return true;
-    // }
   }
   return isair;
 }
