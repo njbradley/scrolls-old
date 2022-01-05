@@ -37,7 +37,8 @@ class Tile : public Container {
 		void update_lighting();
 		void lighting_update();
 		
-		Block* get_global(int x,int y,int z,int scale);
+		Block* get_global(ivec3 pos, int scale);
+		const Block* get_global(ivec3 pos, int scale) const;
 		vec3 get_position() const;
 		void block_update(ivec3 pos);
 		void set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6] = nullptr);

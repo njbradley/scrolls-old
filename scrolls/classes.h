@@ -104,6 +104,7 @@ template <typename BlockT> class BlockIterator;
 template <typename BlockT> class PixelIterator;
 template <typename BlockT> class DirIterator;
 template <typename BlockT> class DirPixelIterator;
+template <typename BlockT> class BlockSideIterable;
 class BlockTouchSideIter;
 class Collider;
 class PhysicsEngine;

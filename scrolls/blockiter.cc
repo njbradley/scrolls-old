@@ -129,7 +129,7 @@ bool PixelIterator<BlockT>::skip_block(BlockT* block) {
 }
 
 template <typename BlockT>
-typename PixelIterator<BlockT>::PixelT* PixelIterator<BlockT>::operator*() {
+typename BlockIterator<BlockT>::PixelT* PixelIterator<BlockT>::operator*() {
   return this->curblock->pixel;
 }
 
@@ -150,7 +150,7 @@ template class BlockIterable<DirPixelIterator<const Block>>;
 
 
 template <typename BlockT>
-bool FreePixelIterator<BlockT>::valid_block(Block* block) { return box.collide(block->hitbox()); }
+bool FreePixelIterator<BlockT>::valid_block(BlockT* block) { return box.collide(block->hitbox()); }
 
 
 template class FreePixelIterator<Block>;
@@ -160,17 +160,17 @@ template class BlockIterable<FreePixelIterator<const Block>>;
 
 
 template <typename BlockT>
-bool FreeBlockIterator<BlockT>::valid_block(Block* block) {
-  return box.collide(block->freebox());
+bool FreeBlockIterator<BlockT>::valid_block(BlockT* block) {
+  return block->freecount != 0 and box.collide(block->freebox());
 }
 
 template <typename BlockT>
-bool FreeBlockIterator<BlockT>::skip_block(Block* block) {
+bool FreeBlockIterator<BlockT>::skip_block(BlockT* block) {
   return block->freechild == nullptr;
 }
 
 template <typename BlockT>
-FreeBlock* FreeBlockIterator<BlockT>::operator*() {
+typename BlockTypes<BlockT>::FreeBlockT* FreeBlockIterator<BlockT>::operator*() {
   return this->curblock->freechild;
 }
 
@@ -196,9 +196,9 @@ void MultiBaseIterable<Iterator>::ComboIterator::finish() {
   if (base_index == 0) {
     Iterator::finish();
   } else {
-    cout << "bouta swithc " << base_index << ' ' << this->curblock << endl;
+    // cout << "bouta swithc " << base_index << ' ' << this->curblock << endl;
     *((Iterator*)this) = bases[--base_index];
-    cout << "switched " << base_index << ' ' << this->curblock << ' ' << this->curblock->scale << endl;
+    // cout << "switched " << base_index << ' ' << this->curblock << ' ' << this->curblock->scale << endl;
     if (this->curblock != nullptr) {
       this->get_safe(this->curblock->parent, this->curblock->parentpos, this->curblock);
     } else {
@@ -211,7 +211,11 @@ void MultiBaseIterable<Iterator>::ComboIterator::finish() {
 template <typename Iterator>
 typename MultiBaseIterable<Iterator>::ComboIterator MultiBaseIterable<Iterator>::begin() {
   ComboIterator iter (&bases.front(), bases.size());
-  iter.get_safe(iter.curblock->parent, iter.curblock->parentpos, iter.curblock);
+  if (iter.curblock != nullptr) {
+    iter.get_safe(iter.curblock->parent, iter.curblock->parentpos, iter.curblock);
+  } else {
+    iter.finish();
+  }
   return iter;
 }
 
@@ -229,7 +233,7 @@ typename MultiBaseIterable<Iterator>::ComboIterator MultiBaseIterable<Iterator>:
 
 
 template <typename Iterator>
-HitboxIterable<Iterator>::HitboxIterable(Collider* world, Hitbox box) {
+HitboxIterable<Iterator>::HitboxIterable(ColliderT* world, Hitbox box) {
   // cout << "hitbox iteratb;e " << world << ' ' << box << endl;
   // debuglines->render(box, vec3(1,1,0), "tick");
   if (world == nullptr) {
@@ -240,7 +244,7 @@ HitboxIterable<Iterator>::HitboxIterable(Collider* world, Hitbox box) {
   vec3 points[8];
   box.points(points);
   
-  Block* blocks[8];
+  BlockT* blocks[8];
   
   int num_removed = 0;
 	for (int i = 0; i < 8; i ++) {
@@ -269,7 +273,7 @@ HitboxIterable<Iterator>::HitboxIterable(Collider* world, Hitbox box) {
 	}
   // for (vec3 point : points) cout << point << ' '; cout << endl;
   
-  Block* bases[8];
+  BlockT* bases[8];
   int num_bases;
   
   num_bases = 8 - num_removed;
@@ -326,41 +330,69 @@ HitboxIterable<Iterator>::HitboxIterable(Collider* world, Hitbox box) {
 
 
 template <typename Iterator>
-FreeboxIterable<Iterator>::FreeboxIterable(Collider* world, Hitbox box) {
+FreeboxIterable<Iterator>::FreeboxIterable(ColliderT* world, Hitbox box) {
   if (world == nullptr) {
     this->add_base(nullptr, box);
     return;
   }
-    
-  ivec3 base_poses[8];
-  int num_bases = 0;
   
-  vec3 points[8];
-  box.points(points);
+  ivec3 base_pos = SAFEFLOOR3(box.global_center());
+  base_pos = SAFEDIV(base_pos, World::chunksize);
   
-  for (int i = 0; i < 8; i ++) {
-    vec3 pos = points[i] / (float)World::chunksize;
-    ivec3 new_pos = SAFEFLOOR3(pos);
-    bool found = false;
-    for (int j = 0; j < num_bases; j ++) {
-      found = found or new_pos == base_poses[j];
-    }
-    if (!found) {
-      base_poses[num_bases++] = new_pos;
+  for (int x = -1; x < 2; x ++) {
+    for (int y = -1; y < 2; y ++) {
+      for (int z = -1; z < 2; z ++) {
+        BlockT* newbase = world->get_global((base_pos + ivec3(x,y,z)) * World::chunksize, World::chunksize);
+        if (newbase != nullptr and newbase->freecount != 0) {
+          //this->add_base(newbase, box);
+        }
+      }
     }
   }
-  
-  for (int i = 0; i < num_bases; i ++) {
-    Block* block = world->get_global(base_poses[i] * World::chunksize, World::chunksize);
-    if (block != nullptr) {
-      this->add_base(block, box);
-    }
-  }
+  //
+  // ivec3 base_poses[8];
+  // int num_bases = 0;
+  //
+  // vec3 points[8];
+  // box.points(points);
+  //
+  // for (int i = 0; i < 8; i ++) {
+  //   vec3 pos = points[i] / (float)World::chunksize;
+  //   ivec3 new_pos = SAFEFLOOR3(pos);
+  //   bool found = false;
+  //   for (int j = 0; j < num_bases; j ++) {
+  //     found = found or new_pos == base_poses[j];
+  //   }
+  //   if (!found) {
+  //     base_poses[num_bases++] = new_pos;
+  //   }
+  // }
+  //
+  // for (int i = 0; i < num_bases; i ++) {
+  //   BlockT* block = world->get_global(base_poses[i] * World::chunksize, World::chunksize);
+  //   if (block != nullptr) {
+  //     this->add_base(block, box);
+  //   }
+  // }
+  // cout << "bases size " << this->bases.size() << endl;
   if (this->bases.size() == 0) {
     this->add_base(nullptr, box);
   }
 }
 
+template <typename BlockT>
+FullFreePixelIterable<BlockT>::FullFreePixelIterable(ColliderT* world, Hitbox box, const Block* ignore, bool ignore_world):
+HitboxIterable<FreePixelIterator<BlockT>>(ignore_world ? nullptr : world, box) {
+  // cout << "starting " << world << endl;
+  double start = getTime();
+  for (typename BlockTypes<BlockT>::FreeBlockT* freeblock : FreeboxIterable<FreeBlockIterator<BlockT>>(world, box)) {
+    if (freeblock != ignore and freeblock->box.collide(box)) {
+      this->add_base(freeblock, box);
+    }
+  }
+  // cout << "found all freeblocks " << this->bases.size() << endl;
+  // cout << getTime() - start << " time " << box << endl;
+}
 
 template class MultiBaseIterable<FreePixelIterator<Block>>;
 template class MultiBaseIterable<FreeBlockIterator<Block>>;
@@ -371,6 +403,87 @@ template class FreeboxIterable<FreeBlockIterator<Block>>;
 template class HitboxIterable<FreePixelIterator<Block>>;
 template class HitboxIterable<FreeBlockIterator<Block>>;
 
+template class FullFreePixelIterable<Block>;
+template class FullFreePixelIterable<const Block>;
+
+
+template <typename BlockT>
+BlockSideIterable<BlockT>::BlockSideIterable(BlockT* block, ivec3 dir):
+blockiter(block->get_global(block->globalpos + dir*block->scale, block->scale), -dir),
+freeiter(nullptr, Hitbox()) {
+  if (blockiter.iterator.curblock == nullptr and block->freecontainer != nullptr) {
+    freeiter = HitboxIterable<FreePixelIterator<BlockT>>(block->freecontainer->highparent, make_side_hitbox(block, dir));
+    free = true;
+  }
+}
+
+template <typename BlockT>
+Hitbox BlockSideIterable<BlockT>::make_side_hitbox(BlockT* block, ivec3 dir) {
+  Hitbox localbox = block->local_hitbox();
+  localbox.position += vec3(dir) * float(block->scale);
+  // debuglines->render(block->freecontainer->box.transform_out(localbox));
+  int dir_index = dir_to_index(dir);
+  dir_index = (dir_index + 3) % 6; // flips dir
+  if (dir_index < 3) {
+    localbox.negbox[dir_index] += block->scale - 0.1f;
+  } else {
+    localbox.posbox[dir_index-3] -= block->scale - 0.1f;
+  }
+  
+  typename BlockTypes<BlockT>::FreeBlockT* freecont = block->freecontainer;
+  while (freecont != nullptr) {
+    localbox = freecont->box.transform_out(localbox);
+    freecont = freecont->highparent->freecontainer;
+  }
+  
+  return localbox;
+}
+  
+
+
+template <typename BlockT>
+typename BlockSideIterable<BlockT>::PixelT* BlockSideIterable<BlockT>::Iterator::operator*() {
+  if (free) {
+    return *freeiter;
+  } else {
+    return *blockiter;
+  }
+}
+
+template <typename BlockT>
+bool BlockSideIterable<BlockT>::Iterator::operator!=(const Iterator& other) {
+  return free != other.free or (free and freeiter != other.freeiter) or (!free and blockiter != other.blockiter);
+}
+
+template <typename BlockT>
+typename BlockSideIterable<BlockT>::Iterator BlockSideIterable<BlockT>::Iterator::operator++() {
+  if (free) {
+    ++ freeiter;
+  } else {
+    ++ blockiter;
+    // if (blockiter.curblock == nullptr) {
+    //   free = true;
+    // }
+  }
+  return *this;
+}
+
+template <typename BlockT>
+typename BlockSideIterable<BlockT>::Iterator BlockSideIterable<BlockT>::begin() {
+  // Iterator iter {blockiter.begin(), freeiter.begin(), !(blockiter.begin() != blockiter.end())};
+  Iterator iter {blockiter.begin(), freeiter.begin(), free};
+  return iter;
+}
+
+template <typename BlockT>
+typename BlockSideIterable<BlockT>::Iterator BlockSideIterable<BlockT>::end() {
+  Iterator iter {blockiter.end(), freeiter.end(), free};
+  return iter;
+}
+
+
+template class BlockSideIterable<Block>;
+template class BlockSideIterable<const Block>;
 
 
 FreeBlockIter::FreeBlockIter(Collider* world, Hitbox newbox): box(newbox) {

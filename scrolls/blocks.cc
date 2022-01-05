@@ -257,6 +257,12 @@ void Block::add_freechild(FreeBlock* newfree) {
   newfree->next = nullptr;
   newfree->set_parent(this, world, ivec3(0,0,0), scale/2);
   // cout << "ADD end " << newfree << " to " << this << endl;
+  
+  Block* curblock = this;
+  while (curblock != nullptr) {
+    curblock->freecount ++;
+    curblock = curblock->parent;
+  }
 }
 
 void Block::remove_freechild(FreeBlock* newfree) {
@@ -278,6 +284,11 @@ void Block::remove_freechild(FreeBlock* newfree) {
     std::terminate();
   }
   // cout << "REMOVE End " << newfree << " from " << this << endl;
+  Block* curblock = this;
+  while (curblock != nullptr) {
+    curblock->freecount --;
+    curblock = curblock->parent;
+  }
 }
 
 
@@ -372,10 +383,6 @@ Movingbox Block::movingbox() const {
   }
 }
 
-Block* Block::get_global(int x, int y, int z, int w) {
-  return get_global(ivec3(x,y,z), w);
-}
-  
 Block* Block::get_global(ivec3 pos, int w) {
   Block* curblock = this;
   while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale) or curblock->scale < w) {
@@ -402,49 +409,19 @@ Block* Block::get_global(ivec3 pos, int w) {
   return curblock;
 }
 
-Block* Block::get_global(vec3 pos, int w, vec3 dir) {
-  Block* curblock = this;
-  const float tiny = 0.001f;
-  while (SAFEFLOOR3((pos + dir * tiny) / float(curblock->scale)) != SAFEDIV(curblock->globalpos, curblock->scale)) {
-    if (curblock->parent == nullptr) {
-      if (curblock->freecontainer != nullptr) {
-        pos = curblock->freecontainer->box.transform_out(pos);
-        dir = curblock->freecontainer->box.transform_out_dir(dir);
-        curblock = curblock->freecontainer->highparent;
-      } else {
-        Block* result = world->get_global(ivec3(pos+dir*tiny), w);
-        return result;
-      }
-    } else {
-      curblock = curblock->parent;
-    }
-  }
-  
-  while (curblock->scale > w and curblock->continues) {
-    vec3 rem = pos + dir * tiny - ((pos + dir * tiny) / float(curblock->scale)) * float(curblock->scale);
-    curblock = curblock->get(SAFEFLOOR3(rem));
-  }
-  
-  // for (int i = 0; i < csize3 and curblock->freechilds[i] != nullptr; i ++) {
-  //   FreeBlock* freechild = curblock->freechilds[i]->freecontainer;
-  //   Block* block = freechild->get_local(freechild->box.transform_into(pos), w, freechild->box.transform_into_dir(dir));
-  //   if (block != nullptr) {
-  //     return block;
-  //   }
-  // }
-  
-  return curblock;
-}
-
-Block* Block::get_local(ivec3 pos, int w) {
-  Block* curblock = this;
-  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale)) {
+const Block* Block::get_global(ivec3 pos, int w) const {
+  const Block* curblock = this;
+  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale) or curblock->scale < w) {
     if (curblock->parent == nullptr) {
       if (curblock->freecontainer != nullptr) {
         return nullptr;
-      } else {
-        Block* result = world->get_global(pos.x, pos.y, pos.z, w);
+        // pos = SAFEFLOOR3(curblock->freecontainer->box.transform_out(pos));
+        // curblock = curblock->freecontainer->highparent;
+      } else if (world != nullptr) {
+        const Block* result = world->get_global(pos, w);
         return result;
+      } else {
+        return nullptr;
       }
     } else {
       curblock = curblock->parent;
@@ -458,19 +435,24 @@ Block* Block::get_local(ivec3 pos, int w) {
   return curblock;
 }
 
-Block* Block::get_local(vec3 pos, int w, vec3 dir) {
+Block* Block::get_local(ivec3 pos, int w) {
   Block* curblock = this;
-  const float tiny = 0.001f;
-  while (SAFEFLOOR3((pos + dir * tiny) / float(curblock->scale)) != SAFEDIV(curblock->globalpos, curblock->scale)) {
+  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale)) {
     if (curblock->parent == nullptr) {
-      return nullptr;
+      if (curblock->freecontainer != nullptr) {
+        return nullptr;
+      } else {
+        Block* result = world->get_global(pos, w);
+        return result;
+      }
+    } else {
+      curblock = curblock->parent;
     }
-    curblock = curblock->parent;
   }
   
-  while (curblock->scale > w and curblock->continues) {
-    vec3 rem = pos + dir * tiny - ((pos + dir * tiny) / float(curblock->scale)) * float(curblock->scale);
-    curblock = curblock->get(SAFEFLOOR3(rem));
+  while (curblock != nullptr and curblock->scale > w and curblock->continues) {
+    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
+    curblock = curblock->get(rem);
   }
   return curblock;
 }
@@ -792,9 +774,17 @@ BlockIterable<DirPixelIterator<Block>> Block::iter_side(ivec3 dir) {
   return BlockIterable<DirPixelIterator<Block>> (this, dir);
 }
 
-BlockTouchSideIter Block::iter_touching_side(ivec3 dir) {
-  return BlockTouchSideIter(this, dir);
+BlockSideIterable<Block> Block::iter_touching_side(ivec3 dir) {
+  return BlockSideIterable<Block>(this, dir);
 }
+
+BlockSideIterable<const Block> Block::iter_touching_side(ivec3 dir) const {
+  return BlockSideIterable<const Block>(this, dir);
+}
+
+// BlockTouchSideIter Block::iter_touching_side(ivec3 dir) {
+//   return BlockTouchSideIter(this, dir);
+// }
 
 BlockIterable<DirPixelIterator<const Block>> Block::const_iter_side(ivec3 dir) const {
   return BlockIterable<DirPixelIterator<const Block>> (this, dir);
@@ -810,9 +800,9 @@ int Block::get_sunlight(ivec3 dir) {
   int num = 0;
   
   vector<Block*> blocks;
-  
-  BlockTouchSideIter iter = iter_touching_side(dir);
-  
+  double start = getTime();
+  auto iter = iter_touching_side(dir);
+  double mid = getTime();
   for (Pixel* pix : iter) {
     if (std::abs(pix->parbl->scale) > 64) {
       
@@ -830,6 +820,8 @@ int Block::get_sunlight(ivec3 dir) {
       blocks.push_back(pix->parbl);
     }
   }
+  double last = getTime();
+  // cout << " times " << mid - start << ' ' << last - mid << endl;
   if (num > 0) {
     if (freecontainer != nullptr) {
       // for (Block* block : blocks) {
@@ -1945,7 +1937,8 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>* next_poses) {
   for (ivec3 dir : dirs) {
     int newdec = dir.y == 1 ? 0 : decrement;
     int oppdec = dir.y == -1 ? 0 : decrement;
-    Block* block = parbl->get_global(gx+dir.x*parbl->scale, gy+dir.y*parbl->scale, gz+dir.z*parbl->scale, parbl->scale);
+    Block* block = parbl->get_global(parbl->globalpos + dir*parbl->scale, parbl->scale);
+    // Block* block = parbl->get_global(gx+dir.x*parbl->scale, gy+dir.y*parbl->scale, gz+dir.z*parbl->scale, parbl->scale);
     if (block != nullptr) {
       for (Pixel* pix : block->iter_side(-dir)) {
         // if (pix->tile != tile and dir.y == 1 and pix->tile->lightflag) {
@@ -1965,7 +1958,8 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>* next_poses) {
   bool changed = oldsunlight != sunlight;
   for (ivec3 dir : dirs) {
     int newdec = dir.y == -1 ? 0 : decrement;
-    Block* block = parbl->get_global(gx+dir.x*parbl->scale, gy+dir.y*parbl->scale, gz+dir.z*parbl->scale, parbl->scale);
+    Block* block = parbl->get_global(parbl->globalpos + dir*parbl->scale, parbl->scale);
+    // Block* block = parbl->get_global(gx+dir.x*parbl->scale, gy+dir.y*parbl->scale, gz+dir.z*parbl->scale, parbl->scale);
     // if (block != nullptr and !(*block->iter().begin())->tile->fully_loaded) {
     //   block = nullptr;
     // }
@@ -2003,7 +1997,8 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>* next_poses) {
   lightsource = -1;
   int index = 0;
   for (ivec3 dir : dirs) {
-    Block* block = parbl->get_global(gx+dir.x*parbl->scale, gy+dir.y*parbl->scale, gz+dir.z*parbl->scale, parbl->scale);
+    Block* block = parbl->get_global(parbl->globalpos + dir*parbl->scale, parbl->scale);
+    // Block* block = parbl->get_global(gx+dir.x*parbl->scale, gy+dir.y*parbl->scale, gz+dir.z*parbl->scale, parbl->scale);
     if (block != nullptr) {
       int inverse_index = index<3 ? index + 3 : index - 3;
       for (Pixel* pix : block->iter_side(-dir)) {
@@ -2019,7 +2014,8 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>* next_poses) {
   bool changed = oldblocklight != blocklight;
   index = 0;
   for (ivec3 dir : dirs) {
-    Block* block = parbl->get_global(gx+dir.x*parbl->scale, gy+dir.y*parbl->scale, gz+dir.z*parbl->scale, parbl->scale);
+    Block* block = parbl->get_global(parbl->globalpos + dir*parbl->scale, parbl->scale);
+    // Block* block = parbl->get_global(gx+dir.x*parbl->scale, gy+dir.y*parbl->scale, gz+dir.z*parbl->scale, parbl->scale);
     if (block != nullptr) {
       int inverse_index = index<3 ? index + 3 : index - 3;
       for (Pixel* pix : block->iter_side(-dir)) {

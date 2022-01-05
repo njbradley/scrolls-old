@@ -45,6 +45,7 @@ public:
   
   void add_tile(Tile* tile);
   Tile* tileat(ivec3 pos);
+  const Tile* tileat(ivec3 pos) const;
   Tile* del_tile(ivec3 pos);
   
   Tile* operator[] (ivec3 pos);
@@ -115,8 +116,8 @@ class World: public Collider { public:
   
   Tile* tileat(ivec3 pos);
   Tile* tileat_global(ivec3 pos);
-  Block* get_global(int x, int y, int z, int scale);
   Block* get_global(ivec3 pos, int scale);
+  const Block* get_global(ivec3 pos, int scale) const;
   
   void set_global(ivec3 pos, int w, Blocktype val, int direction, int joints[6] = nullptr);
   Blocktype get(ivec3 pos);

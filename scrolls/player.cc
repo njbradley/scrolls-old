@@ -101,7 +101,7 @@ void Player::right_mouse(double deltatime) {
 				ivec3 blockpos = SAFEFLOOR3(hitpos) + dir;//SAFEFLOOR3(hitpos) + dir;
 				if (shifting) {
 					world->set_global(blockpos, 1, 0, 0);
-					Block* airblock = world->get_global(blockpos.x, blockpos.y, blockpos.z, 2);
+					Block* airblock = world->get_global(blockpos, 2);
 					if (airblock != nullptr) {
 						cout << "freeblock" << endl;
 						// Hitbox newbox (vec3(0,0,0), vec3(blockpos) - 0.5f, vec3(blockpos) + 0.5f);

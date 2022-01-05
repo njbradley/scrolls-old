@@ -119,8 +119,9 @@ struct BlockTest : Test { public:
 	}
 	
 	void speed_iter_test() {
-		srand(123456);
+		srand(12345);
 		Block* block = gen_random_block(64);
+		Hitbox box (vec3(32,32,32), vec3(-1,-1,-1), vec3(1,1,1));
 		double start = getTime();
 		int i = 0;
 		for (Pixel* pix : block->iter()) {
@@ -128,6 +129,24 @@ struct BlockTest : Test { public:
 		}
 		double time = getTime() - start;
 		out << "Total time: " << time << " over " << i << " blocks " << endl;
+		
+		start = getTime();
+		i = 0;
+		for (Pixel* pix : FullFreePixelIterable<Block>(block, box)) {
+			i ++;
+		}
+		time = getTime() - start;
+		out << "Total free time: " << time << endl;
+		
+		
+		start = getTime();
+		i = 0;
+		for (Pixel* pix : HitboxIterable<FreePixelIterator<Block>>(block, box)) {
+			i ++;
+		}
+		time = getTime() - start;
+		out << "Total free time: " << time << endl;
+		
 	}
 	
 	void test() {

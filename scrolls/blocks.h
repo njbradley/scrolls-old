@@ -39,6 +39,7 @@ class Block: public Collider { public:
 	uint8 flags = 0b00000000;
 	uint8 locked = 0;
 	FreeBlock* freechild = nullptr;
+	int freecount = 0;
 	union {
 		Pixel* pixel;
 		Block* children[csize3];
@@ -115,12 +116,10 @@ class Block: public Collider { public:
 	Movingbox movingbox() const;
 	// travels the tree to find the requested size and pos.
 	// calls to world if it reaches the top
-	Block* get_global(int x, int y, int z, int w);
 	Block* get_global(ivec3 pos, int w);
-	Block* get_global(vec3 pos, int w, vec3 dir); // WIP
+	const Block* get_global(ivec3 pos, int w) const;
 	// travels the tree, but does not travel between freeblocks/baseblocks
 	Block* get_local(ivec3 pos, int w);
-	Block* get_local(vec3 pos, int w, vec3 dir); // WIP
 	Block* get_touching(ivec3 pos, int w, ivec3 dir); //bad
 	// travels the tree, and sets the block specified. does not travel between
 	// freeblocks/baseblocks
@@ -161,7 +160,9 @@ class Block: public Collider { public:
 	
 	BlockIterable<PixelIterator<Block>> iter();
 	BlockIterable<DirPixelIterator<Block>> iter_side(ivec3 dir);
-	BlockTouchSideIter iter_touching_side(ivec3 dir);
+	BlockSideIterable<Block> iter_touching_side(ivec3 dir);
+	BlockSideIterable<const Block> iter_touching_side(ivec3 dir) const;
+	// BlockTouchSideIter iter_touching_side(ivec3 dir);
 	BlockIterable<PixelIterator<const Block>> const_iter() const;
 	BlockIterable<DirPixelIterator<const Block>> const_iter_side(ivec3 dir) const;
 	bool is_air(ivec3 dir, char otherval = -1);

@@ -18,8 +18,8 @@ void Tile::update_lighting() {
   for (int x = 0; x < chunksize; x ++) {
     for (int z = 0; z < chunksize; z ++) {
       int y = chunksize-1;
-      while (y >= 0 and chunk->get_global(x,y,z,1)->pixel->value == 0) {
-        chunk->get_global(x,y,z,1)->pixel->sunlight = lightmax;
+      while (y >= 0 and chunk->get_global(ivec3(x,y,z),1)->pixel->value == 0) {
+        chunk->get_global(ivec3(x,y,z),1)->pixel->sunlight = lightmax;
         y--;
       }
     }
@@ -204,9 +204,12 @@ Tile::~Tile() {
   deletelock.unlock();
 }
 
+Block* Tile::get_global(ivec3 pos, int scale) {
+  return world->get_global(pos,scale);
+}
 
-Block* Tile::get_global(int x,int y,int z,int scale) {
-  return world->get_global(x,y,z,scale);
+const Block* Tile::get_global(ivec3 pos, int scale) const {
+  return world->get_global(pos,scale);
 }
 
 vec3 Tile::get_position() const {

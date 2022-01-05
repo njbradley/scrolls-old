@@ -4,8 +4,9 @@
 #include "classes.h"
 
 struct Collider {
-  virtual Block * get_global(int x,int y,int z,int scale) = 0;
-	virtual Block* get_global(ivec3 pos, int scale) {return get_global(pos.x, pos.y, pos.z, scale);}
+  // virtual Block * get_global(int x,int y,int z,int scale) = 0;
+	virtual Block* get_global(ivec3 pos, int scale) = 0;// {return get_global(pos.x, pos.y, pos.z, scale);}
+  virtual const Block* get_global(ivec3 pos, int scale) const = 0;
   // this is a function shared by all classes that hold
   // chunks/pixels in them
   // it returns a block that is at the global position xyz

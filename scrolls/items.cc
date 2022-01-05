@@ -80,7 +80,7 @@ bool CharArray::place(World* world, Item* item, ivec3 pos, ivec3 dir) {
                 int pz = k - (sz/2);
                 world->set(ivec3(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy)), get(i,j,k), direction);
                 
-                pixels.push_back(world->get_global(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy), 1)->pixel);
+                pixels.push_back(world->get_global(ivec3(x+(px*dx + py*dy + pz*dz), y+(px*dy + py*dz + pz*dx), z+(px*dz + py*dx + pz*dy)), 1)->pixel);
             }
         }
     }

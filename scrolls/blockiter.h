@@ -15,9 +15,36 @@
 // specialization
 
 
+template <typename BlockT>
+struct BlockTypes {
+  
+};
+
+template <>
+struct BlockTypes<Block> {
+  using BlockT = Block;
+  using PixelT = Pixel;
+  using FreeBlockT = FreeBlock;
+  using ColliderT = Collider;
+};
+
+template <>
+struct BlockTypes<const Block> {
+  using BlockT = const Block;
+  using PixelT = const Pixel;
+  using FreeBlockT = const FreeBlock;
+  using ColliderT = const Collider;
+};
+
+
 
 template <typename BlockT>
 class BlockIterator { public:
+  using BlockType = BlockT;
+  using PixelT = typename BlockTypes<BlockT>::PixelT;
+  using FreeBlockT = typename BlockTypes<BlockT>::FreeBlockT;
+  using ColliderT = typename BlockTypes<BlockT>::ColliderT;
+  
   BlockT* curblock;
   int max_scale;
   
@@ -56,29 +83,11 @@ class BlockIterable { public:
 
 
 template <typename BlockT>
-struct GetPixelT {
-  
-};
-
-template <>
-struct GetPixelT<Block> {
-  using PixelT = Pixel;
-};
-
-template <>
-struct GetPixelT<const Block> {
-  using PixelT = const Pixel;
-};
-
-
-
-template <typename BlockT>
 class PixelIterator : public BlockIterator<BlockT> { public:
-  using PixelT = typename GetPixelT<BlockT>::PixelT;
   using BlockIterator<BlockT>::BlockIterator;
   
   virtual bool skip_block(BlockT* block);
-  PixelT* operator*();
+  typename BlockIterator<BlockT>::PixelT* operator*();
 };
 
 
@@ -99,7 +108,7 @@ class FreePixelIterator : public PixelIterator<BlockT> { public:
   
   FreePixelIterator(BlockT* base, Hitbox nbox): PixelIterator<BlockT>(base), box(nbox) {}
   
-  virtual bool valid_block(Block* block);
+  virtual bool valid_block(BlockT* block);
 };
 
 template <typename BlockT>
@@ -108,9 +117,9 @@ class FreeBlockIterator: public BlockIterator<BlockT> { public:
   
   FreeBlockIterator(BlockT* base, Hitbox nbox): BlockIterator<BlockT>(base), box(nbox) {}
   
-  virtual bool valid_block(Block* block);
-  virtual bool skip_block(Block* block);
-  FreeBlock* operator*();
+  virtual bool valid_block(BlockT* block);
+  virtual bool skip_block(BlockT* block);
+  typename BlockTypes<BlockT>::FreeBlockT* operator*();
 };
 
 
@@ -142,16 +151,52 @@ class MultiBaseIterable { public:
 
 template <typename Iterator>
 class HitboxIterable : public MultiBaseIterable<Iterator> { public:
-  HitboxIterable(Collider* world, Hitbox box);
+  using BlockT = typename Iterator::BlockType;
+  using ColliderT = typename Iterator::ColliderT;
+  HitboxIterable(ColliderT* world, Hitbox box);
 };
 
 template <typename Iterator>
 class FreeboxIterable : public MultiBaseIterable<Iterator> { public:
-  FreeboxIterable(Collider* world, Hitbox box);
+  using BlockT = typename Iterator::BlockType;
+  using ColliderT = typename Iterator::ColliderT;
+  FreeboxIterable(ColliderT* world, Hitbox box);
 };
 
 
+template <typename BlockT>
+class FullFreePixelIterable : public HitboxIterable<FreePixelIterator<BlockT>> { public:
+  using ColliderT = typename BlockTypes<BlockT>::ColliderT;
+  FullFreePixelIterable(ColliderT* world, Hitbox box, const Block* ignore = nullptr, bool ignore_world = false);
+};
 
+
+template <typename BlockT>
+class BlockSideIterable { public:
+  using PixelT = typename BlockTypes<BlockT>::PixelT;
+  
+  BlockIterable<DirPixelIterator<BlockT>> blockiter;
+  HitboxIterable<FreePixelIterator<BlockT>> freeiter;
+  // FullFreePixelIterable<BlockT> freeiter;
+  bool free = false;
+  
+  BlockSideIterable(BlockT* block, ivec3 dir);
+  static Hitbox make_side_hitbox(BlockT* block, ivec3 dir);
+  
+  class Iterator { public:
+    DirPixelIterator<BlockT> blockiter;
+    FreePixelIterator<BlockT> freeiter;
+    // typename FullFreePixelIterable<BlockT>::ComboIterator freeiter;
+    bool free;
+    
+    PixelT* operator*();
+    Iterator operator++();
+    bool operator!=(const Iterator& other);
+  };
+  
+  Iterator begin();
+  Iterator end();
+};
 
 
 class FreeBlockIter { public:

@@ -82,6 +82,19 @@ Tile* TileMap::tileat(ivec3 pos) {
   }
   return nullptr;
 }
+
+const Tile* TileMap::tileat(ivec3 pos) const {
+  Bucket* bucket = buckets + (ivec3_hash()(pos) % num_buckets);
+  std::lock_guard guard(bucket->lock);
+  const Item* item = bucket->items;
+  while (item != nullptr) {
+    if (item->tile->pos == pos) {
+      return item->tile;
+    }
+    item = item->next;
+  }
+  return nullptr;
+}
   
 Tile* TileMap::del_tile(ivec3 pos) {
   Bucket* bucket = buckets + (ivec3_hash()(pos) % num_buckets);
@@ -427,6 +440,11 @@ bool World::render() {
   //
   // return false;
   
+  static bool initial_started = false;
+  static bool initial_done = false;
+  static double startTime;
+  static int num_times_idle = 0;
+  
   bool changed = false;
   double start = getTime();
   Tile* playertile = nullptr;
@@ -464,6 +482,20 @@ bool World::render() {
     }
   }
   
+  if (changed) {
+    num_times_idle = 0;
+  } else {
+    num_times_idle ++;
+  }
+  
+  if (changed and !initial_started) {
+    initial_started = true;
+    startTime = getTime();
+  }
+  if (initial_started and !changed and !initial_done and num_times_idle > 20) {
+    initial_done = true;
+    cout << "initial rendering done in " << getTime() - startTime << endl;
+  }
   return changed;
 }
 
@@ -481,15 +513,21 @@ Tile* World::tileat_global(ivec3 pos) {
   return tileat(SAFEDIV(pos, chunksize));
 }
 
-Block* World::get_global(int x, int y, int z, int scale) {
-  return get_global(ivec3(x,y,z), scale);
-}
-
 Block* World::get_global(ivec3 pos, int scale) {
   ivec3 tpos = SAFEDIV(pos, chunksize);
   Tile* tile = tileat(tpos);
   if (tile != nullptr) {
     Block* result = tile->chunk->get_global(pos, scale);
+    return result;
+  }
+  return nullptr;
+}
+
+const Block* World::get_global(ivec3 pos, int scale) const {
+  ivec3 tpos = SAFEDIV(pos, chunksize);
+  const Tile* tile = tiles.tileat(tpos);
+  if (tile != nullptr) {
+    const Block* result = tile->chunk->get_global(pos, scale);
     return result;
   }
   return nullptr;
@@ -515,7 +553,8 @@ void World::set(ivec3 pos, Blocktype val, int direction) {
 }
 
 Block* World::raycast(vec3* pos, vec3 dir, double time) {
-  Block* b = get_global((int)pos->x - (pos->x<0), (int)pos->y - (pos->y<0), (int)pos->z - (pos->z<0), 1);
+  Block* b = get_global(SAFEFLOOR3(*pos), 1);
+  // Block* b = get_global((int)pos->x - (pos->x<0), (int)pos->y - (pos->y<0), (int)pos->z - (pos->z<0), 1);
   if (b == nullptr) {
       return b;
   }
