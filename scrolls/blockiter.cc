@@ -83,7 +83,7 @@ BlockT* BlockIterator<BlockT>::operator*() {
 
 template <typename BlockT>
 bool BlockIterator<BlockT>::operator != (const BlockIterator<BlockT>& other) const {
-  return curblock != other.curblock or max_scale != other.max_scale;
+  return curblock != other.curblock or (max_scale != other.max_scale and curblock != nullptr);
 }
 
 
@@ -139,7 +139,9 @@ template class BlockIterable<DirPixelIterator<const Block>>;
 
 
 template <typename BlockT>
-bool FreePixelIterator<BlockT>::valid_block(BlockT* block) { return box.collide(block->hitbox()); }
+bool FreePixelIterator<BlockT>::valid_block(BlockT* block) {
+  return block != nullptr and box.collide(block->hitbox());
+}
 
 
 template class FreePixelIterator<Block>;
@@ -150,7 +152,7 @@ template class BlockIterable<FreePixelIterator<const Block>>;
 
 template <typename BlockT>
 bool FreeBlockIterator<BlockT>::valid_block(BlockT* block) {
-  return block->freecount != 0 and box.collide(block->freebox());
+  return block != nullptr and block->freecount != 0 and box.collide(block->freebox());
 }
 
 template <typename BlockT>
@@ -209,8 +211,11 @@ typename MultiBaseIterable<Iterator>::ComboIterator MultiBaseIterable<Iterator>:
 template <typename Iterator>
 typename MultiBaseIterable<Iterator>::ComboIterator MultiBaseIterable<Iterator>::end() {
   ComboIterator iter (&bases.front(), bases.size());
-  Iterator* iterptr = &iter;
-  iter.to_end();
+  for (int i = 0; i < bases.size(); i ++) {
+    iter.finish();
+  }
+  // Iterator* iterptr = &iter;
+  // iter.to_end();
   return iter;
 }
   

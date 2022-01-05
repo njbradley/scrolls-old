@@ -10,6 +10,7 @@
 #include "entity.h"
 #include "player.h"
 #include "terrain.h"
+#include "debug.h"
 
 //#include <ZipLib/ZipFile.h>
 
@@ -191,6 +192,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
     chunk->set_parent(this, pos, chunksize);
     chunk->from_file(ifile);
   }
+  // debuglines->render(chunk->hitbox(), vec3(1,1,1), "chunk_borders");
 }
 
 

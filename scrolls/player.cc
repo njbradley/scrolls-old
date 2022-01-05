@@ -68,16 +68,70 @@ mat4 Player::getProjectionMatrix() {
 	return ProjectionMatrix;
 }
 
-void Player::raycast(Block** hit, ivec3* dir, vec3* hitpos) {
+void Player::raycast(Block** hit, ivec3* outdir, vec3* hitpos) {
+	
 	*hitpos = box.position;
-	*hit = highparent->raycast(hitpos, pointing, 8);
+	
+	vec3 dir = pointing;
+	float timeleft = 8;
+	
+	vec3 axis = glm::cross(vec3(1,0,0), dir);
+  axis /= glm::length(axis);
+  
+  quat rot = glm::angleAxis(float(acos(glm::dot(vec3(1,0,0), dir))), axis);
+  vec3 startpos = *hitpos;
+  
+  Hitbox linebox (startpos, vec3(0,0,0), vec3(timeleft, 0, 0), rot);
+  Line line (startpos, dir);
+  // debuglines->render(linebox);
+  
+  // debuglines->clear("raycast");
+  // debuglines->render(linebox, vec3(1,1,0), "raycast");
+  
+  float closest_dist = timeleft;
+  Block* closest_block = nullptr;
+  vec3 closest_pos = *hitpos;
+  vec3 closest_norm = vec3(0,0,0);
+	
+	FullFreePixelIterable<Block> freeiter(highparent, linebox, this);
+	for (auto iter = freeiter.begin(); iter != freeiter.end(); ++iter) {
+		// cout << " curiter " << iter.curblock << ' ' << (iter != freeiter.end()) << endl;
+		Pixel* pix = *iter;
+	
+  // for (Pixel* pix : FullFreePixelIterable<Block>(highparent, linebox, this)) {
+    if (pix->value != 0) {
+			// debuglines->render(pix->parbl->hitbox(), vec3(1,0,0), "raycast");
+      Plane faces[6];
+      pix->parbl->hitbox().faces(faces);
+      for (Plane face : faces) {
+        vec3 colpoint = face.collision(line);
+        if (!std::isnan(colpoint.x) and pix->parbl->hitbox().contains(colpoint)) {
+          float dist = glm::dot(colpoint - startpos, dir);
+          // debuglines->render(pix->parbl->hitbox());
+          if (dist < closest_dist) {
+            closest_dist = dist;
+            closest_block = pix->parbl;
+            closest_pos = colpoint;
+            closest_norm = face.normal;
+          }
+        }
+      }
+    }
+  }
+  
+  *hitpos = closest_pos + dir * 0.001f;
+  // *dir = closest_norm;
+  *hit = closest_block;
+	
+	
+	// *hit = highparent->raycast(hitpos, pointing, 8);
 	if (*hit != nullptr) {
 		if ((*hit)->freecontainer != nullptr) {
 			vec3 pos = (*hit)->freecontainer->box.transform_in(*hitpos);
 			vec3 backpos = pos - (*hit)->freecontainer->box.transform_in_dir(pointing) * 0.002f;
-			*dir = SAFEFLOOR3(backpos) - SAFEFLOOR3(pos);
+			*outdir = SAFEFLOOR3(backpos) - SAFEFLOOR3(pos);
 		} else {
-			*dir = SAFEFLOOR3(*hitpos - pointing*0.002f) - SAFEFLOOR3(*hitpos);
+			*outdir = SAFEFLOOR3(*hitpos - pointing*0.002f) - SAFEFLOOR3(*hitpos);
 		}
 	}
 }
