@@ -231,13 +231,22 @@ HitboxIterable<Iterator>::HitboxIterable(ColliderT* world, Hitbox box) {
     return;
   }
   
+  // debuglines->clear("freeiter");
+  // debuglines->render(box, vec3(1,1,1), "freeiter");
+  
+  float max_side = std::max(std::max(box.size().x, box.size().y), box.size().z);
+  
+  int scale = 1;
+  while (scale < max_side) {
+    scale *= 2;
+  }
+  
   vec3 points[8];
-  box.points(points);
-  
-  BlockT* blocks[8];
-  
+  box.boundingbox().points(points);
+  // debuglines->render(box.boundingbox(), vec3(1,0,0), "freeiter");
+  BlockT* bases[8];
   int num_removed = 0;
-	for (int i = 0; i < 8; i ++) {
+  for (int i = 0; i < 8; i ++) {
     ivec3 pointpos = SAFEFLOOR3(points[i]);
     if (i/4 != 0 and points[i].x == pointpos.x) {
       pointpos.x --;
@@ -248,52 +257,29 @@ HitboxIterable<Iterator>::HitboxIterable(ColliderT* world, Hitbox box) {
     if (i%2 != 0 and points[i].z == pointpos.z) {
       pointpos.z --;
     }
-		if ((blocks[i-num_removed] = world->get_global(pointpos, 1)) == nullptr) {
-			num_removed++;
-		} else {
+    BlockT* newbase = world->get_global(pointpos, scale);
+    bases[i-num_removed] = newbase;
+    if (newbase == nullptr) {
+      num_removed ++;
+    } else {
+      // debuglines->render(newbase->hitbox(), vec3(0,1,0), "freeiter");
       for (int j = 0; j < i-num_removed; j ++) {
-        if (blocks[j] == blocks[i-num_removed]) {
-          num_removed++;
+        if (newbase == bases[j]) {
+          num_removed ++;
           break;
         }
       }
     }
-	}
-  
-  BlockT* bases[8];
-  int num_bases;
-  
-  num_bases = 8 - num_removed;
-  std::copy(blocks, blocks+8, bases);
-  
-  int scale = 1;
-  while (num_bases > 1 and blocks[0] != nullptr) {
-    scale *= 2;
-    num_removed = 0;
-    for (int i = 0; i < num_bases; i ++) {
-      if (blocks[i]->scale < scale) {
-        blocks[i-num_removed] = blocks[i]->parent;
-        for (int j = 0; j < i-num_removed; j ++) {
-          if (blocks[j] == blocks[i-num_removed]) {
-            num_removed ++;
-            break;
-          }
-        }
-      } else {
-        blocks[i-num_removed] = blocks[i];
-      }
-    }
-    
-    if (num_removed > 0 and blocks[0] != nullptr) {
-      num_bases -= num_removed;
-      std::copy(blocks, blocks+num_bases, bases);
-    }
   }
+  
+  int num_bases = 8 - num_removed;
   
   for (int i = 0; i < num_bases; i ++) {
+    // debuglines->render(bases[i]->hitbox(), vec3(0,0,1), "freeiter");
     this->add_base(bases[i], box);
   }
-  if (this->bases.size() == 0) {
+  
+  if (num_bases == 0) {
     this->add_base(nullptr, box);
   }
 }

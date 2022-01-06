@@ -85,21 +85,21 @@ void Player::raycast(Block** hit, ivec3* outdir, vec3* hitpos) {
   Line line (startpos, dir);
   // debuglines->render(linebox);
   
-  debuglines->clear("raycast");
-  debuglines->render(linebox, vec3(1,1,0), "raycast");
+  // debuglines->clear("raycast");
+  // debuglines->render(linebox, vec3(1,1,0), "raycast");
   
   float closest_dist = timeleft;
   Block* closest_block = nullptr;
   vec3 closest_pos = *hitpos;
   vec3 closest_norm = vec3(0,0,0);
-	cout << "START" << endl;
-	FullFreePixelIterable<Block> freeiter(highparent, linebox, this);
-	for (auto iter = freeiter.begin(); iter != freeiter.end(); ++iter) {
-		// cout << " curiter " << iter.curblock << ' ' << (iter != freeiter.end()) << endl;
-		Pixel* pix = *iter;
 	
-  // for (Pixel* pix : FullFreePixelIterable<Block>(highparent, linebox, this)) {
-		debuglines->render(pix->parbl->hitbox(), vec3(1,0,0), "raycast");
+	// FullFreePixelIterable<Block> freeiter(highparent, linebox, this);
+	// for (auto iter = freeiter.begin(); iter != freeiter.end(); ++iter) {
+	// 	// cout << " curiter " << iter.curblock << ' ' << (iter != freeiter.end()) << endl;
+	// 	Pixel* pix = *iter;
+	//
+  for (Pixel* pix : FullFreePixelIterable<Block>(highparent, linebox, this)) {
+		// debuglines->render(pix->parbl->hitbox(), vec3(1,0,0), "raycast");
     if (pix->value != 0) {
       Plane faces[6];
       Hitbox pixbox = pix->parbl->hitbox();
@@ -108,10 +108,8 @@ void Player::raycast(Block** hit, ivec3* outdir, vec3* hitpos) {
 			pixbox.negbox -= 0.001f;
       for (Plane face : faces) {
         vec3 colpoint = face.collision(line);
-				cout << colpoint << endl;
         if (!std::isnan(colpoint.x) and pixbox.contains(colpoint)) {
           float dist = glm::dot(colpoint - startpos, dir);
-					cout << colpoint << ' ' << dist << endl;
           // debuglines->render(pix->parbl->hitbox());
           if (dist < closest_dist) {
             closest_dist = dist;
@@ -127,9 +125,9 @@ void Player::raycast(Block** hit, ivec3* outdir, vec3* hitpos) {
   *hitpos = closest_pos + dir * 0.001f;
   // *dir = closest_norm;
   *hit = closest_block;
-	if (closest_block != nullptr) {
-		debuglines->render(closest_block->hitbox(), vec3(1,1,1), "raycast");
-	}
+	// if (closest_block != nullptr) {
+	// 	debuglines->render(closest_block->hitbox(), vec3(1,1,1), "raycast");
+	// }
 	
 	// *hit = highparent->raycast(hitpos, pointing, 8);
 	if (*hit != nullptr) {
@@ -137,7 +135,6 @@ void Player::raycast(Block** hit, ivec3* outdir, vec3* hitpos) {
 			vec3 pos = (*hit)->freecontainer->box.transform_in(*hitpos);
 			vec3 backpos = pos - (*hit)->freecontainer->box.transform_in_dir(pointing) * 0.002f;
 			*outdir = SAFEFLOOR3(backpos) - SAFEFLOOR3(pos);
-			cout << pos << ' ' << backpos << ' ' << *outdir << endl;
 		} else {
 			*outdir = SAFEFLOOR3(*hitpos - pointing*0.002f) - SAFEFLOOR3(*hitpos);
 		}
