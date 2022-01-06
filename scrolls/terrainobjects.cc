@@ -95,7 +95,7 @@ struct BareTree : SurfaceObject<1000> {
 		// int i = 0;
 		if (hash4(seed, ivec3(pos), 121)%len != 0) {
 		// while (i < len and hash4(seed, ivec3(pos), 121 + i)%3 != 0) {
-			place_object_at(chunkpos, chunk, free->box.transform_out(vec3(0.5f,len,0.5f)), rot, len-1);
+			place_object_at(chunkpos, chunk, free->box.transform_out(vec3(0.5f,len-1,0.5f)), rot, len-1);
 			// i ++;
 			if (hash4(seed, ivec3(pos), 156)%(len/2) == 0) {
 				vec3 newrot_dir (
@@ -104,7 +104,7 @@ struct BareTree : SurfaceObject<1000> {
 				);
 				newrot_dir = glm::normalize(newrot_dir);
 				quat newrot = rot * glm::angleAxis(randfloat(seed, int(pos.x), int(pos.y), int(pos.z), 333) + 0.5f, newrot_dir);
-				place_object_at(chunkpos, chunk, free->box.transform_out(vec3(0.5f,len,0.5f)), newrot, len-1);
+				place_object_at(chunkpos, chunk, free->box.transform_out(vec3(0.5f,len-0.5f,0.5f)), newrot, len-1);
 			}
 		}
 		

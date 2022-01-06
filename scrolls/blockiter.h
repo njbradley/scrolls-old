@@ -203,7 +203,7 @@ class BlockSideIterable { public:
   
   class Iterator { public:
     DirPixelIterator<BlockT> blockiter;
-    FreePixelIterator<BlockT> freeiter;
+    typename HitboxIterable<FreePixelIterator<BlockT>>::ComboIterator freeiter;
     bool free;
     
     PixelT* operator*();

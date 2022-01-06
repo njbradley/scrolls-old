@@ -37,6 +37,7 @@ ivec3 BlockIterator<BlockT>::increment_func(ivec3 pos) {
 
 template <typename BlockT>
 void BlockIterator<BlockT>::step_down(BlockT* parent, ivec3 curpos, BlockT* block) {
+  // cout << " step_down " << parent << ' ' << curpos << ' ' << block << endl;
   if (block->continues) {
     get_safe(block, startpos(), block->get(startpos()));
   } else {
@@ -46,7 +47,9 @@ void BlockIterator<BlockT>::step_down(BlockT* parent, ivec3 curpos, BlockT* bloc
 
 template <typename BlockT>
 void BlockIterator<BlockT>::step_sideways(BlockT* parent, ivec3 curpos, BlockT* block) {
+  // cout << " step_sideways " << parent << ' ' << curpos << ' ' << block << endl;
   if (parent == nullptr or parent->scale > max_scale) {
+    // cout << "finishing " << endl;
     finish();
   } else if (curpos == endpos()) {
     step_sideways(parent->parent, parent->parentpos, parent);
@@ -58,6 +61,7 @@ void BlockIterator<BlockT>::step_sideways(BlockT* parent, ivec3 curpos, BlockT* 
 
 template <typename BlockT>
 void BlockIterator<BlockT>::get_safe(BlockT* parent, ivec3 curpos, BlockT* block) {
+  // cout << " get_safe " << parent << ' ' << curpos << ' ' << block << endl;
   if (!valid_block(block)) {
     step_sideways(parent, curpos, block);
   } else if (skip_block(block)) {
@@ -184,15 +188,19 @@ Iterator(base_list[num_bases-1]), bases(base_list), base_index(num_bases-1) {
 
 template <typename Iterator>
 void MultiBaseIterable<Iterator>::ComboIterator::finish() {
+  // cout << " finishing " << endl;
   if (base_index == 0) {
     Iterator::finish();
   } else {
+    // cout << "  switching iters, at base_index " << base_index << endl;
     *((Iterator*)this) = bases[--base_index];
+    // cout << "  new curblock " << this->curblock << endl;
     if (this->curblock != nullptr) {
       this->get_safe(this->curblock->parent, this->curblock->parentpos, this->curblock);
     } else {
       finish();
     }
+    // cout << "  final new curblock " << this->curblock << endl;
   }
 }
 
@@ -210,12 +218,14 @@ typename MultiBaseIterable<Iterator>::ComboIterator MultiBaseIterable<Iterator>:
 
 template <typename Iterator>
 typename MultiBaseIterable<Iterator>::ComboIterator MultiBaseIterable<Iterator>::end() {
+  // cout << "  doing comboiter end " << endl;
   ComboIterator iter (&bases.front(), bases.size());
-  for (int i = 0; i < bases.size(); i ++) {
-    iter.finish();
-  }
+  // for (int i = 0; i < bases.size(); i ++) {
+  //   iter.finish();
+  // }
+  // cout << "  done combo iter end" << endl;
   // Iterator* iterptr = &iter;
-  // iter.to_end();
+  iter.to_end();
   return iter;
 }
   
@@ -231,10 +241,9 @@ HitboxIterable<Iterator>::HitboxIterable(ColliderT* world, Hitbox box) {
     return;
   }
   
-  // debuglines->clear("freeiter");
-  // debuglines->render(box, vec3(1,1,1), "freeiter");
+  Hitbox boundingbox = box.boundingbox();
   
-  float max_side = std::max(std::max(box.size().x, box.size().y), box.size().z);
+  float max_side = std::max(std::max(boundingbox.size().x, boundingbox.size().y), boundingbox.size().z);
   
   int scale = 1;
   while (scale < max_side) {
@@ -242,7 +251,7 @@ HitboxIterable<Iterator>::HitboxIterable(ColliderT* world, Hitbox box) {
   }
   
   vec3 points[8];
-  box.boundingbox().points(points);
+  boundingbox.points(points);
   // debuglines->render(box.boundingbox(), vec3(1,0,0), "freeiter");
   BlockT* bases[8];
   int num_removed = 0;
@@ -275,7 +284,6 @@ HitboxIterable<Iterator>::HitboxIterable(ColliderT* world, Hitbox box) {
   int num_bases = 8 - num_removed;
   
   for (int i = 0; i < num_bases; i ++) {
-    // debuglines->render(bases[i]->hitbox(), vec3(0,0,1), "freeiter");
     this->add_base(bases[i], box);
   }
   

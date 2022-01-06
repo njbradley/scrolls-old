@@ -216,8 +216,8 @@ void Player::right_mouse(double deltatime) {
 			vec3 vel_part = moving_freeblock->box.velocity * 0.2f;//glm::dot(moving_freeblock->box.velocity, to_point) * to_point;
 			
 			vec3 force = dest_point - (cur_point + vel_part);
-			debuglines->render(cur_point, dest_point);
-			debuglines->render(cur_point, cur_point + vel_part, vec3(1,1,0));
+			debuglines->render(cur_point, dest_point, vec3(1,1,1), "tick");
+			debuglines->render(cur_point, cur_point + vel_part, vec3(1,1,0), "tick");
 			
 			
 			
