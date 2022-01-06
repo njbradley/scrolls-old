@@ -33,7 +33,7 @@ Packet::Packet(istream& idata): sent(FileFormat::read_variable(idata)) {
 
 void Packet::pack(ostream& odata) {
 	FileFormat::write_fixed(odata, get_plugin_id());
-	FileFormat::write_variable(sent);
+	FileFormat::write_variable(odata, sent);
 }
 
 
@@ -52,134 +52,117 @@ void ServerPacket::pack(ostream& odata) {
 
 
 
-ClientPacket::ClientPacket( newid): Packet(name), clientid(newid) {
+ClientPacket::ClientPacket(uint32 newid) clientid(newid) {
 	
 }
 
-ClientPacket::ClientPacket(char* data, int* read): Packet(data, read), clientid(getval<int>(data, read)) {
+ClientPacket::ClientPacket(istream& idata): Packet(data, read) {
+	FileFormat::read_fixed(idata, &clientid);
 	cout << "clientpacket from data  id " << clientid << endl;
 }
 
-void ClientPacket::pack(char* data, int* written) {
-	Packet::pack(data, written);
-	packval<int>(data, written, clientid);
-}
-
-
-NewIdPacket::NewIdPacket(int newid): ServerPacket('n'),
-newclientid(newid) {
-	cout << "clientid " << newid << endl;
-}
-
-NewIdPacket::NewIdPacket(char* data, int* read): ServerPacket(data, read), newclientid(getval<int>(data, read)) {
-	cout << "clientid " << newclientid << endl;
-	// BufIn buf(data, read);
-	// istream ifile(&buf);
-	// newworld = new World("client", ifile);
-	// newplayer = new Player(newworld, ifile);
-}
-
-void NewIdPacket::pack(char* data, int* written) {
-	ServerPacket::pack(data, written);
-	packval<int>(data, written, newclientid);
-	// BufOut buf(data, written);
-	// ostream ofile(&buf);
-	// newworld->save_data_file(ofile);
-	// newplayer->save_to_file(ofile);
-}
-
-void NewIdPacket::run(ClientSocketManager* manager, udp::endpoint from) {
-	cout << "Id recieved " << newclientid << endl;
-	manager->id = newclientid;
-	// world = newworld;
-	// world->player = newplayer;
+void ClientPacket::pack(ostream& odata) {
+	Packet::pack(odata);
+	FileFormat::write_fixed(odata, clientid);
 }
 
 
 
 
-JoinPacket::JoinPacket(string name): ClientPacket("JoinPacket", 9999), username(name) {
+
+
+
+
+
+
+struct JoinPacket : ClientPacket {
+	PLUGIN_HEAD(JoinPacket);
+	string username;
 	
-}
-
-JoinPacket::JoinPacket(char* data, int* read): ClientPacket(data, read), username(getval<string>(data, read)) {
+	JoinPacket(string name): ClientPacket(9999), username(name) {
+		
+	}
 	
-}
-
-void JoinPacket::pack(char* data, int* written) {
-	ClientPacket::pack(data, written);
-	packval<string>(data, written, username);
-}
-
-void JoinPacket::run(ServerSocketManager* manager, udp::endpoint from) {
-	cout << "NEW PLAYER " << username << endl;
-	manager->idcounter ++;
-	manager->clients[manager->idcounter] = {manager->idcounter, username, from};
-	manager->send(new NewIdPacket(manager->idcounter), manager->idcounter);
-}
-
-
-BlockPacket::BlockPacket(Tile* ntile): ServerPacket("BlockPacket"), tile(ntile) {
+	JoinPacket(istream& idata): ClientPacket(idata), username(FileFormat::read_string(idata)) {
+		
+	}
 	
-}
-
-BlockPacket::BlockPacket(char* data, int* read): ServerPacket(data, read) {
-	ivec3 pos = getval<ivec3>(data, read);
-	BufIn buf(data, read);
-	istream ifile(&buf);
-	//tile = new Tile(pos, world, ifile);
-}
-
-void BlockPacket::pack(char* data, int* written) {
-	ServerPacket::pack(data, written);
-	packval<ivec3>(data, written, tile->pos);
-	BufOut buf(data, written);
-	ostream ofile(&buf);
-	//tile->save_to_file(ofile);
-}
-
-void BlockPacket::run(ClientSocketManager* manager, udp::endpoint from) {
-	world->add_tile(tile);
-}
-
-
-
-
-LeavePacket::LeavePacket(int clientid): ClientPacket('L', clientid) {
+	virtual void pack(ostream& odata) {
+		ClientPacket::pack(odata);
+		FileFormat::write_string(idata);
+	}
 	
-}
+	virtual void run(ServerSocketManager* manager, udp::endpoint from)  {
+		cout << "NEW PLAYER " << username << endl;
+		manager->idcounter ++;
+		manager->clients[manager->idcounter] = {manager->idcounter, username, from};
+		NewIdPacket newidpack (manager->idcounter);
+		manager->send(&newidpack, manager->idcounter);
+	}
+};
 
-LeavePacket::LeavePacket(char* data, int* read): ClientPacket(data, read) {
+struct NewIdPacket : ServerPacket {
+	PLUGIN_HEAD(NewIdPacket);
+	uint32 newclientid;
 	
-}
+	NewIdPacket(int newid, Player* player): newclientid(newid), newplayer(player) {
+		
+	}
+	
+	NewIdPacket(istream& idata): ServerPacket(idata) {
+		FileFormat::read_fixed(idata, &newclientid);
+	}
+		
+	virtual void pack(ostream& odata) {
+		ServerPacket::pack(odata);
+		FileFormat::write_fixed(odata, newclientid);
+	}
+	
+	virtual void run(ClientSocketManager* game, udp::endpoint from) {
+		cout << "Id recieved " << newclientid << endl;
+		manager->id = newclientid;
+	}
+};
 
-void LeavePacket::pack(char* data, int* written) {
-	ClientPacket::pack(data, written);
-}
+struct BlockPacket : ServerPacket {
+	PLUGIN_HEAD(BlockPacket);
+	Block* block;
+	BlockPacket(Block* nblock): block(nblock) {
+		
+	}
+	
+	BlockPacket(istream& idata): ServerPacket(idata) {
+		uint32 px, py, pz, scale;
+		
+		FileFormat::read_fixed(idata, px);
+		FileFormat::read_fixed(idata, py);
+		FileFormat::read_fixed(idata, pz);
+		FileFormat::read_fixed(idata, scale);
+		
+		block = new Block();
+		block->set_parent(nullptr, ivec3(px, py, pz), scale);
+		block->from_file(idata);
+	}
+	
+	virtual void pack(char* data, int* written);
+	virtual void run(ClientSocketManager* game, udp::endpoint from);
+};
 
-void LeavePacket::run(ServerSocketManager* manager, udp::endpoint from) {
-	cout << "Player leaving " << clientid << endl;
-	manager->clients.erase(clientid);
-}
+struct LeavePacket : ClientPacket {
+	PLUGIN_HEAD(LeavePacket);
+	using ClientPacket::ClientPacket;
+	
+	virtual void run(ServerSocketManager* game, udp::endpoint from) {
+		cout << "Player leaving " << clientid << endl;
+		manager->clients.erase(clientid);
+	}
+};
 
 
-ServerPacket* PacketGroup::get_server_packet(char* data) {
-	int written = 0;
-	Packet packet(data, &written);
-	written = 0;
-	if (packet.type == 'n') return new NewIdPacket(data, &written);
-	return nullptr;
-}
 
 
-ClientPacket* PacketGroup::get_client_packet(char* data) {
-	int written = 0;
-	Packet packet(data, &written);
-	written = 0;
-	if (packet.type == 'J') return new JoinPacket(data, &written);
-	if (packet.type == 'L') return new LeavePacket(data, &written);
-	return nullptr;
-}
+
+
 
 
 
@@ -187,12 +170,14 @@ ClientSocketManager::ClientSocketManager(string ip, int port, string username):
 server_endpoint(address::from_string(ip), port), socket(io_service) {
 	socket.open(udp::v4());
 	socket.non_blocking(true);
-	send(new JoinPacket(username));
+	JoinPacket joinpack(username);
+	send(joinpack);
 }
 
 ClientSocketManager::~ClientSocketManager() {
 	cout << id << " id " << endl;
-	send(new LeavePacket(id));
+	LeavePacket leavepacket(id);
+	send(leavepacket);
 }
 
 void ClientSocketManager::send(ClientPacket* packet) {
@@ -201,7 +186,6 @@ void ClientSocketManager::send(ClientPacket* packet) {
 	int written = 0;
 	packet->pack(data, &written);
 	socket.send_to(boost::asio::buffer(data, written), server_endpoint);
-	delete packet;
 }
 
 ServerPacket* ClientSocketManager::recieve(udp::endpoint* sender) {
@@ -218,7 +202,9 @@ ServerPacket* ClientSocketManager::recieve(udp::endpoint* sender) {
 	if (ec == boost::system::errc::operation_would_block) {
 		return nullptr;
 	} else {
-		return allpackets.get_server_packet(data);
+		PluginId id;
+		FileFormat::read_fixed(idata, &id.id);
+		return Packet::plugnew(id, idata);
 	}
 }
 

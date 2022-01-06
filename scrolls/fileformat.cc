@@ -60,3 +60,18 @@ uint64 FileFormat::read_variable(istream& ifile) {
 	} while ((data & 0b00000001) and !ifile.eof());
 	return value;
 }
+
+
+
+
+void FileFormat::write_string(ostream& ofile, string str) {
+	write_variable(ofile, str.length());
+	ofile.write(str.c_str(), str.length());
+}
+
+string FileFormat::read_string(istream& ifile) {
+	int len = read_variable(ifile);
+	char strbuf[len];
+	ifile.read(strbuf, len);
+	return string(strbuf);
+}

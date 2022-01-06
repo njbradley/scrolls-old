@@ -28,57 +28,21 @@ struct Packet {
 
 struct ServerPacket : Packet {
 	PLUGIN_HEAD(ServerPacket);
-	ServerPacket(string name);
-	ServerPacket(ostream& );
-	virtual void pack(char* data, int* written);
+	ServerPacket();
+	ServerPacket(istream& idata);
+	virtual void pack(ostream& odata);
 	virtual void run(ClientSocketManager* game, udp::endpoint from) = 0;
 };
 
 struct ClientPacket : Packet {
 	PLUGIN_HEAD(ClientPacket);
-	int clientid;
-	ClientPacket(string name, int newid);
-	ClientPacket(char* data, int* read);
-	virtual void pack(char* data, int* written);
+	uint32 clientid;
+	ClientPacket(int newid);
+	ClientPacket(istream& idata);
+	virtual void pack(ostream& odata);
 	virtual void run(ServerSocketManager* game, udp::endpoint from) = 0;
 };
 
-struct JoinPacket : ClientPacket {
-	PLUGIN_HEAD(JoinPacket);
-	string username;
-	JoinPacket(string name);
-	JoinPacket(char* data, int* read);
-	virtual void pack(char* data, int* written);
-	virtual void run(ServerSocketManager* game, udp::endpoint from);
-};
-
-struct NewIdPacket : ServerPacket {
-	PLUGIN_HEAD(NewIdPacket);
-	int newclientid;
-	World* newworld;
-	Player* newplayer;
-	NewIdPacket(int newid);
-	NewIdPacket(char* data, int* read);
-	virtual void pack(char* data, int* written);
-	virtual void run(ClientSocketManager* game, udp::endpoint from);
-};
-
-struct BlockPacket : ServerPacket {
-	PLUGIN_HEAD(BlockPacket);
-	Tile* tile;
-	BlockPacket(Tile* newtile);
-	BlockPacket(char* data, int* read);
-	virtual void pack(char* data, int* written);
-	virtual void run(ClientSocketManager* game, udp::endpoint from);
-};
-
-struct LeavePacket : ClientPacket {
-	PLUGIN_HEAD(LeavePacket);
-	LeavePacket(int clientid);
-	LeavePacket(char* data, int* read);
-	virtual void pack(char* data, int* written);
-	virtual void run(ServerSocketManager* game, udp::endpoint from);
-};
 
 
 class ClientSocketManager { public:

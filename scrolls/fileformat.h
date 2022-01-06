@@ -25,6 +25,9 @@ class FileFormat { public:
 	static void read_fixed(istream& ifile, uint32* value);
 	static void read_fixed(istream& ifile, float* value);
 	static uint64 read_variable(istream& ifile);
+	
+	static void write_string(ostream& ofile, string str);
+	static string read_string(istream& ifile);
 };
 
 #endif
