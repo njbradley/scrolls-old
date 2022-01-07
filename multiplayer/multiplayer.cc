@@ -10,18 +10,20 @@
 
 MemBuf::MemBuf(char* data, int max_len) {
 	setg(data, data, data+max_len);
-	setp(data, data, data+max_len);
+	setp(data, data+max_len);
 }
 
 int MemBuf::written() const {
-	return int(pptr - pbase);
+	return int(pptr() - pbase());
 }
 
 int MemBuf::read() const {
-	return int(gptr - gbase);
+	return int(gptr() - eback());
 }
 
 
+DEFINE_PLUGIN(ServerPacket);
+DEFINE_PLUGIN(ClientPacket);
 
 Packet::Packet(): sent(time(NULL)) {
 	
@@ -32,7 +34,6 @@ Packet::Packet(istream& idata): sent(FileFormat::read_variable(idata)) {
 }
 
 void Packet::pack(ostream& odata) {
-	FileFormat::write_fixed(odata, get_plugin_id());
 	FileFormat::write_variable(odata, sent);
 }
 
@@ -47,21 +48,23 @@ ServerPacket::ServerPacket(istream& idata): Packet(idata) {
 }
 
 void ServerPacket::pack(ostream& odata) {
+	FileFormat::write_fixed(odata, get_plugin_id().id);
 	Packet::pack(odata);
 }
 
 
 
-ClientPacket::ClientPacket(uint32 newid) clientid(newid) {
+ClientPacket::ClientPacket() {
 	
 }
 
-ClientPacket::ClientPacket(istream& idata): Packet(data, read) {
+ClientPacket::ClientPacket(istream& idata): Packet(idata) {
 	FileFormat::read_fixed(idata, &clientid);
 	cout << "clientpacket from data  id " << clientid << endl;
 }
 
 void ClientPacket::pack(ostream& odata) {
+	FileFormat::write_fixed(odata, get_plugin_id().id);
 	Packet::pack(odata);
 	FileFormat::write_fixed(odata, clientid);
 }
@@ -72,40 +75,11 @@ void ClientPacket::pack(ostream& odata) {
 
 
 
-
-
-
-struct JoinPacket : ClientPacket {
-	PLUGIN_HEAD(JoinPacket);
-	string username;
-	
-	JoinPacket(string name): ClientPacket(9999), username(name) {
-		
-	}
-	
-	JoinPacket(istream& idata): ClientPacket(idata), username(FileFormat::read_string(idata)) {
-		
-	}
-	
-	virtual void pack(ostream& odata) {
-		ClientPacket::pack(odata);
-		FileFormat::write_string(idata);
-	}
-	
-	virtual void run(ServerSocketManager* manager, udp::endpoint from)  {
-		cout << "NEW PLAYER " << username << endl;
-		manager->idcounter ++;
-		manager->clients[manager->idcounter] = {manager->idcounter, username, from};
-		NewIdPacket newidpack (manager->idcounter);
-		manager->send(&newidpack, manager->idcounter);
-	}
-};
-
 struct NewIdPacket : ServerPacket {
 	PLUGIN_HEAD(NewIdPacket);
 	uint32 newclientid;
 	
-	NewIdPacket(int newid, Player* player): newclientid(newid), newplayer(player) {
+	NewIdPacket(uint32 newid): newclientid(newid) {
 		
 	}
 	
@@ -118,11 +92,39 @@ struct NewIdPacket : ServerPacket {
 		FileFormat::write_fixed(odata, newclientid);
 	}
 	
-	virtual void run(ClientSocketManager* game, udp::endpoint from) {
+	virtual void run(ClientSocketManager* manager, udp::endpoint from) {
 		cout << "Id recieved " << newclientid << endl;
 		manager->id = newclientid;
 	}
 };
+EXPORT_PLUGIN(NewIdPacket);
+
+struct JoinPacket : ClientPacket {
+	PLUGIN_HEAD(JoinPacket);
+	string username;
+	
+	JoinPacket(string name): username(name) {
+		
+	}
+	
+	JoinPacket(istream& idata): ClientPacket(idata), username(FileFormat::read_string(idata)) {
+		
+	}
+	
+	virtual void pack(ostream& odata) {
+		ClientPacket::pack(odata);
+		FileFormat::write_string(odata, username);
+	}
+	
+	virtual void run(ServerSocketManager* manager, udp::endpoint from)  {
+		cout << "NEW PLAYER " << username << endl;
+		manager->idcounter ++;
+		manager->clients[manager->idcounter] = {manager->idcounter, username, from};
+		NewIdPacket newidpack (manager->idcounter);
+		manager->send(&newidpack, manager->idcounter);
+	}
+};
+EXPORT_PLUGIN(JoinPacket);
 
 struct BlockPacket : ServerPacket {
 	PLUGIN_HEAD(BlockPacket);
@@ -132,31 +134,38 @@ struct BlockPacket : ServerPacket {
 	}
 	
 	BlockPacket(istream& idata): ServerPacket(idata) {
-		uint32 px, py, pz, scale;
+		int32 px, py, pz, scale;
 		
-		FileFormat::read_fixed(idata, px);
-		FileFormat::read_fixed(idata, py);
-		FileFormat::read_fixed(idata, pz);
-		FileFormat::read_fixed(idata, scale);
+		FileFormat::read_fixed(idata, (uint32*)&px);
+		FileFormat::read_fixed(idata, (uint32*)&py);
+		FileFormat::read_fixed(idata, (uint32*)&pz);
+		FileFormat::read_fixed(idata, (uint32*)&scale);
 		
 		block = new Block();
 		block->set_parent(nullptr, ivec3(px, py, pz), scale);
 		block->from_file(idata);
 	}
 	
-	virtual void pack(char* data, int* written);
-	virtual void run(ClientSocketManager* game, udp::endpoint from);
+	virtual void pack(char* data, int* written) {
+		
+	}
+	
+	virtual void run(ClientSocketManager* manager, udp::endpoint from) {
+		
+	}
 };
+EXPORT_PLUGIN(BlockPacket);
 
 struct LeavePacket : ClientPacket {
 	PLUGIN_HEAD(LeavePacket);
 	using ClientPacket::ClientPacket;
 	
-	virtual void run(ServerSocketManager* game, udp::endpoint from) {
+	virtual void run(ServerSocketManager* manager, udp::endpoint from) {
 		cout << "Player leaving " << clientid << endl;
 		manager->clients.erase(clientid);
 	}
 };
+EXPORT_PLUGIN(LeavePacket);
 
 
 
@@ -171,21 +180,23 @@ server_endpoint(address::from_string(ip), port), socket(io_service) {
 	socket.open(udp::v4());
 	socket.non_blocking(true);
 	JoinPacket joinpack(username);
-	send(joinpack);
+	send(&joinpack);
 }
 
 ClientSocketManager::~ClientSocketManager() {
 	cout << id << " id " << endl;
-	LeavePacket leavepacket(id);
-	send(leavepacket);
+	LeavePacket leavepacket;
+	send(&leavepacket);
 }
 
 void ClientSocketManager::send(ClientPacket* packet) {
 	cout << "sending packet server " << packet << endl;
 	char data[Packet::packetsize];
-	int written = 0;
-	packet->pack(data, &written);
-	socket.send_to(boost::asio::buffer(data, written), server_endpoint);
+	MemBuf membuf (data, Packet::packetsize);
+	ostream odata (&membuf);
+	packet->clientid = id;
+	packet->pack(odata);
+	socket.send_to(boost::asio::buffer(data, membuf.written()), server_endpoint);
 }
 
 ServerPacket* ClientSocketManager::recieve(udp::endpoint* sender) {
@@ -202,9 +213,11 @@ ServerPacket* ClientSocketManager::recieve(udp::endpoint* sender) {
 	if (ec == boost::system::errc::operation_would_block) {
 		return nullptr;
 	} else {
+		MemBuf membuf (data, len);
+		istream idata (&membuf);
 		PluginId id;
 		FileFormat::read_fixed(idata, &id.id);
-		return Packet::plugnew(id, idata);
+		return ServerPacket::plugnew(id, idata);
 	}
 }
 
@@ -239,10 +252,10 @@ ServerSocketManager::~ServerSocketManager() {
 void ServerSocketManager::send(ServerPacket* packet, int clientid) {
 	cout << "sending packet " << packet << " to " << clientid << endl;
 	char data[Packet::packetsize];
-	int written = 0;
-	packet->pack(data, &written);
-	socket.send_to(boost::asio::buffer(data, written), clients[clientid].endpoint);
-	delete packet;
+	MemBuf membuf (data, Packet::packetsize);
+	ostream odata (&membuf);
+	packet->pack(odata);
+	socket.send_to(boost::asio::buffer(data, membuf.written()), clients[clientid].endpoint);
 }
 
 ClientPacket* ServerSocketManager::recieve(udp::endpoint* sender) {
@@ -258,7 +271,11 @@ ClientPacket* ServerSocketManager::recieve(udp::endpoint* sender) {
 	if (ec == boost::system::errc::operation_would_block) {
 		return nullptr;
 	} else {
-		return allpackets.get_client_packet(data);
+		MemBuf membuf (data, len);
+		istream idata (&membuf);
+		PluginId id;
+		FileFormat::read_fixed(idata, &id.id);
+		return ClientPacket::plugnew(id, idata);
 	}
 }
 

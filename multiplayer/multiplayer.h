@@ -2,6 +2,7 @@
 #define MULTIPLAYER_PREDEF
 
 #include "classes.h"
+#include "scrolls/plugins.h"
 
 #include <boost/asio.hpp>
 #include <chrono>
@@ -18,7 +19,6 @@ class MemBuf : public std::streambuf { public:
 };
 
 struct Packet {
-	BASE_PLUGIN_HEAD(Packet, (istream& idata));
 	static const int packetsize = 1024;
 	time_t sent;
 	Packet();
@@ -27,7 +27,7 @@ struct Packet {
 };
 
 struct ServerPacket : Packet {
-	PLUGIN_HEAD(ServerPacket);
+	BASE_PLUGIN_HEAD(ServerPacket, (istream& idata));
 	ServerPacket();
 	ServerPacket(istream& idata);
 	virtual void pack(ostream& odata);
@@ -35,9 +35,9 @@ struct ServerPacket : Packet {
 };
 
 struct ClientPacket : Packet {
-	PLUGIN_HEAD(ClientPacket);
+	BASE_PLUGIN_HEAD(ClientPacket, (istream& idata));
 	uint32 clientid;
-	ClientPacket(int newid);
+	ClientPacket();
 	ClientPacket(istream& idata);
 	virtual void pack(ostream& odata);
 	virtual void run(ServerSocketManager* game, udp::endpoint from) = 0;
@@ -47,9 +47,8 @@ struct ClientPacket : Packet {
 
 class ClientSocketManager { public:
 	boost::asio::io_service io_service;
-	int id = 9999;
+	uint32 id = 9999;
 	udp::endpoint server_endpoint;
-	PacketGroup allpackets;
 	udp::socket socket;
 	
 	ClientSocketManager(string ip, int port, string username);
@@ -61,7 +60,7 @@ class ClientSocketManager { public:
 };
 
 class ClientEndpoint { public:
-	int id;
+	uint32 id;
 	string username;
 	udp::endpoint endpoint;
 };
@@ -70,8 +69,7 @@ class ServerSocketManager { public:
 	boost::asio::io_service io_service;
 	udp::endpoint local_endpoint;
 	unordered_map<int,ClientEndpoint> clients;
-	int idcounter = 10;
-	PacketGroup allpackets;
+	uint32 idcounter = 0;
 	udp::socket socket;
 	
 	ServerSocketManager(int port);
