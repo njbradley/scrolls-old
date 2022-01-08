@@ -11,6 +11,7 @@ class SingleGame : public Game { public:
 	SingleGame();
 	~SingleGame();
 	
+	virtual void load_world();
 	virtual void setup_gameloop();
 	virtual void gametick();
 };

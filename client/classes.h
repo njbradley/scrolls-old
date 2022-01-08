@@ -1,7 +1,7 @@
 #ifndef CLIENT_CLASSES_H
 #define CLIENT_CLASSES_H
 
-#include "scrolls/classes.h"
+#include "multiplayer/classes.h"
 
 class ClientGame;
 class ClientTileLoader;

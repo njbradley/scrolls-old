@@ -6,7 +6,7 @@
 saves
 command.bat
 settings.txt
-plugins.txt
+/plugins.txt
 tmp.*
 *.tmp
 dump*.txt

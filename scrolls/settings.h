@@ -14,6 +14,7 @@ class Settings { public:
 	float fov = 110.0f;
 	int view_dist;
 	ivec2 screen_dims;
+	string ip_addr = "127.0.0.1";
 	
 	double aspect_ratio();
 	

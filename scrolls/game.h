@@ -16,6 +16,7 @@ class Game { public:
 	
 	virtual ~Game() {};
 	
+	virtual void load_world() = 0;
 	virtual void setup_gameloop() = 0;
 	virtual void gametick() = 0;
 	

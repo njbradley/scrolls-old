@@ -63,8 +63,8 @@ int game_main() {
 	settings.init();
 	audio.init();
 	graphics.init();
-	controls.init();
 	viewbox.init();
+	controls.init();
 	debuglines.init();
 	
 	materialstorage.init();
@@ -73,9 +73,10 @@ int game_main() {
 	
 	game.init();
 	
+	logger->sel_page = 3;
 	logger->log(1) << "Starting game! " << endl;
 	
-	logger->sel_page = 3;
+	game->load_world();
 	
 	game->setup_gameloop();
 	while (game->playing) {
@@ -88,8 +89,8 @@ int game_main() {
 	itemstorage.close();
 	blockstorage.close();
 	materialstorage.close();
-	viewbox.close();
 	controls.close();
+	viewbox.close();
 	graphics.close();
 	audio.close();
 	settings.close();

@@ -51,8 +51,10 @@ class ClientSocketManager { public:
 	udp::endpoint server_endpoint;
 	udp::socket socket;
 	
-	ClientSocketManager(string ip, int port, string username);
+	ClientSocketManager();
 	~ClientSocketManager();
+	
+	void connect(string ip, int port, string username);
 	
 	void send(ClientPacket* packet);
 	ServerPacket* recieve(udp::endpoint* sender);

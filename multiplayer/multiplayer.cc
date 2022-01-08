@@ -175,18 +175,22 @@ EXPORT_PLUGIN(LeavePacket);
 
 
 
-ClientSocketManager::ClientSocketManager(string ip, int port, string username):
-server_endpoint(address::from_string(ip), port), socket(io_service) {
-	socket.open(udp::v4());
-	socket.non_blocking(true);
-	JoinPacket joinpack(username);
-	send(&joinpack);
+ClientSocketManager::ClientSocketManager(): socket(io_service) {
+	
 }
 
 ClientSocketManager::~ClientSocketManager() {
 	cout << id << " id " << endl;
 	LeavePacket leavepacket;
 	send(&leavepacket);
+}
+
+void ClientSocketManager::connect(string ip, int port, string username) {
+	server_endpoint = udp::endpoint(address::from_string(ip), port);
+	socket.open(udp::v4());
+	socket.non_blocking(true);
+	JoinPacket joinpack(username);
+	send(&joinpack);
 }
 
 void ClientSocketManager::send(ClientPacket* packet) {

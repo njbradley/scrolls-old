@@ -35,6 +35,8 @@ void Settings::load_settings() {
 				ifile >> allocated_memory;
 			} else if (name == "dims") {
 				ifile >> screen_dims.x >> screen_dims.y;
+			} else if (name == "ip_addr") {
+				ifile >> ip_addr;
 			} else if (name == "") {
 				continue;
 			} else {

@@ -2,65 +2,44 @@
 #define CLIENTGAME
 
 #include "clientgame.h"
-#include "entity.h"
-#include "blockdata.h"
-#include "materials.h"
-#include "items.h"
-#include "crafting.h"
-#include "glue.h"
+#include "multiplayer/multiplayer.h"
+#include "scrolls/world.h"
+#include "scrolls/settings.h"
 
-ClientGame::ClientGame(string ip, int port, string username): socketmanager(ip, port, username) {
+string randusername() {
+	stringstream sstr;
+	sstr << "name" << time(NULL) % 1000;
+	return sstr.str();
+}
+
+ClientGame::ClientGame() {
 	
-	settings = new Settings();
-	graphics = new GraphicsMainContext(settings);
-	audio = new AudioMainContext();
-	
-	matstorage = new MaterialStorage();
-	connstorage = new ConnectorStorage();
-	blocks = new BlockStorage();
-	itemstorage = new ItemStorage();
-	recipestorage = new RecipeStorage();
-	
-	graphics->view_distance = view_dist * World::chunksize * 10;
-	
-	if (settings->framerate_sync) {
-		glfwSwapInterval(1);
-	} else {
-		glfwSwapInterval(0);
-	}
 }
 
 ClientGame::~ClientGame() {
 	
-	delete graphics;
-	delete audio;
-	delete settings;
-	
-	delete itemstorage;
-	delete blocks;
-	delete connstorage;
-	delete recipestorage;
-	delete matstorage;
-	
+}
+
+void ClientGame::load_world() {
+	socketmanager.connect(settings->ip_addr, 40296, randusername());
 }
 
 void ClientGame::setup_gameloop() {
-	
+	SingleGame::setup_gameloop();
 }
 
 void ClientGame::gametick() {
+	// SingleGame::gametick();
+	static int num_ticks = 100;
 	socketmanager.tick();
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	num_ticks --;
 	
-	if (glfwGetKey(window, GLFW_KEY_Q ) == GLFW_PRESS and glfwGetKey(window, 	GLFW_KEY_LEFT_CONTROL ) == GLFW_PRESS) {
+	if (num_ticks <= 0) {
 		playing = false;
-	} else if (glfwWindowShouldClose(window)) {
-		playing = false;
-	} else if (glfwGetKey(window, GLFW_KEY_X ) == GLFW_PRESS) {
-		cout << "Hard termination, no logging" << endl;
-		exit(2);
 	}
 }
 
-
+EXPORT_PLUGIN(ClientGame);
 
 #endif

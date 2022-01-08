@@ -8,12 +8,33 @@
 #include <sys/stat.h>
 
 #ifdef _WIN32
-#include <libloaderapi.h>
+#include <windows.h>
 #define LOADLIB(X) LoadLibrary(X)
 #define FREELIB(X) FreeLibrary(X)
 #define GETADDR(HAND, X) GetProcAddress(HAND, X)
-#define PRINTERR ;
 #define DLLSUFFIX ".dll"
+
+void print_err() {
+  //Get the error message ID, if any.
+  DWORD errorMessageID = ::GetLastError();
+  if(errorMessageID == 0) {
+      return; //No error message has been recorded
+  }
+  
+  LPSTR messageBuffer = nullptr;
+
+  //Ask Win32 to give us the string version of that message ID.
+  //The parameters we pass in, tell Win32 to create the buffer that holds the message for us (because we don't yet know how long the message string will be).
+  size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                               NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+  
+	cout.write(messageBuffer, size);
+	
+  //Free the Win32's string's buffer.
+  LocalFree(messageBuffer);
+}
+
+#define PRINTERR print_err();
 #else
 #include <dlfcn.h>
 // #define LOADLIB(X) dlopen(X, RTLD_NOW | RTLD_GLOBAL)
@@ -74,6 +95,7 @@ PluginLib::PluginLib(string path) {
 			cout << "Plugin error: [" << path << "]: cannot load dll" << endl;
 			PRINTERR;
 			handle = nullptr;
+			error_loading = true;
 		}
 	}
 }
@@ -99,13 +121,37 @@ PluginLoader::PluginLoader() {
 void PluginLoader::load(string path) {
 	load_reqs(path);
 	
-	struct stat info;
+	vector<string> to_load;
+	
 	for (std::filesystem::path fspath : std::filesystem::directory_iterator("./")) {
 		string path = fspath.filename().string();
 		if (std::find(ignored_plugins.begin(), ignored_plugins.end(), path) == ignored_plugins.end()
-			and (stat((path + "/" + path + DLLSUFFIX).c_str(), &info) == 0
-			or stat((path + "/" + path + ".txt").c_str(), &info) == 0)) {
-			plugins.push_back(new PluginLib(path));
+			and (stat(path + "/" + path + DLLSUFFIX) or stat(path + "/" + path + ".txt"))) {
+			to_load.push_back(path);
+		}
+	}
+	
+	while (to_load.size() > 0) {
+		int start_size = to_load.size();
+	
+		for (int i = to_load.size()-1; i >= 0; i --) {
+			PluginLib* newlib = new PluginLib(to_load[i]);
+			if (newlib->error_loading) {
+				delete newlib;
+			} else {
+				plugins.push_back(newlib);
+				to_load.erase(to_load.begin() + i);
+			}
+		}
+		
+		if (start_size == to_load.size()) {
+			cout << "ERROR: cannot resolve errors loading libraries" << endl;
+			cout << "  Could not load: ";
+			for (string path : to_load) {
+				cout << path << ' ';
+			}
+			cout << endl;
+			break;
 		}
 	}
 	
@@ -131,6 +177,11 @@ void PluginLoader::load_reqs(string path) {
 					ignored_plugins.push_back(ignore);
 					cout << "Ignoring plugin " << ignore << '/' << ignore << endl;
 				}
+			} else {
+				string newpath;
+				line >> newpath;
+				newpath = let + newpath;
+				load_reqs(newpath);
 			}
 		} else {
 			PluginReq req(line);

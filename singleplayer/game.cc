@@ -10,6 +10,15 @@
 
 SingleGame::SingleGame() {
 	
+}
+
+SingleGame::~SingleGame() {
+	if (errors) {
+		cout << "completed WITH errors BADDDDDAAAA!!" << endl;
+	}
+}
+
+void SingleGame::load_world() {
 	ifstream ifile(SAVES_PATH "latest.txt");
 	if (!ifile.good()) {
 		create_dir(SAVES_PATH);
@@ -31,15 +40,7 @@ SingleGame::SingleGame() {
 			}
 		}
 	}
-	
 }
-
-SingleGame::~SingleGame() {
-	if (errors) {
-		cout << "completed WITH errors BADDDDDAAAA!!" << endl;
-	}
-}
-
 
 void SingleGame::setup_gameloop() {
 	

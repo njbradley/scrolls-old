@@ -106,6 +106,7 @@ struct PluginReq {
 
 class PluginLib { public:
 	LIBHANDLE handle = nullptr;
+	bool error_loading = false;
 	string dirname;
 
 	PluginLib(string path);
@@ -310,6 +311,7 @@ struct ExportPluginSingleton {
 	\
 	template <typename ... Args> \
 	static X* plugnew(Args&& ... args) { \
+		if (selected_plugin == nullptr) return nullptr; \
 		return selected_plugin->newfunc(std::forward<Args>(args)...); \
 	} \
 	template <typename ... Args> \
@@ -317,6 +319,7 @@ struct ExportPluginSingleton {
 		return plugindef()->find(search_id)->newfunc(std::forward<Args>(args)...); \
 	} \
 	static void plugdelete(X* ptr) { \
+		if (ptr == nullptr) return; \
 		ptr->get_plugindef()->delfunc(ptr); \
 	} \
 	virtual PluginDef<X>* get_plugindef() const { return plugindef(); } \

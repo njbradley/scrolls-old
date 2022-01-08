@@ -82,5 +82,7 @@ void ViewBox::timestep(double deltatime, double daytime) {
 	params.sun_direction = sundirection;
 }
 
-Plugin<ViewBox> viewbox;
+
+
 Plugin<GraphicsContext> graphics;
+Plugin<ViewBox> viewbox;

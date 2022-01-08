@@ -1,0 +1,10 @@
+!glgraphics
+!alaudio
+!singleplayer
+!client
+!dwarfdebug
+
+Game = ServerGame
+GraphicsContext = NullGraphicsContext
+AudioContext = NullAudioContext
+ViewBox = NULL

@@ -25,6 +25,23 @@ class AudioContext { public:
 	virtual void geterr() = 0;
 };
 
+class NullAudioContext : public AudioContext { public:
+	PLUGIN_HEAD(NullAudioContext);
+	
+	virtual void init_context() {}
+	virtual void load_sounds() {}
+	
+	virtual void set_listener(vec3* pos, vec3* vel, vec2* pointing) {}
+	
+	virtual void play_sound(string name, vec3 pos, float gain = 1, float pitch = 1) {}
+	
+	virtual void tick() {}
+	virtual void check_sounds() {}
+	
+	virtual void status(stringstream& debugstream) {}
+	virtual void geterr() {}
+};
+
 extern Plugin<AudioContext> audio;
 
 #endif

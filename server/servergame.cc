@@ -2,36 +2,27 @@
 #define SERVERGAME
 
 #include "servergame.h"
-#include "entity.h"
-#include "blockdata.h"
-#include "materials.h"
-#include "items.h"
-#include "crafting.h"
-#include "glue.h"
+#include "multiplayer/multiplayer.h"
+#include "scrolls/world.h"
 
 ServerGame::IOthread::IOthread(ServerGame* newgame): game(newgame) {
 	
 }
 
 void ServerGame::IOthread::operator()() {
-	while (game->playing) {
+	while (game->playing and !std::cin.eof()) {
 		string command;
 		std::cin >> command;
 		game->command(command);
 	}
+	if (std::cin.eof()) {
+		game->command("stop");
+	}
 }
 	
 
-ServerGame::ServerGame(int port): socketmanager(port), iothread(IOthread(this)) {
-	settings = new Settings();
-	graphics = new GraphicsNullContext();
-	audio = new AudioNullContext();
+ServerGame::ServerGame(): socketmanager(40296), iothread(IOthread(this)) {
 	
-	matstorage = new MaterialStorage();
-	connstorage = new ConnectorStorage();
-	blocks = new BlockStorage();
-	itemstorage = new ItemStorage();
-	recipestorage = new RecipeStorage();
 }
 
 ServerGame::~ServerGame() {
@@ -48,15 +39,20 @@ void ServerGame::command(string command) {
 	}
 }
 
+void ServerGame::load_world() {
+	
+}
+
 void ServerGame::setup_gameloop() {
 	
 }
 
 void ServerGame::gametick() {
 	socketmanager.tick();
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 
-
+EXPORT_PLUGIN(ServerGame);
 
 
 #endif
