@@ -80,6 +80,7 @@ class ServerSocketManager { public:
 	void send(ServerPacket* packet, int clientid);
 	ClientPacket* recieve(udp::endpoint* sender);
 	void tick();
+	void send_tile(uint32 id, Tile* tile);
 };
 
 

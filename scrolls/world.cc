@@ -171,15 +171,7 @@ float World::tick_deltatime = 1/20.0f;
 
 World::World(string oldname): seed(std::hash<string>()(name)), terrainloader(seed), tileloader(this), name(oldname), physics(this, tick_deltatime),
 tiles( ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) + 3) {
-  ifstream ifile(path("worlddata.txt"));
-  if (ifile.good()) {
-    load_config(ifile);
-  } else {
-    setup_files();
-  }
-  startup();
-  tileloader->begin_serving();
-  tickrunner.init(this, tick_deltatime);
+  
 }
 
 World::~World() {
@@ -191,29 +183,33 @@ string World::path(string filename) const {
 }
 
 
+void World::parse_config_line(string buff, istream& ifile) {
+  if (buff == "seed") {
+    ifile >> seed;
+    terrainloader.set_seed(seed);
+  }
+  if (buff == "daytime") {
+    ifile >> daytime;
+  }
+  if (buff == "difficulty") {
+    ifile >> difficulty;
+  }
+  if (buff == "generation") {
+    string gen;
+    ifile >> gen;
+    generation = gen == "on";
+  }
+  if (buff == "last_player_pos") {
+    ifile >> last_player_pos.x >> last_player_pos.y >> last_player_pos.z;
+  }
+}
+
 void World::load_config(istream& ifile) {
   string buff;
   getline(ifile, buff);
   getline(ifile,buff,':');
   while ( !ifile.eof() and buff != "end" ) {
-    if (buff == "seed") {
-      ifile >> seed;
-      terrainloader.set_seed(seed);
-    }
-    if (buff == "daytime") {
-      ifile >> daytime;
-    }
-    if (buff == "difficulty") {
-      ifile >> difficulty;
-    }
-    if (buff == "generation") {
-      string gen;
-      ifile >> gen;
-      generation = gen == "on";
-    }
-    if (buff == "last_player_pos") {
-      ifile >> last_player_pos.x >> last_player_pos.y >> last_player_pos.z;
-    }
+    parse_config_line(buff, ifile);
     getline(ifile, buff);
     getline(ifile,buff,':');
   }
@@ -238,13 +234,25 @@ void World::setup_files() {
 }
 
 void World::startup() {
-  ifstream ifile(path("player.txt"));
+  ifstream ifile(path("worlddata.txt"));
   if (ifile.good()) {
-    // player = new Player(this, ifile);
-    // set_player_vars();
+    load_config(ifile);
   } else {
-    last_player_pos = ivec3(10,terrainloader.get_height(ivec2(10,10))+4,10);
-    // spawn_player();
+    setup_files();
+  }
+  
+  tileloader->begin_serving();
+  tickrunner.init(this, tick_deltatime);
+  
+  {
+    ifstream ifile(path("player.txt"));
+    if (ifile.good()) {
+      // player = new Player(this, ifile);
+      // set_player_vars();
+    } else {
+      last_player_pos = ivec3(10,terrainloader.get_height(ivec2(10,10))+4,10);
+      // spawn_player();
+    }
   }
 }
 
@@ -372,7 +380,7 @@ void World::timestep(float curtime, float deltatime) {
     tile->timestep(curtime, deltatime);
   }
   
-  if (player == nullptr and !initial_generation) {
+  if (player == nullptr and tileat(SAFEDIV(last_player_pos, chunksize)) != nullptr) {
     spawn_player();
   }
   
@@ -400,19 +408,21 @@ void World::tick(float curtime, float deltatime) {
   static bool n_pressed = false;
   static bool paused = true;
   
-  if (controls->key_pressed('M')) {
-    paused = false;
-  }
-  if (controls->key_pressed('B')) {
-    paused = true;
-  }
-  
-  bool cur_n_pressed = controls->key_pressed('N');
-  if (paused and (!cur_n_pressed or n_pressed)) {
+  if (controls != nullptr) {
+    if (controls->key_pressed('M')) {
+      paused = false;
+    }
+    if (controls->key_pressed('B')) {
+      paused = true;
+    }
+    
+    bool cur_n_pressed = controls->key_pressed('N');
+    if (paused and (!cur_n_pressed or n_pressed)) {
+      n_pressed = cur_n_pressed;
+      return;
+    }
     n_pressed = cur_n_pressed;
-    return;
   }
-  n_pressed = cur_n_pressed;
   
   debuglines->clear("tick");
   

@@ -49,6 +49,8 @@ class Tile : public Container {
 class TileLoader { public:
 	BASE_PLUGIN_HEAD(TileLoader, (World*));
 	
+	bool do_lighting_update = true;
+	
 	virtual void begin_serving() = 0;
 	
 	virtual void request_load_tile(ivec3 pos) = 0;

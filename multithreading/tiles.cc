@@ -98,8 +98,10 @@ void LoadingThread::operator()() {
 				double mid = getTime();
 				parent->world->add_tile(tile);
 				//for (int i = 0; i < 5; i ++) {
-				tile->lighting_update();
-				tile->lighting_update();
+				if (parent->do_lighting_update) {
+					tile->lighting_update();
+					tile->lighting_update();
+				}
 				//}
 			}
 		} else {

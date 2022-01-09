@@ -59,6 +59,9 @@ private:
 		bool spectator = false;
 		Controls* controller = nullptr;
 		
+		uint32 clientid = 0;
+		string username;
+		
 		Player();
 		Player(istream& ifile);
 		

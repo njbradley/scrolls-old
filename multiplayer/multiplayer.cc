@@ -141,13 +141,17 @@ struct BlockPacket : ServerPacket {
 		FileFormat::read_fixed(idata, (uint32*)&pz);
 		FileFormat::read_fixed(idata, (uint32*)&scale);
 		
-		block = new Block();
-		block->set_parent(nullptr, ivec3(px, py, pz), scale);
-		block->from_file(idata);
+		cout << "got block " << px << ' ' << py << ' ' << pz << ' ' << scale << endl;
+		// block = new Block();
+		// block->set_parent(nullptr, ivec3(px, py, pz), scale);
+		// block->from_file(idata);
 	}
 	
-	virtual void pack(char* data, int* written) {
-		
+	virtual void pack(ostream& odata) {
+		FileFormat::write_fixed(odata, (uint32) block->parentpos.x);
+		FileFormat::write_fixed(odata, (uint32) block->parentpos.y);
+		FileFormat::write_fixed(odata, (uint32) block->parentpos.z);
+		FileFormat::write_fixed(odata, (uint32) block->scale);
 	}
 	
 	virtual void run(ClientSocketManager* manager, udp::endpoint from) {
@@ -291,5 +295,9 @@ void ServerSocketManager::tick() {
 	}
 }
 
+void ServerSocketManager::send_tile(uint32 id, Tile* tile) {
+	BlockPacket blockpack(tile->chunk);
+	send(&blockpack, id);
+}
 
 #endif

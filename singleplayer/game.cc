@@ -40,6 +40,8 @@ void SingleGame::load_world() {
 			}
 		}
 	}
+	
+	world->startup();
 }
 
 void SingleGame::setup_gameloop() {

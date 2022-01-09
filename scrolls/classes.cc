@@ -33,6 +33,44 @@ size_t ivec4_hash::operator() (const ivec4& pos) const {
 	return ihash(pos.x) ^ ihash(pos.y) ^ ihash(pos.z) ^ ihash(pos.w);
 }
 
+
+ivec3_loop::ivec3_loop(ivec3 min, ivec3 max, ivec3 step): min(min), max(max), step(step) {
+  
+}
+
+ivec3_loop::ivec3_loop(ivec3 max): min(0,0,0), max(max), step(1,1,1) {
+  
+}
+
+ivec3_loop::iterator ivec3_loop::iterator::operator++() {
+  val.z += parent->step.z;
+  if (val.z >= parent->max.z) {
+    val.z = parent->min.z;
+    val.y += parent->step.y;
+    if (val.y >= parent->max.y) {
+      val.y = parent->min.y;
+      val.x += parent->step.x;
+      if (val.x >= parent->max.x) {
+        val = parent->max;
+      }
+    }
+  }
+  return *this;
+}
+
+bool ivec3_loop::iterator::operator!=(const iterator& other) const {
+  return val != other.val;
+}
+
+ivec3_loop::iterator ivec3_loop::begin() {
+  return {min, this};
+}
+
+ivec3_loop::iterator ivec3_loop::end() {
+  return {max, this};
+}
+
+
 ostream& operator<<(ostream& out, ivec3 pos) {
 	out << pos.x << ',' << pos.y << ',' << pos.z;
 	return out;

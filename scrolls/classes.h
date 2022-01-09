@@ -69,6 +69,26 @@ struct ivec4_hash {
 	size_t operator() (const ivec4& pos) const;
 };
 
+struct ivec3_loop {
+  ivec3 min;
+  ivec3 max;
+  ivec3 step;
+  
+  ivec3_loop(ivec3 min, ivec3 max, ivec3 step = ivec3(1,1,1));
+  ivec3_loop(ivec3 max);
+  
+  struct iterator {
+    ivec3 val;
+    ivec3_loop* parent;
+    
+    iterator operator++();
+    bool operator!=(const iterator& other) const;
+  };
+  
+  iterator begin();
+  iterator end();
+};
+
 double getTime();
 
 ostream& operator<<(ostream& out, ivec3 pos);

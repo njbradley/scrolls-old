@@ -4,6 +4,8 @@
 #include "servergame.h"
 #include "multiplayer/multiplayer.h"
 #include "scrolls/world.h"
+#include "world.h"
+#include "scrolls/cross-platform.h"
 
 ServerGame::IOthread::IOthread(ServerGame* newgame): game(newgame) {
 	
@@ -40,7 +42,30 @@ void ServerGame::command(string command) {
 }
 
 void ServerGame::load_world() {
+	ifstream ifile(SAVES_PATH "latest.txt");
+	if (!ifile.good()) {
+		create_dir(SAVES_PATH);
+		ofstream ofile(SAVES_PATH "saves.txt");
+		ofile << "";
+		world.init(string("Starting-World"));
+	} else {
+		string latest;
+		ifile >> latest;
+		if (latest != "") {
+			world.init(latest);
+		} else {
+			ifstream ifile2(string(SAVES_PATH "saves.txt"));
+			ifile2 >> latest;
+			if (latest != "") {
+				world.init(latest);
+			} else {
+				world.init(string("Starting-World"));
+			}
+		}
+	}
 	
+	world->startup();
+	world.as<ServerWorld>()->socketmanager = &socketmanager;
 }
 
 void ServerGame::setup_gameloop() {

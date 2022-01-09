@@ -97,6 +97,7 @@ class World: public Collider { public:
   
   virtual void setup_files();
   virtual void load_config(istream& ifile);
+  virtual void parse_config_line(string buff, istream& ifile);
   virtual void save_config(ostream& ofile);
   virtual void startup();
   virtual void spawn_player();
@@ -104,9 +105,9 @@ class World: public Collider { public:
   virtual void set_spectator_vars();
   
   vec3 get_position() const;
-  bool render();
-  void timestep(float curtime, float deltatime);
-  void tick(float curtime, float deltatime);
+  virtual bool render();
+  virtual void timestep(float curtime, float deltatime);
+  virtual void tick(float curtime, float deltatime);
   void drop_ticks();
   
   void block_update(ivec3);
@@ -125,8 +126,8 @@ class World: public Collider { public:
   Block* raycast(vec3* pos, vec3 dir, double time);
   void add_tile(Tile* tile);
   void del_tile(ivec3 pos, bool remove_faces);
-  void close_world();
-  bool is_world_closed();
+  virtual void close_world();
+  virtual bool is_world_closed();
 };
 
 
