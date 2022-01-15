@@ -1,8 +1,4 @@
-!glgraphics
-!alaudio
 !dwarfdebug
+!server
 
 Game = ClientGame
-GraphicsContext = NullGraphicsContext
-AudioContext = NullAudioContext
-ViewBox = NULL

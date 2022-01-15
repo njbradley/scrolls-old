@@ -136,6 +136,9 @@ void Block::swap(Block* other) {
   for (FreeBlock* free = other->freechild; free != nullptr; free = free->next) {
     free->set_parent(other, other->world, ivec3(0,0,0), other->scale/2);
   }
+  
+  on_change();
+  other->on_change();
 }
     
     
@@ -155,6 +158,10 @@ void Block::update() {
       }
     }
   }
+}
+
+void Block::on_change() {
+  set_flag(RENDER_FLAG | LIGHT_FLAG | CHANGE_FLAG | CHANGE_PROP_FLAG);
 }
 
 void Block::set_parent(Container* nworld, ivec3 ppos, int nscale) {
@@ -187,7 +194,8 @@ void Block::set_parent(Block* nparent, Container* nworld, FreeBlock* freecont, i
     }
   }
   
-  set_flag(RENDER_FLAG | LIGHT_FLAG);
+  // set_flag(RENDER_FLAG | LIGHT_FLAG);
+  on_change();
   update();
 }
 
@@ -222,7 +230,7 @@ void Block::set_pixel(Pixel* pix) { ASSERT(ISPIXEL or ISUNDEF)
     delete pixel;
   }
   pixel = pix;
-  set_flag(RENDER_FLAG | LIGHT_FLAG);
+  on_change();
   update();
 }
 
@@ -233,7 +241,7 @@ Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ISPIXEL or ISUNDEF)
   }
   Pixel* old = pixel;
   pixel = pix;
-  set_flag(RENDER_FLAG | LIGHT_FLAG);
+  on_change();
   update();
   return old;
 }
@@ -538,7 +546,7 @@ void Block::divide() { ASSERT(!continues)
   for (int i = 0; i < csize3; i ++) {
     children[i] = nullptr;
   }
-  set_flag(RENDER_FLAG | LIGHT_FLAG);
+  on_change();
 }
 
 void Block::subdivide() { ASSERT(!continues)
@@ -549,7 +557,7 @@ void Block::subdivide() { ASSERT(!continues)
     set_child(posof(i), new Block(new Pixel(pix->value, pix->direction)));
   }
   delete pix;
-  set_flag(RENDER_FLAG | LIGHT_FLAG);
+  on_change();
 }
 
 void Block::join() { ASSERT(ISCHUNK)
@@ -559,7 +567,7 @@ void Block::join() { ASSERT(ISCHUNK)
   }
   continues = false;
   pixel = nullptr;
-  set_flag(RENDER_FLAG | LIGHT_FLAG);
+  on_change();
 }
 
 void Block::try_join() {
@@ -1388,7 +1396,7 @@ void FreeBlock::expand(ivec3 dir) { // Todo: this method only works for csize=2
   
   set_child(dir, copyblock);
   
-  set_flag(RENDER_FLAG | LIGHT_FLAG);
+  on_change();
 }
 
 

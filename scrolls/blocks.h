@@ -48,7 +48,9 @@ class Block: public Collider { public:
 	enum BlockFlags : uint8 {
 		RENDER_FLAG = 0b00000001,
 		LIGHT_FLAG = 0b00000010,
+		CHANGE_PROP_FLAG = 0b00000100,
 		UPDATE_FLAG = 0b00010000,
+		CHANGE_FLAG = 0b00100000,
 		PROPAGATING_FLAGS = 0b00001111,
 	};
 	
@@ -75,6 +77,7 @@ class Block: public Collider { public:
 	void swap(Block* other);
 	
 	void update();
+	void on_change();
 	// sets the parent of this block (only call for toplevel blocks)
 	void set_parent(Container* world, ivec3 ppos, int nscale);
 	void set_parent(Block* parent, Container* world, FreeBlock* freecont, ivec3 ppos, int nscale);

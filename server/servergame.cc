@@ -7,6 +7,14 @@
 #include "world.h"
 #include "scrolls/cross-platform.h"
 
+struct ControlsExecutor : ServerExecutor<ControlsPacket> {
+	PLUGIN_HEAD(ControlsExecutor);
+	virtual void run(ControlsPacket* pack) {
+		cout << pack->keys_pressed << endl;
+	}
+};
+EXPORT_PLUGIN(ControlsExecutor);
+
 ServerGame::IOthread::IOthread(ServerGame* newgame): game(newgame) {
 	
 }
@@ -73,6 +81,7 @@ void ServerGame::setup_gameloop() {
 }
 
 void ServerGame::gametick() {
+	world->load_nearby_chunks();
 	socketmanager.tick();
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }

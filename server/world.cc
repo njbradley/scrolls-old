@@ -4,6 +4,29 @@
 #include "scrolls/tiles.h"
 #include "multiplayer/multiplayer.h"
 
+#include "servergame.h"
+
+struct JoinExecutor : ServerExecutor<JoinPacket> {
+	PLUGIN_HEAD(JoinExecutor);
+	virtual void run(JoinPacket* pack) {
+		cout << " running player_join " << endl;
+		game->world.as<ServerWorld>()->player_join(pack->username, pack->clientid);
+	}
+};
+EXPORT_PLUGIN(JoinExecutor);
+
+struct LeaveExecutor : ServerExecutor<LeavePacket> {
+	PLUGIN_HEAD(LeaveExecutor);
+	virtual void run(LeavePacket* pack) {
+		game->world.as<ServerWorld>()->player_leave(ppack->clientid);
+	}
+};
+EXPORT_PLUGIN(JoinExecutor);
+
+
+
+
+
 ServerWorld::ServerWorld(string name): World(name) {
 	
 }
@@ -35,11 +58,15 @@ void ServerWorld::player_join(string username, uint32 id) {
 	players[id] = PlayerData{.last_pos = spawn_pos, .username = username};
 }
 
+void ServerWorld::player_leave(uint32 id) {
+	unjoined_players.push_back(players[id]);
+	players.erase(id);
+}
 
 
 void ServerWorld::load_nearby_chunks() {
   bool loaded_chunks = false;
-	
+	cout << "load nearby " << endl;
 	const int maxrange = settings->view_dist;
 	
 	int max_chunks = ((settings->view_dist)*2+1) * ((settings->view_dist)*2+1) * ((settings->view_dist)*2+1);
@@ -69,6 +96,7 @@ void ServerWorld::load_nearby_chunks() {
 								}
               } else {
 								socketmanager->send_tile(id, tileat(pos));
+								cout << "sending tile " << pos << endl;
 							}
             }
           }

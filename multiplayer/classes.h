@@ -4,8 +4,6 @@
 #include "scrolls/classes.h"
 
 class Packet;
-class ClientPacket;
-class ServerPacket;
 class ClientSocketManager;
 class ServerSocketManager;
 

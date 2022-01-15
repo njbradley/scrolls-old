@@ -1,6 +1,19 @@
 #include "world.h"
+
 #include "scrolls/debug.h"
 #include "scrolls/tiles.h"
+#include "multiplayer/multiplayer.h"
+
+struct BlockExecutor : ClientExecutor<BlockPacket> {
+	PLUGIN_HEAD(BlockExecutor);
+	virtual void run(BlockPacket* pack) {
+		cout << " got pack " << pack << endl;
+	}
+};
+EXPORT_PLUGIN(BlockExecutor);
+
+
+
 
 ClientWorld::ClientWorld(string name): World(name) {
 	
