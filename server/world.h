@@ -26,9 +26,14 @@ class ServerWorld : public World { public:
   virtual void parse_config_line(string buff, istream& ifile);
 	
 	void player_join(string username, uint32 id);
+	void player_leave(uint32 id);
 	virtual bool render();
 	
   virtual void load_nearby_chunks();
+	virtual void timestep(float curtime, float deltatime);
+	
+	void send_tile(uint32 id, Tile* tile);
+	void update_block(uint32 id, Block* block);
 };
 
 #endif

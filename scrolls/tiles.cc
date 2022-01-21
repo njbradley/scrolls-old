@@ -195,6 +195,10 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
   // debuglines->render(chunk->hitbox(), vec3(1,1,1), "chunk_borders");
 }
 
+Tile::Tile(ivec3 newpos, World* nworld, Block* nchunk): pos(newpos), world(nworld), chunksize(nworld->chunksize), deleting(false) {
+  chunk = nchunk;
+  chunk->set_parent(this, pos, chunksize);
+}
 
 Tile::~Tile() {
   //cout << "start of deleting tile ";
@@ -204,6 +208,14 @@ Tile::~Tile() {
   delete chunk;
   // dfile << "DEL" << endl;
   deletelock.unlock();
+}
+
+void Tile::set_chunk(Block* nchunk) {
+  if (chunk != nullptr) {
+    delete chunk;
+  }
+  chunk = nchunk;
+  chunk->set_parent(this, pos, chunksize);
 }
 
 Block* Tile::get_global(ivec3 pos, int scale) {

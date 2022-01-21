@@ -37,8 +37,8 @@ void print_err() {
 #define PRINTERR print_err();
 #else
 #include <dlfcn.h>
-// #define LOADLIB(X) dlopen(X, RTLD_NOW | RTLD_GLOBAL)
-#define LOADLIB(X) dlopen(X, RTLD_NOW)
+#define LOADLIB(X) dlopen(X, RTLD_NOW | RTLD_GLOBAL)
+// #define LOADLIB(X) dlopen(X, RTLD_NOW)
 #define FREELIB(X) dlclose(X)
 #define GETADDR(HAND, X) dlsym(HAND, X)
 #define PRINTERR cout << dlerror() << endl;
@@ -118,8 +118,7 @@ PluginLoader::PluginLoader() {
 	
 }
 
-void PluginLoader::load(string path) {
-	load_reqs(path);
+void PluginLoader::load() {
 	
 	vector<string> to_load;
 	

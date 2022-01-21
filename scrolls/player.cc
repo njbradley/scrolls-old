@@ -52,6 +52,8 @@ Player::Player(istream& ifile): Entity(ifile), inven(10), backpack(10) {
 	selitem = FileFormat::read_variable(ifile);
 	FileFormat::read_fixed(ifile, &angle.x);
 	FileFormat::read_fixed(ifile, &angle.y);
+	username = FileFormat::read_string(ifile);
+	FileFormat::read_fixed(ifile, &clientid);
 }
 
 void Player::to_file(ostream& ofile) const {
@@ -59,6 +61,8 @@ void Player::to_file(ostream& ofile) const {
 	FileFormat::write_variable(ofile, selitem);
 	FileFormat::write_fixed(ofile, angle.x);
 	FileFormat::write_fixed(ofile, angle.y);
+	FileFormat::write_string(ofile, username);
+	FileFormat::write_fixed(ofile, clientid);
 }
 	
 mat4 Player::getViewMatrix() {

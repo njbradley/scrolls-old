@@ -120,7 +120,7 @@ class PluginLoader { public:
 	vector<PluginLib*> plugins;
 
 	PluginLoader();
-	void load(string plugin_path);
+	void load();
 	void load_reqs(string path);
 	void choose_plugins();
 	~PluginLoader();

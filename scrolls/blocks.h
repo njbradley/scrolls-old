@@ -123,10 +123,10 @@ class Block: public Collider { public:
 	const Block* get_global(ivec3 pos, int w) const;
 	// travels the tree, but does not travel between freeblocks/baseblocks
 	Block* get_local(ivec3 pos, int w);
-	Block* get_touching(ivec3 pos, int w, ivec3 dir); //bad
 	// travels the tree, and sets the block specified. does not travel between
 	// freeblocks/baseblocks
 	void set_global(ivec3 pos, int w, Blocktype val, int direc = -1, int joints[6] = nullptr);
+	void set_global(ivec3 pos, int w, Block* newblock);
 	// turns pixel type blocks to chunk type
 	// divide leaves all children as null (use subdivide for
 	// fully initialized children)

@@ -539,6 +539,68 @@ void Block::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]
   }
 }
 
+void Block::set_global(ivec3 pos, int w, Block* newblock) {
+  
+  Block* curblock = this;
+  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale)) {
+    if (curblock->parent == nullptr) {
+      if (curblock->freecontainer != nullptr) {
+        ivec3 expand_dir = glm::sign(SAFEDIV(pos, curblock->scale) - SAFEDIV(curblock->globalpos, curblock->scale));
+        ivec3 expand_off = (-expand_dir + 1) / 2;
+        pos += expand_off * curblock->scale;
+        curblock->freecontainer->expand(expand_off);
+        curblock = curblock->get(expand_off);
+        // std::terminate();
+      } else {
+        // world->set_global(pos, w, val, direc, joints);
+        return;
+      }
+    }
+    curblock = curblock->parent;
+  }
+  
+  while (curblock->scale > w and curblock->continues) {
+    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
+    if (curblock->get(rem) == nullptr) {
+      break;
+    }
+    curblock = curblock->get(rem);
+  }
+  
+  std::lock_guard<Block> guard (*curblock);
+  
+  while (curblock->scale > w) {
+    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
+    if (!curblock->continues) {
+      if (curblock->pixel == nullptr) {
+        curblock->divide();
+      } else {
+        curblock->subdivide();
+      }
+    }
+    if (curblock->get(rem) == nullptr) {
+      // cout << " sepc " << rem << ' ' << indexof(rem) << endl;
+      curblock->set_child(rem, new Block());
+      // cout << " adding child " << curblock->scale << ' ';
+      // for (int i = 0; i < csize3; i ++) {
+        // cout << curblock->children[i] << ' ';
+      // } cout << endl;
+      if (curblock->scale > w) {
+        curblock->get(rem)->divide();
+      } else {
+        curblock->get(rem)->set_pixel(new Pixel(0));
+      }
+    }
+    curblock = curblock->get(rem);
+  }
+  
+  if (curblock->parent == nullptr) {
+    curblock->swap(newblock);
+  } else {
+    curblock->parent->set_child(curblock->parentpos, newblock);
+  }
+}
+
 void Block::divide() { ASSERT(!continues)
   std::lock_guard<Block> guard(*this);
   set_pixel(nullptr);
@@ -1265,22 +1327,22 @@ void FreeBlock::tick(float curtime, float deltatime) {
   
   float mag = 10 * scale;
   
-  if (controls->key_pressed('L')) {
-    physicsbody->apply_impulse(vec3(-mag,0,0) * deltatime);
-  }
-  if (controls->key_pressed('J')) {
-    physicsbody->apply_impulse(vec3(mag,0,0) * deltatime);
-  }
-  if (controls->key_pressed('I')) {
-    physicsbody->apply_impulse(vec3(0,0,mag) * deltatime);
-  }
-  if (controls->key_pressed('V')) {
-    physicsbody->apply_impulse(vec3(0,0,-mag) * deltatime);
-  }
-  
-  if (controls->key_pressed('U')) {
-    physicsbody->apply_impulse(vec3(0,mag*2,0) * deltatime);
-  }
+  // if (controls->key_pressed('L')) {
+  //   physicsbody->apply_impulse(vec3(-mag,0,0) * deltatime);
+  // }
+  // if (controls->key_pressed('J')) {
+  //   physicsbody->apply_impulse(vec3(mag,0,0) * deltatime);
+  // }
+  // if (controls->key_pressed('I')) {
+  //   physicsbody->apply_impulse(vec3(0,0,mag) * deltatime);
+  // }
+  // if (controls->key_pressed('V')) {
+  //   physicsbody->apply_impulse(vec3(0,0,-mag) * deltatime);
+  // }
+  //
+  // if (controls->key_pressed('U')) {
+  //   physicsbody->apply_impulse(vec3(0,mag*2,0) * deltatime);
+  // }
   
   // debuglines->render(box, vec3(1,1,1), "tick");
   // if (entity_cast() == nullptr or entity_cast()->get_plugin_id() != Player::plugindef()->id) {

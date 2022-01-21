@@ -63,7 +63,7 @@ struct ServerExecutor {
 
 struct Packet {
 	BASE_PLUGIN_HEAD(Packet, (istream& idata));
-	static const int packetsize = 32768;
+	static const int packetsize = 1024;
 	time_t sent;
 	uint32 clientid;
 	Packet();
@@ -93,6 +93,8 @@ struct LeavePacket : Packet {
 
 struct BlockPacket : Packet {
 	PACKET_HEAD(BlockPacket);
+	ivec3 globalpos;
+	int scale;
 	Block* block;
 	BlockPacket(Block* block);
 	BlockPacket(istream& idata);
@@ -146,8 +148,6 @@ class ServerSocketManager { public:
 	void send(Packet* packet, uint32 clientid);
 	Packet* recieve();
 	void tick();
-	void send_tile(uint32 id, Tile* tile);
-	void update_block(uint32 id, Block* block);
 };
 
 

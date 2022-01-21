@@ -2,3 +2,4 @@
 !server
 
 Game = ClientGame
+World = ClientWorld

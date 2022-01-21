@@ -19,11 +19,15 @@ class FileFormat { public:
 	static void write_fixed(ostream& ofile, uint64 value);
 	static void write_fixed(ostream& ofile, uint32 value);
 	static void write_fixed(ostream& ofile, float value);
+	static void write_fixed(ostream& ofile, ivec3 value);
+	static void write_fixed(ostream& ofile, vec3 value);
 	static void write_variable(ostream& ofile, uint64 value);
 	
 	static void read_fixed(istream& ifile, uint64* value);
 	static void read_fixed(istream& ifile, uint32* value);
 	static void read_fixed(istream& ifile, float* value);
+	static void read_fixed(istream& ifile, ivec3* value);
+	static void read_fixed(istream& ifile, vec3* value);
 	static uint64 read_variable(istream& ifile);
 	
 	static void write_string(ostream& ofile, string str);

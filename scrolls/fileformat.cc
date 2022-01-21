@@ -15,7 +15,19 @@ void FileFormat::write_fixed(ostream& ofile, uint32 value) {
 }
 
 void FileFormat::write_fixed(ostream& ofile, float value) {
-	write_fixed(ofile, *((unsigned int*) &value));
+	write_fixed(ofile, *((uint32*) &value));
+}
+
+void FileFormat::write_fixed(ostream& ofile, ivec3 value) {
+	write_fixed(ofile, (uint32) value.x);
+	write_fixed(ofile, (uint32) value.y);
+	write_fixed(ofile, (uint32) value.z);
+}
+
+void FileFormat::write_fixed(ostream& ofile, vec3 value) {
+	write_fixed(ofile, value.x);
+	write_fixed(ofile, value.y);
+	write_fixed(ofile, value.z);
 }
 
 void FileFormat::write_variable(ostream& ofile, uint64 value) {
@@ -47,6 +59,18 @@ void FileFormat::read_fixed(istream& ifile, uint32* value) {
 
 void FileFormat::read_fixed(istream& ifile, float* value) {
 	read_fixed(ifile, (unsigned int*) value);
+}
+
+void FileFormat::read_fixed(istream& ifile, ivec3* value) {
+	read_fixed(ifile, (uint32*) &value->x);
+	read_fixed(ifile, (uint32*) &value->y);
+	read_fixed(ifile, (uint32*) &value->z);
+}
+
+void FileFormat::read_fixed(istream& ifile, vec3* value) {
+	read_fixed(ifile, &value->x);
+	read_fixed(ifile, &value->y);
+	read_fixed(ifile, &value->z);
 }
 
 uint64 FileFormat::read_variable(istream& ifile) {

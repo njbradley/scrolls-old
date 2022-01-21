@@ -104,12 +104,12 @@ int game_main() {
 
 int main(int numargs, char** args) {
 	if (numargs > 1 and string(args[1]) != "test") {
-		pluginloader.load(args[1]);
+		pluginloader.load_reqs(args[1]);
 		numargs --;
 		args ++;
-	} else {
-		pluginloader.load("plugins.txt");
 	}
+	pluginloader.load_reqs("plugins.txt");
+	pluginloader.load();
 	
 	if (numargs > 1 and string(args[1]) == "test") {
 		return test_main(numargs, args);

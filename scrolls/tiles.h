@@ -28,6 +28,7 @@ class Tile : public Container {
 		bool done_reading = false;
 		
 		Tile(ivec3 position, World* world);
+		Tile(ivec3 position, World* world, Block* nchunk);
 		~Tile();
 		void tick(float curtime, float deltatime);
 		void timestep(float curtime, float deltatime);
@@ -36,6 +37,7 @@ class Tile : public Container {
 		void save();
 		void update_lighting();
 		void lighting_update();
+		void set_chunk(Block* nchunk);
 		
 		Block* get_global(ivec3 pos, int scale);
 		const Block* get_global(ivec3 pos, int scale) const;

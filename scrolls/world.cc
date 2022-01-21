@@ -166,7 +166,7 @@ void TileMap::status(ostream& ofile) {
 }
 
 
-float World::tick_deltatime = 1/20.0f;
+float World::tick_deltatime = 25/1000.0f;
 
 
 World::World(string oldname): seed(std::hash<string>()(name)), terrainloader(seed), tileloader(this), name(oldname), physics(this, tick_deltatime),
@@ -407,7 +407,7 @@ void World::timestep(float curtime, float deltatime) {
 void World::tick(float curtime, float deltatime) {
   static bool n_pressed = false;
   static bool paused = true;
-  
+  // return;
   if (controls != nullptr) {
     if (controls->key_pressed('M')) {
       paused = false;

@@ -17,6 +17,9 @@ class ClientWorld : public World { public:
   virtual void timestep(float curtime, float deltatime);
 	
   virtual void close_world();
+	
+	
+	void add_block(Block* block, ivec3 globalpos, int scale);
 };
 
 #endif

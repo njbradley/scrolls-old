@@ -55,30 +55,23 @@ void JoinPacket::pack(ostream& odata) {
 DEFINE_PACKET(JoinPacket);
 
 
-BlockPacket::BlockPacket(Block* nblock): block(nblock) {
+BlockPacket::BlockPacket(Block* nblock): block(nblock), globalpos(nblock->globalpos), scale(nblock->scale) {
 	
 }
 
 BlockPacket::BlockPacket(istream& idata): Packet(idata) {
-	int32 px, py, pz, scale;
-	
-	FileFormat::read_fixed(idata, (uint32*)&px);
-	FileFormat::read_fixed(idata, (uint32*)&py);
-	FileFormat::read_fixed(idata, (uint32*)&pz);
+	FileFormat::read_fixed(idata, &globalpos);
 	FileFormat::read_fixed(idata, (uint32*)&scale);
 	
-	cout << "got block " << px << ' ' << py << ' ' << pz << ' ' << scale << endl;
-	// block = new Block();
-	// block->set_parent(nullptr, ivec3(px, py, pz), scale);
-	// block->from_file(idata);
+	block = new Block();
+	block->from_file(idata);
 }
 
 void BlockPacket::pack(ostream& odata) {
 	Packet::pack(odata);
-	FileFormat::write_fixed(odata, (uint32) block->parentpos.x);
-	FileFormat::write_fixed(odata, (uint32) block->parentpos.y);
-	FileFormat::write_fixed(odata, (uint32) block->parentpos.z);
+	FileFormat::write_fixed(odata, block->globalpos);
 	FileFormat::write_fixed(odata, (uint32) block->scale);
+	block->to_file(odata);
 }
 DEFINE_PACKET(BlockPacket);
 
@@ -139,7 +132,7 @@ struct JoinExecutor : ServerExecutor<JoinPacket> {
 EXPORT_PLUGIN(JoinExecutor);
 
 struct LeaveExecutor : ServerExecutor<LeavePacket> {
-	PLUGIN_HEAD(JoinExecutor);
+	PLUGIN_HEAD(LeaveExecutor);
 	virtual void run(LeavePacket* pack, ServerSocketManager* manager) {
 		cout << " executing leave packet " << endl;
 		manager->clients.erase(pack->clientid);
@@ -178,7 +171,6 @@ void ClientSocketManager::connect(string ip, int port, string username) {
 }
 
 void ClientSocketManager::send(Packet* packet) {
-	cout << "sending packet server " << packet << endl;
 	char data[Packet::packetsize];
 	MemBuf membuf (data, Packet::packetsize);
 	ostream odata (&membuf);
@@ -211,7 +203,6 @@ Packet* ClientSocketManager::recieve() {
 			clientid = packet->clientid;
 			cout << " got client id " << clientid << endl;
 		}
-		cout << " got packet " << packet << ' ' << packet->clientid << endl;
 		return packet;
 	}
 }
@@ -245,7 +236,6 @@ ServerSocketManager::~ServerSocketManager() {
 }
 
 void ServerSocketManager::send(Packet* packet, uint32 clientid) {
-	cout << "sending packet " << packet << " to " << clientid << endl;
 	char data[Packet::packetsize];
 	MemBuf membuf (data, Packet::packetsize);
 	ostream odata (&membuf);
@@ -287,7 +277,6 @@ Packet* ServerSocketManager::recieve() {
 				cout << " added client " << idcounter << ' ' << sender << endl;
 			}
 		}
-		cout << " recieved packet " << packet << ' ' << id.name() << ' ' << endl;
 		return packet;
 	}
 }
@@ -300,25 +289,7 @@ void ServerSocketManager::tick() {
 	}
 }
 
-void ServerSocketManager::send_tile(uint32 id, Tile* tile) {
-	BlockPacket blockpack(tile->chunk);
-	send(&blockpack, id);
-}
 
-void ServerSocketManager::update_block(uint32 id, Block* block) {
-	if (block != nullptr) {
-		if (block->flags & Block::CHANGE_FLAG) {
-			BlockPacket blockpack(block);
-			send(&blockpack, id);
-			block->reset_all_flags(Block::CHANGE_FLAG | Block::CHANGE_PROP_FLAG);
-		} else if ((block->flags & Block::CHANGE_PROP_FLAG) and block->continues) {
-			for (int i = 0; i < csize3; i ++) {
-				update_block(id, block->children[i]);
-			}
-			block->reset_flag(Block::CHANGE_PROP_FLAG);
-		}
-	}
-}
 					
 
 #endif

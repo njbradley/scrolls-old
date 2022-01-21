@@ -81,7 +81,15 @@ void ServerGame::setup_gameloop() {
 }
 
 void ServerGame::gametick() {
+	static double lastTime = getTime();
+	static int num_frames = 0;
+	
+	double curtime = getTime();
+	double deltatime = curtime - lastTime;
+	lastTime = curtime;
+	
 	world->load_nearby_chunks();
+	world->timestep(curtime, deltatime);
 	socketmanager.tick();
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }

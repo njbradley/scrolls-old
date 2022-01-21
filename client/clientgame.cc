@@ -22,6 +22,8 @@ ClientGame::~ClientGame() {
 
 void ClientGame::load_world() {
 	socketmanager.connect(settings->ip_addr, 40296, randusername());
+	world.init("skdjflskdf");
+	world->startup();
 }
 
 void ClientGame::setup_gameloop() {
@@ -29,13 +31,11 @@ void ClientGame::setup_gameloop() {
 }
 
 void ClientGame::gametick() {
-	// SingleGame::gametick();
-	static int num_ticks = 100;
+	SingleGame::gametick();
 	socketmanager.tick();
-	std::this_thread::sleep_for(std::chrono::milliseconds(50));
-	num_ticks --;
+	// std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	
-	if (num_ticks <= 0) {
+	if (controls->key_pressed('Q')) {
 		playing = false;
 	}
 }

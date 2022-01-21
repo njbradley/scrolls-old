@@ -6,22 +6,22 @@
 
 #include "servergame.h"
 
-struct JoinExecutor : ServerExecutor<JoinPacket> {
-	PLUGIN_HEAD(JoinExecutor);
+struct JoinExecutorPlayer : ServerExecutor<JoinPacket> {
+	PLUGIN_HEAD(JoinExecutorPlayer);
 	virtual void run(JoinPacket* pack) {
 		cout << " running player_join " << endl;
 		game->world.as<ServerWorld>()->player_join(pack->username, pack->clientid);
 	}
 };
-EXPORT_PLUGIN(JoinExecutor);
+EXPORT_PLUGIN(JoinExecutorPlayer);
 
-struct LeaveExecutor : ServerExecutor<LeavePacket> {
-	PLUGIN_HEAD(LeaveExecutor);
+struct LeaveExecutorPlayer : ServerExecutor<LeavePacket> {
+	PLUGIN_HEAD(LeaveExecutorPlayer);
 	virtual void run(LeavePacket* pack) {
-		game->world.as<ServerWorld>()->player_leave(ppack->clientid);
+		game->world.as<ServerWorld>()->player_leave(pack->clientid);
 	}
 };
-EXPORT_PLUGIN(JoinExecutor);
+EXPORT_PLUGIN(LeaveExecutorPlayer);
 
 
 
@@ -29,6 +29,7 @@ EXPORT_PLUGIN(JoinExecutor);
 
 ServerWorld::ServerWorld(string name): World(name) {
 	
+	PluginListNow<ServerExecutor<JoinPacket>> tmplist;
 }
 
 void ServerWorld::startup() {
@@ -48,6 +49,7 @@ void ServerWorld::parse_config_line(string buff, istream& ifile) {
 }
 
 void ServerWorld::player_join(string username, uint32 id) {
+	cout << "player join " << endl;
 	for (int i = 0; i < unjoined_players.size(); i ++) {
 		if (unjoined_players[i].username == username) {
 			players[id] = unjoined_players[i];
@@ -59,6 +61,7 @@ void ServerWorld::player_join(string username, uint32 id) {
 }
 
 void ServerWorld::player_leave(uint32 id) {
+	cout << "player leave " << id << endl;
 	unjoined_players.push_back(players[id]);
 	players.erase(id);
 }
@@ -66,7 +69,6 @@ void ServerWorld::player_leave(uint32 id) {
 
 void ServerWorld::load_nearby_chunks() {
   bool loaded_chunks = false;
-	cout << "load nearby " << endl;
 	const int maxrange = settings->view_dist;
 	
 	int max_chunks = ((settings->view_dist)*2+1) * ((settings->view_dist)*2+1) * ((settings->view_dist)*2+1);
@@ -76,6 +78,12 @@ void ServerWorld::load_nearby_chunks() {
 		uint32 id = kvpair.first;
 		const PlayerData& data = kvpair.second;
     
+		if (data.player != nullptr) {
+			players[kvpair.first].last_pos = SAFEFLOOR3(data.player->box.position);
+		}
+		
+		// cout << kvpair.second.last_pos << " player pos " << endl;
+		
     int px = data.last_pos.x/chunksize - (data.last_pos.x<0);
     int py = data.last_pos.y/chunksize - (data.last_pos.y<0);
     int pz = data.last_pos.z/chunksize - (data.last_pos.z<0);
@@ -95,8 +103,7 @@ void ServerWorld::load_nearby_chunks() {
 	                loading_chunks.insert(pos);
 								}
               } else {
-								socketmanager->send_tile(id, tileat(pos));
-								cout << "sending tile " << pos << endl;
+								send_tile(id, tileat(pos));
 							}
             }
           }
@@ -134,9 +141,110 @@ void ServerWorld::load_nearby_chunks() {
   }
 }
 
+void ServerWorld::timestep(float curtime, float deltatime) {
+  
+	for (const pair<uint32,PlayerData>& kvpair : players) {
+		if (kvpair.second.player == nullptr) {
+			Tile* tile = tileat_global(kvpair.second.last_pos);
+			if (tile != nullptr) {
+				Player* player = nullptr;
+	      for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
+					player = dynamic_cast<Player*>(free);
+	        if (player != nullptr and player->username == kvpair.second.username) {
+	          cout << "got player from world" << endl;
+						break;
+	        } else {
+						player = nullptr;
+					}
+	      }
+				if (player == nullptr) {
+					
+					cout << "spawnedd player " << endl;
+					
+					ivec3 spawnpos = kvpair.second.last_pos;
+				  player = new Player();
+					player->username = kvpair.second.username;
+				  Block* spawnblock = get_global(spawnpos, 8);
+				  while (spawnblock->scale > 8) {
+				    spawnblock->subdivide();
+				    spawnblock = spawnblock->get_global(spawnpos, 8);
+				  }
+				  spawnblock->add_freechild(player);
+				  player->set_position(spawnpos);
+					/*
+					cout << "spawning player " << kvpair.second.last_pos << ' ' << *(void**)tile->chunk << endl;
+					Block* block = get_global(kvpair.second.last_pos, 4);
+					cout << block << ' ' << *(void**)block << ' ' << block->globalpos << ' ' << block->scale << endl;
+					while (block->scale > 4) {
+					 	cout << block << ' ' << *(void**)block << ' ' << block->globalpos << ' ' << block->scale << endl;
+						// block->subdivide();
+					 	cout << block << ' ' << *(void**)block << ' ' << block->globalpos << ' ' << block->scale << endl;
+						Block* block = block->get_global(kvpair.second.last_pos, 4);
+						cout << block << ' ' << *(void**)block << ' ' << block->globalpos << ' ' << block->scale << " - " << endl;
+					}
+					
+					player = new Player();
+					player->username = kvpair.second.username;
+					player->clientid = kvpair.first;
+					block->add_freechild(player);
+					player->set_position(kvpair.second.last_pos);*/
+				}
+				players[kvpair.first].player = player;
+				player->clientid = kvpair.first;
+	    }
+		}
+	}
+	
+	for (Tile* tile : tiles) {
+    tile->timestep(curtime, deltatime);
+  }
+  
+  daytime += deltatime;
+  if (daytime > 2000) {
+    daytime -= 2000;
+  }
+  if (daytime < 0) {
+    daytime += 2000;
+  }
+  
+}
 
 bool ServerWorld::render() {
 	return false;
 }
+
+
+
+
+
+
+
+
+
+void ServerWorld::send_tile(uint32 id, Tile* tile) {
+	update_block(id, tile->chunk);
+}
+
+void ServerWorld::update_block(uint32 id, Block* block) {
+	if (block != nullptr) {
+		if (block->flags & Block::CHANGE_PROP_FLAG) {
+			block->reset_flag(Block::CHANGE_PROP_FLAG);
+			if (((block->flags & Block::CHANGE_FLAG) and block->scale <= 8) or !block->continues) {
+				block->reset_all_flags(Block::CHANGE_FLAG | Block::CHANGE_PROP_FLAG);
+				BlockPacket blockpack(block);
+				socketmanager->send(&blockpack, id);
+			} else {
+				for (int i = 0; i < csize3; i ++) {
+					update_block(id, block->children[i]);
+				}
+			}
+		}
+	}
+}
+
+
+
+
+
 
 EXPORT_PLUGIN(ServerWorld);
