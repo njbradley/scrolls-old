@@ -44,6 +44,7 @@ class Q3PhysicsEngine : public PhysicsEngine { public:
 	PLUGIN_HEAD(Q3PhysicsEngine);
 	q3Scene scene;
 	BlockBroadPhase broadphase;
+	int iterations = 20;
 	
 	Q3PhysicsEngine(World* world, float dt);
 	q3Body* worldbody() const;

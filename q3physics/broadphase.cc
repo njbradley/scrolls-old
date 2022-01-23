@@ -72,7 +72,7 @@ void BlockBroadPhase::find_freeblocks_around(FreeBlock* free, Block* block) {
 					Block* newblock = block->get_global(block->globalpos + ivec3(x,y,z) * block->scale, block->scale);
 					if (newblock != nullptr) {
 						for (FreeBlock* otherfree = newblock->freechild; otherfree != nullptr; otherfree = otherfree->next) {
-							if (otherfree > free or otherfree->fixed) {
+							if (otherfree > free or otherfree->fixed or !Q3PhysicsBody::from_block(otherfree)->body->IsAwake()) {
 								update_collision(free, otherfree);
 							}
 						}
@@ -100,6 +100,7 @@ void BlockBroadPhase::find_freeblocks_below(FreeBlock* free, Block* block) {
 
 
 void BlockBroadPhase::update_freeblock(FreeBlock* freeblock) { /// Crashing in freeblockiters ??
+	cout << " updating freeblock " << freeblock << ' ' << freeblock->box << endl;
 	HitboxIterable<FreePixelIterator<Block>> freeiter (freeblock->highparent, expandbox(freeblock->box));
 	
 	for (FreePixelIterator<Block>& iter : freeiter.bases) {
@@ -195,7 +196,9 @@ void BlockBroadPhase::UpdatePairs() {
 	double start = getTime();
 	for (Tile* tile : world->tiles) {
 		for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
-			update_freeblock(free);
+			if (Q3PhysicsBody::from_block(free)->body->IsAwake()) {
+				update_freeblock(free);
+			}
 		}
 	}
 	// cout << getTime() - start << " update pairs " << endl;

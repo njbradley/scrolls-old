@@ -166,7 +166,7 @@ void TileMap::status(ostream& ofile) {
 }
 
 
-float World::tick_deltatime = 35/1000.0f;
+float World::tick_deltatime = 0.030f;
 
 
 World::World(string oldname): seed(std::hash<string>()(name)), terrainloader(seed), tileloader(this), name(oldname), physics(this, tick_deltatime),

@@ -72,6 +72,7 @@ void Q3PhysicsBody::sync_glm(float curtime, float dt) {
 	}
 	newbox.mass = body->GetMass();
 	// freeblock->box.change_center(body->GetLocalCenter());
+	Block* prevhighparent = freeblock->highparent;
 	if (!freeblock->set_box(newbox, curtime)) {
 		body->SetTransform(
 			freeblock->box.position, glm::axis(freeblock->box.rotation),
@@ -80,8 +81,11 @@ void Q3PhysicsBody::sync_glm(float curtime, float dt) {
 		body->SetLinearVelocity(vec3(0,0,0));
 		body->SetAngularVelocity(vec3(0,0,0));
 	}
+	
+	if (prevhighparent != freeblock->highparent) {
+		
+	}
 }
-
 
 void Q3PhysicsBody::update() {
 	
@@ -191,7 +195,7 @@ void Q3PhysicsBox::update() {
 
 
 Q3PhysicsEngine::Q3PhysicsEngine(World* world, float dt):
-PhysicsEngine(world, dt), scene(deltatime, &broadphase, vec3(0,-9.8*2,0)), broadphase(&scene, world) {
+PhysicsEngine(world, dt), scene(deltatime, &broadphase, vec3(0,-9.8*2,0), 30), broadphase(&scene, world) {
 	
 }
 
@@ -212,13 +216,24 @@ void Q3PhysicsEngine::tick(float curtime, float dt) {
 	double mid = getTime();
 	scene.Step();
 	
+	
 	for (Tile* tile : world->tiles) {
 		for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
 			body = Q3PhysicsBody::from_block(free);
 			body->sync_glm(curtime, dt);
 		}
 	}
-	// cout << getTime() - mid << " Step  " << mid - start << " sync " << endl;
+	double end = getTime();
+	// if (end - start < 0.75 * dt) {
+	// 	iterations ++;
+	// 	cout << "new iterations " << iterations << endl;
+	// 	scene.SetIterations(iterations);
+	// } else if (end - start > dt) {
+	// 	iterations --;
+	// 	cout << "new iterations " << iterations << endl;
+	// 	scene.SetIterations(iterations);
+	// }
+	// cout << end - mid << " Step  " << end - start << " total " << dt << endl;
 }
 
 EXPORT_PLUGIN(Q3PhysicsEngine);
