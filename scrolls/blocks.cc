@@ -1265,6 +1265,7 @@ void FreeBlock::to_file(ostream& ofile) const {
   FileFormat::write_fixed(ofile, box.rotation.z);
   
   ofile.put(fixed);
+  ofile.put(asleep);
   ofile.put(allow_sleep);
   ofile.put(allow_rotation);
   ofile.put(allow_raycast);
@@ -1298,6 +1299,7 @@ void FreeBlock::from_file(istream& ifile) {
   if (ifile.get()) {
     fix();
   }
+  asleep = ifile.get();
   allow_sleep = ifile.get();
   allow_rotation = ifile.get();
   allow_raycast = ifile.get();

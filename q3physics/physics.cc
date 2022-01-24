@@ -33,6 +33,8 @@ Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free): PhysicsBody(free) {
 	bodydef.lockAxisY = !freeblock->allow_rotation;
 	bodydef.lockAxisZ = !freeblock->allow_rotation;
 	bodydef.allowSleep = freeblock->allow_sleep;
+	bodydef.awake = !freeblock->asleep;
+	
 	body = physics->scene.CreateBody(bodydef);
 	
 	// add_box(Hitbox(vec3(0), vec3(-0.5), vec3(0.5)));
@@ -48,6 +50,7 @@ Q3PhysicsBody::Q3PhysicsBody(FreeBlock* free): PhysicsBody(free) {
 
 Q3PhysicsBody::~Q3PhysicsBody() {
 	physics->scene.RemoveBody(body);
+	physics->broadphase.remove_pairs(freeblock);
 }
 
 void Q3PhysicsBody::sync_q3(float curtime, float dt) {
@@ -82,9 +85,12 @@ void Q3PhysicsBody::sync_glm(float curtime, float dt) {
 		body->SetAngularVelocity(vec3(0,0,0));
 	}
 	
-	if (prevhighparent != freeblock->highparent) {
-		
+	if (first_sync or prevhighparent != freeblock->highparent) {
+		physics->broadphase.update_pairs(freeblock);
+		first_sync = false;
 	}
+	
+	freeblock->asleep = !body->IsAwake();
 }
 
 void Q3PhysicsBody::update() {
@@ -233,7 +239,7 @@ void Q3PhysicsEngine::tick(float curtime, float dt) {
 	// 	cout << "new iterations " << iterations << endl;
 	// 	scene.SetIterations(iterations);
 	// }
-	// cout << end - mid << " Step  " << end - start << " total " << dt << endl;
+	logger->log(6) << end - mid << " Step  \t" << end - start << " total " << dt << endl;
 }
 
 EXPORT_PLUGIN(Q3PhysicsEngine);

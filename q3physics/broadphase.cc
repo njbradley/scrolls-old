@@ -29,6 +29,25 @@ void BlockBroadPhase::add_contact(Pixel* pix1, Pixel* pix2) {
 	m_manager->AddContact(&box1->qbox, &box2->qbox);
 }
 
+void BlockBroadPhase::add_pair(FreeBlock* free1, FreeBlock* free2) {
+	if (free1 < free2) {
+		freeblock_pairs.emplace(free1, free2);
+	} else if (free2 < free1) {
+		freeblock_pairs.emplace(free2, free1);
+	}
+}
+
+void BlockBroadPhase::remove_pairs(FreeBlock* freeblock) {
+	for (auto iter = freeblock_pairs.begin(); iter != freeblock_pairs.end();) {
+		const pair<FreeBlock*,FreeBlock*>& freepair = *iter;
+		if (freepair.first == freeblock or freepair.second == freeblock) {
+			iter = freeblock_pairs.erase(iter);
+		} else {
+			iter ++;
+		}
+	}
+}
+
 void BlockBroadPhase::update_collision(Block* block1, Block* block2) {
 	if (block1 == nullptr or block2 == nullptr
 	or (block1->freecontainer == nullptr and block2->freecontainer == nullptr)) {
@@ -72,9 +91,10 @@ void BlockBroadPhase::find_freeblocks_around(FreeBlock* free, Block* block) {
 					Block* newblock = block->get_global(block->globalpos + ivec3(x,y,z) * block->scale, block->scale);
 					if (newblock != nullptr) {
 						for (FreeBlock* otherfree = newblock->freechild; otherfree != nullptr; otherfree = otherfree->next) {
-							if (otherfree > free or otherfree->fixed or !Q3PhysicsBody::from_block(otherfree)->body->IsAwake()) {
-								update_collision(free, otherfree);
-							}
+							add_pair(free, otherfree);
+							// if (otherfree > free or otherfree->fixed or !Q3PhysicsBody::from_block(otherfree)->body->IsAwake()) {
+							// 	update_collision(free, otherfree);
+							// }
 						}
 					}
 				}
@@ -86,9 +106,10 @@ void BlockBroadPhase::find_freeblocks_around(FreeBlock* free, Block* block) {
 void BlockBroadPhase::find_freeblocks_below(FreeBlock* free, Block* block) {
 	if (block != nullptr and block->freebox().collide(free->box)) {
 		for (FreeBlock* otherfree = block->freechild; otherfree != nullptr; otherfree = otherfree->next) {
-			if (otherfree > free or otherfree->fixed) {
-				update_collision(free, otherfree);
-			}
+			add_pair(free, otherfree);
+			// if (otherfree > free or otherfree->fixed) {
+			// 	update_collision(free, otherfree);
+			// }
 		}
 		if (block->continues) {
 			for (int i = 0; i < csize3; i ++) {
@@ -98,13 +119,20 @@ void BlockBroadPhase::find_freeblocks_below(FreeBlock* free, Block* block) {
 	}
 }
 
-
-void BlockBroadPhase::update_freeblock(FreeBlock* freeblock) { /// Crashing in freeblockiters ??
-	cout << " updating freeblock " << freeblock << ' ' << freeblock->box << endl;
+void BlockBroadPhase::update_freeblock(FreeBlock* freeblock) {
 	HitboxIterable<FreePixelIterator<Block>> freeiter (freeblock->highparent, expandbox(freeblock->box));
 	
 	for (FreePixelIterator<Block>& iter : freeiter.bases) {
 		update_collision(freeblock, iter.curblock);
+	}
+}
+
+void BlockBroadPhase::update_pairs(FreeBlock* freeblock) {
+	remove_pairs(freeblock);
+	
+	HitboxIterable<FreePixelIterator<Block>> freeiter (freeblock->highparent, expandbox(freeblock->box));
+	
+	for (FreePixelIterator<Block>& iter : freeiter.bases) {
 		find_freeblocks_below(freeblock, iter.curblock);
 	}
 	
@@ -114,76 +142,6 @@ void BlockBroadPhase::update_freeblock(FreeBlock* freeblock) { /// Crashing in f
 		find_freeblocks_around(freeblock, curblock);
 		curblock = curblock->parent;
 	}
-	
-	/*
-	FreeBlockFreeIter freefreeiter (freeblock->highparent, expandbox(freeblock->box));
-	
-	for (FreeBlock* free : freefreeiter) {
-		if (free > freeblock) {
-			update_collision(freeblock, free);
-		}
-	}
-	
-	/*
-	Hitbox fbox = freeblock->box;
-	fbox.negbox -= grow_amount*2;
-	fbox.posbox += grow_amount*2;
-	
-	/// freeblock to terrain
-	FreeBlockIter iter (freeblock->highparent, fbox);
-	for (Pixel* pix : iter) {
-		if (pix->value != 0) {
-			Hitbox pixbox = pix->parbl->hitbox();
-			pixbox.negbox -= grow_amount;
-			pixbox.posbox += grow_amount;
-			Q3PhysicsBox* pixbod = Q3PhysicsBox::from_pix(pix, worldbody);
-			
-			// Hitbox inbox = freeblock->box.transform_in(pix->parbl->hitbox());
-			// FreeBlockIter initer (freeblock, inbox);
-			for (Pixel* inpix : freeblock->iter()) {
-				Hitbox inbox = inpix->parbl->hitbox();
-				inbox.negbox -= grow_amount;
-				inbox.posbox += grow_amount;
-				// cout << " TEST PAIR " << pixbox << endl << "  " << inbox << endl;
-				if (inpix->value != 0 and pixbox.collide(inbox)) {
-					// cout << " PAIR " << pix << ' ' << inpix << endl;
-					// cout << "   " << pixbox << endl << "   " << inbox << endl;
-					// cout << "  " << q3tobox(&pixbod->qbox) << endl;
-					q3Box* tmp = &Q3PhysicsBox::from_pix(inpix, worldbody)->qbox;
-					// cout << "  " << q3tobox(tmp) << endl;
-					// cout << pixbod->qbox.e << ' ' << tmp->e << endl;
-					m_manager->AddContact(&pixbod->qbox, tmp);
-				}
-			}
-		}
-	}
-	
-	// freeblock to other
-	ivec3 tilepos = SAFEFLOOR3(freeblock->box.position / (float)World::chunksize);
-	for (int i = -1; i < 2; i ++) {
-		for (int j = -1; j < 2; j ++) {
-			for (int k = -1; k < 2; k ++) {
-				Tile* tile = world->tileat(tilepos+ivec3(i, j, k));
-				if (tile != nullptr) {
-					for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
-						if (free > freeblock and expandbox(freeblock->box).collide(expandbox(free->box))) {
-							for (Pixel* pix1 : freeblock->iter()) {
-								for (Pixel* pix2 : free->iter()) {
-									if (pix1->value != 0 and pix2->value != 0
-									and expandbox(pix1->parbl->hitbox()).collide(expandbox(pix2->parbl->hitbox()))) {
-										m_manager->AddContact(
-											&Q3PhysicsBox::from_pix(pix1, worldbody)->qbox,
-											&Q3PhysicsBox::from_pix(pix2, worldbody)->qbox
-										);
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}*/
 }
 
 Hitbox BlockBroadPhase::expandbox(Hitbox box) {
@@ -201,7 +159,13 @@ void BlockBroadPhase::UpdatePairs() {
 			}
 		}
 	}
-	// cout << getTime() - start << " update pairs " << endl;
+	
+	for (const pair<FreeBlock*,FreeBlock*> freepair : freeblock_pairs) {
+		if (Q3PhysicsBody::from_block(freepair.first)->body->IsAwake() or Q3PhysicsBody::from_block(freepair.second)->body->IsAwake()) {
+			update_collision(freepair.first, freepair.second);
+		}
+	}
+	logger->log(6) << getTime() - start << " update pairs " << endl;
 }
 
 bool BlockBroadPhase::TestOverlap(q3Box* qbox1, q3Box* qbox2) const {

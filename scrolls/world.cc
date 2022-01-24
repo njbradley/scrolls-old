@@ -263,8 +263,12 @@ void World::spawn_player() {
   //   i ++;
   //   spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
   // }
-  player = new Player();
   Block* spawnblock = get_global(spawnpos, 8);
+  if (spawnblock == nullptr) {
+    cout << "player spawn location is null (waiting, though last_player_pos might be corrupt)" << endl;
+    return;
+  }
+  player = new Player();
   while (spawnblock->scale > 8) {
     spawnblock->subdivide();
     spawnblock = spawnblock->get_global(spawnpos, 8);
@@ -615,8 +619,10 @@ void World::close_world() {
     delete tile;
   }
   
-  ofstream datafile(path("worlddata.txt"));
-  save_config(datafile);
+  if (saving) {
+    ofstream datafile(path("worlddata.txt"));
+    save_config(datafile);
+  }
   ofstream ofile2(SAVES_PATH "latest.txt");
   ofile2 << name;
 }

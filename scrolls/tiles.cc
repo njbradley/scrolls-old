@@ -192,7 +192,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
     chunk->set_parent(this, pos, chunksize);
     chunk->from_file(ifile);
   }
-  // debuglines->render(chunk->hitbox(), vec3(1,1,1), "chunk_borders");
+  debuglines->render(chunk->hitbox(), vec3(1,1,1), "chunk_borders");
 }
 
 Tile::Tile(ivec3 newpos, World* nworld, Block* nchunk): pos(newpos), world(nworld), chunksize(nworld->chunksize), deleting(false) {

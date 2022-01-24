@@ -9,6 +9,7 @@
 
 class Q3PhysicsBody : public PhysicsBody { public:
 	q3Body* body;
+	bool first_sync = true;
 	
 	Q3PhysicsBody(FreeBlock* free);
 	virtual ~Q3PhysicsBody();

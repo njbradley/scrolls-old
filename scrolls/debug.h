@@ -32,6 +32,7 @@ class UILogger : public Logger { public:
 	
 	class Page : public std::streambuf { public:
 		static const int numlines = 80;
+		static const int TAB_WIDTH = 10;
 		using char_type = std::streambuf::char_type;
 		using int_type = std::streambuf::int_type;
 		std::mutex lock;

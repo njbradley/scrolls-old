@@ -2,6 +2,7 @@
 #define Q3_BROADPHASE
 
 #include "classes.h"
+#include <set>
 
 // This is my workaround for q3 to make it work the scrolls world
 // The main problem is that there are way to many static blocks,
@@ -12,11 +13,19 @@
 // the fly for any static blocks that are being collided with, and return
 // pairs of those objects.
 
+struct FreeBlockPairComparator {
+	bool operator()(const pair<FreeBlock*,FreeBlock*>& left, const pair<FreeBlock*,FreeBlock*>& right) const {
+		return left.first < right.first or (left.first == right.first and left.second < right.second);
+	}
+};
+
 class BlockBroadPhase : public q3BroadPhase {
 public:
 	q3Scene* scene;
 	q3Body* worldbody;
 	World* world;
+	
+	std::set<pair<FreeBlock*,FreeBlock*>,FreeBlockPairComparator> freeblock_pairs;
 	
 	BlockBroadPhase(q3Scene* nscene, World* nworld);
 	virtual ~BlockBroadPhase();
@@ -26,12 +35,15 @@ public:
 	virtual void RemoveBox( const q3Box *shape ) { };
 	
 	bool can_collide(Pixel* pix);
+	void add_pair(FreeBlock* free1, FreeBlock* free2);
+	void remove_pairs(FreeBlock* free);
 	void add_contact(Pixel* pix1, Pixel* pix2);
 	void find_freeblocks_around(FreeBlock* free, Block* block);
 	void find_freeblocks_below(FreeBlock* free, Block* block);
 	void update_collision(Block* block1, Block* block2);
 	
 	void update_freeblock(FreeBlock* free);
+	void update_pairs(FreeBlock* free);
 	// Generates the contact list. All previous contacts are returned to the allocator
 	// before generation occurs.
 	virtual void UpdatePairs( void );

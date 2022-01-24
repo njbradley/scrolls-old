@@ -19,6 +19,11 @@ UILogger::Page::int_type UILogger::Page::overflow(UILogger::Page::int_type lett)
 		if (lett == '\n') {
 			lines.erase(lines.begin());
 			lines.emplace_back();
+		} else if (lett == '\t') {
+			int new_width = TAB_WIDTH - lines.back().size() % TAB_WIDTH;
+			for (int i = 0; i < new_width; i ++) {
+				lines.back().push_back(' ');
+			}
 		} else {
 			lines.back().push_back(lett);
 		}
