@@ -4,8 +4,24 @@
 #include "classes.h"
 #include "plugins.h"
 
+#include <random>
+
 const Blocktype BLOCK_NULL = -1;
 const Blocktype BLOCK_SPLIT = -2;
+
+using rand_gen = std::mt19937;
+using int_dist = std::uniform_int_distribution<int>;
+using float_dist = std::uniform_real_distribution<float>;
+using double_dist = std::uniform_real_distribution<double>;
+
+
+template <typename ... Seeds>
+rand_gen init_generator(Seeds ... seeds) {
+	std::tuple<Seeds...> tup (seeds...);
+	std::seed_seq seq ((uint*)&tup, (uint*)&tup + sizeof(tup)/sizeof(int));
+	rand_gen gen (seq);
+	return gen;
+}
 
 int hash4(int seed, int a, int b, int c, int d);
 int hash4(int seed, ivec3 pos, int d);
