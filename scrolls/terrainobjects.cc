@@ -79,7 +79,7 @@ struct BareTree : SurfaceObject<1000> {
 		vector<vec3> leaf_poses;
 		place_object_at(chunkpos, chunk, vec3(pos) + vec3(0.5f, 0, 0.5f), quat(1,0,0,0), 8, &leaf_poses);
 		
-		Hitbox leaf_box = Hitbox::boundingbox(vec3(0,0,0), &leaf_poses[0]
+		// Hitbox leaf_box = Hitbox::boundingbox(vec3(0,0,0), &leaf_poses[0]
 	}
 	
 	void place_object_at(ivec3 chunkpos, Block* chunk, vec3 pos, quat rot, int len, vector<vec3>* leaf_poses) {
