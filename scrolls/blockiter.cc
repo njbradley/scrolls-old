@@ -41,18 +41,18 @@ void BlockIterator<BlockT>::step_down(BlockT* parent, ivec3 curpos, BlockT* bloc
   if (block->continues) {
     get_safe(block, startpos(), block->get(startpos()));
   } else {
-    step_sideways(parent, curpos, block);
+    step_side(parent, curpos, block);
   }
 }
 
 template <typename BlockT>
-void BlockIterator<BlockT>::step_sideways(BlockT* parent, ivec3 curpos, BlockT* block) {
-  // cout << " step_sideways " << parent << ' ' << curpos << ' ' << block << endl;
+void BlockIterator<BlockT>::step_side(BlockT* parent, ivec3 curpos, BlockT* block) {
+  // cout << " step_side " << parent << ' ' << curpos << ' ' << block << endl;
   if (parent == nullptr or parent->scale > max_scale) {
     // cout << "finishing " << endl;
     finish();
   } else if (curpos == endpos()) {
-    step_sideways(parent->parent, parent->parentpos, parent);
+    step_side(parent->parent, parent->parentpos, parent);
   } else {
     curpos = increment_func(curpos);
     get_safe(parent, curpos, parent->get(curpos));
@@ -63,7 +63,7 @@ template <typename BlockT>
 void BlockIterator<BlockT>::get_safe(BlockT* parent, ivec3 curpos, BlockT* block) {
   // cout << " get_safe " << parent << ' ' << curpos << ' ' << block << endl;
   if (!valid_block(block)) {
-    step_sideways(parent, curpos, block);
+    step_side(parent, curpos, block);
   } else if (skip_block(block)) {
     step_down(parent, curpos, block);
   } else {

@@ -52,12 +52,12 @@ class BlockIterator { public:
   virtual ivec3 increment_func(ivec3 pos);
   
   // moves one step farther down in the block tree. goes to the block
-  // at startpos in block. if the block doesnt continue, calls step_sideways.
+  // at startpos in block. if the block doesnt continue, calls step_side.
   // calls get_safe at end
   void step_down(BlockT* parent, ivec3 curpos, BlockT* block);
   // increments curpos and gets the new block from parent. calls get_safe at end
-  void step_sideways(BlockT* parent, ivec3 curpos, BlockT* block);
-  // gets the iterator to a safe block. if the block is not valid, calls step_sideways,
+  void step_side(BlockT* parent, ivec3 curpos, BlockT* block);
+  // gets the iterator to a safe block. if the block is not valid, calls step_side,
   // and if the block should be skipped, calls step_down.
   void get_safe(BlockT* parent, ivec3 curpos, BlockT* block);
   

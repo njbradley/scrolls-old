@@ -28,24 +28,23 @@ extern const uint8 lightmax;
 // Chunk type (continues = true): an internal node that has 8 children. Has to have a scale larger than
 // 1 and the pixel pointer isn't used
 
-class Block: public Collider { public:
-	ivec3 parentpos;
-	ivec3 globalpos; // should be called localpos, but i really dont want to change everything
-	int scale;
-	Block* parent = nullptr;
-	Container* world;
-	FreeBlock* freecontainer = nullptr;
-	bool continues;
-	uint8 flags = 0b00000000;
-	uint8 locked = 0;
-	FreeBlock* freechild = nullptr;
-	int freecount = 0;
+class Block { public:
+	Block* parent;
+	
 	union {
 		Pixel* pixel;
 		Block* children[csize3];
 	};
+	FreeBlock* freechild = nullptr;
 	
-	enum BlockFlags : uint8 {
+	bool continues;
+	bool top_level;
+	uint16 flags = 0b00000000;
+	uint8 locked = 0;
+	int refcount = 0;
+	int freecount = 0;
+	
+	enum BlockFlags : uint16 {
 		RENDER_FLAG = 0b00000001,
 		LIGHT_FLAG = 0b00000010,
 		CHANGE_PROP_FLAG = 0b00000100,
@@ -54,6 +53,33 @@ class Block: public Collider { public:
 		PROPAGATING_FLAGS = 0b00001111,
 	};
 	
+	void lock();
+	void unlock();
+	
+	void incref();
+	void decref();
+	
+	// gets the block for chunk blocks
+	Block* get(ivec3 pos);
+	Block* get(int x, int y, int z);
+	Block* get(int index);
+	const Block* get(ivec3 pos) const;
+	const Block* get(int x, int y, int z) const;
+	const Block* get(int index) const;
+	
+	// returns the index into the children array
+	// for a position
+	int indexof(ivec3 pos) const;
+	int indexof(int x, int y, int z) const;
+	// returns the position of a specific index into
+	// the children array
+	ivec3 posof(int index) const;
+	// read/writes the block to a file recursively
+	void to_file(ostream& ofile) const;
+	void from_file(istream& ifile);
+};
+
+{
 	// Initializes to undef
 	Block();
 	// Initializes to chunk state with given values
@@ -71,16 +97,14 @@ class Block: public Collider { public:
 	// and from render and lighting updates from going down
 	// Important: not enough for true thread safety, only
 	// minimal protection
-	void lock();
-	void unlock();
 	
 	void swap(Block* other);
 	
 	void update();
 	void on_change();
 	// sets the parent of this block (only call for toplevel blocks)
-	void set_parent(Container* world, ivec3 ppos, int nscale);
-	void set_parent(Block* parent, Container* world, FreeBlock* freecont, ivec3 ppos, int nscale);
+	void set_parent(Container* world);
+	void set_parent(Block* parent);
 	// sets a child at a location
 	// set_child deletes the old child, swap_child returns it
 	void set_child(ivec3 pos, Block* block);
@@ -93,54 +117,6 @@ class Block: public Collider { public:
 	// returns it
 	void set_pixel(Pixel* pix);
 	Pixel* swap_pixel(Pixel* pix);
-	// gets the block for chunk blocks
-	// (no error checking for speed)
-	Block* get(ivec3 pos);
-	Block* get(int x, int y, int z);
-	Block* get(int index);
-	const Block* get(ivec3 pos) const;
-	const Block* get(int x, int y, int z) const;
-	const Block* get(int index) const;
-	// returns the index into the children array
-	// for a position
-	int indexof(ivec3 pos) const;
-	int indexof(int x, int y, int z) const;
-	// returns the position of a specific index into
-	// the children array
-	ivec3 posof(int index) const;
-	// returns the floating point global pos
-	vec3 fglobalpos() const;
-	quat getrotation() const;
-	// local
-	Hitbox local_hitbox() const;
-	Hitbox local_freebox() const;
-	Hitbox hitbox() const;
-	Hitbox freebox() const;
-	Movingbox movingbox() const;
-	// travels the tree to find the requested size and pos.
-	// calls to world if it reaches the top
-	Block* get_global(ivec3 pos, int w);
-	const Block* get_global(ivec3 pos, int w) const;
-	// travels the tree, but does not travel between freeblocks/baseblocks
-	Block* get_local(ivec3 pos, int w);
-	// travels the tree, and sets the block specified. does not travel between
-	// freeblocks/baseblocks
-	void set_global(ivec3 pos, int w, Blocktype val, int direc = -1, int joints[6] = nullptr);
-	void set_global(ivec3 pos, int w, Block* newblock);
-	// turns pixel type blocks to chunk type
-	// divide leaves all children as null (use subdivide for
-	// fully initialized children)
-	void divide();
-	void subdivide();
-	// turns chunk type into pixel type (deletes all children)
-	void join();
-	// joins if all children are all the same and have nothing
-	// keeping them small (freeblocks, edges)
-	void try_join();
-	// read/writes the block to a file recursively
-	// reading should be done to undef type
-	void to_file(ostream& ofile) const;
-	void from_file(istream& ifile);
 	// sets or resets the passed flag
 	// flags are specified in the enum above,
 	// some propagate up, like render, and light flag
@@ -154,30 +130,19 @@ class Block: public Collider { public:
 	void set_all_flags(uint8 flag);
 	void reset_all_flags(uint8 flag);
 	
-	void tick(float curtime, float deltatime);
-	void timestep(float curtime, float deltatime);
+	void tick(BlockView* view, float curtime, float deltatime);
+	void timestep(BlockView* view, float curtime, float deltatime);
 	
-	void render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null);
-	void render_position();
-	void lighting_update(bool spread = true);
+	void render(BlockView* view, RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null);
+	void render_position(BlockView* view);
+	void lighting_update(BlockView* view, bool spread = true);
 	
-	BlockIterable<PixelIterator<Block>> iter();
-	BlockIterable<DirPixelIterator<Block>> iter_side(ivec3 dir);
-	BlockSideIterable<Block> iter_touching_side(ivec3 dir);
-	BlockSideIterable<const Block> iter_touching_side(ivec3 dir) const;
-	// BlockTouchSideIter iter_touching_side(ivec3 dir);
-	BlockIterable<PixelIterator<const Block>> const_iter() const;
-	BlockIterable<DirPixelIterator<const Block>> const_iter_side(ivec3 dir) const;
 	bool is_air(ivec3 dir, char otherval = -1) const;
 	bool is_air(int,int,int, char otherval = -1) const;
 	int get_sunlight(ivec3 dir) const;
 	int get_blocklight(ivec3 dir) const;
 	Block* raycast(vec3* pos, vec3 dir, double time);
 	vec3 get_position() const;
-	
-	void to_log(ostream& out) const;
-	
-	friend ostream& operator<<(ostream& out, const Block& block);
 };
 
 // FreeBlocks are blocks not grid alligned
@@ -234,11 +199,10 @@ class FreeBlock : public Block { public:
 	virtual void to_file(ostream& ofile) const;
 	virtual void from_file(istream& ifile);
 	void set_parent(Block* nparent);
-	void set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale);
 	void expand(ivec3 dir);
-	bool set_box(Movingbox newbox, float curtime = -1);
-	virtual void tick(float curtime, float deltatime);
-	virtual void timestep(float curtime, float deltatime);
+	bool set_box(BlockView* view, Movingbox newbox, float curtime = -1);
+	virtual void tick(BlockView* view, float curtime, float deltatime);
+	virtual void timestep(BlockView* view, float curtime, float deltatime);
 	virtual Entity* entity_cast();
 	
 	void calculate_mass();
@@ -270,18 +234,17 @@ class Pixel { public:
 	~Pixel();
 	void set_block(Block* nblock);
 	void rotate(int axis, int dir);
-	void render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null);
-	void render_position();
-	void set(Blocktype val, int direction = -1, int joints[6] = nullptr);
-	void render_update();
-	void tick(float curtime, float deltatime);
-	void random_tick();
+	void render(BlockView* view, RenderVecs* vecs, RenderVecs* transvecs);
+	void render_position(BlockView* view);
+	void set(BlockView* view, Blocktype val, int direction = -1, int joints[6] = nullptr);
+	void render_update(BlockView* view);
+	void tick(BlockView* viewfloat curtime, float deltatime);
+	void random_tick(BlockView* view);
 	void erase_render();
-	void calculate_sunlight(unordered_set<ivec3,ivec3_hash>* next_poses = nullptr);
-	void calculate_blocklight(unordered_set<ivec3,ivec3_hash>* next_poses = nullptr);
+	void calculate_sunlight(BlockView* view, unordered_set<ivec3,ivec3_hash>* next_poses = nullptr);
+	void calculate_blocklight(BlockView* view, unordered_set<ivec3,ivec3_hash>* next_poses = nullptr);
 	void reset_lightlevel();
-	void lighting_update(bool spread = true);
-	bool is_air(int,int,int);
+	void lighting_update(BlockView* view, bool spread = true);
 	BlockData* data() const;
 	// BlockGroupIter iter_group();
 	// BlockGroupIter iter_group(bool (*func)(Pixel* base, Pixel* pix));
@@ -297,6 +260,106 @@ class Pixel { public:
   static void rotate_to_origin(int* mats, int* dirs, int rotation);
 };
 
+template <typename BlockT>
+struct BlockTypes {
+  
+};
+
+template <>
+struct BlockTypes<Block> {
+  using BlockT = Block;
+  using PixelT = Pixel;
+  using FreeBlockT = FreeBlock;
+  using ColliderT = Collider;
+};
+
+template <>
+struct BlockTypes<const Block> {
+  using BlockT = const Block;
+  using PixelT = const Pixel;
+  using FreeBlockT = const FreeBlock;
+  using ColliderT = const Collider;
+};
+
+template <BlockT>
+class BlockViewTempl { public:
+	using FreeBlockT = BlockTypes<BlockT>::FreeBlockT;
+	using ColliderT = BlockTypes<BlockT>::ColliderT;
+	
+	BlockT* parent = nullptr;
+	BlockT* curblock = nullptr;
+	FreeBlockT* freecontainer = nullptr;
+	ContainerT* world = nullptr;
+	ivec3 globalpos;
+	int scale = 0;
+	
+	BlockViewTempl(ContainerT* world);
+	BlockViewTempl(BlockViewTempl<BlockT>& other);
+	BlockViewTempl(BlockViewTempl<BlockT>&& other);
+	~BlockViewTempl();
+	
+	ivec3 parentpos() const;
+	bool valid() const;
+	
+	Hitbox local_hitbox() const;
+	Hitbox local_freebox() const;
+	Hitbox hitbox() const;
+	Hitbox freebox() const;
+	Movingbox movingbox() const;
+	
+	static void incref(BlockT* block);
+	static void decref(BlockT* block);
+	
+	bool step_down(ivec3 pos);
+	bool step_down(int x, int y, int z);
+	bool step_up();
+	bool step_side(ivec3 pos);
+	bool step_side(int x, int y, int z);
+	
+	BlockViewTempl<BlockT> get_global(ivec3 pos, int w);
+	bool moveto(ivec3 pos, int w);
+	
+	BlockViewTempl<BlockT> get_global_exact(ivec3 pos, int w);
+	bool moveto_exact(ivec3 pos, int w);
+	
+	void set(BlockT* block);
+	void set(Blocktype val, int direc = -1);
+	
+	void set_curblock(BlockT* block);
+	Block* swap_curblock(BlockT* block);
+	
+	void set_child(ivec3 pos, BlockT* block);
+	void set_child(int index, BlockT* block);
+	Block* swap_child(ivec3 pos, BlockT* block);
+	Block* swap_child(int index, BlockT* block);
+	
+	void set_pixel(Pixel* pix);
+	Pixel* swap_pixel(Pixel* pix);
+	
+	// turns pixel type blocks to chunk type
+	// divide leaves all children as null (use subdivide for
+	// fully initialized children)
+	void divide();
+	void subdivide();
+	// turns chunk type into pixel type (deletes all children)
+	void join();
+	// joins if all children are all the same and have nothing
+	// keeping them small (freeblocks, edges)
+	void try_join();
+	
+	BlockIterable<PixelIterator<Block>> iter();
+	BlockIterable<DirPixelIterator<Block>> iter_side(ivec3 dir);
+	BlockSideIterable<Block> iter_touching_side(ivec3 dir);
+	BlockSideIterable<const Block> iter_touching_side(ivec3 dir) const;
+	// BlockTouchSideIter iter_touching_side(ivec3 dir);
+	BlockIterable<PixelIterator<const Block>> const_iter() const;
+	BlockIterable<DirPixelIterator<const Block>> const_iter_side(ivec3 dir) const;
+	
+	void swap(BlockViewTempl<BlockT>* other);
+};
+
+using BlockView = BlockViewTempl<Block>;
+using ConstBlockView = BlockViewTempl<const Block>;
 
 namespace blockformat {
 	const unsigned char chunk = 0b11000000;

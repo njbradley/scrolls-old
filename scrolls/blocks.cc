@@ -2113,4 +2113,295 @@ void Pixel::to_file(ostream& of) {
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename BlockT>
+BlockViewTempl<BlockT>::BlockViewTempl(ContainerT* nworld): world(nworld) {
+  
+}
+
+template <typename BlockT>
+BlockViewTempl<BlockT>::BlockViewTempl(const BlockViewTempl<BlockT>& other):
+world(other.world), parent(other.parent), curblock(other.curblock), freecontainer(other.freecontainer),
+globalpos(other.globalpos), scale(other.scale) {
+  incref(curblock);
+  BlockT* block = parent;
+  while (parent != nullptr) {
+    incref(parent);
+    parent = parent->parent;
+  }
+}
+
+template <typename BlockT>
+BlockViewTempl<BlockT>::BlockViewTempl(const BlockViewTempl<BlockT>&& other):
+world(other.world), parent(other.parent), curblock(other.curblock), freecontainer(other.freecontainer),
+globalpos(other.globalpos), scale(other.scale) {
+  
+}
+
+template <typename BlockT>
+BlockViewTempl<BlockT>::~BlockViewTempl() {
+  if (valid()) {
+    decref(curblock);
+    while (parent != nullptr) {
+      decref(parent);
+      parent = parent->parent;
+    }
+  }
+}
+
+template <typename BlockT>
+ivec3 BlockViewTempl<BlockT>::parentpos() { ASSERT(valid());
+  return SAFEMOD(globalpos, scale) / scale;
+}
+
+template <typename BlockT>
+bool BlockViewTempl<BlockT>::step_down(ivec3 pos) { ASSERT(valid());
+  if (curblock != nullptr and curblock->continues) {
+    parent = curblock;
+    curblock = curblock->get(pos);
+    incref(curblock);
+    scale /= csize;
+    globalpos += pos * scale;
+    return true;
+  }
+  return false;
+}
+
+template <typename BlockT>
+bool BlockViewTempl<BlockT>::step_down(int x, int y, int z) { ASSERT(valid());
+  if (curblock != nullptr and curblock->continues) {
+    parent = curblock;
+    curblock = curblock->get(x,y,z);
+    incref(curblock);
+    scale /= csize;
+    globalpos += ivec3(x,y,z) * scale;
+    return true;
+  }
+  return false;
+}
+
+template <typename BlockT>
+bool BlockViewTempl<BlockT>::step_up() { ASSERT(valid());
+  if (parent != nullptr) {
+    decref(curblock);
+    curblock = parent;
+    parent = parent->parent;
+    scale *= csize;
+    globalpos = SAFEDIV(globalpos, scale) * scale;
+    return true;
+  }
+  return false;
+}
+
+template <typename BlockT>
+bool BlockViewTempl<BlockT>::step_side(ivec3 pos) { ASSERT(valid());
+  decref(curblock);
+  curblock = parent->get(pos);
+  incref(curblock);
+  globalpos = SAFEDIV(globalpos, scale) * scale + pos * scale;
+  return true;
+}
+
+template <typename BlockT>
+bool BlockViewTempl<BlockT>::step_side(int x, int y, int z) { ASSERT(valid());
+  decref(curblock);
+  curblock = parent->get(x,y,z);
+  incref(curblock);
+  globalpos = SAFEDIV(globalpos, scale) * scale + ivec3(x,y,z) * scale;
+  return true;
+}
+
+template <typename BlockT>
+BlockViewTempl<BlockT> BlockViewTempl<BlockT>::get_global(ivec3 pos, int w) {
+  BlockViewTempl<BlockT> view (world);
+  view.moveto(pos, w);
+  return view;
+}
+
+template <typename BlockT>
+bool BlockViewTempl<BlockT>::moveto(ivec3 pos, int w) {
+  if (valid()) {
+    while (SAFEDIV(pos, scale) != SAFEDIV(globalpos, scale) or scale < w) {
+      if (!step_up()) {
+        if (curblock->freecontainer != nullptr) {
+          return false;
+        } else if (world != nullptr) {
+          Block* result = world->get_global(pos, w);
+          return result;
+        } else {
+          return false;
+        }
+      }
+    }
+  } else {
+    ivec3 tilepos = SAFEDIV(pos, World::chunksize);
+    curblock = world->get(tilepos);
+    scale = World::chunksize;
+    globalpos = tilepos * scale;
+  }
+  
+  while (scale > w) {
+    ivec3 rem = SAFEMOD(pos, scale) / (scale / csize);
+    if (!step_down(rem)) break;
+  }
+  
+  return true;
+}
+
+
+template <>
+bool BlockViewTempl<Block>::moveto_exact(ivec3 pos, int w) {
+  if (valid()) {
+    while (SAFEDIV(pos, scale) != SAFEDIV(globalpos, scale) or scale < w) {
+      if (!step_up()) {
+        if (curblock->freecontainer != nullptr) {
+          return false;
+        } else if (world != nullptr) {
+          Block* result = world->get_global(pos, w);
+          return result;
+        } else {
+          return false;
+        }
+      }
+    }
+  } else {
+    ivec3 tilepos = SAFEDIV(pos, World::chunksize);
+    curblock = world->get(tilepos);
+    scale = World::chunksize;
+    globalpos = tilepos * scale;
+  }
+  
+  while (scale > w) {
+    ivec3 rem = SAFEMOD(pos, scale) / (scale / csize);
+    if (!step_down(rem)) {
+      
+    }
+  }
+  
+  return true;
+}
+
+template <>
+void BlockViewTempl<Block>::divide() {
+  if (curblock == nullptr) {
+    curblock = new Block();
+  } else if (curblock->continues == true) {
+    curblock->set_pixel(nullptr);
+  } else {
+    return;
+  }
+  curblock->continues = true;
+  for (int i = 0; i < csize3; i ++) {
+    curblock->children[i] = nullptr;
+  }
+}
+
+template <>
+void BlockViewTempl<Block>::subdivide() {
+  if (curblock == nullptr) {
+    curblock = new Block();
+    curblock->continues = true;
+    for (int i = 0; i < csize3; i ++) {
+      curblock->children[i] = nullptr;
+    }
+  } else if (curblock->continues = false) {
+    Pixel* pix = curblock->swap_pixel(nullptr);
+    curblock->continues = true;
+    for (int i = 0; i < csize3; i ++) {
+      curblock->children[i] = new Block(new Pixel(pix->value));
+    }
+  }
+}
+
+template <>
+void BlockView::set(Block* block) {
+  set_curblock(block);
+}
+
+template <>
+void BlockView::set(Blocktype val, int direc = -1) {
+  
+}
+
+template <>
+void BlockView::set_curblock(Block* block) {
+  if (curblock != nullptr) delete curblock;
+  if (parent == nullptr) {
+    world->set_child(globalpos / scale, block);
+    block->parent = nullptr;
+  } else {
+    parent->set_child(parentpos(), block);
+    block->parent = parent;
+  }
+}
+
+template <>
+Block* BlockView::swap_curblock(Block* block) {
+  Block* oldblock = curblock;
+  if (parent == nullptr) {
+    world->set_child(globalpos / scale, block);
+    block->parent = nullptr;
+  } else {
+    parent->children[indexof(parentpos())] = block;
+    block->parent = parent;
+  }
+  return oldblock;
+}
+
+template <>
+void BlockView::set_child(ivec3 pos, Block* block) {
+  set_child(indexof(pos), block);
+}
+
+template <>
+void BlockView::set_child(int index, Block* block) {
+  if (curblock->children[index] != nullptr) delete curblock->children[index];
+  curblock->children[index] = block;
+  block->parent = curblock;
+}
+
+template <>
+Block* BlockView::swap_child(ivec3 pos, Block* block) {
+  return swap_child(indexof(pos), block);
+}
+
+template <>
+Block* BlockView::swap_child(int index, Block* block) {
+  Block* oldblock = curblock->children[index];
+  curblock->children[index] = block;
+  return oldblock;
+}
+
+template <>
+void BlockView::set_pixel(Pixel* pix) {
+  if (curblock->pixel != nullptr) delete curblock->pixel;
+  curblock->pixel = pix;
+}
+
+template <>
+Pixel* BlockView::swap_pixel(Pixel* pix) {
+  Pixel* oldpix = curblock->pixel;
+  
+
+
+
+
+
+template class BlockViewTempl<Block>;
+template class BlockViewTempl<const Block>;
+
+
+
+
 #endif
