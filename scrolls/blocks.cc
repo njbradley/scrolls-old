@@ -247,57 +247,7 @@ Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ISPIXEL or ISUNDEF)
 }
 
 
-void Block::add_freechild(FreeBlock* newfree) {
-  std::lock_guard<Block> guard(*this);
-  // cout << "ADD begin " << newfree << " to " << this << endl;
-  FreeBlock** freedest = &freechild;
-  // FreeBlock* tmp = nullptr;
-  while (*freedest != nullptr) {
-    // if (*freedest == (*freedest)->next) {
-      // std::terminate();
-    // }
-    // tmp = *freedest;
-    freedest = &(*freedest)->next;
-  }
-  
-  // cout << "  setting (" << tmp << ")->next which is (" << *freedest << ") = (" << newfree << ") in " << this << endl;
-  *freedest = newfree;
-  newfree->next = nullptr;
-  newfree->set_parent(this, world, ivec3(0,0,0), scale/2);
-  // cout << "ADD end " << newfree << " to " << this << endl;
-  
-  Block* curblock = this;
-  while (curblock != nullptr) {
-    curblock->freecount ++;
-    curblock = curblock->parent;
-  }
-}
 
-void Block::remove_freechild(FreeBlock* newfree) {
-  // cout << "REMOVE Begin " << newfree << " from " << this << endl;
-  std::lock_guard<Block> guard(*this);
-  FreeBlock** freedest = &freechild;
-  // FreeBlock* tmp = nullptr;
-  while (*freedest != nullptr and *freedest != newfree) {
-    // tmp = *freedest;
-    freedest = &(*freedest)->next;
-  }
-  if (*freedest != nullptr) {
-    FreeBlock* next = (*freedest)->next;
-    // cout << "  setting (" << tmp << ")->next which is (" << *freedest << ") = (" << (*freedest)->next << ") in " << this << endl;
-    *freedest = next;
-    newfree->next = nullptr;
-  } else {
-    cout << "REMOVE NOT DOUNF" << endl;
-    std::terminate();
-  }
-  // cout << "REMOVE End " << newfree << " from " << this << endl;
-  Block* curblock = this;
-  while (curblock != nullptr) {
-    curblock->freecount --;
-    curblock = curblock->parent;
-  }
-}
 
 
 Block* Block::get(ivec3 pos) {
@@ -768,453 +718,7 @@ void Block::reset_all_flags(uint8 flag) {
   }
 }
 
-void Block::tick(float curtime, float deltatime) {
-  
-}
 
-void Block::timestep(float curtime, float deltatime) {
-  if (freecontainer != nullptr) {
-    freecontainer->timestep(curtime, deltatime);
-    return;
-  }
-  
-  for (FREECHILDREN_LOOP(free)) {
-    free->timestep(curtime, deltatime);
-  }
-  
-  if (continues) {
-    for (CHILDREN_LOOP(i)) {
-      children[i]->timestep(curtime, deltatime);
-    }
-  }
-}
-
-
-
-void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
-  // if (freecontainer != nullptr) cout << " rendering " << globalpos << ' ' << scale << endl;
-  if (flags & RENDER_FLAG and !locked) {
-    // logger->log(9) << "RENDERING " << int(flags) << ' ' << this << ' ' << globalpos << ' ' << scale << endl;
-    flags &= ~RENDER_FLAG;
-    // logger->log(9) << "  NOW " << int(flags) << endl;
-    if (continues) {
-      for (CHILDREN_LOOP(i)) {
-        children[i]->render(vecs, transvecs, faces, render_null);
-      }
-    } else {
-      pixel->render(vecs, transvecs, faces, render_null);
-    }
-    for (FREECHILDREN_LOOP(free)) {
-      free->render(vecs, transvecs, faces, render_null);
-    }
-  }
-}
-
-void Block::render_position() {
-  if (continues) {
-    for (CHILDREN_LOOP(i)) {
-      children[i]->render_position();
-    }
-  } else {
-    pixel->render_position();
-  }
-  for (FREECHILDREN_LOOP(free)) {
-    free->render_position();
-  }
-}
-
-void Block::lighting_update(bool spread)  {
-  if (flags & LIGHT_FLAG and !locked) {
-    flags &= ~LIGHT_FLAG;
-    if (continues) {
-      for (int i = 7; i >= 0; i --) {
-        if (children[i] != nullptr) children[i]->lighting_update(spread);
-      }
-    } else {
-      pixel->lighting_update(spread);
-    }
-    // for (FREECHILDREN_LOOP(free)) {
-      // free->lighting_update(spread);
-    // }
-  }
-}
-
-BlockIterable<PixelIterator<Block>> Block::iter() {
-  return BlockIterable<PixelIterator<Block>> (this);
-}
-
-BlockIterable<PixelIterator<const Block>> Block::const_iter() const {
-  return BlockIterable<PixelIterator<const Block>> (this);
-}
-
-BlockIterable<DirPixelIterator<Block>> Block::iter_side(ivec3 dir) {
-  return BlockIterable<DirPixelIterator<Block>> (this, dir);
-}
-
-BlockSideIterable<Block> Block::iter_touching_side(ivec3 dir) {
-  return BlockSideIterable<Block>(this, dir);
-}
-
-BlockSideIterable<const Block> Block::iter_touching_side(ivec3 dir) const {
-  return BlockSideIterable<const Block>(this, dir);
-}
-
-// BlockTouchSideIter Block::iter_touching_side(ivec3 dir) {
-//   return BlockTouchSideIter(this, dir);
-// }
-
-BlockIterable<DirPixelIterator<const Block>> Block::const_iter_side(ivec3 dir) const {
-  return BlockIterable<DirPixelIterator<const Block>> (this, dir);
-}
-
-vec3 Block::get_position() const {
-  return globalpos;
-}
-
-
-int Block::get_sunlight(ivec3 dir) const {
-  int lightlevel = 0;
-  int num = 0;
-  
-  for (const Pixel* pix : iter_touching_side(dir)) {
-    if (pix->value == 0 or pix->value == 7) {
-      lightlevel += pix->sunlight;
-      num ++;
-    }
-  }
-  
-  if (num > 0) {
-    return lightlevel / num;
-  }
-  return 0;
-}
-
-int Block::get_blocklight(ivec3 dir) const {
-  int lightlevel = 0;
-  int num = 0;
-  
-  for (const Pixel* pix : iter_touching_side(dir)) {
-    if (pix->value == 0 or pix->value == 7) {
-      int light = 0;
-      if (pix->blocklight != 0) {
-        ivec3 source_dir = dir_array[pix->lightsource];
-        if (source_dir.x == -dir.x and source_dir.y == -dir.y and source_dir.z == -dir.z) {
-          light = pix->blocklight;
-        } else {
-          light = pix->blocklight*0.875;
-        }
-      }
-      
-      lightlevel += light;
-      num ++;
-    }
-  }
-  if (num > 0) {
-    return lightlevel / num;
-  }
-  return 0;
-}
-
-bool Block::is_air(ivec3 dir, char otherval) const {
-  bool isair = false;
-  for (const Pixel* pix : iter_touching_side(dir)) {
-    isair = isair or (pix->value == 0 or (blockstorage[pix->value]->transparent and otherval != pix->value));
-  }
-  return isair;
-}
-
-bool Block::is_air(int dx, int dy, int dz, char otherval) const {
-  for (const Pixel* pix : const_iter_side(ivec3(dx, dy, dz))) {
-    bool isair = (pix->value == 0 or (blockstorage[pix->value]->transparent and otherval != pix->value));
-    if (isair) {
-      return true;
-    }
-  }
-  return false;
-}
-
-void Block::to_log(ostream& out) const {
-  out << "Block " << this << " {" << endl;
-  out << "   " << globalpos << " by " << scale << endl;
-  if (!continues) {
-    if (pixel == nullptr) {
-      out << "   undef " << endl;
-    } else {
-      out << "   pixel: " << pixel << ' ' << pixel->value << endl;
-    }
-  } else {
-    out << "   children: ";
-    for (int i = 0; i < csize3; i ++) {
-      out << children[i] << ' ';
-    }
-    out << endl;
-  }
-  for (FREECHILDREN_LOOP(free)) {
-    out << "   freechild: " << free << endl;
-  }
-  out << "}" << endl;
-}
-
-ostream& operator<<(ostream& out, const Block& block) {
-  block.to_log(out);
-  return out;
-}
-
-
-Block* Block::raycast(vec3* pos, vec3 dir, double timeleft) {
-  
-  Line line (*pos, dir);
-  Block* curblock = get_global(SAFEFLOOR3(*pos), 1);
-  
-  debuglines->clear("raycast");
-  
-  cout << curblock->pixel->value << endl;
-  
-  while (curblock != nullptr and (curblock->pixel == nullptr or curblock->pixel->value == 0)) {
-    cout << *pos << ' ' << timeleft << ' ' << endl;
-    // debuglines->render(curblock->hitbox(), vec3(0,1,0), "raycast");
-    vec3 closest_pos;
-    float closest_dist = 999999;
-    
-    Plane faces[6];
-    curblock->hitbox().faces(faces);
-    for (Plane face : faces) {
-      vec3 colpoint = face.collision(line);
-      if (!std::isnan(colpoint.x) and curblock->hitbox().contains(colpoint)) {
-        float dist = glm::dot(colpoint - *pos, dir);
-        if (dist > 0 and dist < closest_dist) {
-          closest_dist = dist;
-          closest_pos = colpoint;
-        }
-      }
-    }
-    
-    *pos = closest_pos + dir * 0.001f;
-    timeleft -= closest_dist;
-    
-    if (timeleft < 0) {
-      return nullptr;
-    }
-    
-    curblock = curblock->get_global(SAFEFLOOR3(*pos), 1);
-  }
-  
-  return curblock;
-  /*
-  
-  
-  
-  
-  vec3 axis = glm::cross(vec3(1,0,0), dir);
-  axis /= glm::length(axis);
-  
-  quat rot = glm::angleAxis(float(acos(glm::dot(vec3(1,0,0), dir))), axis);
-  vec3 startpos = *pos;
-  
-  Hitbox linebox (startpos, vec3(0,0,0), vec3(timeleft, 0, 0), rot);
-  Line line (startpos, dir);
-  // debuglines->render(linebox);
-  
-  debuglines->clear("raycast");
-  debuglines->render(linebox, vec3(1,1,0), "raycast");
-  
-  float closest_dist = timeleft;
-  Block* closest_block = npix->parblullptr;
-  vec3 closest_pos = *pos;
-  vec3 closest_norm = vec3(0,0,0);
-  
-  FreeBlockIter iter (this, linebox);
-  for (Pixel* pix : iter) {
-    debuglines->render(pix->parbl->hitbox(), vec3(0.5,1,1), "raycast");
-    if (pix->value != 0) {
-      Plane faces[6];
-      pix->parbl->hitbox().faces(faces);
-      for (Plane face : faces) {
-        vec3 colpoint = face.collision(line);
-        if (!std::isnan(colpoint.x) and pix->parbl->hitbox().contains(colpoint)) {
-          float dist = glm::dot(colpoint - startpos, dir);
-          if (dist < closest_dist) {
-            closest_dist = dist;
-            closest_block = pix->parbl;
-            closest_pos = colpoint;
-            closest_norm = face.normal;
-          }
-        }
-      }
-    }
-  }
-  
-  FreeBlockFreeIter freeiter (this, linebox);
-  for (FreeBlock* free : freeiter) {
-    if (free != nullptr and free->allow_raycast) {
-      // FreeBlockIter initer (free, free->box.transform_in(linebox));
-      for (Pixel* pix : free->iter()) {
-        // debuglines->render(pix->parbl->hitbox());
-        if (pix->value != 0) {
-          Plane faces[6];
-          pix->parbl->hitbox().faces(faces);
-          for (Plane face : faces) {
-            vec3 colpoint = face.collision(line);
-            if (!std::isnan(colpoint.x) and pix->parbl->hitbox().contains(colpoint)) {
-              float dist = glm::dot(colpoint - startpos, dir);
-              // debuglines->render(pix->parbl->hitbox());
-              if (dist < closest_dist) {
-                closest_dist = dist;
-                closest_block = pix->parbl;
-                closest_pos = colpoint;
-                closest_norm = face.normal;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  *pos = closest_pos + dir * 0.001f;
-  // *dir = closest_norm;
-  return closest_block;
-  /*
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  Block* curblock = this;
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  // cout << "Raycast " << *pos << ' ' << dir << ' ' << timeleft << endl;
-  
-  vec3 axis = glm::cross(vec3(1,0,0), dir);
-  axis /= glm::length(axis);
-  
-  quat rot = glm::angleAxis(float(acos(glm::dot(vec3(1,0,0), dir))), axis);
-  
-  double starttime = timeleft;
-  vec3 startpos = *pos;
-  //
-  // Hitbox linebox (*pos, vec3(0,0,0), vec3(timeleft, 0, 0), rot);
-  //
-  // return curblock;
-  
-  while (curblock != nullptr and (curblock->pixel->value == 0 or curblock->pixel->value == 7)) {
-    /*
-    Hitbox boxhit;
-    Block* parblock = curblock;
-    while (parblock != nullptr) {
-      for (int x = -1; x < 2; x ++) {
-        for (int y = -1; y < 2; y ++) {
-          for (int z = -1; z < 2; z ++) {
-            ivec3 off (x,y,z);
-            Block* block = parblock->get_global(parblock->globalpos + off * parblock->scale, parblock->scale);
-    
-      
-    
-    ivec3 gpos = curblock->globalpos;
-    vec3 relpos = *pos - vec3(gpos);
-    float mintime = 999999;
-    for (int i = 0; i < 3; i ++) {
-      float time = 999999;
-      if (dir[i] < 0) {
-        time = -relpos[i] / dir[i];
-      } else if (dir[i] > 0) {
-        time = (curblock->scale - relpos[i]) / dir[i];
-      }
-      if (time < mintime) {
-        mintime = time;
-      }
-    }
-    *pos += dir * (mintime + 0.001f);
-    timeleft -= mintime;
-    if (timeleft < 0) {
-      curblock = nullptr;
-    } else {
-      curblock = curblock->get_local(SAFEFLOOR3(*pos), 1);
-    }
-  }
-  
-  if (timeleft < 0) timeleft = 0;
-  
-  timeleft = starttime - timeleft;
-  
-  Hitbox linebox (startpos, vec3(0,0,0), vec3(timeleft, 0, 0), rot);
-  
-  // debuglines->render(linebox);
-  
-  if (freecontainer != nullptr) return curblock;
-  
-  Hitbox bigbox = linebox.boundingbox();
-  bigbox.negbox -= 8.0f;
-  bigbox.posbox += 8.0f;
-  
-  FreeBlockIter freeiter(world, bigbox);
-  
-  double best_time = timeleft;
-  
-  int num_bases = 0;
-  FreeBlock* freeblocks[freeiter.num_bases];
-  
-  for (int i = 0; i < freeiter.num_bases; i ++) {
-    Block* block = freeiter.bases[i];
-    bool exists = false;
-    for (int j = 0; j < num_bases-1; j ++) {
-      exists = exists or block->world->allfreeblocks == freeblocks[j];
-    }
-    if (!exists and block->world->allfreeblocks != nullptr) {
-      freeblocks[num_bases++] = block->world->allfreeblocks;
-    }
-    // debuglines->render(block->hitbox(), vec3(1,0,0));
-  }
-  
-  for (int i = 0; i < num_bases; i ++) {
-    for (FreeBlock* free = freeblocks[i]; free != nullptr; free = free->allfreeblocks) {
-      // debuglines->render(free->hitbox(), vec3(1,1,0));
-      
-      if (free->box.collide(linebox)) {
-        cout << " going into free block time " << timeleft << endl;
-        
-        vec3 colpos = free->box.collision(Line(startpos, dir));
-        cout << " colpos " << colpos << endl;
-        float time = glm::dot(colpos - startpos, dir);
-        cout << " time " << time << endl;
-        
-        if (!std::isnan(time) and time <= timeleft) {
-          vec3 newpos = free->box.transform_in(colpos);
-          vec3 newdir = free->box.transform_in_dir(dir);
-          
-          newpos += newdir * 0.001f;
-          
-          cout << colpos << '>' << newpos << ' ' << dir << '>' << dir << endl;
-          cout << SAFEFLOOR3(newpos) << endl;
-          
-          Block* startblock = free->get_local(SAFEFLOOR3(newpos), 1);
-          Block* result = startblock->raycast(&newpos, newdir, timeleft - time);
-          
-          *pos = free->box.transform_out(newpos);
-          curblock = result;
-          timeleft = time;
-        }
-      }
-    }
-  }
-  
-  return curblock;*/
-}
 
 
 
@@ -1225,10 +729,6 @@ FreeBlock::FreeBlock() {
 
 FreeBlock::FreeBlock(Movingbox newbox): Block(), box(newbox), lastbox(newbox), renderbox(newbox) {
   
-}
-
-FreeBlock::FreeBlock(istream& ifile): Block() {
-  from_file(ifile);
 }
 
 FreeBlock::~FreeBlock() {
@@ -1309,20 +809,6 @@ void FreeBlock::from_file(istream& ifile) {
   lastbox = box;
 }
 
-void FreeBlock::set_parent(Block* nparent, Container* nworld, ivec3 ppos, int nscale) {
-  std::lock_guard<Block> guard(*this);
-  // cout << " setting parent = " << nparent << " of " << this << endl;
-  bool changed_world = highparent == nullptr or nparent == nullptr or highparent->world != nparent->world;
-  if (!fixed and changed_world and highparent != nullptr and highparent->world != nullptr) {
-    highparent->world->remove_freeblock(this);
-  }
-  highparent = nparent;
-  Block::set_parent(nullptr, nworld, this, ppos, nscale);
-  if (!fixed and changed_world and highparent != nullptr and highparent->world != nullptr) {
-    highparent->world->add_freeblock(this);
-  }
-  box.posbox = box.negbox + float(scale);
-}
 
 void FreeBlock::tick(float curtime, float deltatime) {
   if (physicsbody == nullptr) return;
@@ -2166,6 +1652,56 @@ ivec3 BlockViewTempl<BlockT>::parentpos() { ASSERT(valid());
 }
 
 template <typename BlockT>
+ivec3 BlockViewTempl<BlockT>::valid() {
+  return scale != 0;
+}
+
+template <typename BlockT>
+Hitbox BlockViewTempl<BlockT>::local_hitbox() const {
+  return Hitbox(vec3(0,0,0), globalpos, globalpos + scale);
+}
+
+template <typename BlockT>
+Hitbox BlockViewTempl<BlockT>::local_freebox() const {
+  return Hitbox(vec3(0,0,0), vec3(globalpos) - scale/2.0f, vec3(globalpos) + scale*3/2.0f);
+}
+
+template <typename BlockT>
+Hitbox BlockViewTempl<BlockT>::hitbox() const {
+  if (freecontainer == nullptr) {
+    return local_hitbox();
+  } else {
+    return freecontainer->box.transform_out(local_hitbox());
+  }
+}
+
+template <typename BlockT>
+Hitbox BlockViewTempl<BlockT>::freebox() const{
+  if (freecontainer == nullptr) {
+    return local_freebox();
+  } else {
+    return freecontainer->box.transform_out(local_freebox());
+  }
+}
+
+template <typename BlockT>
+Movingbox BlockViewTempl<BlockT>::movingbox() const {
+  if (freecontainer == nullptr) {
+    return Movingbox(hitbox(), vec3(0,0,0), vec3(0,0,0), std::numeric_limits<float>::infinity());
+  } else {
+    Movingbox newbox = freecontainer->box;
+    newbox.negbox = vec3(globalpos) - scale/2.0f;
+    newbox.posbox = vec3(globalpos) + scale/2.0f;
+    return newbox;
+  }
+}
+
+template <typename BlockT>
+const Block BlockViewTempl<BlockT>::operator->() const { ASSERT(valid());
+  return curblock;
+}
+
+template <typename BlockT>
 bool BlockViewTempl<BlockT>::step_down(ivec3 pos) { ASSERT(valid());
   if (curblock != nullptr and curblock->continues) {
     parent = curblock;
@@ -2237,7 +1773,7 @@ bool BlockViewTempl<BlockT>::moveto(ivec3 pos, int w) {
         if (curblock->freecontainer != nullptr) {
           return false;
         } else if (world != nullptr) {
-          Block* result = world->get_global(pos, w);
+          BlockT* result = world->get_global(pos, w);
           return result;
         } else {
           return false;
@@ -2260,8 +1796,17 @@ bool BlockViewTempl<BlockT>::moveto(ivec3 pos, int w) {
 }
 
 
+
+
+
+
+
+
+
+
+
 template <>
-bool BlockViewTempl<Block>::moveto_exact(ivec3 pos, int w) {
+bool BlockView::moveto_exact(ivec3 pos, int w) {
   if (valid()) {
     while (SAFEDIV(pos, scale) != SAFEDIV(globalpos, scale) or scale < w) {
       if (!step_up()) {
@@ -2292,61 +1837,25 @@ bool BlockViewTempl<Block>::moveto_exact(ivec3 pos, int w) {
   return true;
 }
 
-template <>
-void BlockViewTempl<Block>::divide() {
-  if (curblock == nullptr) {
-    curblock = new Block();
-  } else if (curblock->continues == true) {
-    curblock->set_pixel(nullptr);
-  } else {
-    return;
-  }
-  curblock->continues = true;
-  for (int i = 0; i < csize3; i ++) {
-    curblock->children[i] = nullptr;
-  }
-}
-
-template <>
-void BlockViewTempl<Block>::subdivide() {
-  if (curblock == nullptr) {
-    curblock = new Block();
-    curblock->continues = true;
-    for (int i = 0; i < csize3; i ++) {
-      curblock->children[i] = nullptr;
-    }
-  } else if (curblock->continues = false) {
-    Pixel* pix = curblock->swap_pixel(nullptr);
-    curblock->continues = true;
-    for (int i = 0; i < csize3; i ++) {
-      curblock->children[i] = new Block(new Pixel(pix->value));
-    }
-  }
-}
-
-template <>
 void BlockView::set(Block* block) {
   set_curblock(block);
 }
 
-template <>
 void BlockView::set(Blocktype val, int direc = -1) {
   
 }
 
-template <>
 void BlockView::set_curblock(Block* block) {
   if (curblock != nullptr) delete curblock;
   if (parent == nullptr) {
     world->set_child(globalpos / scale, block);
     block->parent = nullptr;
   } else {
-    parent->set_child(parentpos(), block);
+    parent->children[indexof(parentpos())] = block;
     block->parent = parent;
   }
 }
 
-template <>
 Block* BlockView::swap_curblock(Block* block) {
   Block* oldblock = curblock;
   if (parent == nullptr) {
@@ -2359,44 +1868,144 @@ Block* BlockView::swap_curblock(Block* block) {
   return oldblock;
 }
 
-template <>
 void BlockView::set_child(ivec3 pos, Block* block) {
   set_child(indexof(pos), block);
 }
 
-template <>
 void BlockView::set_child(int index, Block* block) {
   if (curblock->children[index] != nullptr) delete curblock->children[index];
   curblock->children[index] = block;
   block->parent = curblock;
 }
 
-template <>
 Block* BlockView::swap_child(ivec3 pos, Block* block) {
   return swap_child(indexof(pos), block);
 }
 
-template <>
 Block* BlockView::swap_child(int index, Block* block) {
   Block* oldblock = curblock->children[index];
   curblock->children[index] = block;
   return oldblock;
 }
 
-template <>
+void BlockView::add_freechild(FreeBlock* newfree) {
+  // std::lock_guard<Block> guard(*this);
+  
+  FreeBlock** freedest = &freechild;
+  while (*freedest != nullptr) {
+    freedest = &(*freedest)->next;
+  }
+  
+  *freedest = newfree;
+  newfree->next = nullptr;
+  newfree->highparent = this;
+  newfree->parent = nullptr;
+  
+  Block* curblock = this;
+  while (curblock != nullptr) {
+    curblock->freecount ++;
+    curblock = curblock->parent;
+  }
+}
+
+void BlockView::remove_freechild(FreeBlock* newfree) {
+  // std::lock_guard<Block> guard(*this);
+  FreeBlock** freedest = &freechild;
+  
+  while (*freedest != nullptr and *freedest != newfree) {
+    freedest = &(*freedest)->next;
+  }
+  if (*freedest != nullptr) {
+    FreeBlock* next = (*freedest)->next;
+    *freedest = next;
+    newfree->next = nullptr;
+  } else {
+    cout << "REMOVE NOT DOUNF" << endl;
+    std::terminate();
+  }
+  
+  Block* curblock = this;
+  while (curblock != nullptr) {
+    curblock->freecount --;
+    curblock = curblock->parent;
+  }
+}
+
 void BlockView::set_pixel(Pixel* pix) {
   if (curblock->pixel != nullptr) delete curblock->pixel;
   curblock->pixel = pix;
 }
 
-template <>
 Pixel* BlockView::swap_pixel(Pixel* pix) {
   Pixel* oldpix = curblock->pixel;
+  curblock->pixel = pix;
+  return oldpix;
+}
+
+
+
+void BlockView::divide() {
+  if (curblock == nullptr) {
+    curblock = new Block();
+  } else if (curblock->continues == true) {
+    if (curblock->pixel != nullptr) delete curblock->pixel;
+  } else {
+    return;
+  }
+  curblock->continues = true;
+  for (int i = 0; i < csize3; i ++) {
+    curblock->children[i] = nullptr;
+  }
+}
+
+void BlockView::subdivide() {
+  if (curblock == nullptr) {
+    curblock = new Block();
+    curblock->continues = true;
+    for (int i = 0; i < csize3; i ++) {
+      curblock->children[i] = nullptr;
+    }
+  } else if (curblock->continues = false) {
+    Pixel* pix = curblock->swap_pixel(nullptr);
+    curblock->continues = true;
+    for (int i = 0; i < csize3; i ++) {
+      curblock->children[i] = new Block(new Pixel(pix->value, pix->direction));
+    }
+  }
+}
+
+void BlockView::join() {
+  if (curblock->continues) {
+    for (int i = 0; i < csize3; i ++) {
+      if (curblock->children[i] != nullptr) delete curblock->children[i];
+    }
+    curblock->continues = false;
+    curblock->pixel = nullptr;
+  }
+}
+
+void BlockView::try_join() {
+  Pixel* pix = nullptr;
+  for (BlockView& view : iter()) {
+    if (view->freechild != nullptr) {
+      return;
+    }
+    if (!view->continues) {
+      if (pix == nullptr) {
+        pix = view->pixel;
+      } else if (pix->value != view->pixel->value) {
+        return false;
+      }
+    }
+  }
   
-
-
-
-
+  if (pix == nullptr) {
+    set_curblock(nullptr);
+  } else {
+    join();
+    set_pixel(new Pixel(pix->value));
+  }
+}
 
 template class BlockViewTempl<Block>;
 template class BlockViewTempl<const Block>;

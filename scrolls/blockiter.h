@@ -30,17 +30,18 @@ struct BlockTypes<const Block> {
 // it has customizable functions, increment_func and valid_block for easier
 // specialization
 
-template <typename BlockT>
-class BlockIterator { public:
-  using BlockType = BlockT;
-  using PixelT = typename BlockTypes<BlockT>::PixelT;
-  using FreeBlockT = typename BlockTypes<BlockT>::FreeBlockT;
-  using ColliderT = typename BlockTypes<BlockT>::ColliderT;
-  
-  BlockT* curblock;
+template <typename BlockViewT>
+class BlockIterator : public BlockViewT { public:
+
+// template <typename BlockT>
+// class BlockIterator { public:
+//   using BlockType = BlockT;
+//   using PixelT = typename BlockTypes<BlockT>::PixelT;
+//   using FreeBlockT = typename BlockTypes<BlockT>::FreeBlockT;
+//   using ColliderT = typename BlockTypes<BlockT>::ColliderT;
+//
+//   BlockT* curblock;
   int max_scale;
-  
-  BlockIterator(BlockT* base);
   
   // turns the iterator into an end iterator
   virtual void to_end();
@@ -54,25 +55,27 @@ class BlockIterator { public:
   // moves one step farther down in the block tree. goes to the block
   // at startpos in block. if the block doesnt continue, calls step_side.
   // calls get_safe at end
-  void step_down(BlockT* parent, ivec3 curpos, BlockT* block);
+  void step_down();
+  using BlockViewT::step_down;
   // increments curpos and gets the new block from parent. calls get_safe at end
-  void step_side(BlockT* parent, ivec3 curpos, BlockT* block);
+  void step_side();
+  using BlockViewT::step_side;
   // gets the iterator to a safe block. if the block is not valid, calls step_side,
   // and if the block should be skipped, calls step_down.
-  void get_safe(BlockT* parent, ivec3 curpos, BlockT* block);
+  void get_safe();
   
   // whether a block is valid, if a block is not valid the iterator will skip the block
   // and all of its children
-  virtual bool valid_block(BlockT* block) { return block != nullptr; }
+  virtual bool valid_block() { return this->curblock != nullptr; }
   // whether a block should be skipped, only skips the single block, the iterator will
   // still go to its children
-  virtual bool skip_block(BlockT* block) { return false; }
+  virtual bool skip_block() { return false; }
   // called when the iterator has reached the end
-  virtual void finish() { curblock = nullptr; }
+  virtual void finish() { this->curblock = nullptr; }
   
-  BlockIterator<BlockT> operator++();
-  BlockT* operator*();
-  bool operator != (const BlockIterator<BlockT>& other) const;
+  BlockIterator<BlockViewT> operator++();
+  BlockViewT& operator*();
+  bool operator != (const BlockIterator<BlockViewT>& other) const;
 };
 
 // A container for an iterator, forwards all constructor arguments to the
@@ -99,7 +102,6 @@ class PixelIterator : public BlockIterator<BlockT> { public:
   using BlockIterator<BlockT>::BlockIterator;
   
   virtual bool skip_block(BlockT* block);
-  typename BlockIterator<BlockT>::PixelT* operator*();
 };
 
 // iterates over only the pixels touching the specified side

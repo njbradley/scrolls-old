@@ -7,22 +7,23 @@
 #include "debug.h"
 #include "player.h"
 
-template <typename BlockT>
-BlockIterator<BlockT>::BlockIterator(BlockT* base): curblock(base) {
-  if (base != nullptr) {
-    max_scale = base->scale;
+template <typename BlockViewT>
+BlockIterator<BlockViewT>::BlockIterator(BlockViewT& view): BlockViewT(view) {
+  if (valid()) {
+    max_scale = scale;
   } else {
     max_scale = 1;
   }
 }
 
-template <typename BlockT>
-void BlockIterator<BlockT>::to_end() {
+template <typename BlockViewT>
+void BlockIterator<BlockViewT>::to_end() {
   curblock = nullptr;
+  scale = 0;
 }
 
-template <typename BlockT>
-ivec3 BlockIterator<BlockT>::increment_func(ivec3 pos) {
+template <typename BlockViewT>
+ivec3 BlockIterator<BlockViewT>::increment_func(ivec3 pos) {
   pos.z++;
   if (pos.z > endpos().z) {
     pos.z = startpos().z;
@@ -35,59 +36,56 @@ ivec3 BlockIterator<BlockT>::increment_func(ivec3 pos) {
   return pos;
 }
 
-template <typename BlockT>
-void BlockIterator<BlockT>::step_down(BlockT* parent, ivec3 curpos, BlockT* block) {
+template <typename BlockViewT>
+void BlockIterator<BlockViewT>::step_down() {
   // cout << " step_down " << parent << ' ' << curpos << ' ' << block << endl;
-  if (block->continues) {
-    get_safe(block, startpos(), block->get(startpos()));
+  if (curblock->continues) {
+    step_down(startpos());
+    get_safe();
   } else {
-    step_side(parent, curpos, block);
+    step_side();
   }
 }
 
-template <typename BlockT>
-void BlockIterator<BlockT>::step_side(BlockT* parent, ivec3 curpos, BlockT* block) {
+template <typename BlockViewT>
+void BlockIterator<BlockViewT>::step_side() {
   // cout << " step_side " << parent << ' ' << curpos << ' ' << block << endl;
-  if (parent == nullptr or parent->scale > max_scale) {
+  if (parent == nullptr or scale == max_scale) {
     // cout << "finishing " << endl;
     finish();
-  } else if (curpos == endpos()) {
-    step_side(parent->parent, parent->parentpos, parent);
+  } else if (parentpos() == endpos()) {
+    step_up();
+    step_side();
   } else {
-    curpos = increment_func(curpos);
-    get_safe(parent, curpos, parent->get(curpos));
+    step_side(increment_func(parentpos()));
   }
 }
 
-template <typename BlockT>
-void BlockIterator<BlockT>::get_safe(BlockT* parent, ivec3 curpos, BlockT* block) {
+template <typename BlockViewT>
+void BlockIterator<BlockViewT>::get_safe() {
   // cout << " get_safe " << parent << ' ' << curpos << ' ' << block << endl;
-  if (!valid_block(block)) {
-    step_side(parent, curpos, block);
-  } else if (skip_block(block)) {
-    step_down(parent, curpos, block);
-  } else {
-    curblock = block;
+  if (!valid_block()) {
+    step_side();
+  } else if (skip_block()) {
+    step_down();
   }
 }
 
 
-template <typename BlockT>
-BlockIterator<BlockT> BlockIterator<BlockT>::operator++() {
-  if (curblock != nullptr) {
-    step_down(curblock->parent, curblock->parentpos, curblock);
-  }
+template <typename BlockViewT>
+BlockIterator<BlockViewT> BlockIterator<BlockViewT>::operator++() {
+  step_down();
   return *this;
 }
 
-template <typename BlockT>
-BlockT* BlockIterator<BlockT>::operator*() {
-  return curblock;
+template <typename BlockViewT>
+BlockViewT& BlockIterator<BlockViewT>::operator*() {
+  return *this;
 }
 
-template <typename BlockT>
-bool BlockIterator<BlockT>::operator != (const BlockIterator<BlockT>& other) const {
-  return curblock != other.curblock or (max_scale != other.max_scale and curblock != nullptr);
+template <typename BlockViewT>
+bool BlockIterator<BlockViewT>::operator != (const BlockIterator<BlockViewT>& other) const {
+  return curblock != other.curblock or (max_scale != other.max_scale and valid());
 }
 
 
@@ -98,21 +96,21 @@ template <typename Iterator>
 Iterator BlockIterable<Iterator>::begin() const {
   if (iterator.curblock == nullptr) return end();
   Iterator iter = iterator;
-  iter.get_safe(iter.curblock->parent, iter.curblock->parentpos, iter.curblock);
+  iter.get_safe();
   return iter;
 }
 
 template <typename Iterator>
 Iterator BlockIterable<Iterator>::end() const {
   Iterator iter = iterator;
-  iter.curblock = nullptr;
+  iter.to_end();
   return iter;
 }
 
-template class BlockIterator<Block>;
-template class BlockIterator<const Block>;
-template class BlockIterable<BlockIterator<Block>>;
-template class BlockIterable<BlockIterator<const Block>>;
+template class BlockIterator<BlockView>;
+template class BlockIterator<ConstBlockView>;
+template class BlockIterable<BlockIterator<BlockView>>;
+template class BlockIterable<BlockIterator<ConstBlockView>>;
 
 
 
@@ -127,53 +125,47 @@ typename BlockIterator<BlockT>::PixelT* PixelIterator<BlockT>::operator*() {
 }
 
 
-template class PixelIterator<Block>;
-template class PixelIterator<const Block>;
-template class BlockIterable<PixelIterator<Block>>;
-template class BlockIterable<PixelIterator<const Block>>;
+template class PixelIterator<BlockView>;
+template class PixelIterator<ConstBlockView>;
+template class BlockIterable<PixelIterator<BlockView>>;
+template class BlockIterable<PixelIterator<ConstBlockView>>;
 
 
 
-template class DirPixelIterator<Block>;
-template class DirPixelIterator<const Block>;
-template class BlockIterable<DirPixelIterator<Block>>;
-template class BlockIterable<DirPixelIterator<const Block>>;
+template class DirPixelIterator<BlockView>;
+template class DirPixelIterator<ConstBlockView>;
+template class BlockIterable<DirPixelIterator<BlockView>>;
+template class BlockIterable<DirPixelIterator<ConstBlockView>>;
 
 
 
 
-template <typename BlockT>
-bool FreePixelIterator<BlockT>::valid_block(BlockT* block) {
-  return block != nullptr and box.collide(block->hitbox());
+template <typename BlockViewT>
+bool FreePixelIterator<BlockViewT>::valid_block() {
+  return curblock != nullptr and box.collide(hitbox());
 }
 
 
-template class FreePixelIterator<Block>;
-template class FreePixelIterator<const Block>;
-template class BlockIterable<FreePixelIterator<Block>>;
-template class BlockIterable<FreePixelIterator<const Block>>;
+template class FreePixelIterator<BlockView>;
+template class FreePixelIterator<ConstBlockView>;
+template class BlockIterable<FreePixelIterator<BlockView>>;
+template class BlockIterable<FreePixelIterator<ConstBlockView>>;
 
 
-template <typename BlockT>
-bool FreeBlockIterator<BlockT>::valid_block(BlockT* block) {
-  return block != nullptr and block->freecount != 0 and box.collide(block->freebox());
+template <typename BlockViewT>
+bool FreeBlockIterator<BlockViewT>::valid_block() {
+  return curblock != nullptr and curblock->freecount != 0 and box.collide(freebox());
 }
 
-template <typename BlockT>
-bool FreeBlockIterator<BlockT>::skip_block(BlockT* block) {
-  return block->freechild == nullptr;
+template <typename BlockViewT>
+bool FreeBlockIterator<BlockViewT>::skip_block() {
+  return curblock->freechild == nullptr;
 }
 
-template <typename BlockT>
-typename BlockTypes<BlockT>::FreeBlockT* FreeBlockIterator<BlockT>::operator*() {
-  return this->curblock->freechild;
-}
-
-
-template class FreeBlockIterator<Block>;
-template class FreeBlockIterator<const Block>;
-template class BlockIterable<FreeBlockIterator<Block>>;
-template class BlockIterable<FreeBlockIterator<const Block>>;
+template class FreeBlockIterator<BlockView>;
+template class FreeBlockIterator<ConstBlockView>;
+template class BlockIterable<FreeBlockIterator<BlockView>>;
+template class BlockIterable<FreeBlockIterator<ConstBlockView>>;
 
 
 
@@ -334,17 +326,17 @@ HitboxIterable<FreePixelIterator<BlockT>>(ignore_world ? nullptr : world, box) {
   }
 }
 
-template class MultiBaseIterable<FreePixelIterator<Block>>;
-template class MultiBaseIterable<FreeBlockIterator<Block>>;
+template class MultiBaseIterable<FreePixelIterator<BlockView>>;
+template class MultiBaseIterable<FreeBlockIterator<BlockView>>;
 
-template class FreeboxIterable<FreePixelIterator<Block>>;
-template class FreeboxIterable<FreeBlockIterator<Block>>;
+template class FreeboxIterable<FreePixelIterator<BlockView>>;
+template class FreeboxIterable<FreeBlockIterator<BlockView>>;
 
-template class HitboxIterable<FreePixelIterator<Block>>;
-template class HitboxIterable<FreeBlockIterator<Block>>;
+template class HitboxIterable<FreePixelIterator<BlockView>>;
+template class HitboxIterable<FreeBlockIterator<BlockView>>;
 
-template class FullFreePixelIterable<Block>;
-template class FullFreePixelIterable<const Block>;
+template class FullFreePixelIterable<BlockView>;
+template class FullFreePixelIterable<ConstBlockView>;
 
 
 template <typename BlockT>
