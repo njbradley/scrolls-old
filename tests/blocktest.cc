@@ -73,8 +73,6 @@ struct BlockTest : Test { public:
 		
 		cout << "END" << endl;
 		
-		exit(1);
-		
 		BlockIterable<BlockIterator<BlockView>> blockiter (blockview);
 		BlockIterator<BlockView> biter = blockiter.begin();
 		iter_verify_block(block, biter);
