@@ -107,16 +107,16 @@ void SingleGame::gametick() {
 		debuglines->clear();
 	} else if (controls->key_pressed('T')) {
 		for (Tile* tile : world->tiles) {
-			for (FreeBlock* free = tile->allfreeblocks; free != nullptr;) {
-				if (free->entity_cast() == nullptr or free->entity_cast()->get_plugin_id() != Player::plugindef()->id) {
-					free->highparent->remove_freechild(free);
-					FreeBlock* next = free->allfreeblocks;
-					delete free;
-					free = next;
-				} else {
-					free = free->allfreeblocks;
-				}
-			}
+			// for (FreeBlock* free = tile->allfreeblocks; free != nullptr;) {
+			// 	if (free->entity_cast() == nullptr or free->entity_cast()->get_plugin_id() != Player::plugindef()->id) {
+			// 		free->highparent->remove_freechild(free);
+			// 		FreeBlock* next = free->allfreeblocks;
+			// 		delete free;
+			// 		free = next;
+			// 	} else {
+			// 		free = free->allfreeblocks;
+			// 	}
+			// }
 		}
 	}
 	if (controls->key_pressed(controls->KEY_CTRL)) {

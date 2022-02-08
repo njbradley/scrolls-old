@@ -124,12 +124,15 @@ class UIObj;
 class UIVecs;
 class Block;
 class FreeBlock;
+class BlockView;
+class ConstBlockView;
+class Container;
 template <typename Iterator> class BlockIterable;
-template <typename BlockT> class BlockIterator;
-template <typename BlockT> class PixelIterator;
-template <typename BlockT> class DirIterator;
-template <typename BlockT> class DirPixelIterator;
-template <typename BlockT> class BlockSideIterable;
+template <typename BlockViewT> class BlockIterator;
+template <typename BlockViewT> class PixelIterator;
+template <typename BlockViewT> class DirIterator;
+template <typename BlockViewT> class DirPixelIterator;
+template <typename BlockViewT> class BlockSideIterable;
 class Collider;
 class PhysicsEngine;
 class Pixel;
@@ -160,6 +163,30 @@ class AudioContext;
 class TerrainGenerator;
 class TerrainObject;
 class Controls;
+
+
+template <typename BlockT>
+struct BlockTypes {
+  
+};
+
+template <>
+struct BlockTypes<Block> {
+  using BlockT = Block;
+  using PixelT = Pixel;
+  using FreeBlockT = FreeBlock;
+  using ColliderT = Collider;
+	using ContainerT = Container;
+};
+
+template <>
+struct BlockTypes<const Block> {
+  using BlockT = const Block;
+  using PixelT = const Pixel;
+  using FreeBlockT = const FreeBlock;
+  using ColliderT = const Collider;
+	using ContainerT = const Container;
+};
 
 //////////////////////// GLOBAL VARIABLES ////////////////////////
 

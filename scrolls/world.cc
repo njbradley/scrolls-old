@@ -263,17 +263,13 @@ void World::spawn_player() {
   //   i ++;
   //   spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
   // }
-  Block* spawnblock = get_global(spawnpos, 8);
-  if (spawnblock == nullptr) {
+  BlockView spawnblock (this);
+  if (!spawnblock.moveto_exact(spawnpos, 8)) {
     cout << "player spawn location is null (waiting, though last_player_pos might be corrupt)" << endl;
     return;
   }
   player = new Player();
-  while (spawnblock->scale > 8) {
-    spawnblock->subdivide();
-    spawnblock = spawnblock->get_global(spawnpos, 8);
-  }
-  spawnblock->add_freechild(player);
+  spawnblock->add_freechild(spawnblock, player);
   player->set_position(spawnpos);
   // player->spectator = true;
   set_player_vars();
@@ -372,14 +368,14 @@ void World::timestep(float curtime, float deltatime) {
   
   for (Tile* tile : tiles) {
     if (player == nullptr) {
-      for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
-        player = dynamic_cast<Player*>(free);
-        if (player != nullptr) {
-          cout << "got player from world" << endl;
-          set_player_vars();
-          break;
-        }
-      }
+      // for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
+      //   player = dynamic_cast<Player*>(free);
+      //   if (player != nullptr) {
+      //     cout << "got player from world" << endl;
+      //     set_player_vars();
+      //     break;
+      //   }
+      // }
     }
     tile->timestep(curtime, deltatime);
   }
@@ -514,9 +510,9 @@ bool World::render() {
 }
 
 void World::update_lighting() {
-  for (Tile* tile : tiles) {
-    tile->update_lighting();
-  }
+  // for (Tile* tile : tiles) {
+  //   tile->update_lighting();
+  // }
 }
 
 Tile* World::tileat(ivec3 pos) {
@@ -527,52 +523,47 @@ Tile* World::tileat_global(ivec3 pos) {
   return tileat(SAFEDIV(pos, chunksize));
 }
 
-Block* World::get_global(ivec3 pos, int scale) {
-  ivec3 tpos = SAFEDIV(pos, chunksize);
-  Tile* tile = tileat(tpos);
-  if (tile != nullptr) {
-    Block* result = tile->chunk->get_global(pos, scale);
-    return result;
-  }
-  return nullptr;
+BlockView World::get_global(ivec3 pos, int scale) {
+  BlockView view (this);
+  view.moveto(pos, scale);
+  return view;
 }
 
-const Block* World::get_global(ivec3 pos, int scale) const {
-  ivec3 tpos = SAFEDIV(pos, chunksize);
-  const Tile* tile = tiles.tileat(tpos);
-  if (tile != nullptr) {
-    const Block* result = tile->chunk->get_global(pos, scale);
-    return result;
-  }
-  return nullptr;
+ConstBlockView World::get_global(ivec3 pos, int scale) const {
+  ConstBlockView view (this);
+  view.moveto(pos, scale);
+  return view;
 }
 
-void World::set_global(ivec3 pos, int w, Blocktype val, int direction, int joints[6]) {
-  Tile* tile = tileat_global(pos);
+Block* World::get_child(ivec3 pos) {
+  return tileat(pos)->chunk;
+}
+
+const Block* World::get_child(ivec3 pos) const {
+  return tiles.tileat(pos)->chunk;
+}
+
+void World::set_child(ivec3 pos, Block* block) {
+  Tile* tile = tileat(pos);
   if (tile != nullptr) {
-    tile->chunk->set_global(pos, w, val, direction, joints);
+    tile->chunk = block;
+    block->set_parent(nullptr);
   }
 }
+
 
 Blocktype World::get(ivec3 pos) {
-  Block* block = get_global(pos, 1);
-  if (block == nullptr) {
+  BlockView block = get_global(pos, 1);
+  if (!block.isvalid()) {
     return -1;
   }
   return block->pixel->value;
 }
 
 void World::set(ivec3 pos, Blocktype val, int direction) {
-  set_global(pos, 1, val, direction);
-}
-
-Block* World::raycast(vec3* pos, vec3 dir, double time) {
-  Block* b = get_global(SAFEFLOOR3(*pos), 1);
-  // Block* b = get_global((int)pos->x - (pos->x<0), (int)pos->y - (pos->y<0), (int)pos->z - (pos->z<0), 1);
-  if (b == nullptr) {
-      return b;
-  }
-  return b->raycast(pos, dir, time);
+  BlockView view(this);
+  view.moveto_exact(pos, 1);
+  view.set(val, direction);
 }
 
 void World::del_tile(ivec3 pos, bool remove_faces) {

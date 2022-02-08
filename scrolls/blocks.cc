@@ -81,6 +81,25 @@ Block::~Block() {
   }
 }
 
+bool Block::ischunk() const {
+  return continues;
+}
+
+bool Block::ispixel() const {
+  return !continues and pixel != nullptr;
+}
+
+bool Block::isundef() const {
+  return !continues and pixel == nullptr;
+}
+
+void Block::incref() {
+  refcount ++;
+}
+
+void Block::decref() {
+  refcount --;
+}
 
 void Block::lock() {
   locked++;
@@ -97,49 +116,6 @@ void Block::unlock() {
   }
 }
 
-void Block::swap(Block* other) {
-  std::lock_guard<Block> guard(*this);
-  std::lock_guard<Block> otherguard(*other);
-  
-  if (continues and other->continues) {
-    for (int i = 0; i < csize3; i ++) {
-      swap_child(posof(i), other->swap_child(posof(i), children[i]));
-    }
-  } else if (continues and !other->continues) {
-    Pixel* pix = other->swap_pixel(nullptr);
-    other->divide();
-    for (int i = 0; i < csize3; i ++) {
-      other->set_child(posof(i), swap_child(posof(i), nullptr));
-    }
-    join();
-    set_pixel(pix);
-  } else if (!continues and other->continues) {
-    Pixel* pix = swap_pixel(nullptr);
-    divide();
-    for (int i = 0; i < csize3; i ++) {
-      set_child(posof(i), other->swap_child(posof(i), nullptr));
-    }
-    other->join();
-    other->set_pixel(pix);
-  } else {
-    swap_pixel(other->swap_pixel(pixel));
-  }
-  
-  FreeBlock* tmp = freechild;
-  freechild = other->freechild;
-  other->freechild = tmp;
-  
-  for (FreeBlock* free = freechild; free != nullptr; free = free->next) {
-    free->set_parent(this, world, ivec3(0,0,0), scale/2);
-  }
-  
-  for (FreeBlock* free = other->freechild; free != nullptr; free = free->next) {
-    free->set_parent(other, other->world, ivec3(0,0,0), other->scale/2);
-  }
-  
-  on_change();
-  other->on_change();
-}
     
     
 
@@ -164,64 +140,41 @@ void Block::on_change() {
   set_flag(RENDER_FLAG | LIGHT_FLAG | CHANGE_FLAG | CHANGE_PROP_FLAG);
 }
 
-void Block::set_parent(Container* nworld, ivec3 ppos, int nscale) {
-  set_parent(nullptr, nworld, nullptr, ppos, nscale);
-}
-
-void Block::set_parent(Block* nparent, Container* nworld, FreeBlock* freecont, ivec3 ppos, int nscale) {
-  std::lock_guard<Block> guard(*this);
-  parent = nparent;
-  world = nworld;
-  freecontainer = freecont;
-  parentpos = ppos;
-  scale = nscale;
-  
-  if (parent != nullptr) {
-    globalpos = parent->globalpos + parentpos * scale;
-  } else {
-    globalpos = parentpos * scale;
-  }
-  
-  if (continues) {
-    for (CHILDREN_LOOP(i)) {
-      children[i]->set_parent(this, world, freecontainer, posof(i), scale / csize);
-    }
-  }
-  
-  if (freecontainer == nullptr) {
-    for (FREECHILDREN_LOOP(free)) {
-      free->set_parent(this, world, ivec3(0,0,0), scale/2);
-    }
-  }
-  
-  // set_flag(RENDER_FLAG | LIGHT_FLAG);
+void Block::set_parent(Block* block) {
+  parent = block;
   on_change();
-  update();
 }
 
-void Block::set_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
+void Block::set_child(ivec3 pos, Block* block) {
+  set_child(indexof(pos), block);
+}
+
+void Block::set_child(int index, Block* block) { ASSERT(ischunk())
   std::lock_guard<Block> guard(*this);
-  Block* old = get(pos);
-  if (old != nullptr) {
-    delete old;
+  if (children[index] != nullptr) {
+    delete children[index];
   }
-  children[indexof(pos)] = block;
+  children[index] = block;
   if (block != nullptr) {
-    block->set_parent(this, world, freecontainer, pos, scale / csize);
+    block->set_parent(this);
   }
 }
 
-Block* Block::swap_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
+Block* Block::swap_child(ivec3 pos, Block* block) {
+  return swap_child(indexof(pos), block);
+}
+
+Block* Block::swap_child(int index, Block* block) { ASSERT(ischunk())
   std::lock_guard<Block> guard(*this);
-  Block* old = get(pos);
-  children[indexof(pos)] = block;
+  Block* old = children[index];
+  children[index] = block;
   if (block != nullptr) {
-    block->set_parent(this, world, freecontainer, pos, scale / csize);
+    block->set_parent(this);
   }
   return old;
 }
 
-void Block::set_pixel(Pixel* pix) { ASSERT(ISPIXEL or ISUNDEF)
+void Block::set_pixel(Pixel* pix) { ASSERT(ispixel() or isundef())
   std::lock_guard<Block> guard(*this);
   if (pix != nullptr) {
     pix->set_block(this);
@@ -230,22 +183,61 @@ void Block::set_pixel(Pixel* pix) { ASSERT(ISPIXEL or ISUNDEF)
     delete pixel;
   }
   pixel = pix;
-  on_change();
-  update();
 }
 
-Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ISPIXEL or ISUNDEF)
+Pixel* Block::swap_pixel(Pixel* pix) { ASSERT(ispixel() or isundef())
   std::lock_guard<Block> guard(*this);
   if (pix != nullptr) {
     pix->set_block(this);
   }
   Pixel* old = pixel;
   pixel = pix;
-  on_change();
-  update();
   return old;
 }
 
+
+void Block::add_freechild(BlockView& view, FreeBlock* newfree) {
+  // std::lock_guard<Block> guard(*this);
+  
+  FreeBlock** freedest = &freechild;
+  while (*freedest != nullptr) {
+    freedest = &(*freedest)->next;
+  }
+  
+  *freedest = newfree;
+  newfree->next = nullptr;
+  newfree->set_parent(view);
+  newfree->parent = nullptr;
+  
+  Block* curblock = this;
+  while (curblock != nullptr) {
+    curblock->freecount ++;
+    curblock = curblock->parent;
+  }
+}
+
+void Block::remove_freechild(FreeBlock* newfree) {
+  // std::lock_guard<Block> guard(*this);
+  FreeBlock** freedest = &freechild;
+  
+  while (*freedest != nullptr and *freedest != newfree) {
+    freedest = &(*freedest)->next;
+  }
+  if (*freedest != nullptr) {
+    FreeBlock* next = (*freedest)->next;
+    *freedest = next;
+    newfree->next = nullptr;
+  } else {
+    cout << "REMOVE NOT DOUNF" << endl;
+    std::terminate();
+  }
+  
+  Block* curblock = this;
+  while (curblock != nullptr) {
+    curblock->freecount --;
+    curblock = curblock->parent;
+  }
+}
 
 
 
@@ -278,277 +270,12 @@ ivec3 Block::posof(int index) const {
   return ivec3(index/(csize*csize), index/csize%csize, index%csize);
 }
 
-int Block::indexof(ivec3 pos) const {
+int Block::indexof(ivec3 pos) {
   return pos.x*csize*csize + pos.y*csize + pos.z;
 }
 
-int Block::indexof(int x, int y, int z) const {
+int Block::indexof(int x, int y, int z) {
   return x*csize*csize + y*csize + z;
-}
-
-quat Block::getrotation() const {
-  quat rot (1,0,0,0);
-  FreeBlock* free = freecontainer;
-  while (free != nullptr) {
-    rot = rot * free->box.rotation;
-    free = free->highparent->freecontainer;
-  }
-  return rot;
-}
-
-vec3 Block::fglobalpos() const {
-  vec3 pos = globalpos;
-  FreeBlock* free = freecontainer;
-  while (free != nullptr) {
-    pos = free->box.transform_out(pos);
-    free = free->highparent->freecontainer;
-  }
-  return pos;
-}
-
-Hitbox Block::local_hitbox() const {
-  return Hitbox(vec3(0,0,0), globalpos, globalpos + scale);
-}
-
-Hitbox Block::local_freebox() const {
-  return Hitbox(vec3(0,0,0), vec3(globalpos) - scale/2.0f, vec3(globalpos) + scale*3/2.0f);
-}
-
-Hitbox Block::hitbox() const {
-  if (freecontainer == nullptr) {
-    return local_hitbox();
-  } else {
-    return freecontainer->box.transform_out(local_hitbox());
-  }
-}
-
-Hitbox Block::freebox() const{
-  if (freecontainer == nullptr) {
-    return local_freebox();
-  } else {
-    return freecontainer->box.transform_out(local_freebox());
-  }
-}
-
-Movingbox Block::movingbox() const {
-  if (freecontainer == nullptr) {
-    return Movingbox(hitbox(), vec3(0,0,0), vec3(0,0,0), std::numeric_limits<float>::infinity());
-  } else {
-    Movingbox newbox = freecontainer->box;
-    newbox.negbox = vec3(globalpos) - scale/2.0f;
-    newbox.posbox = vec3(globalpos) + scale/2.0f;
-    return newbox;
-  }
-}
-
-Block* Block::get_global(ivec3 pos, int w) {
-  Block* curblock = this;
-  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale) or curblock->scale < w) {
-    if (curblock->parent == nullptr) {
-      if (curblock->freecontainer != nullptr) {
-        return nullptr;
-        // pos = SAFEFLOOR3(curblock->freecontainer->box.transform_out(pos));
-        // curblock = curblock->freecontainer->highparent;
-      } else if (world != nullptr) {
-        Block* result = world->get_global(pos, w);
-        return result;
-      } else {
-        return nullptr;
-      }
-    } else {
-      curblock = curblock->parent;
-    }
-  }
-  
-  while (curblock != nullptr and curblock->scale > w and curblock->continues) {
-    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
-    curblock = curblock->get(rem);
-  }
-  return curblock;
-}
-
-const Block* Block::get_global(ivec3 pos, int w) const {
-  const Block* curblock = this;
-  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale) or curblock->scale < w) {
-    if (curblock->parent == nullptr) {
-      if (curblock->freecontainer != nullptr) {
-        return nullptr;
-        // pos = SAFEFLOOR3(curblock->freecontainer->box.transform_out(pos));
-        // curblock = curblock->freecontainer->highparent;
-      } else if (world != nullptr) {
-        const Block* result = world->get_global(pos, w);
-        return result;
-      } else {
-        return nullptr;
-      }
-    } else {
-      curblock = curblock->parent;
-    }
-  }
-  
-  while (curblock != nullptr and curblock->scale > w and curblock->continues) {
-    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
-    curblock = curblock->get(rem);
-  }
-  return curblock;
-}
-
-Block* Block::get_local(ivec3 pos, int w) {
-  Block* curblock = this;
-  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale)) {
-    if (curblock->parent == nullptr) {
-      if (curblock->freecontainer != nullptr) {
-        return nullptr;
-      } else {
-        Block* result = world->get_global(pos, w);
-        return result;
-      }
-    } else {
-      curblock = curblock->parent;
-    }
-  }
-  
-  while (curblock != nullptr and curblock->scale > w and curblock->continues) {
-    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
-    curblock = curblock->get(rem);
-  }
-  return curblock;
-}
-
-void Block::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]) {
-  
-  Block* curblock = this;
-  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale)) {
-    if (curblock->parent == nullptr) {
-      if (curblock->freecontainer != nullptr) {
-        ivec3 expand_dir = glm::sign(SAFEDIV(pos, curblock->scale) - SAFEDIV(curblock->globalpos, curblock->scale));
-        ivec3 expand_off = (-expand_dir + 1) / 2;
-        pos += expand_off * curblock->scale;
-        curblock->freecontainer->expand(expand_off);
-        curblock = curblock->get(expand_off);
-        // std::terminate();
-      } else {
-        world->set_global(pos, w, val, direc, joints);
-        return;
-      }
-    }
-    curblock = curblock->parent;
-  }
-  
-  while (curblock->scale > w and curblock->continues) {
-    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
-    if (curblock->get(rem) == nullptr) {
-      break;
-    }
-    curblock = curblock->get(rem);
-  }
-  
-  std::lock_guard<Block> guard (*curblock);
-  
-  while (curblock->scale > w) {
-    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
-    if (!curblock->continues) {
-      if (curblock->pixel == nullptr) {
-        curblock->divide();
-      } else {
-        curblock->subdivide();
-      }
-    }
-    if (curblock->get(rem) == nullptr) {
-      // cout << " sepc " << rem << ' ' << indexof(rem) << endl;
-      curblock->set_child(rem, new Block());
-      // cout << " adding child " << curblock->scale << ' ';
-      // for (int i = 0; i < csize3; i ++) {
-        // cout << curblock->children[i] << ' ';
-      // } cout << endl;
-      if (curblock->scale > w) {
-        curblock->get(rem)->divide();
-      } else {
-        curblock->get(rem)->set_pixel(new Pixel(0));
-      }
-    }
-    curblock = curblock->get(rem);
-  }
-  
-  if (curblock->continues) {
-    curblock->join();
-    curblock->set_pixel(new Pixel(val, direc, joints));
-  } else {
-    if (curblock->pixel == nullptr) {
-      curblock->set_pixel(new Pixel(val, direc, joints));
-    } else {
-      curblock->pixel->set(val, direc, joints);
-    }
-    if (val == 0 and curblock->freecontainer != nullptr) {
-      if (curblock->parent == nullptr) {
-        curblock->set_pixel(nullptr);
-      } else {
-        curblock->parent->set_child(curblock->parentpos, nullptr);
-      }
-    }
-  }
-}
-
-void Block::set_global(ivec3 pos, int w, Block* newblock) {
-  
-  Block* curblock = this;
-  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale)) {
-    if (curblock->parent == nullptr) {
-      if (curblock->freecontainer != nullptr) {
-        ivec3 expand_dir = glm::sign(SAFEDIV(pos, curblock->scale) - SAFEDIV(curblock->globalpos, curblock->scale));
-        ivec3 expand_off = (-expand_dir + 1) / 2;
-        pos += expand_off * curblock->scale;
-        curblock->freecontainer->expand(expand_off);
-        curblock = curblock->get(expand_off);
-        // std::terminate();
-      } else {
-        // world->set_global(pos, w, val, direc, joints);
-        return;
-      }
-    }
-    curblock = curblock->parent;
-  }
-  
-  while (curblock->scale > w and curblock->continues) {
-    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
-    if (curblock->get(rem) == nullptr) {
-      break;
-    }
-    curblock = curblock->get(rem);
-  }
-  
-  std::lock_guard<Block> guard (*curblock);
-  
-  while (curblock->scale > w) {
-    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
-    if (!curblock->continues) {
-      if (curblock->pixel == nullptr) {
-        curblock->divide();
-      } else {
-        curblock->subdivide();
-      }
-    }
-    if (curblock->get(rem) == nullptr) {
-      // cout << " sepc " << rem << ' ' << indexof(rem) << endl;
-      curblock->set_child(rem, new Block());
-      // cout << " adding child " << curblock->scale << ' ';
-      // for (int i = 0; i < csize3; i ++) {
-        // cout << curblock->children[i] << ' ';
-      // } cout << endl;
-      if (curblock->scale > w) {
-        curblock->get(rem)->divide();
-      } else {
-        curblock->get(rem)->set_pixel(new Pixel(0));
-      }
-    }
-    curblock = curblock->get(rem);
-  }
-  
-  if (curblock->parent == nullptr) {
-    curblock->swap(newblock);
-  } else {
-    curblock->parent->set_child(curblock->parentpos, newblock);
-  }
 }
 
 void Block::divide() { ASSERT(!continues)
@@ -572,7 +299,7 @@ void Block::subdivide() { ASSERT(!continues)
   on_change();
 }
 
-void Block::join() { ASSERT(ISCHUNK)
+void Block::join() { ASSERT(ischunk())
   std::lock_guard<Block> guard(*this);
   for (CHILDREN_LOOP(i)) {
     delete children[i];
@@ -582,46 +309,10 @@ void Block::join() { ASSERT(ISCHUNK)
   on_change();
 }
 
-void Block::try_join() {
-  if (freechild != nullptr) {
-    return;
-  }
-  
-  Blocktype type = -1;
-  for (CHILDREN_LOOP(i)) {
-    if (children[i]->continues or children[i]->freechild != nullptr) {
-      return;
-    }
-    if (type == -1) {
-      type = children[i]->pixel->value;
-    } else if (type != children[i]->pixel->value) {
-      return;
-    }
-  }
-  
-  if (type == -1) {
-    if (parent != nullptr) {
-      Block* oldparent = parent;
-      oldparent->set_child(parentpos, nullptr);
-      oldparent->try_join();
-    }
-  } else if (type != -1) {
-    lock();
-    join();
-    set_pixel(new Pixel(type));
-    unlock();
-    if (parent != nullptr) {
-      parent->try_join();
-    }
-  }
-}
-
 void Block::to_file(ostream& ofile) const {
-  if (freecontainer == nullptr) {
-    for (FREECHILDREN_LOOP(free)) {
-      ofile << blockformat::free;
-      free->to_file(ofile);
-    }
+  for (FREECHILDREN_LOOP(free)) {
+    ofile << blockformat::free;
+    free->to_file(ofile);
   }
   if (continues) {
     ofile << blockformat::chunk;
@@ -644,10 +335,10 @@ void Block::from_file(istream& ifile) {
     FreeBlock* free;
     if (ifile.peek() == blockformat::entity) {
       free = Entity::create_from_id(ifile);
-      add_freechild(free);
+      // add_freechild(free);
     } else {
       free = new FreeBlock();
-      add_freechild(free);
+      // add_freechild(free);
       free->from_file(ifile);
     }
   }
@@ -670,10 +361,6 @@ void Block::from_file(istream& ifile) {
   }
 }
 
-Block::Block(istream& ifile): continues(false), pixel(nullptr) {
-  from_file(ifile);
-}
-
 void Block::set_flag(uint8 flag) {
   Block* curblock = this;
   
@@ -682,11 +369,11 @@ void Block::set_flag(uint8 flag) {
     flag &= PROPAGATING_FLAGS;
     if (curblock->locked) break;
     
-    if (curblock->parent == nullptr and curblock->freecontainer != nullptr) {
-      curblock = curblock->freecontainer->highparent;
-    } else {
+    // if (curblock->parent == nullptr and curblock->freecontainer != nullptr) {
+    //   curblock = curblock->freecontainer->highparent;
+    // } else {
       curblock = curblock->parent;
-    }
+    // }
   } while (curblock != nullptr);
 }
 
@@ -735,8 +422,8 @@ FreeBlock::~FreeBlock() {
   if (physicsbody != nullptr) {
     delete physicsbody;
   }
-  if (highparent != nullptr and highparent->world != nullptr) {
-    highparent->world->remove_freeblock(this);
+  if (highparent.isvalid() and highparent.world != nullptr) {
+    // highparent->world->remove_freeblock(this);
   }
 }
 
@@ -804,16 +491,20 @@ void FreeBlock::from_file(istream& ifile) {
   allow_rotation = ifile.get();
   allow_raycast = ifile.get();
   
-  box.posbox = box.negbox + float(scale);
+  box.posbox = box.negbox + 1.0f;
   renderbox = box;
   lastbox = box;
 }
 
+void FreeBlock::set_parent(const BlockView& view) {
+  highparent = view;
+  Block::set_parent(nullptr);
+}
 
 void FreeBlock::tick(float curtime, float deltatime) {
   if (physicsbody == nullptr) return;
   
-  float mag = 10 * scale;
+  // float mag = 10 * scale;
   
   // if (controls->key_pressed('L')) {
   //   physicsbody->apply_impulse(vec3(-mag,0,0) * deltatime);
@@ -847,7 +538,7 @@ void FreeBlock::timestep(float curtime, float deltatime) {
   float ratio = std::max(0.0f, std::min((curtime - update_time) / World::tick_deltatime, 1.0f));
   renderbox = lastbox.lerp(box, ratio);
   // cout << renderbox << ' ' << curtime << ' ' << update_time << endl;
-  render_position();
+  // render_position();
   
   // box.timestep(deltatime);
   // set_box(box);
@@ -865,29 +556,22 @@ Entity* FreeBlock::entity_cast() {
 bool FreeBlock::set_box(Movingbox newbox, float curtime) {
   std::lock_guard<Block> guard(*this);
   
-  if (highparent != nullptr and !highparent->freebox().contains(newbox)) {
+  if (highparent.isvalid() and !highparent.freebox().contains(newbox)) {
     // cout << "CHANGING higbox " << newbox << endl;
     
     vec3 guesspos = SAFEFLOOR3(newbox.global_midpoint());
-    Block* guess = highparent->get_global(guesspos, scale*2);
+    BlockView guess = highparent.get_global_exact(guesspos, highparent.scale);
     
-    if (guess == nullptr) {
-      // cout << "IM OUT " << newbox << endl;
+    if (!guess.isvalid()) {
       return false;
     }
-    while (guess->scale > scale*2) {
-      guess->subdivide();
-      guess = guess->get_global(guesspos, scale*2);
-    }
     
-    Block* oldparent = highparent;
     // if (oldparent == guess) cout << "NO CHANGE IN HIGHPARENT " << endl;
     // cout << "CHANGING " << this << " parent: " << oldparent << " -> " << guess << endl;
-    oldparent->remove_freechild(this);
-    guess->add_freechild(this);
-    if (oldparent->parent != nullptr) {
-      oldparent->parent->try_join();
-    }
+    highparent->remove_freechild(this);
+    guess->add_freechild(guess, this);
+    highparent.try_join();
+    highparent = guess;
   }
   
   if (curtime < 0) {
@@ -920,71 +604,36 @@ bool FreeBlock::set_box(Movingbox newbox, float curtime) {
 
 
 void FreeBlock::expand(ivec3 dir) { // Todo: this method only works for csize=2
-  std::lock_guard<Block> guard(*this);
-  // dir = (dir + 1) / 2;
-  Block* copyblock = new Block();
-  copyblock->swap(this);
-  divide();
-  
-  // expanding box and correcting highparent;
-  box.negbox -= vec3(scale * dir);
-  box.posbox += vec3(scale * (1 - dir));
-  
-  // box.position -= vec3(scale * dir);
-  // box.posbox += float(scale);
-  
-  if (highparent == nullptr) {
-    set_parent(nullptr, world, parentpos, scale * csize);
-  } else {
-    Block* newparent = highparent->parent;
-    
-    highparent->remove_freechild(this);
-    newparent->add_freechild(this);
-  }
-  // set_parent(highparent->parent, world, parentpos, scale * csize);
-  set_box(box);
-  
-  set_child(dir, copyblock);
-  
-  on_change();
+  // std::lock_guard<Block> guard(*this);
+  // // dir = (dir + 1) / 2;
+  // Block* copyblock = new Block();
+  // copyblock->swap(this);
+  // divide();
+  //
+  // // expanding box and correcting highparent;
+  // box.negbox -= vec3(scale * dir);
+  // box.posbox += vec3(scale * (1 - dir));
+  //
+  // // box.position -= vec3(scale * dir);
+  // // box.posbox += float(scale);
+  //
+  // if (!highparent.isvalid()) {
+  //   set_parent(nullptr, world, parentpos, scale * csize);
+  // } else {
+  //   highparent->remove_freechild(this);
+  //   highparent.step_up();
+  //   highparent->add_freechild(this);
+  // }
+  // // set_parent(highparent->parent, world, parentpos, scale * csize);
+  // set_box(box);
+  //
+  // set_child(dir, copyblock);
+  //
+  // on_change();
 }
 
 
 
-
-void FreeBlock::calculate_mass() {/*
-  glm::mat3 inertia = {
-    {0,0,0},
-    {0,0,0},
-    {0,0,0}
-  };
-  local_inertia = inertia;
-  global_inertia = inertia;
-  
-  mass = 0;
-  
-  local_center = vec3(0,0,0);
-  
-  for (Pixel* pix : iter()) {
-    BlockData* data = pix->data();
-    if (data != nullptr) {
-      float pixmass = data->density * pix->parbl->scale * pix->parbl->scale * pix->parbl->scale;
-      mass += pixmass;
-      local_center += (vec3(pix->parbl->globalpos) + pix->parbl->scale / 2.0f) * pixmass;
-    }
-  }
-  
-  if (mass == 0) {
-    force_sleep();
-  } else {
-		local_center /= mass;
-		// q3Mat3 identity;
-		// q3Identity( identity );
-		// inertia -= (identity * q3Dot( lc, lc ) - q3OuterProduct( lc, lc )) * mass;
-  }
-  global_center = box.transform_out(local_center);
-  cout << "mass: " << mass << " local_center " << local_center << endl;*/
-}
 
 
 void FreeBlock::try_sleep() {
@@ -1009,15 +658,15 @@ void FreeBlock::wake() {
 void FreeBlock::fix() {
   box.velocity = vec3(0,0,0);
   box.angularvel = vec3(0,0,0);
-  if (!fixed and highparent != nullptr and highparent->world != nullptr) {
-    highparent->world->remove_freeblock(this);
+  if (!fixed and highparent.isvalid() and highparent.world != nullptr) {
+    // highparent->world->remove_freeblock(this);
   }
   fixed = true;
 }
 
 void FreeBlock::unfix() {
-  if (fixed and highparent != nullptr and highparent->world != nullptr) {
-    highparent->world->add_freeblock(this);
+  if (fixed and highparent.isvalid() and highparent.world != nullptr) {
+    // highparent->world->add_freeblock(this);
   }
   fixed = false;
 }
@@ -1174,30 +823,26 @@ void Pixel::rotate_to_origin(int* mats, int* dirs, int rotation) {
   }
 }
 
-void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
-  // if (render_index.index > -1) {
-  //   lastvecs->del(render_index);
-  //   render_index = RenderIndex::npos;
-  // }
+void Pixel::render(BlockView& view, RenderVecs* allvecs, RenderVecs* transvecs) {
   
   if (value != 0) {
-    ivec3 gpos = parbl->globalpos;
+    ivec3 gpos = view.globalpos;
     BlockData* blockdata = blockstorage[value];
     RenderData renderdata;
     
     bool exposed = false;
     
-    Hitbox mybox = parbl->local_hitbox();
-    FreeBlock* freecont = parbl->freecontainer;
-    while (freecont != nullptr) {
-      mybox = freecont->renderbox.transform_out(mybox);
-      freecont = freecont->highparent->freecontainer;
-    }
+    Hitbox mybox = view.local_hitbox();
+    FreeBlock* freecont = view.freecontainer;
+    // while (freecont != nullptr) {
+    //   mybox = freecont->renderbox.transform_out(mybox);
+    //   freecont = freecont->highparent->freecontainer;
+    // }
     
     // quat rot = parbl->getrotation();
-    renderdata.pos.loc.pos = mybox.global_midpoint();//parbl->fglobalpos() + rot * vec3(parbl->scale/2.0f, parbl->scale/2.0f, parbl->scale/2.0f);
+    renderdata.pos.loc.pos = mybox.global_midpoint();
     renderdata.pos.loc.rot = mybox.rotation;
-    renderdata.pos.loc.scale = parbl->scale;
+    renderdata.pos.loc.scale = view.scale;
     
     int mat[6];
     for (int i = 0; i < 6; i ++) {
@@ -1210,28 +855,29 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
       rotate_from_origin(mat, dirs, direction);
     }
      
-    int minscale = 1;//blockdata->minscale;
+    int minscale = 1;
     int i = 0;
     for (int i = 0; i < 6; i ++) {
       ivec3 dir = dir_array[i];
-      // Block* block = parbl->get_global((vec3(gpos) + parbl->scale/2.0f) + vec3(dir) * (parbl->scale/2.0f), parbl->scale, dir);
-      // Block* block = parbl->get_global(gpos + dir * parbl->scale, parbl->scale);
       renderdata.type.faces[i].tex = 0;
-      // if (parbl->freecontainer != nullptr) {
-      //   renderdata.type.faces[i].tex = mat[i];
-      //   renderdata.type.faces[i].rot = dirs[i];
-      //   renderdata.type.faces[i].blocklight = lightmax;
-      //   renderdata.type.faces[i].sunlight = lightmax;
-      //   exposed = true;
-      // } else
-      // if (parbl->is_air(dir, value) and parbl->freecontainer == nullptr) {
-      if (parbl->is_air(dir, value)) {
+      
+      int num_blocks = 0;
+      int blocklight = 0;
+      int sunlight = 0;
+      
+      for (BlockView& sideview : view.iter_touching_side(dir)) {
+        if (sideview->pixel->value == 0) {
+          blocklight += sideview->pixel->blocklight;
+          sunlight += sideview->pixel->sunlight;
+          num_blocks ++;
+        }
+      }
+      
+      if (num_blocks > 0) {
         renderdata.type.faces[i].tex = mat[i];
         renderdata.type.faces[i].rot = dirs[i];
-        // renderdata.type.faces[i].blocklight = (parbl->freecontainer == nullptr) ? parbl->get_blocklight(dir) : 20;
-        // renderdata.type.faces[i].sunlight = (parbl->freecontainer == nullptr) ? parbl->get_sunlight(dir) : 20;
-        renderdata.type.faces[i].blocklight = parbl->get_blocklight(dir);
-        renderdata.type.faces[i].sunlight = parbl->get_sunlight(dir);
+        renderdata.type.faces[i].blocklight = blocklight / num_blocks;
+        renderdata.type.faces[i].sunlight = sunlight / num_blocks;
         exposed = true;
       }
     }
@@ -1270,29 +916,29 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool
 }
 
 
-void Pixel::render_position() {
+void Pixel::render_position(const BlockView& view) {
   if (render_index.isnull()) {
     parbl->set_flag(Block::RENDER_FLAG);
   } else {
     RenderPosData posdata;
     
-    Hitbox mybox = parbl->local_hitbox();
-    FreeBlock* freecont = parbl->freecontainer;
-    while (freecont != nullptr) {
+    Hitbox mybox = view.local_hitbox();
+    FreeBlock* freecont = view.freecontainer;
+    // while (freecont != nullptr) {
       mybox = freecont->renderbox.transform_out(mybox);
-      freecont = freecont->highparent->freecontainer;
-    }
+      // freecont = freecont->highparent->freecontainer;
+    // }
     
     posdata.loc.pos = mybox.global_midpoint();
     posdata.loc.rot = mybox.rotation;
-    posdata.loc.scale = parbl->scale;
+    posdata.loc.scale = view.scale;
     
     lastvecs->edit(render_index, posdata);
   }
 }
 
 
-void Pixel::set(int val, int newdirection, int newjoints[6]) {
+void Pixel::set(BlockView& view, int val, int newdirection, int newjoints[6]) {
   WRITE_LOCK;
   if (val == 0) {
     newdirection = 0;
@@ -1326,12 +972,12 @@ void Pixel::set(int val, int newdirection, int newjoints[6]) {
   reset_lightlevel();
   render_update();
   
-  for (ivec3 dir : dir_array) {
-    for (Pixel* pix : parbl->iter_touching_side(dir)) {
-      pix->render_update();
-    }
-  }
-  
+  // for (ivec3 dir : dir_array) {
+  //   for (BlockView& view : view.iter_touching_side(dir)) {
+  //     view->pixel->render_update();
+  //   }
+  // }
+  //
   parbl->update();
   
   /*
@@ -1386,13 +1032,6 @@ void Pixel::render_update() {
   parbl->set_flag(Block::RENDER_FLAG | Block::LIGHT_FLAG);
 }
 
-void Pixel::random_tick() {
-  
-}
-
-void Pixel::tick(float curtime, float deltatime) {
-  
-}
 
 void Pixel::erase_render() {
   if (render_index.index != -1) {
@@ -1401,8 +1040,8 @@ void Pixel::erase_render() {
   }
 }
 
-void Pixel::lighting_update(bool spread) {
-  READ_LOCK;
+void Pixel::lighting_update(BlockView& view, bool spread) {
+  return;/*
   if (!spread) {
     calculate_blocklight();
     calculate_sunlight();
@@ -1441,11 +1080,13 @@ void Pixel::lighting_update(bool spread) {
     }
     next_poses.reserve(poses.size());
     total += poses.size();
-  }
+  }*/
 }
 
 void Pixel::reset_lightlevel() {
   lightsource = 0xff;
+  sunlight = lightmax;
+  return;
   if (value != 0) {
     sunlight = 0;
     blocklight = blockstorage[value]->lightlevel;
@@ -1456,7 +1097,7 @@ void Pixel::reset_lightlevel() {
   entitylight = 0;
 }
 
-
+/*
 void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>* next_poses) {
   if ((value != 0 and !blockstorage[value]->transparent)) {
     return;
@@ -1567,11 +1208,7 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>* next_poses) {
     }
     index ++;
   }
-}
-
-bool Pixel::is_air(int x, int y, int z) {
-  return value == 0;
-}
+}*/
 
 BlockData* Pixel::data() const {
   if (value == 0) {
@@ -1610,64 +1247,136 @@ void Pixel::to_file(ostream& of) {
 
 
 
+template <typename BlockT>
+BlockViewTempl<BlockT>::BlockViewTempl(): world(nullptr), curblock(nullptr), parent(nullptr), scale(-1) {
+  
+}
 
 template <typename BlockT>
 BlockViewTempl<BlockT>::BlockViewTempl(ContainerT* nworld): world(nworld) {
   
 }
 
+// template <typename BlockT>
+// BlockViewTempl<BlockT>::BlockViewTempl(BlockT* block): curblock(block), parent(block->parent), world(nullptr) {
+//
+// }
+
 template <typename BlockT>
 BlockViewTempl<BlockT>::BlockViewTempl(const BlockViewTempl<BlockT>& other):
 world(other.world), parent(other.parent), curblock(other.curblock), freecontainer(other.freecontainer),
 globalpos(other.globalpos), scale(other.scale) {
-  incref(curblock);
-  BlockT* block = parent;
-  while (parent != nullptr) {
-    incref(parent);
-    parent = parent->parent;
-  }
-}
-
-template <typename BlockT>
-BlockViewTempl<BlockT>::BlockViewTempl(const BlockViewTempl<BlockT>&& other):
-world(other.world), parent(other.parent), curblock(other.curblock), freecontainer(other.freecontainer),
-globalpos(other.globalpos), scale(other.scale) {
-  
-}
-
-template <typename BlockT>
-BlockViewTempl<BlockT>::~BlockViewTempl() {
-  if (valid()) {
-    decref(curblock);
-    while (parent != nullptr) {
-      decref(parent);
-      parent = parent->parent;
+  if (isvalid()) {
+    incref(curblock);
+    BlockT* block = parent;
+    FreeBlockT* freecont = freecontainer;
+    while (block != nullptr) {
+      incref(block);
+      block = block->parent;
+      if (block == nullptr and freecont != nullptr) {
+        block = freecont->highparent.curblock;
+        freecont = freecont->highparent.freecontainer;
+      }
     }
   }
 }
 
 template <typename BlockT>
-ivec3 BlockViewTempl<BlockT>::parentpos() { ASSERT(valid());
-  return SAFEMOD(globalpos, scale) / scale;
+BlockViewTempl<BlockT>::BlockViewTempl(BlockViewTempl<BlockT>&& other) {
+  swap(other);
 }
 
 template <typename BlockT>
-ivec3 BlockViewTempl<BlockT>::valid() {
-  return scale != 0;
+BlockViewTempl<BlockT>::~BlockViewTempl() {
+  if (isvalid()) {
+    decref(curblock);
+    while (parent != nullptr) {
+      decref(parent);
+      parent = parent->parent;
+      if (parent == nullptr and freecontainer != nullptr) {
+        parent = freecontainer->highparent.curblock;
+        freecontainer = freecontainer->highparent.freecontainer;
+      }
+    }
+  }
+}
+
+template <typename BlockT>
+BlockViewTempl<BlockT>& BlockViewTempl<BlockT>::operator=(BlockViewTempl<BlockT> other) {
+  swap(other);
+  return *this;
+}
+
+template <typename BlockT>
+BlockViewTempl<BlockT>& BlockViewTempl<BlockT>::operator=(BlockViewTempl<BlockT>&& other) {
+  swap(other);
+  return *this;
+}
+
+template <typename BlockT>
+bool BlockViewTempl<BlockT>::operator==(BlockViewTempl<BlockT>& other) const {
+  return curblock == other.curblock;
+}
+
+template <typename BlockT>
+void BlockViewTempl<BlockT>::incref(BlockT* block) {
+  
+}
+
+template <typename BlockT>
+void BlockViewTempl<BlockT>::decref(BlockT* block) {
+  
+}
+
+
+template <typename BlockT>
+void BlockViewTempl<BlockT>::swap(BlockViewTempl<BlockT>& other) {
+  using std::swap;
+  
+  swap(parent, other.parent);
+  swap(curblock, other.curblock);
+  swap(freecontainer, other.freecontainer);
+  swap(world, other.world);
+  swap(globalpos, other.globalpos);
+  swap(scale, other.scale);
+  swap(in_freecontainer, other.in_freecontainer);
+}
+
+template <typename BlockT>
+ivec3 BlockViewTempl<BlockT>::parentpos() const { ASSERT(isvalid());
+  return SAFEMOD(globalpos, scale*2) / scale;
+}
+
+template <typename BlockT>
+bool BlockViewTempl<BlockT>::isvalid() const {
+  return scale > 0;
+}
+
+template <typename BlockT>
+bool BlockViewTempl<BlockT>::isrelative() const {
+  return world != nullptr;
+}
+
+template <typename BlockT>
+bool BlockViewTempl<BlockT>::isfreeblock() const {
+  return in_freecontainer and freecontainer == curblock;
 }
 
 template <typename BlockT>
 Hitbox BlockViewTempl<BlockT>::local_hitbox() const {
+  ASSERT(isvalid() and !isrelative());
   return Hitbox(vec3(0,0,0), globalpos, globalpos + scale);
 }
 
 template <typename BlockT>
 Hitbox BlockViewTempl<BlockT>::local_freebox() const {
+  ASSERT(isvalid() and !isrelative());
   return Hitbox(vec3(0,0,0), vec3(globalpos) - scale/2.0f, vec3(globalpos) + scale*3/2.0f);
 }
 
 template <typename BlockT>
 Hitbox BlockViewTempl<BlockT>::hitbox() const {
+  ASSERT(isvalid() and !isrelative());
   if (freecontainer == nullptr) {
     return local_hitbox();
   } else {
@@ -1677,6 +1386,7 @@ Hitbox BlockViewTempl<BlockT>::hitbox() const {
 
 template <typename BlockT>
 Hitbox BlockViewTempl<BlockT>::freebox() const{
+  ASSERT(isvalid() and !isrelative());
   if (freecontainer == nullptr) {
     return local_freebox();
   } else {
@@ -1686,6 +1396,7 @@ Hitbox BlockViewTempl<BlockT>::freebox() const{
 
 template <typename BlockT>
 Movingbox BlockViewTempl<BlockT>::movingbox() const {
+  ASSERT(isvalid() and !isrelative());
   if (freecontainer == nullptr) {
     return Movingbox(hitbox(), vec3(0,0,0), vec3(0,0,0), std::numeric_limits<float>::infinity());
   } else {
@@ -1697,12 +1408,17 @@ Movingbox BlockViewTempl<BlockT>::movingbox() const {
 }
 
 template <typename BlockT>
-const Block BlockViewTempl<BlockT>::operator->() const { ASSERT(valid());
+const Block* BlockViewTempl<BlockT>::operator->() const { ASSERT(isvalid());
   return curblock;
 }
 
 template <typename BlockT>
-bool BlockViewTempl<BlockT>::step_down(ivec3 pos) { ASSERT(valid());
+void BlockViewTempl<BlockT>::invalidate() {
+  scale = -1;
+}
+
+template <typename BlockT>
+bool BlockViewTempl<BlockT>::step_down(ivec3 pos) { ASSERT(isvalid());
   if (curblock != nullptr and curblock->continues) {
     parent = curblock;
     curblock = curblock->get(pos);
@@ -1715,7 +1431,7 @@ bool BlockViewTempl<BlockT>::step_down(ivec3 pos) { ASSERT(valid());
 }
 
 template <typename BlockT>
-bool BlockViewTempl<BlockT>::step_down(int x, int y, int z) { ASSERT(valid());
+bool BlockViewTempl<BlockT>::step_down(int x, int y, int z) { ASSERT(isvalid());
   if (curblock != nullptr and curblock->continues) {
     parent = curblock;
     curblock = curblock->get(x,y,z);
@@ -1728,7 +1444,22 @@ bool BlockViewTempl<BlockT>::step_down(int x, int y, int z) { ASSERT(valid());
 }
 
 template <typename BlockT>
-bool BlockViewTempl<BlockT>::step_up() { ASSERT(valid());
+bool BlockViewTempl<BlockT>::step_down_free() { ASSERT(isvalid());
+  if (curblock != nullptr and !free) {
+    parent = curblock;
+    freecontainer = curblock->freechild;
+    curblock = freecontainer;
+    incref(curblock);
+    in_freecontainer = true;
+    scale /= csize;
+    globalpos = ivec3(0,0,0);
+    return true;
+  }
+  return false;
+}
+
+template <typename BlockT>
+bool BlockViewTempl<BlockT>::step_up() { ASSERT(isvalid());
   if (parent != nullptr) {
     decref(curblock);
     curblock = parent;
@@ -1741,22 +1472,51 @@ bool BlockViewTempl<BlockT>::step_up() { ASSERT(valid());
 }
 
 template <typename BlockT>
-bool BlockViewTempl<BlockT>::step_side(ivec3 pos) { ASSERT(valid());
+bool BlockViewTempl<BlockT>::step_up_free() { ASSERT(isvalid());
+  if (isfreeblock()) {
+    const BlockView* view = &freecontainer->highparent;
+    curblock = view->curblock;
+    parent = view->parent;
+    scale = view->scale;
+    globalpos = view->globalpos;
+    freecontainer = view->freecontainer;
+    in_freecontainer = view->in_freecontainer;
+    return true;
+  }
+  return false;
+}
+    
+
+template <typename BlockT>
+bool BlockViewTempl<BlockT>::step_side(ivec3 pos) { ASSERT(isvalid());
   decref(curblock);
   curblock = parent->get(pos);
   incref(curblock);
-  globalpos = SAFEDIV(globalpos, scale) * scale + pos * scale;
+  globalpos = SAFEDIV(globalpos, scale*2) * (scale*2) + pos * scale;
   return true;
 }
 
 template <typename BlockT>
-bool BlockViewTempl<BlockT>::step_side(int x, int y, int z) { ASSERT(valid());
+bool BlockViewTempl<BlockT>::step_side(int x, int y, int z) { ASSERT(isvalid());
   decref(curblock);
   curblock = parent->get(x,y,z);
   incref(curblock);
   globalpos = SAFEDIV(globalpos, scale) * scale + ivec3(x,y,z) * scale;
   return true;
 }
+
+template <typename BlockT>
+bool BlockViewTempl<BlockT>::step_side_free() { ASSERT(isvalid());
+  if (isfreeblock() and curblock != nullptr) {
+    decref(curblock);
+    freecontainer = freecontainer->next;
+    curblock = freecontainer;
+    incref(curblock);
+    return true;
+  }
+  return true;
+}
+    
 
 template <typename BlockT>
 BlockViewTempl<BlockT> BlockViewTempl<BlockT>::get_global(ivec3 pos, int w) {
@@ -1767,14 +1527,16 @@ BlockViewTempl<BlockT> BlockViewTempl<BlockT>::get_global(ivec3 pos, int w) {
 
 template <typename BlockT>
 bool BlockViewTempl<BlockT>::moveto(ivec3 pos, int w) {
-  if (valid()) {
+  if (isvalid()) {
     while (SAFEDIV(pos, scale) != SAFEDIV(globalpos, scale) or scale < w) {
       if (!step_up()) {
-        if (curblock->freecontainer != nullptr) {
+        if (freecontainer != nullptr) {
           return false;
         } else if (world != nullptr) {
-          BlockT* result = world->get_global(pos, w);
-          return result;
+          ivec3 tilepos = SAFEDIV(pos, World::chunksize);
+          curblock = world->get_child(tilepos);
+          scale = World::chunksize;
+          globalpos = tilepos * scale;
         } else {
           return false;
         }
@@ -1782,7 +1544,7 @@ bool BlockViewTempl<BlockT>::moveto(ivec3 pos, int w) {
     }
   } else {
     ivec3 tilepos = SAFEDIV(pos, World::chunksize);
-    curblock = world->get(tilepos);
+    curblock = world->get_child(tilepos);
     scale = World::chunksize;
     globalpos = tilepos * scale;
   }
@@ -1797,24 +1559,30 @@ bool BlockViewTempl<BlockT>::moveto(ivec3 pos, int w) {
 
 
 
+BlockView::BlockView(const BlockViewTempl<Block>& other): BlockViewTempl<Block>(other) {
+  
+}
 
+Block* BlockView::operator->() {
+  return curblock;
+}
 
+BlockView BlockView::get_global_exact(ivec3 pos, int w) {
+  BlockView view(world);
+  view.moveto_exact(pos, w);
+  return view;
+}
 
-
-
-
-
-
-template <>
 bool BlockView::moveto_exact(ivec3 pos, int w) {
-  if (valid()) {
+  if (isvalid()) {
     while (SAFEDIV(pos, scale) != SAFEDIV(globalpos, scale) or scale < w) {
       if (!step_up()) {
-        if (curblock->freecontainer != nullptr) {
+        if (freecontainer != nullptr) {
           return false;
         } else if (world != nullptr) {
-          Block* result = world->get_global(pos, w);
-          return result;
+          ivec3 tilepos = SAFEDIV(pos, World::chunksize);
+          curblock = world->get_child(tilepos);
+          globalpos = tilepos * World::chunksize;
         } else {
           return false;
         }
@@ -1822,7 +1590,7 @@ bool BlockView::moveto_exact(ivec3 pos, int w) {
     }
   } else {
     ivec3 tilepos = SAFEDIV(pos, World::chunksize);
-    curblock = world->get(tilepos);
+    curblock = world->get_child(tilepos);
     scale = World::chunksize;
     globalpos = tilepos * scale;
   }
@@ -1830,7 +1598,8 @@ bool BlockView::moveto_exact(ivec3 pos, int w) {
   while (scale > w) {
     ivec3 rem = SAFEMOD(pos, scale) / (scale / csize);
     if (!step_down(rem)) {
-      
+      subdivide();
+      step_down(rem);
     }
   }
   
@@ -1841,146 +1610,48 @@ void BlockView::set(Block* block) {
   set_curblock(block);
 }
 
-void BlockView::set(Blocktype val, int direc = -1) {
-  
+void BlockView::set(Blocktype val, int direc) {
+  if (curblock == nullptr) {
+    set_curblock(new Block(new Pixel(val, direc)));
+  } else if (curblock->continues) {
+    curblock->join();
+    curblock->set_pixel(new Pixel(val, direc));
+  } else {
+    curblock->pixel->set(*this, val, direc);
+  }
 }
 
 void BlockView::set_curblock(Block* block) {
   if (curblock != nullptr) delete curblock;
   if (parent == nullptr) {
-    world->set_child(globalpos / scale, block);
-    block->parent = nullptr;
+    world->set_child(parentpos(), block);
   } else {
-    parent->children[indexof(parentpos())] = block;
-    block->parent = parent;
+    parent->set_child(parentpos(), block);
   }
 }
 
 Block* BlockView::swap_curblock(Block* block) {
   Block* oldblock = curblock;
   if (parent == nullptr) {
-    world->set_child(globalpos / scale, block);
-    block->parent = nullptr;
+    ivec3 tilepos = SAFEDIV(globalpos, scale);
+    if (world->get_child(tilepos) != nullptr) delete world->get_child(tilepos);
+    world->set_child(tilepos, block);
   } else {
-    parent->children[indexof(parentpos())] = block;
-    block->parent = parent;
+    parent->swap_child(parentpos(), block);
   }
   return oldblock;
-}
-
-void BlockView::set_child(ivec3 pos, Block* block) {
-  set_child(indexof(pos), block);
-}
-
-void BlockView::set_child(int index, Block* block) {
-  if (curblock->children[index] != nullptr) delete curblock->children[index];
-  curblock->children[index] = block;
-  block->parent = curblock;
-}
-
-Block* BlockView::swap_child(ivec3 pos, Block* block) {
-  return swap_child(indexof(pos), block);
-}
-
-Block* BlockView::swap_child(int index, Block* block) {
-  Block* oldblock = curblock->children[index];
-  curblock->children[index] = block;
-  return oldblock;
-}
-
-void BlockView::add_freechild(FreeBlock* newfree) {
-  // std::lock_guard<Block> guard(*this);
-  
-  FreeBlock** freedest = &freechild;
-  while (*freedest != nullptr) {
-    freedest = &(*freedest)->next;
-  }
-  
-  *freedest = newfree;
-  newfree->next = nullptr;
-  newfree->highparent = this;
-  newfree->parent = nullptr;
-  
-  Block* curblock = this;
-  while (curblock != nullptr) {
-    curblock->freecount ++;
-    curblock = curblock->parent;
-  }
-}
-
-void BlockView::remove_freechild(FreeBlock* newfree) {
-  // std::lock_guard<Block> guard(*this);
-  FreeBlock** freedest = &freechild;
-  
-  while (*freedest != nullptr and *freedest != newfree) {
-    freedest = &(*freedest)->next;
-  }
-  if (*freedest != nullptr) {
-    FreeBlock* next = (*freedest)->next;
-    *freedest = next;
-    newfree->next = nullptr;
-  } else {
-    cout << "REMOVE NOT DOUNF" << endl;
-    std::terminate();
-  }
-  
-  Block* curblock = this;
-  while (curblock != nullptr) {
-    curblock->freecount --;
-    curblock = curblock->parent;
-  }
-}
-
-void BlockView::set_pixel(Pixel* pix) {
-  if (curblock->pixel != nullptr) delete curblock->pixel;
-  curblock->pixel = pix;
-}
-
-Pixel* BlockView::swap_pixel(Pixel* pix) {
-  Pixel* oldpix = curblock->pixel;
-  curblock->pixel = pix;
-  return oldpix;
-}
-
-
-
-void BlockView::divide() {
-  if (curblock == nullptr) {
-    curblock = new Block();
-  } else if (curblock->continues == true) {
-    if (curblock->pixel != nullptr) delete curblock->pixel;
-  } else {
-    return;
-  }
-  curblock->continues = true;
-  for (int i = 0; i < csize3; i ++) {
-    curblock->children[i] = nullptr;
-  }
 }
 
 void BlockView::subdivide() {
   if (curblock == nullptr) {
     curblock = new Block();
-    curblock->continues = true;
-    for (int i = 0; i < csize3; i ++) {
-      curblock->children[i] = nullptr;
-    }
+    curblock->divide();
   } else if (curblock->continues = false) {
     Pixel* pix = curblock->swap_pixel(nullptr);
-    curblock->continues = true;
+    curblock->divide();
     for (int i = 0; i < csize3; i ++) {
-      curblock->children[i] = new Block(new Pixel(pix->value, pix->direction));
+      curblock->set_child(i, new Block(new Pixel(pix->value, pix->direction)));
     }
-  }
-}
-
-void BlockView::join() {
-  if (curblock->continues) {
-    for (int i = 0; i < csize3; i ++) {
-      if (curblock->children[i] != nullptr) delete curblock->children[i];
-    }
-    curblock->continues = false;
-    curblock->pixel = nullptr;
   }
 }
 
@@ -1994,7 +1665,7 @@ void BlockView::try_join() {
       if (pix == nullptr) {
         pix = view->pixel;
       } else if (pix->value != view->pixel->value) {
-        return false;
+        return;
       }
     }
   }
@@ -2002,9 +1673,49 @@ void BlockView::try_join() {
   if (pix == nullptr) {
     set_curblock(nullptr);
   } else {
-    join();
-    set_pixel(new Pixel(pix->value));
+    curblock->join();
+    curblock->set_pixel(new Pixel(pix->value));
   }
+}
+
+
+BlockIterable<PixelIterator<BlockView>> BlockView::iter() {
+  return BlockIterable<PixelIterator<BlockView>> (*this);
+}
+
+BlockIterable<DirPixelIterator<BlockView>> BlockView::iter_side(ivec3 dir) {
+  return BlockIterable<DirPixelIterator<BlockView>> (*this, dir);
+}
+
+BlockSideIterable<BlockView> BlockView::iter_touching_side(ivec3 dir) {
+  return BlockSideIterable<BlockView>(*this, dir);
+}
+
+
+ConstBlockView::ConstBlockView(const BlockViewTempl<const Block>& other): BlockViewTempl<const Block>(other) {
+  
+}
+
+ConstBlockView::ConstBlockView(const BlockView& other) {
+  parent = other.parent;
+  curblock = other.curblock;
+  freecontainer = other.freecontainer;
+  world = other.world;
+  globalpos = other.globalpos;
+  scale = other.scale;
+  in_freecontainer = other.in_freecontainer;
+}
+
+BlockIterable<PixelIterator<ConstBlockView>> ConstBlockView::iter() {
+  return BlockIterable<PixelIterator<ConstBlockView>> (*this);
+}
+
+BlockIterable<DirPixelIterator<ConstBlockView>> ConstBlockView::iter_side(ivec3 dir) {
+  return BlockIterable<DirPixelIterator<ConstBlockView>> (*this, dir);
+}
+
+BlockSideIterable<ConstBlockView> ConstBlockView::iter_touching_side(ivec3 dir) {
+  return BlockSideIterable<ConstBlockView>(*this, dir);
 }
 
 template class BlockViewTempl<Block>;

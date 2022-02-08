@@ -147,7 +147,9 @@ template <typename ... Shapes>
 Block* ShapeResolver<Shapes...>::generate_chunk(ivec3 pos) {
 	stringstream ss;
 	gen_block<Shapes...>(ss, pos * World::chunksize, World::chunksize);
-	return new Block(ss);
+	Block* block = new Block();
+	block->from_file(ss);
+	return block;
 }
 
 template <typename ... Shapes>

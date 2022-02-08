@@ -72,7 +72,7 @@ mat4 Player::getProjectionMatrix() {
 	return ProjectionMatrix;
 }
 
-void Player::raycast(Block** hit, ivec3* outdir, vec3* hitpos) {
+void Player::raycast(BlockView* hit, ivec3* outdir, vec3* hitpos) {
 	
 	*hitpos = box.position;
 	
@@ -93,7 +93,7 @@ void Player::raycast(Block** hit, ivec3* outdir, vec3* hitpos) {
   // debuglines->render(linebox, vec3(1,1,0), "raycast");
   
   float closest_dist = timeleft;
-  Block* closest_block = nullptr;
+  BlockView closest_block;
   vec3 closest_pos = *hitpos;
   vec3 closest_norm = vec3(0,0,0);
 	
@@ -102,11 +102,11 @@ void Player::raycast(Block** hit, ivec3* outdir, vec3* hitpos) {
 	// 	// cout << " curiter " << iter.curblock << ' ' << (iter != freeiter.end()) << endl;
 	// 	Pixel* pix = *iter;
 	//
-  for (Pixel* pix : FullFreePixelIterable<Block>(highparent, linebox, this)) {
+  for (BlockView& view : FullFreePixelIterable<BlockView>(highparent.world, linebox, this)) {
 		// debuglines->render(pix->parbl->hitbox(), vec3(1,0,0), "raycast");
-    if (pix->value != 0) {
+    if (view->pixel->value != 0) {
       Plane faces[6];
-      Hitbox pixbox = pix->parbl->hitbox();
+      Hitbox pixbox = view.hitbox();
 			pixbox.faces(faces);
 			pixbox.posbox += 0.001f;
 			pixbox.negbox -= 0.001f;
@@ -117,7 +117,7 @@ void Player::raycast(Block** hit, ivec3* outdir, vec3* hitpos) {
           // debuglines->render(pix->parbl->hitbox());
           if (dist < closest_dist) {
             closest_dist = dist;
-            closest_block = pix->parbl;
+            closest_block = view;
             closest_pos = colpoint;
             closest_norm = face.normal;
           }
@@ -134,10 +134,10 @@ void Player::raycast(Block** hit, ivec3* outdir, vec3* hitpos) {
 	// }
 	
 	// *hit = highparent->raycast(hitpos, pointing, 8);
-	if (*hit != nullptr) {
-		if ((*hit)->freecontainer != nullptr) {
-			vec3 pos = (*hit)->freecontainer->box.transform_in(*hitpos);
-			vec3 backpos = pos - (*hit)->freecontainer->box.transform_in_dir(pointing) * 0.002f;
+	if (hit->isvalid()) {
+		if ((*hit).freecontainer != nullptr) {
+			vec3 pos = (*hit).freecontainer->box.transform_in(*hitpos);
+			vec3 backpos = pos - (*hit).freecontainer->box.transform_in_dir(pointing) * 0.002f;
 			*outdir = SAFEFLOOR3(backpos) - SAFEFLOOR3(pos);
 		} else {
 			*outdir = SAFEFLOOR3(*hitpos - pointing*0.002f) - SAFEFLOOR3(*hitpos);
@@ -149,23 +149,24 @@ void Player::right_mouse(double deltatime) {
 	//cout << "riht" << endl;
 	bool shifting = controller->key_pressed(controller->KEY_SHIFT);
 	
-	if (placing_block == nullptr and placing_freeblock == nullptr and moving_freeblock == nullptr and timeout >= 0) {
+	if (!placing_block.isvalid() and placing_freeblock == nullptr and moving_freeblock == nullptr and timeout >= 0) {
 		
 		vec3 hitpos;
 		ivec3 dir;
-		Block* block;
+		BlockView block;
 		raycast(&block, &dir, &hitpos);
 		
-		if (block != nullptr) {
+		if (block.isvalid()) {
 			if (selitem != 0) {
-				if (block->freecontainer != nullptr) {
-					hitpos = block->freecontainer->box.transform_in(hitpos);
+				if (block.freecontainer != nullptr) {
+					hitpos = block.freecontainer->box.transform_in(hitpos);
 				}
 				ivec3 blockpos = SAFEFLOOR3(hitpos) + dir;//SAFEFLOOR3(hitpos) + dir;
 				if (shifting) {
-					world->set_global(blockpos, 1, 0, 0);
-					Block* airblock = world->get_global(blockpos, 2);
-					if (airblock != nullptr) {
+					BlockView airblock = block.get_global_exact(blockpos, 1);
+					if (airblock.isvalid()) {
+						airblock.set(0);
+						airblock.step_up();
 						cout << "freeblock" << endl;
 						// Hitbox newbox (vec3(0,0,0), vec3(blockpos) - 0.5f, vec3(blockpos) + 0.5f);
 						// Hitbox newbox (vec3(blockpos) + 0.5f, vec3(-0.5f, -0.5f, -0.5f), vec3(0.5f, 0.5f, 0.5f), glm::angleAxis(1.0f, vec3(dir)));
@@ -177,8 +178,8 @@ void Player::right_mouse(double deltatime) {
 						// FreeBlock* freeblock = new FreeBlock(Movingbox(newbox, vec3(-0.8,0,0), vec3(0,0,0), 1));
 						freeblock->paused = true;
 						freeblock->set_pixel(new Pixel(selitem));
-						airblock->add_freechild(freeblock);
-						freeblock->calculate_mass();
+						airblock->add_freechild(airblock, freeblock);
+						// freeblock->calculate_mass();
 						// FreeBlock* freeblock = new FreeBlock(vec3(airblock->globalpos), quat(1, 0, 0, 0));
 						// freeblock->set_parent(nullptr, airblock->world, ivec3(0,0,0), 1);
 						// freeblock->set_pixel(new Pixel(1));
@@ -188,15 +189,17 @@ void Player::right_mouse(double deltatime) {
 						placing_block = airblock;
 					}
 				} else {
-					block->set_global(blockpos, 1, selitem, 0);
-					placing_block = block->get_global(blockpos, 1);
+					block.moveto_exact(blockpos, 1);
+					block.set(selitem);
+					// block->set_global(blockpos, 1, selitem, 0);
+					placing_block = block;
 					// game->debugblock = placing_block->pixel;
 					// world->get_global(ox, oy, oz, 1)->set_global(ivec3(ox+dx, oy+dy, oz+dz), 1, 1, 0);
 				}
 				placing_dir = dir;
 				placing_pointing = angle;
-			} else if (block->freecontainer != nullptr) {
-				moving_freeblock = block->freecontainer;
+			} else if (block.freecontainer != nullptr) {
+				moving_freeblock = block.freecontainer;
 				moving_point = moving_freeblock->box.transform_in(hitpos);
 				moving_range = glm::length(hitpos - box.position);
 			}
@@ -242,22 +245,24 @@ void Player::left_mouse(double deltatime) {
 		
 		vec3 hitpos;
 		ivec3 dir;
-		Block* block;
+		BlockView block;
 		raycast(&block, &dir, &hitpos);
 		
-		if (block == nullptr) return;
+		if (!block.isvalid()) return;
 		
 		
-		if (block->freecontainer != nullptr) {
-			hitpos = block->freecontainer->box.transform_in(hitpos);
+		if (block.freecontainer != nullptr) {
+			hitpos = block.freecontainer->box.transform_in(hitpos);
 		}
 		ivec3 blockpos = SAFEFLOOR3(hitpos);//SAFEFLOOR3(hitpos) + dir;
 		
-		if (block->freecontainer == nullptr or block->freecontainer->fixed) {
-			block->set_global(blockpos, 1, 0, 0);
+		if (block.freecontainer == nullptr or block.freecontainer->fixed) {
+			block.moveto_exact(blockpos, 1);
+			block.set(0);
+			// block->set_global(blockpos, 1, 0, 0);
 			// world->set_global(pos, 1, 0, 0);
 		} else {
-			block->freecontainer->physicsbody->apply_impulse(pointing*5.0f, hitpos);
+			block.freecontainer->physicsbody->apply_impulse(pointing*5.0f, hitpos);
 		}
 		// game->debugblock = world->get_global(pos.x, pos.y-1, pos.z, 1)->pixel;
 		// cout << game->debugblock->parbl->flags << '-' << endl;
@@ -499,7 +504,7 @@ void Player::timestep(float curtime, float deltatime) {
 		timeout += deltatime;
 	} else {
 		timeout = 0;
-		placing_block = nullptr;
+		placing_block = BlockView();
 		placing_freeblock = nullptr;
 		moving_freeblock = nullptr;
 	}

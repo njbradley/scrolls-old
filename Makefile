@@ -15,5 +15,6 @@ dwarfdebug: scrolls
 multiplayer: scrolls
 server: scrolls multiplayer
 client: scrolls multiplayer singleplayer
+tests: scrolls
 
 .PHONY: $(PLUGINS)

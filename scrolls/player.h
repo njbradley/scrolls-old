@@ -37,7 +37,7 @@ private:
   double attack_recharge = 0;
   double total_attack_recharge = 0.2;
   
-  Block* placing_block = nullptr;
+  BlockView placing_block;
   FreeBlock* placing_freeblock = nullptr;
 	FreeBlock* moving_freeblock = nullptr;
 	float moving_range;
@@ -70,7 +70,7 @@ private:
 		mat4 getProjectionMatrix();
 		void right_mouse(double dt);
 		void left_mouse(double dt);
-    void raycast(Block** hit, ivec3* dir, vec3* hitpos);
+    void raycast(BlockView* hit, ivec3* dir, vec3* hitpos);
 		void mouse_button();
 		void die();
 		virtual void tick(float curtime, float deltatime);

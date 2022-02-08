@@ -3,6 +3,7 @@
 
 #include "classes.h"
 #include "scrolls/plugins.h"
+#include "scrolls/blocks.h"
 
 #include <boost/asio.hpp>
 #include <chrono>
@@ -93,10 +94,8 @@ struct LeavePacket : Packet {
 
 struct BlockPacket : Packet {
 	PACKET_HEAD(BlockPacket);
-	ivec3 globalpos;
-	int scale;
-	Block* block;
-	BlockPacket(Block* block);
+	BlockView block;
+	BlockPacket(const BlockView& nview);
 	BlockPacket(istream& idata);
 	virtual void pack(ostream& odata);
 };

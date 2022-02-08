@@ -61,7 +61,7 @@ public:
 
 
 
-class World: public Collider { public:
+class World: public Container { public:
   BASE_PLUGIN_HEAD(World, (string name));
   
   static const int chunksize = 64;
@@ -117,10 +117,13 @@ class World: public Collider { public:
   
   Tile* tileat(ivec3 pos);
   Tile* tileat_global(ivec3 pos);
-  Block* get_global(ivec3 pos, int scale);
-  const Block* get_global(ivec3 pos, int scale) const;
+  BlockView get_global(ivec3 pos, int scale);
+  ConstBlockView get_global(ivec3 pos, int scale) const;
   
-  void set_global(ivec3 pos, int w, Blocktype val, int direction, int joints[6] = nullptr);
+  virtual Block* get_child(ivec3 pos);
+  virtual const Block* get_child(ivec3 pos) const;
+  virtual void set_child(ivec3 pos, Block* block);
+  
   Blocktype get(ivec3 pos);
   void set(ivec3 pos, Blocktype val, int direction = 0);
   Block* raycast(vec3* pos, vec3 dir, double time);

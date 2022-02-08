@@ -3,27 +3,7 @@
 
 #include "classes.h"
 #include "physics.h"
-
-template <typename BlockT>
-struct BlockTypes {
-  
-};
-
-template <>
-struct BlockTypes<Block> {
-  using BlockT = Block;
-  using PixelT = Pixel;
-  using FreeBlockT = FreeBlock;
-  using ColliderT = Collider;
-};
-
-template <>
-struct BlockTypes<const Block> {
-  using BlockT = const Block;
-  using PixelT = const Pixel;
-  using FreeBlockT = const FreeBlock;
-  using ColliderT = const Collider;
-};
+#include "blocks.h"
 
 // Base class for almost all block iterator classes
 // iterates over all blocks below the given base, including the base block.
@@ -41,7 +21,27 @@ class BlockIterator : public BlockViewT { public:
 //   using ColliderT = typename BlockTypes<BlockT>::ColliderT;
 //
 //   BlockT* curblock;
+  
+  using BlockType = typename BlockViewT::BlockType;
+  using BlockViewType = BlockViewT;
+  using PixelT = typename BlockTypes<BlockType>::PixelT;
+  using FreeBlockT = typename BlockTypes<BlockType>::FreeBlockT;
+  using ColliderT = typename BlockTypes<BlockType>::ColliderT;
+  
+  using BlockViewT::curblock;
+  using BlockViewT::parent;
+  using BlockViewT::scale;
+  using BlockViewT::globalpos;
+  using BlockViewT::hitbox;
+  using BlockViewT::freebox;
+  
   int max_scale;
+  
+  BlockIterator(BlockViewT& base);
+  
+  using BlockViewT::isvalid;
+  using BlockViewT::parentpos;
+  using BlockViewT::step_up;
   
   // turns the iterator into an end iterator
   virtual void to_end();
@@ -66,12 +66,12 @@ class BlockIterator : public BlockViewT { public:
   
   // whether a block is valid, if a block is not valid the iterator will skip the block
   // and all of its children
-  virtual bool valid_block() { return this->curblock != nullptr; }
+  virtual bool valid_block() { return curblock != nullptr; }
   // whether a block should be skipped, only skips the single block, the iterator will
   // still go to its children
   virtual bool skip_block() { return false; }
   // called when the iterator has reached the end
-  virtual void finish() { this->curblock = nullptr; }
+  virtual void finish() { curblock = nullptr; }
   
   BlockIterator<BlockViewT> operator++();
   BlockViewT& operator*();
@@ -97,44 +97,45 @@ class BlockIterable { public:
 
 
 // iterates over all pixels in a block
-template <typename BlockT>
-class PixelIterator : public BlockIterator<BlockT> { public:
-  using BlockIterator<BlockT>::BlockIterator;
-  
-  virtual bool skip_block(BlockT* block);
+template <typename BlockViewT>
+class PixelIterator : public BlockIterator<BlockViewT> { public:
+  using BlockIterator<BlockViewT>::curblock;
+  using BlockIterator<BlockViewT>::BlockIterator;
+  virtual bool skip_block();
 };
 
 // iterates over only the pixels touching the specified side
-template <typename BlockT>
-class DirPixelIterator : public PixelIterator<BlockT> { public:
+template <typename BlockViewT>
+class DirPixelIterator : public PixelIterator<BlockViewT> { public:
   ivec3 dir;
   
-  DirPixelIterator(BlockT* base, ivec3 newdir): PixelIterator<BlockT>(base), dir(newdir) {}
+  DirPixelIterator(BlockViewT& base, ivec3 newdir): PixelIterator<BlockViewT>(base), dir(newdir) {}
   
   virtual ivec3 startpos() { return (dir+1)/2 * (csize-1); }
   virtual ivec3 endpos() { return (1-(1-dir)/2) * (csize-1); }
 };
 
 // only iterates over all pixels colliding with a specified hitbox
-template <typename BlockT>
-class FreePixelIterator : public PixelIterator<BlockT> { public:
+template <typename BlockViewT>
+class FreePixelIterator : public PixelIterator<BlockViewT> { public:
   Hitbox box;
+  using BlockIterator<BlockViewT>::curblock;
   
-  FreePixelIterator(BlockT* base, Hitbox nbox): PixelIterator<BlockT>(base), box(nbox) {}
+  FreePixelIterator(BlockViewT& base, Hitbox nbox): PixelIterator<BlockViewT>(base), box(nbox) {}
   
-  virtual bool valid_block(BlockT* block);
+  virtual bool valid_block();
 };
 
 // iterates over all freeblocks in a block
-template <typename BlockT>
-class FreeBlockIterator: public BlockIterator<BlockT> { public:
+template <typename BlockViewT>
+class FreeBlockIterator: public BlockIterator<BlockViewT> { public:
   Hitbox box;
+  using BlockIterator<BlockViewT>::curblock;
   
-  FreeBlockIterator(BlockT* base, Hitbox nbox): BlockIterator<BlockT>(base), box(nbox) {}
+  FreeBlockIterator(BlockViewT& base, Hitbox nbox): BlockIterator<BlockViewT>(base), box(nbox) {}
   
-  virtual bool valid_block(BlockT* block);
-  virtual bool skip_block(BlockT* block);
-  typename BlockTypes<BlockT>::FreeBlockT* operator*();
+  virtual bool valid_block();
+  virtual bool skip_block();
 };
 
 
@@ -170,6 +171,7 @@ class MultiBaseIterable { public:
 template <typename Iterator>
 class HitboxIterable : public MultiBaseIterable<Iterator> { public:
   using BlockT = typename Iterator::BlockType;
+  using BlockViewT = typename Iterator::BlockViewType;
   using ColliderT = typename Iterator::ColliderT;
   HitboxIterable(ColliderT* world, Hitbox box);
 };
@@ -178,37 +180,39 @@ class HitboxIterable : public MultiBaseIterable<Iterator> { public:
 template <typename Iterator>
 class FreeboxIterable : public MultiBaseIterable<Iterator> { public:
   using BlockT = typename Iterator::BlockType;
+  using BlockViewT = typename Iterator::BlockViewType;
   using ColliderT = typename Iterator::ColliderT;
   FreeboxIterable(ColliderT* world, Hitbox box);
 };
 
 // iterates over all pixels touching a hitbox, including freeblocks
-template <typename BlockT>
-class FullFreePixelIterable : public HitboxIterable<FreePixelIterator<BlockT>> { public:
-  using ColliderT = typename BlockTypes<BlockT>::ColliderT;
+template <typename BlockViewT>
+class FullFreePixelIterable : public HitboxIterable<FreePixelIterator<BlockViewT>> { public:
+  using ColliderT = typename BlockTypes<typename BlockViewT::BlockType>::ColliderT;
+  using FreeBlockT = typename BlockViewT::FreeBlockT;
   FullFreePixelIterable(ColliderT* world, Hitbox box, const Block* ignore = nullptr, bool ignore_world = false);
 };
 
 // iterates over all pixels that touch the side of a block
 // if the given block is a freeblock and it is on the edge, it will
 // use a freeiter to look in the base world
-template <typename BlockT>
+template <typename BlockViewT>
 class BlockSideIterable { public:
-  using PixelT = typename BlockTypes<BlockT>::PixelT;
+  using PixelT = typename BlockViewT::PixelT;
   
-  BlockIterable<DirPixelIterator<BlockT>> blockiter;
-  HitboxIterable<FreePixelIterator<BlockT>> freeiter;
+  BlockIterable<DirPixelIterator<BlockViewT>> blockiter;
+  HitboxIterable<FreePixelIterator<BlockViewT>> freeiter;
   bool free = false;
   
-  BlockSideIterable(BlockT* block, ivec3 dir);
-  static Hitbox make_side_hitbox(BlockT* block, ivec3 dir);
+  BlockSideIterable(BlockViewT& base, ivec3 dir);
+  static Hitbox make_side_hitbox(BlockViewT& view, ivec3 dir);
   
   class Iterator { public:
-    DirPixelIterator<BlockT> blockiter;
-    typename HitboxIterable<FreePixelIterator<BlockT>>::ComboIterator freeiter;
+    DirPixelIterator<BlockViewT> blockiter;
+    typename HitboxIterable<FreePixelIterator<BlockViewT>>::ComboIterator freeiter;
     bool free;
     
-    PixelT* operator*();
+    BlockViewT& operator*();
     Iterator operator++();
     bool operator!=(const Iterator& other);
   };

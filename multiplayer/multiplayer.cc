@@ -55,22 +55,22 @@ void JoinPacket::pack(ostream& odata) {
 DEFINE_PACKET(JoinPacket);
 
 
-BlockPacket::BlockPacket(Block* nblock): block(nblock), globalpos(nblock->globalpos), scale(nblock->scale) {
+BlockPacket::BlockPacket(const BlockView& nview): block(nview) {
 	
 }
 
 BlockPacket::BlockPacket(istream& idata): Packet(idata) {
-	FileFormat::read_fixed(idata, &globalpos);
-	FileFormat::read_fixed(idata, (uint32*)&scale);
+	FileFormat::read_fixed(idata, &block.globalpos);
+	FileFormat::read_fixed(idata, (uint32*)&block.scale);
 	
-	block = new Block();
+	block.set_curblock(new Block());
 	block->from_file(idata);
 }
 
 void BlockPacket::pack(ostream& odata) {
 	Packet::pack(odata);
-	FileFormat::write_fixed(odata, block->globalpos);
-	FileFormat::write_fixed(odata, (uint32) block->scale);
+	FileFormat::write_fixed(odata, block.globalpos);
+	FileFormat::write_fixed(odata, (uint32) block.scale);
 	block->to_file(odata);
 }
 DEFINE_PACKET(BlockPacket);

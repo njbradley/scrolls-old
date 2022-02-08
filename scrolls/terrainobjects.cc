@@ -3,7 +3,7 @@
 #include "blocks.h"
 #include "blockdata.h"
 #include "world.h"
-
+/*
 template <int rarity>
 struct SurfaceObject : public TerrainObject {
 	using TerrainObject::TerrainObject;
@@ -119,6 +119,6 @@ struct BareTree : SurfaceObject<1000> {
 	
 	
 };
-
-EXPORT_PLUGIN(BareTree);
+*/
+// EXPORT_PLUGIN(BareTree);
 		

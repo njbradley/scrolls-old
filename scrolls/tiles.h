@@ -35,17 +35,16 @@ class Tile : public Container {
 		void drop_ticks();
 		void render(RenderVecs* vecs, RenderVecs* transvecs);
 		void save();
-		void update_lighting();
 		void lighting_update();
 		void set_chunk(Block* nchunk);
 		
-		Block* get_global(ivec3 pos, int scale);
-		const Block* get_global(ivec3 pos, int scale) const;
-		vec3 get_position() const;
-		void block_update(ivec3 pos);
-		void set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6] = nullptr);
-		void add_freeblock(FreeBlock* freeblock);
-		void remove_freeblock(FreeBlock* freeblock);
+		BlockView get_global(ivec3 pos, int scale);
+		ConstBlockView get_global(ivec3 pos, int scale) const;
+		Block* get_child(ivec3 npos);
+		const Block* get_child(ivec3 npos) const;
+		void set_child(ivec3 npos, Block* block);
+		// void add_freeblock(FreeBlock* freeblock);
+		// void remove_freeblock(FreeBlock* freeblock);
 };
 
 class TileLoader { public:
