@@ -11,53 +11,6 @@
 #include <mutex>
 #include <atomic>
 
-class TileMap {
-  
-  struct Item {
-    Tile* tile;
-    Item* next;
-  };
-  
-  struct Bucket {
-    std::mutex lock;
-    Item* items = nullptr;
-  };
-  
-  Bucket* buckets;
-  const int num_buckets;
-  std::atomic<int> num_items;
-  
-public:
-  
-  class iterator {
-  public:
-    Bucket* bucket;
-    Bucket* endbucket;
-    Item* item;
-    Tile* operator*();
-    iterator operator++();
-    void move_to_next();
-    friend bool operator!=(const iterator& iter1, const iterator& iter2);
-  };
-  
-  TileMap(int max_items);
-  ~TileMap();
-  
-  void add_tile(Tile* tile);
-  Tile* tileat(ivec3 pos);
-  const Tile* tileat(ivec3 pos) const;
-  Tile* del_tile(ivec3 pos);
-  
-  Tile* operator[] (ivec3 pos);
-  
-  size_t size() const;
-  
-  iterator begin();
-  iterator end();
-  
-  void status(ostream& ofile);
-};
-  
 
 
 
@@ -74,9 +27,8 @@ class World: public Collider { public:
   bool saving = true;
   ivec3 last_player_pos = ivec3(0,0,0);
   
-  double daytime = 500;
-  
-  TileMap tiles;
+  double daytime = 600;
+  BlockView block;
   TerrainLoader terrainloader;
   PluginNow<TileLoader> tileloader;
   PluginNow<PhysicsEngine> physics;
