@@ -238,21 +238,7 @@ void Tile::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6])
   world->set_global(pos, w, val, direc, joints);
 }
 
-void Tile::add_freeblock(FreeBlock* freeblock) {
-  freeblock->allfreeblocks = allfreeblocks;
-  allfreeblocks = freeblock;
-}
 
-void Tile::remove_freeblock(FreeBlock* freeblock) {
-  FreeBlock** free = &allfreeblocks;
-  while (*free != nullptr) {
-    if (*free == freeblock) {
-      *free = (*free)->allfreeblocks;
-      return;
-    }
-    free = &(*free)->allfreeblocks;
-  }
-}
 
 DEFINE_PLUGIN(TileLoader);
 

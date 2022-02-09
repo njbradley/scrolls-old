@@ -44,8 +44,6 @@ class Tile : public Container {
 		vec3 get_position() const;
 		void block_update(ivec3 pos);
 		void set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6] = nullptr);
-		void add_freeblock(FreeBlock* freeblock);
-		void remove_freeblock(FreeBlock* freeblock);
 };
 
 class TileLoader { public:

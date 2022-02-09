@@ -22,155 +22,11 @@
 DEFINE_AND_EXPORT_PLUGIN(World);
 
 
-Tile* TileMap::iterator::operator*() {
-  return item->tile;
-}
-
-TileMap::iterator TileMap::iterator::operator++() {
-  item = item->next;
-  move_to_next();
-  return *this;
-}
-
-void TileMap::iterator::move_to_next() {
-  while (item == nullptr and bucket != endbucket) {
-    item = bucket->items;
-    bucket ++;
-  }
-}
-
-bool operator!=(const TileMap::iterator& iter1, const TileMap::iterator& iter2) {
-  return iter1.item != iter2.item or iter1.bucket != iter2.bucket;
-}
-
-
-TileMap::TileMap(int max_items): num_buckets(max_items * 3/2), num_items(0) {
-  buckets = new Bucket[num_buckets];
-}
-
-TileMap::~TileMap() {
-  for (int i = 0; i < num_buckets; i ++) {
-    std::lock_guard guard(buckets[i].lock);
-    Item* item = buckets[i].items;
-    while (item != nullptr) {
-      Item* last = item;
-      item = item->next;
-      delete last;
-    }
-  }
-  delete[] buckets;
-}
-
-
-void TileMap::add_tile(Tile* tile) {
-  Bucket* bucket = buckets + (ivec3_hash()(tile->pos) % num_buckets);
-  std::lock_guard guard(bucket->lock);
-  Item* item = bucket->items;
-  num_items ++;
-  bucket->items = new Item {tile, bucket->items};
-}
-
-Tile* TileMap::tileat(ivec3 pos) {
-  Bucket* bucket = buckets + (ivec3_hash()(pos) % num_buckets);
-  std::lock_guard guard(bucket->lock);
-  Item* item = bucket->items;
-  while (item != nullptr) {
-    if (item->tile->pos == pos) {
-      return item->tile;
-    }
-    item = item->next;
-  }
-  return nullptr;
-}
-
-const Tile* TileMap::tileat(ivec3 pos) const {
-  Bucket* bucket = buckets + (ivec3_hash()(pos) % num_buckets);
-  std::lock_guard guard(bucket->lock);
-  const Item* item = bucket->items;
-  while (item != nullptr) {
-    if (item->tile->pos == pos) {
-      return item->tile;
-    }
-    item = item->next;
-  }
-  return nullptr;
-}
-  
-Tile* TileMap::del_tile(ivec3 pos) {
-  Bucket* bucket = buckets + (ivec3_hash()(pos) % num_buckets);
-  std::lock_guard guard(bucket->lock);
-  Item** last = &bucket->items;
-  while (*last != nullptr) {
-    if ((*last)->tile->pos == pos) {
-      Item* delitem = *last;
-      *last = (*last)->next;
-      Tile* tile = delitem->tile;
-      delete delitem;
-      num_items --;
-      return tile;
-    }
-    last = &(*last)->next;
-  }
-  cout << "bad" << endl;
-  return nullptr;
-}
-
-Tile* TileMap::operator[] (ivec3 pos) {
-  return tileat(pos);
-}
-
-size_t TileMap::size() const {
-  return num_items;
-}
-
-TileMap::iterator TileMap::begin() {
-  iterator iter {buckets, buckets + num_buckets, nullptr};
-  iter.move_to_next();
-  return iter;
-}
-
-TileMap::iterator TileMap::end() {
-  iterator iter {buckets + num_buckets, buckets + num_buckets, nullptr};
-  return iter;
-}
-
-void TileMap::status(ostream& ofile) {
-  int maxlen = 0;
-  ofile << "Buckets: ";
-  for (int i = 0; i < num_buckets; i ++) {
-    std::lock_guard guard(buckets[i].lock);
-    Item* item = buckets[i].items;
-    int len = 0;
-    while (item != nullptr) {
-      len ++;
-      item = item->next;
-    }
-    if (len > maxlen) {
-      maxlen = len;
-    }
-    ofile << len;
-    /*ofile << '[' << i << ']';
-    std::lock_guard guard(buckets[i].lock);
-    Item* item = buckets[i].items;
-    while (item != nullptr) {
-      ofile << ' ' << item->tile->pos << '(' << ivec3_hash()(item->tile->pos) << "):" << item->tile;
-      item = item->next;
-    }
-    ofile << endl;*/
-  }
-  ofile << endl;
-  ofile << "Bucket count: " << num_buckets << endl;
-  ofile << "Item count: " << num_items << endl;
-  ofile << "Average length: " << num_items / double(num_buckets) << endl;
-  ofile << "Max bucket length: " << maxlen << endl;
-}
-
 
 float World::tick_deltatime = 0.030f;
 
 
-World::World(string oldname): seed(std::hash<string>()(name)), terrainloader(seed), tileloader(this), name(oldname), physics(this, tick_deltatime),
-tiles( ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) * ((settings->view_dist-1)*2+1) + 3) {
+World::World(string oldname): seed(std::hash<string>()(name)), terrainloader(seed), tileloader(this), name(oldname), physics(this, tick_deltatime) {
   
 }
 
@@ -627,5 +483,20 @@ void World::close_world() {
   ofile2 << name;
 }
 
+void Tile::add_freeblock(FreeBlock* freeblock) {
+  freeblock->allfreeblocks = allfreeblocks;
+  allfreeblocks = freeblock;
+}
+
+void Tile::remove_freeblock(FreeBlock* freeblock) {
+  FreeBlock** free = &allfreeblocks;
+  while (*free != nullptr) {
+    if (*free == freeblock) {
+      *free = (*free)->allfreeblocks;
+      return;
+    }
+    free = &(*free)->allfreeblocks;
+  }
+}
 
 #endif

@@ -14,7 +14,7 @@
 
 
 
-class World: public Collider { public:
+class World: public Container { public:
   BASE_PLUGIN_HEAD(World, (string name));
   
   static const int chunksize = 64;
@@ -67,8 +67,6 @@ class World: public Collider { public:
   
   virtual void load_nearby_chunks();
   
-  Tile* tileat(ivec3 pos);
-  Tile* tileat_global(ivec3 pos);
   Block* get_global(ivec3 pos, int scale);
   const Block* get_global(ivec3 pos, int scale) const;
   
@@ -76,8 +74,6 @@ class World: public Collider { public:
   Blocktype get(ivec3 pos);
   void set(ivec3 pos, Blocktype val, int direction = 0);
   Block* raycast(vec3* pos, vec3 dir, double time);
-  void add_tile(Tile* tile);
-  void del_tile(ivec3 pos, bool remove_faces);
   virtual void close_world();
   virtual bool is_world_closed();
 };
