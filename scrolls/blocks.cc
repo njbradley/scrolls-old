@@ -148,11 +148,13 @@ void Block::update() {
     set_flag(UPDATE_FLAG);
   } else {
     // cout << "start " << endl;
-    // for (int i = 0; i < 6; i ++) {
-    //   Block* side = get_global(globalpos + dir_array[i]*scale, scale);
-    //   if (side != nullptr) {
-    //     for (Pixel* pix : side->iter_side(dir_array[i])) {
-    //       pix->parbl->set_flag(RENDER_FLAG | LIGHT_FLAG | CHANGE_FLAG | CHANGE_PROP_FLAG);
+    // if (scale != 0) {
+    //   for (int i = 0; i < 6; i ++) {
+    //     Block* side = get_global(globalpos + dir_array[i]*scale, scale);
+    //     if (side != nullptr) {
+    //       for (Pixel* pix : side->iter_side(dir_array[i])) {
+    //         pix->parbl->set_flag(RENDER_FLAG | LIGHT_FLAG | CHANGE_FLAG | CHANGE_PROP_FLAG);
+    //       }
     //     }
     //   }
     // }
@@ -419,25 +421,22 @@ Movingbox Block::movingbox() const {
 
 Block* Block::get_global(ivec3 pos, int w) {
   Block* curblock = this;
+  // ivec3 diff3 = pos - curblock->globalpos;
+  // int diff = std::max(std::max(diff3.x, diff3.y), diff3.z);
+  // while (diff > curblock->scale or diff < 0 or curblock->scale < w) {
   while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale) or curblock->scale < w) {
     if (curblock->parent == nullptr) {
-      if (curblock->freecontainer != nullptr) {
-        return nullptr;
-        // pos = SAFEFLOOR3(curblock->freecontainer->box.transform_out(pos));
-        // curblock = curblock->freecontainer->highparent;
-      } else if (world != nullptr) {
-        return nullptr;
-        // Block* result = world->get_global(pos, w);
-        // return result;
-      } else {
-        return nullptr;
-      }
+      return nullptr;
     } else {
       curblock = curblock->parent;
     }
+    
+    // diff3 = pos - curblock->globalpos;
+    // diff = std::max(std::max(diff3.x, diff3.y), diff3.z);
   }
   
   while (curblock != nullptr and curblock->scale > w and curblock->continues) {
+    // ivec3 rem = (pos - curblock->globalpos) / (curblock->scale / csize);
     ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
     curblock = curblock->get(rem);
   }
@@ -446,46 +445,22 @@ Block* Block::get_global(ivec3 pos, int w) {
 
 const Block* Block::get_global(ivec3 pos, int w) const {
   const Block* curblock = this;
+  // ivec3 diff3 = pos - curblock->globalpos;
+  // int diff = std::max(std::max(diff3.x, diff3.y), diff3.z);
+  // while (diff > curblock->scale or diff < 0 or curblock->scale < w) {
   while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale) or curblock->scale < w) {
     if (curblock->parent == nullptr) {
-      if (curblock->freecontainer != nullptr) {
-        return nullptr;
-        // pos = SAFEFLOOR3(curblock->freecontainer->box.transform_out(pos));
-        // curblock = curblock->freecontainer->highparent;
-      } else if (world != nullptr) {
-        const Block* result = world->get_global(pos, w);
-        return result;
-      } else {
-        return nullptr;
-      }
+      return nullptr;
     } else {
       curblock = curblock->parent;
     }
+    
+    // diff3 = pos - curblock->globalpos;
+    // diff = std::max(std::max(diff3.x, diff3.y), diff3.z);
   }
   
   while (curblock != nullptr and curblock->scale > w and curblock->continues) {
-    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
-    curblock = curblock->get(rem);
-  }
-  return curblock;
-}
-
-Block* Block::get_local(ivec3 pos, int w) {
-  Block* curblock = this;
-  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale)) {
-    if (curblock->parent == nullptr) {
-      if (curblock->freecontainer != nullptr) {
-        return nullptr;
-      } else {
-        Block* result = world->get_global(pos, w);
-        return result;
-      }
-    } else {
-      curblock = curblock->parent;
-    }
-  }
-  
-  while (curblock != nullptr and curblock->scale > w and curblock->continues) {
+    // ivec3 rem = (pos - curblock->globalpos) / (curblock->scale / csize);
     ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
     curblock = curblock->get(rem);
   }

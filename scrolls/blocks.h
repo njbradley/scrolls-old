@@ -31,7 +31,7 @@ extern const uint8 lightmax;
 class Block: public Collider { public:
 	ivec3 parentpos;
 	ivec3 globalpos; // should be called localpos, but i really dont want to change everything
-	int scale;
+	int scale = 0;
 	Block* parent = nullptr;
 	Container* world;
 	FreeBlock* freecontainer = nullptr;
@@ -124,8 +124,6 @@ class Block: public Collider { public:
 	// calls to world if it reaches the top
 	Block* get_global(ivec3 pos, int w);
 	const Block* get_global(ivec3 pos, int w) const;
-	// travels the tree, but does not travel between freeblocks/baseblocks
-	Block* get_local(ivec3 pos, int w);
 	// travels the tree, and sets the block specified. does not travel between
 	// freeblocks/baseblocks
 	void set_global(ivec3 pos, int w, Blocktype val, int direc = -1, int joints[6] = nullptr);

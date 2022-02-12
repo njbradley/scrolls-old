@@ -4,7 +4,6 @@
 #include "scrolls/blocks.h"
 #include "scrolls/blockiter.h"
 #include "scrolls/world.h"
-#include "scrolls/tiles.h"
 #include "scrolls/debug.h"
 
 
@@ -152,11 +151,9 @@ Hitbox BlockBroadPhase::expandbox(Hitbox box) {
 
 void BlockBroadPhase::UpdatePairs() {
 	double start = getTime();
-	for (Tile* tile : world->tiles) {
-		for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
-			if (Q3PhysicsBody::from_block(free)->body->IsAwake()) {
-				update_freeblock(free);
-			}
+	for (FreeBlock* free = world->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
+		if (Q3PhysicsBody::from_block(free)->body->IsAwake()) {
+			update_freeblock(free);
 		}
 	}
 	

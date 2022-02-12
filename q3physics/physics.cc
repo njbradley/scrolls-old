@@ -3,7 +3,6 @@
 #include "scrolls/blocks.h"
 #include "scrolls/blockiter.h"
 #include "scrolls/world.h"
-#include "scrolls/tiles.h"
 #include "scrolls/blockdata.h"
 #include "scrolls/game.h"
 #include "scrolls/materials.h"
@@ -223,11 +222,9 @@ void Q3PhysicsEngine::tick(float curtime, float dt) {
 	scene.Step();
 	
 	
-	for (Tile* tile : world->tiles) {
-		for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
-			body = Q3PhysicsBody::from_block(free);
-			body->sync_glm(curtime, dt);
-		}
+	for (FreeBlock* free = world->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
+		body = Q3PhysicsBody::from_block(free);
+		body->sync_glm(curtime, dt);
 	}
 	double end = getTime();
 	// if (end - start < 0.75 * dt) {

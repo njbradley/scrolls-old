@@ -114,6 +114,7 @@ void World::startup() {
 }
 
 void World::spawn_player() {
+  cout << "spawning player " << endl;
   // ivec3 spawnpos(15,terrainloader.get_height(ivec2(15,15))+8,15);
   ivec3 spawnpos(32, 37, 32);
   int i = 0;
@@ -174,7 +175,7 @@ void World::divide_terrain(Block* block, int max_divides) {
 void World::load_nearby_chunks() {
   if (block == nullptr) {
     block = new Block();
-    block->set_parent(this, ivec3(0,0,0), max_scale);
+    block->set_parent(this, ivec3(0,0,0), 256);
     divide_terrain(block, 4);
   } else {
     bool done = true;
@@ -185,7 +186,7 @@ void World::load_nearby_chunks() {
       if (!pix->done_generating) {
         float dist = glm::length(vec3(last_player_pos - (pix->parbl->globalpos + pix->parbl->scale/2)));
         dist = std::max(dist - pix->parbl->scale/2, 0.0f);
-        dist /= 5;
+        dist /= 50;
         if (pix->parbl->scale > dist) {
           divide_terrain(pix->parbl, 1);
           done = false;
@@ -273,7 +274,12 @@ void World::tick(float curtime, float deltatime) {
 }
 
 bool World::render() {
+  static bool start_render = true;
   if (block == nullptr or initial_generation) return false;
+  if (start_render) {
+    cout << "starting render" << endl;
+    start_render = false;
+  }
   bool changed = block->flags & Block::RENDER_FLAG;
   block->render(graphics->blockvecs, graphics->transvecs);
   return changed;
