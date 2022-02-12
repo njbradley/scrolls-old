@@ -421,23 +421,25 @@ Movingbox Block::movingbox() const {
 
 Block* Block::get_global(ivec3 pos, int w) {
   Block* curblock = this;
-  // ivec3 diff3 = pos - curblock->globalpos;
-  // int diff = std::max(std::max(diff3.x, diff3.y), diff3.z);
-  // while (diff > curblock->scale or diff < 0 or curblock->scale < w) {
-  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale) or curblock->scale < w) {
+  ivec3 diff3 = pos - curblock->globalpos;
+  int diffmax = std::max(std::max(diff3.x, diff3.y), diff3.z);
+  int diffmin = std::min(std::min(diff3.x, diff3.y), diff3.z);
+  while (diffmax >= curblock->scale or diffmin < 0 or curblock->scale < w) {
+  // while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale) or curblock->scale < w) {
     if (curblock->parent == nullptr) {
       return nullptr;
     } else {
       curblock = curblock->parent;
     }
     
-    // diff3 = pos - curblock->globalpos;
-    // diff = std::max(std::max(diff3.x, diff3.y), diff3.z);
+    diff3 = pos - curblock->globalpos;
+    diffmax = std::max(std::max(diff3.x, diff3.y), diff3.z);
+    diffmin = std::min(std::min(diff3.x, diff3.y), diff3.z);
   }
   
   while (curblock != nullptr and curblock->scale > w and curblock->continues) {
-    // ivec3 rem = (pos - curblock->globalpos) / (curblock->scale / csize);
-    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
+    ivec3 rem = (pos - curblock->globalpos) / (curblock->scale / csize);
+    // ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
     curblock = curblock->get(rem);
   }
   return curblock;
@@ -445,23 +447,25 @@ Block* Block::get_global(ivec3 pos, int w) {
 
 const Block* Block::get_global(ivec3 pos, int w) const {
   const Block* curblock = this;
-  // ivec3 diff3 = pos - curblock->globalpos;
-  // int diff = std::max(std::max(diff3.x, diff3.y), diff3.z);
-  // while (diff > curblock->scale or diff < 0 or curblock->scale < w) {
-  while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale) or curblock->scale < w) {
+  ivec3 diff3 = pos - curblock->globalpos;
+  int diffmax = std::max(std::max(diff3.x, diff3.y), diff3.z);
+  int diffmin = std::min(std::min(diff3.x, diff3.y), diff3.z);
+  while (diffmax >= curblock->scale or diffmin < 0 or curblock->scale < w) {
+  // while (SAFEDIV(pos, curblock->scale) != SAFEDIV(curblock->globalpos, curblock->scale) or curblock->scale < w) {
     if (curblock->parent == nullptr) {
       return nullptr;
     } else {
       curblock = curblock->parent;
     }
     
-    // diff3 = pos - curblock->globalpos;
-    // diff = std::max(std::max(diff3.x, diff3.y), diff3.z);
+    diff3 = pos - curblock->globalpos;
+    diffmax = std::max(std::max(diff3.x, diff3.y), diff3.z);
+    diffmin = std::min(std::min(diff3.x, diff3.y), diff3.z);
   }
   
   while (curblock != nullptr and curblock->scale > w and curblock->continues) {
-    // ivec3 rem = (pos - curblock->globalpos) / (curblock->scale / csize);
-    ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
+    ivec3 rem = (pos - curblock->globalpos) / (curblock->scale / csize);
+    // ivec3 rem = SAFEMOD(pos, curblock->scale) / (curblock->scale / csize);
     curblock = curblock->get(rem);
   }
   return curblock;
