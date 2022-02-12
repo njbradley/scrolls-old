@@ -15,6 +15,7 @@
 #include "audio.h"
 #include "debug.h"
 #include "settings.h"
+#include "blockiter.h"
 
 #include <map>
 
@@ -113,14 +114,15 @@ void World::startup() {
 }
 
 void World::spawn_player() {
-  ivec3 spawnpos(15,terrainloader.get_height(ivec2(15,15))+8,15);
+  // ivec3 spawnpos(15,terrainloader.get_height(ivec2(15,15))+8,15);
+  ivec3 spawnpos(32, 37, 32);
   int i = 0;
   // while (loader.gen_func(ivec4(spawnpos.x, spawnpos.y, spawnpos.z, 1)) != 0 and i < 100) {
   //   i ++;
   //   spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
   // }
   Block* spawnblock = get_global(spawnpos, 8);
-  if (spawnblock == nullptr) {
+  if (spawnblock == nullptr or (!spawnblock->continues and !spawnblock->pixel->done_generating)) {
     cout << "player spawn location is null (waiting, though last_player_pos might be corrupt)" << endl;
     return;
   }
@@ -151,69 +153,49 @@ void World::set_spectator_vars() {
   player->controller = nullptr;
 }
 
-void World::load_nearby_chunks() {
-  static double start_time = getTime();
-  if (player == nullptr or !player->spectator) {
-    
-    bool loaded_chunks = false;
-    
-    if (player != nullptr) {
-      last_player_pos = player->box.position;
-    }
-    
-    int px = last_player_pos.x/chunksize - (last_player_pos.x<0);
-    int py = last_player_pos.y/chunksize - (last_player_pos.y<0);
-    int pz = last_player_pos.z/chunksize - (last_player_pos.z<0);
-    
-    const int maxrange = settings->view_dist;
-    
-    int max_chunks = ((settings->view_dist)*2+1) * ((settings->view_dist)*2+1) * ((settings->view_dist)*2+1);
-    int num_chunks = tiles.size();
-    
-    if (!world_closing) {
-      for (int range = 0; range < maxrange; range ++) {
-        // for (int y = py-range; y < py+range+1; y ++) {
-        for (int y = py+range; y >= py-range; y --) {
-          for (int x = px-range; x < px+range+1; x ++) {
-            for (int z = pz-range; z < pz+range+1; z ++) {
-              if (x == px-range or x == px+range or y == py-range or y == py+range or z == pz-range or z == pz+range) {
-                ivec3 pos(x,y,z);
-                if (tileat(pos) == nullptr and num_chunks < max_chunks and loading_chunks.count(pos) == 0) {
-                  loaded_chunks = true;
-                  num_chunks ++;
-                  tileloader->request_load_tile(pos);
-                  loading_chunks.insert(pos);
-                }
-              }
-            }
-          }
-        }
+void World::divide_terrain(Block* block, int max_divides) {
+  std::lock_guard<Block> guard(*block);
+  ivec3 blockpos = block->globalpos + block->scale/2;
+  int diff = (blockpos.z/2) - (blockpos.y);
+  block->set_pixel(new Pixel(diff > 0));
+  if (std::abs(diff) < block->scale/2) {
+    if (max_divides > 0) {
+      block->divide();
+      for (int i = 0; i < 8; i ++) {
+        block->set_child(i, new Block());
+        divide_terrain(block->children[i], max_divides - 1);
       }
     }
-    
-    const double max_distance = std::sqrt((maxrange)*(maxrange)*2);
-    
-    for (Tile* tile : tiles) {
-      ivec3 pos = tile->pos;
-      int range = maxrange;
-      if (((pos.x < px-range or pos.x > px+range or pos.y < py-range or pos.y > py+range or pos.z < pz-range or pos.z > pz+range)
-      or world_closing) and deleting_chunks.count(pos) == 0) {
-        tileloader->request_del_tile(pos);
-        deleting_chunks.insert(pos);
-      }
-    }
-    
-    if (loading_chunks.size() == 0 and initial_generation) {
-      cout << "Initial generation finished: " << getTime() - start_time << 's' << endl;
-      initial_generation = false;
-    }
+  } else {
+    block->pixel->done_generating = true;
   }
 }
 
-void World::add_tile(Tile* tile) {
-  logger->log(4) << "Adding tile " << tile << ' ' << tile->pos << endl;
-  tiles.add_tile(tile);
-  loading_chunks.erase(tile->pos);
+void World::load_nearby_chunks() {
+  if (block == nullptr) {
+    block = new Block();
+    block->set_parent(this, ivec3(0,0,0), max_scale);
+    divide_terrain(block, 4);
+  } else {
+    bool done = true;
+    if (spectator.controller != nullptr) {
+      last_player_pos = spectator.position;
+    }
+    for (Pixel* pix : block->iter()) {
+      if (!pix->done_generating) {
+        float dist = glm::length(vec3(last_player_pos - (pix->parbl->globalpos + pix->parbl->scale/2)));
+        dist = std::max(dist - pix->parbl->scale/2, 0.0f);
+        dist /= 5;
+        if (pix->parbl->scale > dist) {
+          divide_terrain(pix->parbl, 1);
+          done = false;
+        }
+      }
+    }
+    if (done) {
+      initial_generation = false;
+    }
+  }
 }
 
 void World::timestep(float curtime, float deltatime) {
@@ -226,21 +208,18 @@ void World::timestep(float curtime, float deltatime) {
   //   player->computeMatricesFromInputs();
   // }
   
-  for (Tile* tile : tiles) {
+  for (FreeBlock* free = allfreeblocks; free != nullptr; free = free->allfreeblocks) {
     if (player == nullptr) {
-      for (FreeBlock* free = tile->allfreeblocks; free != nullptr; free = free->allfreeblocks) {
-        player = dynamic_cast<Player*>(free);
-        if (player != nullptr) {
-          cout << "got player from world" << endl;
-          set_player_vars();
-          break;
-        }
+      player = dynamic_cast<Player*>(free);
+      if (player != nullptr) {
+        cout << "got player from world" << endl;
+        set_player_vars();
       }
     }
-    tile->timestep(curtime, deltatime);
+    free->timestep(curtime, deltatime);
   }
   
-  if (player == nullptr and tileat(SAFEDIV(last_player_pos, chunksize)) != nullptr) {
+  if (player == nullptr and get_global(last_player_pos, 32) != nullptr) {
     spawn_player();
   }
   
@@ -286,128 +265,36 @@ void World::tick(float curtime, float deltatime) {
   
   debuglines->clear("tick");
   
-  for (Tile* tile : tiles) {
-    tile->tick(curtime, deltatime);
+  for (FreeBlock* free = allfreeblocks; free != nullptr; free = free->allfreeblocks) {
+    free->tick(curtime, deltatime);
   }
+  
   physics->tick(curtime, deltatime);
 }
 
-vec3 World::get_position() const {
-  return vec3(0,0,0);
-}
-
-void World::block_update(ivec3 pos) {
-  // block_updates.emplace(pos);
-}
-
 bool World::render() {
-  //
-  // for (Tile* tile : tiles) {
-  //   if (!tile->lightflag) {
-  //     tile->render(graphics->blockvecs, graphics->transvecs);
-  //   }
-  // }
-  //
-  // return false;
-  
-  static bool initial_started = false;
-  static bool initial_done = false;
-  static double startTime;
-  static int num_times_idle = 0;
-  
-  bool changed = false;
-  double start = getTime();
-  Tile* playertile = nullptr;
-  if (player != nullptr) {
-    playertile = tileat_global(player->box.position);
-    // ivec3 ppos(player->box.position);
-    // ppos = ppos / chunksize - ivec3(ppos.x < 0, ppos.y < 0, ppos.z < 0);
-    // Tile* playertile = tileat(ppos);
-    // cout << playertile->pos << ' ';
-  }
-  if (playertile != nullptr and playertile->chunk->flags & Block::RENDER_FLAG and !playertile->lightflag) {
-    // cout << "playertile " << endl;
-    playertile->render(graphics->blockvecs, graphics->transvecs);
-    changed = true;
-  } else {
-    for (Tile* tile : tiles) {
-      changed = changed or (tile->chunk->flags & Block::RENDER_FLAG and tile->fully_loaded);
-      if (changed) {
-        tile->render(graphics->blockvecs, graphics->transvecs);
-        // cout << tile->pos << " fully loaded " << endl;
-        break;
-      }
-    }
-    if (!changed) {
-      for (Tile* tile : tiles) {
-        if (!tile->lightflag) {
-          changed = changed or (tile->chunk->flags & Block::RENDER_FLAG);
-          tile->render(graphics->blockvecs, graphics->transvecs);
-          // cout << tile->pos << "not loaded " << endl;
-          if (changed) {
-            break;
-          }
-        }
-      }
-    }
-  }
-  
-  if (changed) {
-    num_times_idle = 0;
-  } else {
-    num_times_idle ++;
-  }
-  
-  if (changed and !initial_started) {
-    initial_started = true;
-    startTime = getTime();
-  }
-  if (initial_started and !changed and !initial_done and num_times_idle > 20) {
-    initial_done = true;
-    cout << "initial rendering done in " << getTime() - startTime << endl;
-  }
+  if (block == nullptr or initial_generation) return false;
+  bool changed = block->flags & Block::RENDER_FLAG;
+  block->render(graphics->blockvecs, graphics->transvecs);
   return changed;
 }
 
-void World::update_lighting() {
-  for (Tile* tile : tiles) {
-    tile->update_lighting();
-  }
-}
-
-Tile* World::tileat(ivec3 pos) {
-  return tiles.tileat(pos);
-}
-
-Tile* World::tileat_global(ivec3 pos) {
-  return tileat(SAFEDIV(pos, chunksize));
+void World::set_root(Block* nblock) {
+  if (block != nullptr) delete block;
+  block = nblock;
+  block->set_parent(this, ivec3(0,0,0), max_scale);
 }
 
 Block* World::get_global(ivec3 pos, int scale) {
-  ivec3 tpos = SAFEDIV(pos, chunksize);
-  Tile* tile = tileat(tpos);
-  if (tile != nullptr) {
-    Block* result = tile->chunk->get_global(pos, scale);
-    return result;
-  }
-  return nullptr;
+  return block->get_global(pos, scale);
 }
 
 const Block* World::get_global(ivec3 pos, int scale) const {
-  ivec3 tpos = SAFEDIV(pos, chunksize);
-  const Tile* tile = tiles.tileat(tpos);
-  if (tile != nullptr) {
-    const Block* result = tile->chunk->get_global(pos, scale);
-    return result;
-  }
-  return nullptr;
+  return block->get_global(pos, scale);
 }
 
 void World::set_global(ivec3 pos, int w, Blocktype val, int direction, int joints[6]) {
-  Tile* tile = tileat_global(pos);
-  if (tile != nullptr) {
-    tile->chunk->set_global(pos, w, val, direction, joints);
-  }
+  block->set_global(pos, w, val, direction, joints);
 }
 
 Blocktype World::get(ivec3 pos) {
@@ -431,23 +318,8 @@ Block* World::raycast(vec3* pos, vec3 dir, double time) {
   return b->raycast(pos, dir, time);
 }
 
-void World::del_tile(ivec3 pos, bool remove_faces) {
-  logger->log(4) << "del tile " << pos << endl;
-  Tile* tile = tiles.del_tile(pos);
-  
-  if (tile != nullptr) {
-    tile->deleting = true;
-    if (saving) {
-      tile->save();
-    }
-    delete tile;
-    
-    deleting_chunks.erase(pos);
-  }
-}
-
 bool World::is_world_closed() {
-  return world_closing and tiles.size() == 0 and deleting_chunks.size() == 0;
+  return world_closing and block == nullptr and deleting_chunks.size() == 0;
 }
 
 void World::close_world() {
@@ -462,18 +334,20 @@ void World::close_world() {
   }
   
   if (saving) {
-    cout << "all tiles saved sucessfully: " << tiles.size() << endl;
+    cout << "all tiles saved sucessfully: " << endl;
   } else {
-    cout << "no tiles saved due to user command: " << tiles.size() << endl;
+    cout << "no tiles saved due to user command: " << endl;
   }
   
-  for (Tile* tile : tiles) {
-    tile->deleting = true;
-    if (saving) {
-      tile->save();
-    }
-    delete tile;
-  }
+  // for (Tile* tile : tiles) {
+  //   tile->deleting = true;
+  //   if (saving) {
+  //     tile->save();
+  //   }
+  //   delete tile;
+  // }
+  ofstream blockfile (path("chunks/chunk.dat"));
+  block->to_file(blockfile);
   
   if (saving) {
     ofstream datafile(path("worlddata.txt"));
@@ -483,12 +357,12 @@ void World::close_world() {
   ofile2 << name;
 }
 
-void Tile::add_freeblock(FreeBlock* freeblock) {
+void World::add_freeblock(FreeBlock* freeblock) {
   freeblock->allfreeblocks = allfreeblocks;
   allfreeblocks = freeblock;
 }
 
-void Tile::remove_freeblock(FreeBlock* freeblock) {
+void World::remove_freeblock(FreeBlock* freeblock) {
   FreeBlock** free = &allfreeblocks;
   while (*free != nullptr) {
     if (*free == freeblock) {

@@ -106,8 +106,8 @@ void SingleGame::gametick() {
 	} else if (controls->key_pressed('L')) {
 		debuglines->clear();
 	} else if (controls->key_pressed('T')) {
-		for (Tile* tile : world->tiles) {
-			for (FreeBlock* free = tile->allfreeblocks; free != nullptr;) {
+		// for (Tile* tile : world->tiles) {
+			for (FreeBlock* free = world->allfreeblocks; free != nullptr;) {
 				if (free->entity_cast() == nullptr or free->entity_cast()->get_plugin_id() != Player::plugindef()->id) {
 					free->highparent->remove_freechild(free);
 					FreeBlock* next = free->allfreeblocks;
@@ -116,7 +116,7 @@ void SingleGame::gametick() {
 				} else {
 					free = free->allfreeblocks;
 				}
-			}
+			// }
 		}
 	}
 	if (controls->key_pressed(controls->KEY_CTRL)) {

@@ -94,14 +94,15 @@ void LoadingThread::operator()() {
 			ivec3 pos = parent->load_queue.pop_front(&sucess);
 			if (sucess) {
 				double start = getTime();
-				Tile* tile = new Tile(pos, parent->world);
-				double mid = getTime();
-				parent->world->add_tile(tile);
+				// Tile* tile = new Tile(pos, parent->world);
+				// double mid = getTime();
+				// parent->world->add_tile(tile);
 				//for (int i = 0; i < 5; i ++) {
-				if (parent->do_lighting_update) {
-					tile->lighting_update();
-					tile->lighting_update();
-				}
+				// if (parent->do_lighting_update) {
+				// 	tile->lighting_update();
+				// 	tile->lighting_update();
+				// }
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 				//}
 			}
 		} else {
@@ -135,9 +136,10 @@ void DeletingThread::operator()() {
 		if (!parent->del_queue.empty()) {
 			bool sucess;
 			ivec3 pos = parent->del_queue.pop_front(&sucess);
-			if (sucess) {
-				parent->world->del_tile(pos, true);
-			}
+			// if (sucess) {
+			// 	parent->world->del_tile(pos, true);
+			// }
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		} else {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}

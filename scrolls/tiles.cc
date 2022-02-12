@@ -33,7 +33,7 @@ void Tile::lighting_update() {
   if (lightflag) {
     lightflag = false;
     for (ivec3 dir : dirs) {
-      Tile* tile = world->tileat(pos+dir);
+      Tile* tile = nullptr; //world->tileat(pos+dir);
       if (tile != nullptr) {
         // cout << "side update" << endl;
         for (Pixel* pix : tile->chunk->iter_side(-dir)) {
@@ -55,7 +55,7 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
         //update_lighting();
         const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
         for (ivec3 dir : dirs) {
-          Tile* tile = world->tileat(pos+dir);
+          Tile* tile = nullptr; //world->tileat(pos+dir);
           if (tile != nullptr) {
             cout << "side update 2" << endl;
             for (Pixel* pix : tile->chunk->iter_side(-dir)) {
@@ -72,9 +72,9 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
     if (!deleting) { // ERR: starts deleting during render
       if (world->player != nullptr and !world->player->spectator and optimized_render) {
         vec3 playpos = world->player->box.position;// + float(ivec3_hash()(pos) % (chunksize/3) - chunksize/6);
-        ivec3 player_chunk((playpos.x/world->chunksize) - (playpos.x<0),
-                           (playpos.y/world->chunksize) - (playpos.y<0),
-                           (playpos.z/world->chunksize) - (playpos.z<0));
+        ivec3 player_chunk((playpos.x/chunksize) - (playpos.x<0),
+                           (playpos.y/chunksize) - (playpos.y<0),
+                           (playpos.z/chunksize) - (playpos.z<0));
         double player_dist = glm::length(vec3(player_chunk) - vec3(pos)) / 2;
         int depth = 1;
         while (depth < player_dist) {
@@ -122,8 +122,8 @@ void Tile::render(RenderVecs* glvecs, RenderVecs* transvecs) {
         }
       }
       //cout << world << endl;
-      chunk->lighting_update();
-      chunk->render(glvecs, transvecs, 0xff, false);
+      // chunk->lighting_update();
+      // chunk->render(glvecs, transvecs, 0xff, false);
     }
     changelock.unlock();
     deletelock.unlock_shared();
@@ -169,7 +169,7 @@ void Tile::drop_ticks() {
 }
 
 
-Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(nworld->chunksize), deleting(false) {
+Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(3434), deleting(false) {
   if (world == nullptr) {
     cout << "error world is null" << endl;
     exit(1);
@@ -195,7 +195,7 @@ Tile::Tile(ivec3 newpos, World* nworld): pos(newpos), world(nworld), chunksize(n
   // debuglines->render(chunk->hitbox(), vec3(1,1,1), "chunk_borders");
 }
 
-Tile::Tile(ivec3 newpos, World* nworld, Block* nchunk): pos(newpos), world(nworld), chunksize(nworld->chunksize), deleting(false) {
+Tile::Tile(ivec3 newpos, World* nworld, Block* nchunk): pos(newpos), world(nworld), chunksize(56), deleting(false) {
   chunk = nchunk;
   chunk->set_parent(this, pos, chunksize);
 }
@@ -227,11 +227,11 @@ const Block* Tile::get_global(ivec3 pos, int scale) const {
 }
 
 vec3 Tile::get_position() const {
-  return pos * World::chunksize;
+  return pos * 6;
 }
 
 void Tile::block_update(ivec3 pos) {
-  world->block_update(pos);
+  // world->block_update(pos);
 }
 
 void Tile::set_global(ivec3 pos, int w, Blocktype val, int direc, int joints[6]) {

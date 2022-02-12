@@ -79,12 +79,15 @@ class Block: public Collider { public:
 	void update();
 	void on_change();
 	// sets the parent of this block (only call for toplevel blocks)
-	void set_parent(Container* world, ivec3 ppos, int nscale);
+	void set_parent(Container* world, ivec3 gpos, int nscale);
 	void set_parent(Block* parent, Container* world, FreeBlock* freecont, ivec3 ppos, int nscale);
+	void set_parent(Block* parent, Container* world, FreeBlock* freecont, ivec3 ppos, ivec3 gpos, int nscale);
 	// sets a child at a location
 	// set_child deletes the old child, swap_child returns it
 	void set_child(ivec3 pos, Block* block);
+	void set_child(int index, Block* block);
 	Block* swap_child(ivec3 pos, Block* block);
+	Block* swap_child(int index, Block* block);
 	
 	void add_freechild(FreeBlock* freeblock);
 	void remove_freechild(FreeBlock* freeblock);
@@ -157,7 +160,7 @@ class Block: public Collider { public:
 	void tick(float curtime, float deltatime);
 	void timestep(float curtime, float deltatime);
 	
-	void render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null);
+	void render(RenderVecs* vecs, RenderVecs* transvecs);
 	void render_position();
 	void lighting_update(bool spread = true);
 	
@@ -264,13 +267,14 @@ class Pixel { public:
 	RenderVecs* lastvecs = nullptr;
 	BlockGroup* group = nullptr;
 	PhysicsBox* physicsbox = nullptr;
+	bool done_generating = false;
 	
 	Pixel(int val, int direction = -1, int njoints[6] = nullptr);
 	Pixel(Block* newblock, istream& ifile);
 	~Pixel();
 	void set_block(Block* nblock);
 	void rotate(int axis, int dir);
-	void render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null);
+	void render(RenderVecs* vecs, RenderVecs* transvecs);
 	void render_position();
 	void set(Blocktype val, int direction = -1, int joints[6] = nullptr);
 	void render_update();

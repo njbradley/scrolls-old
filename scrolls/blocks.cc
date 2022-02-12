@@ -147,6 +147,17 @@ void Block::update() {
   if (locked) {
     set_flag(UPDATE_FLAG);
   } else {
+    // cout << "start " << endl;
+    // for (int i = 0; i < 6; i ++) {
+    //   Block* side = get_global(globalpos + dir_array[i]*scale, scale);
+    //   if (side != nullptr) {
+    //     for (Pixel* pix : side->iter_side(dir_array[i])) {
+    //       pix->parbl->set_flag(RENDER_FLAG | LIGHT_FLAG | CHANGE_FLAG | CHANGE_PROP_FLAG);
+    //     }
+    //   }
+    // }
+    // cout << "endl" << endl;
+    
     if (!continues and pixel != nullptr) {
       if (pixel->physicsbox != nullptr) {
         if (pixel->value == 0) {
@@ -164,23 +175,30 @@ void Block::on_change() {
   set_flag(RENDER_FLAG | LIGHT_FLAG | CHANGE_FLAG | CHANGE_PROP_FLAG);
 }
 
-void Block::set_parent(Container* nworld, ivec3 ppos, int nscale) {
-  set_parent(nullptr, nworld, nullptr, ppos, nscale);
+void Block::set_parent(Container* nworld, ivec3 gpos, int nscale) {
+  set_parent(nullptr, nworld, nullptr, ivec3(0,0,0), gpos, nscale);
 }
 
 void Block::set_parent(Block* nparent, Container* nworld, FreeBlock* freecont, ivec3 ppos, int nscale) {
+  if (nparent != nullptr) {
+    set_parent(nparent, nworld, freecont, ppos, nparent->globalpos + ppos * nscale, nscale);
+  } else {
+    set_parent(nparent, nworld, freecont, ppos, ppos * nscale, nscale);
+  }
+}
+
+void Block::set_parent(Block* nparent, Container* nworld, FreeBlock* freecont, ivec3 ppos, ivec3 gpos, int nscale) {
   std::lock_guard<Block> guard(*this);
+  bool propogate = world != nworld or freecontainer != freecont or globalpos != gpos or scale != nscale;
+  
   parent = nparent;
   world = nworld;
   freecontainer = freecont;
   parentpos = ppos;
   scale = nscale;
+  globalpos = gpos;
   
-  if (parent != nullptr) {
-    globalpos = parent->globalpos + parentpos * scale;
-  } else {
-    globalpos = parentpos * scale;
-  }
+  if (!propogate) return;
   
   if (continues) {
     for (CHILDREN_LOOP(i)) {
@@ -199,24 +217,32 @@ void Block::set_parent(Block* nparent, Container* nworld, FreeBlock* freecont, i
   update();
 }
 
-void Block::set_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
+void Block::set_child(ivec3 pos, Block* block) {
+  set_child(indexof(pos), block);
+}
+
+void Block::set_child(int index, Block* block) { ASSERT(ISCHUNK)
   std::lock_guard<Block> guard(*this);
-  Block* old = get(pos);
+  Block* old = get(index);
   if (old != nullptr) {
     delete old;
   }
-  children[indexof(pos)] = block;
+  children[index] = block;
   if (block != nullptr) {
-    block->set_parent(this, world, freecontainer, pos, scale / csize);
+    block->set_parent(this, world, freecontainer, posof(index), scale / csize);
   }
 }
 
-Block* Block::swap_child(ivec3 pos, Block* block) { ASSERT(ISCHUNK)
+Block* Block::swap_child(ivec3 pos, Block* block) {
+  return swap_child(indexof(pos), block);
+}
+
+Block* Block::swap_child(int index, Block* block) { ASSERT(ISCHUNK)
   std::lock_guard<Block> guard(*this);
-  Block* old = get(pos);
-  children[indexof(pos)] = block;
+  Block* old = get(index);
+  children[index] = block;
   if (block != nullptr) {
-    block->set_parent(this, world, freecontainer, pos, scale / csize);
+    block->set_parent(this, world, freecontainer, posof(index), scale / csize);
   }
   return old;
 }
@@ -400,8 +426,9 @@ Block* Block::get_global(ivec3 pos, int w) {
         // pos = SAFEFLOOR3(curblock->freecontainer->box.transform_out(pos));
         // curblock = curblock->freecontainer->highparent;
       } else if (world != nullptr) {
-        Block* result = world->get_global(pos, w);
-        return result;
+        return nullptr;
+        // Block* result = world->get_global(pos, w);
+        // return result;
       } else {
         return nullptr;
       }
@@ -791,7 +818,7 @@ void Block::timestep(float curtime, float deltatime) {
 
 
 
-void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
+void Block::render(RenderVecs* vecs, RenderVecs* transvecs) {
   // if (freecontainer != nullptr) cout << " rendering " << globalpos << ' ' << scale << endl;
   if (flags & RENDER_FLAG and !locked) {
     // logger->log(9) << "RENDERING " << int(flags) << ' ' << this << ' ' << globalpos << ' ' << scale << endl;
@@ -799,13 +826,13 @@ void Block::render(RenderVecs* vecs, RenderVecs* transvecs, uint8 faces, bool re
     // logger->log(9) << "  NOW " << int(flags) << endl;
     if (continues) {
       for (CHILDREN_LOOP(i)) {
-        children[i]->render(vecs, transvecs, faces, render_null);
+        children[i]->render(vecs, transvecs);
       }
     } else {
-      pixel->render(vecs, transvecs, faces, render_null);
+      pixel->render(vecs, transvecs);
     }
     for (FREECHILDREN_LOOP(free)) {
-      free->render(vecs, transvecs, faces, render_null);
+      free->render(vecs, transvecs);
     }
   }
 }
@@ -1688,7 +1715,7 @@ void Pixel::rotate_to_origin(int* mats, int* dirs, int rotation) {
   }
 }
 
-void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs, uint8 faces, bool render_null) {
+void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs) {
   // if (render_index.index > -1) {
   //   lastvecs->del(render_index);
   //   render_index = RenderIndex::npos;
@@ -1964,7 +1991,7 @@ void Pixel::reset_lightlevel() {
     sunlight = 0;
     blocklight = blockstorage[value]->lightlevel;
   } else {
-    sunlight = 0;
+    sunlight = 10;
     blocklight = 0;
   }
   entitylight = 0;
@@ -1981,7 +2008,6 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>* next_poses) {
   gy = parbl->globalpos.y;
   gz = parbl->globalpos.z;
   const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
-  ivec3 tilepos = SAFEDIV(parbl->globalpos, World::chunksize);
   int oldsunlight = sunlight;
   sunlight = 0;
   for (ivec3 dir : dirs) {
@@ -2016,12 +2042,12 @@ void Pixel::calculate_sunlight(unordered_set<ivec3,ivec3_hash>* next_poses) {
     if (block != nullptr) {
       for (Pixel* pix : block->iter_side(-dir)) {
         if (pix->sunlight < sunlight - newdec*parbl->scale or (pix->sunlight + newdec*parbl->scale == oldsunlight and sunlight < oldsunlight)) {
-          if (tilepos == SAFEDIV(pix->parbl->globalpos, World::chunksize) and next_poses != nullptr) {
+          if (next_poses != nullptr) {
             next_poses->emplace(pix->parbl->globalpos);
           } else {
             pix->parbl->set_flag(Block::LIGHT_FLAG);
           }
-        } else if (tilepos != SAFEDIV(pix->parbl->globalpos, World::chunksize) and dir.y == -1 and pix->sunlight == lightmax) {
+        } else if (dir.y == -1 and pix->sunlight == lightmax) {
           pix->parbl->set_flag(Block::LIGHT_FLAG);
         }
         if (changed) pix->parbl->set_flag(Block::RENDER_FLAG);
@@ -2039,7 +2065,6 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>* next_poses) {
   gx = parbl->globalpos.x;
   gy = parbl->globalpos.y;
   gz = parbl->globalpos.z;
-  ivec3 tilepos = SAFEDIV(parbl->globalpos, World::chunksize);
   const ivec3 dirs[] = {{-1,0,0}, {0,-1,0}, {0,0,-1}, {1,0,0}, {0,1,0}, {0,0,1}};
   int oldblocklight = blocklight;
   blocklight = entitylight;
@@ -2070,7 +2095,7 @@ void Pixel::calculate_blocklight(unordered_set<ivec3,ivec3_hash>* next_poses) {
       int inverse_index = index<3 ? index + 3 : index - 3;
       for (Pixel* pix : block->iter_side(-dir)) {
         if (pix->blocklight < blocklight - decrement*parbl->scale or (pix->lightsource == inverse_index and blocklight < oldblocklight)) {
-          if (tilepos == SAFEDIV(pix->parbl->globalpos, World::chunksize) and next_poses != nullptr) {
+          if (next_poses != nullptr) {
             next_poses->emplace(pix->parbl->globalpos);
           } else {
             pix->parbl->set_flag(Block::LIGHT_FLAG);

@@ -128,7 +128,7 @@ Block* TerrainLoader::generate_chunk(ivec3 pos) {
 	double start = getTime();
 	Block* block = terrain->generate_chunk(pos);
 	double terrain_time = getTime() - start;
-	block->set_parent(nullptr, pos, World::chunksize);
+	block->set_parent(nullptr, pos, 64);
 	start = getTime();
 	for (TerrainObject* obj : objects) {
 		obj->place_object(pos, block);

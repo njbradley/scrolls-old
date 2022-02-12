@@ -302,19 +302,19 @@ FreeboxIterable<Iterator>::FreeboxIterable(ColliderT* world, Hitbox box) {
     return;
   }
   
-  ivec3 base_pos = SAFEFLOOR3(box.global_center());
-  base_pos = SAFEDIV(base_pos, World::chunksize);
-  
-  for (int x = -1; x < 2; x ++) {
-    for (int y = -1; y < 2; y ++) {
-      for (int z = -1; z < 2; z ++) {
-        BlockT* newbase = world->get_global((base_pos + ivec3(x,y,z)) * World::chunksize, World::chunksize);
-        if (newbase != nullptr and newbase->freecount != 0) {
-          this->add_base(newbase, box);
-        }
-      }
-    }
-  }
+  // ivec3 base_pos = SAFEFLOOR3(box.global_center());
+  // base_pos = SAFEDIV(base_pos, World::chunksize);
+  //
+  // for (int x = -1; x < 2; x ++) {
+  //   for (int y = -1; y < 2; y ++) {
+  //     for (int z = -1; z < 2; z ++) {
+  //       BlockT* newbase = world->get_global((base_pos + ivec3(x,y,z)) * World::chunksize, World::chunksize);
+  //       if (newbase != nullptr and newbase->freecount != 0) {
+  //         this->add_base(newbase, box);
+  //       }
+  //     }
+  //   }
+  // }
   if (this->bases.size() == 0) {
     this->add_base(nullptr, box);
   }

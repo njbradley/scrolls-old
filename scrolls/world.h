@@ -17,7 +17,6 @@
 class World: public Container { public:
   BASE_PLUGIN_HEAD(World, (string name));
   
-  static const int chunksize = 64;
   static float tick_deltatime;
   
   string name;
@@ -28,7 +27,8 @@ class World: public Container { public:
   ivec3 last_player_pos = ivec3(0,0,0);
   
   double daytime = 600;
-  BlockView block;
+  int max_scale = 256;
+  Block* block = nullptr;
   TerrainLoader terrainloader;
   PluginNow<TileLoader> tileloader;
   PluginNow<PhysicsEngine> physics;
@@ -56,16 +56,15 @@ class World: public Container { public:
   virtual void set_player_vars();
   virtual void set_spectator_vars();
   
-  vec3 get_position() const;
   virtual bool render();
   virtual void timestep(float curtime, float deltatime);
   virtual void tick(float curtime, float deltatime);
   void drop_ticks();
   
-  void block_update(ivec3);
-  void update_lighting();
-  
+  void divide_terrain(Block* block, int max_divides);
   virtual void load_nearby_chunks();
+  
+  void set_root(Block* nblock);
   
   Block* get_global(ivec3 pos, int scale);
   const Block* get_global(ivec3 pos, int scale) const;
@@ -76,6 +75,9 @@ class World: public Container { public:
   Block* raycast(vec3* pos, vec3 dir, double time);
   virtual void close_world();
   virtual bool is_world_closed();
+  
+  virtual void add_freeblock(FreeBlock* free);
+  virtual void remove_freeblock(FreeBlock* free);
 };
 
 

@@ -146,7 +146,7 @@ Blocktype ShapeResolver<Shapes...>::gen_block(ostream& ofile, ivec3 globalpos, i
 template <typename ... Shapes>
 Block* ShapeResolver<Shapes...>::generate_chunk(ivec3 pos) {
 	stringstream ss;
-	gen_block<Shapes...>(ss, pos * World::chunksize, World::chunksize);
+	gen_block<Shapes...>(ss, pos * 64, 64);
 	return new Block(ss);
 }
 
