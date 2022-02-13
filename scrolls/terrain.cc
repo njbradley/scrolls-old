@@ -126,7 +126,7 @@ int TerrainLoader::get_height(ivec3 pos) {
 
 Block* TerrainLoader::generate_chunk(ivec3 pos) {
 	double start = getTime();
-	Block* block = terrain->generate_chunk(pos);
+	Block* block = nullptr;//terrain->generate_chunk(pos);
 	double terrain_time = getTime() - start;
 	block->set_parent(nullptr, pos, 64);
 	start = getTime();

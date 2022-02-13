@@ -73,7 +73,7 @@ void SingleGame::gametick() {
 	
 	lastTime = curtime;
 	
-	world->load_nearby_chunks();
+	// world->load_nearby_chunks();
 	world->timestep(curtime, deltatime);
 	viewbox->timestep(deltatime, world->daytime);
 	

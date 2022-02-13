@@ -28,7 +28,7 @@ class World: public Container { public:
   
   double daytime = 600;
   int max_scale = 256;
-  Block* block = nullptr;
+  Block* mainblock = nullptr;
   TerrainLoader terrainloader;
   PluginNow<TileLoader> tileloader;
   PluginNow<PhysicsEngine> physics;

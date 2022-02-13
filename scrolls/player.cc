@@ -32,7 +32,7 @@ Plugin<Controls> controls;
 float speed = 40.0f * 8; // 3 units / second
 float mouseSpeed = 0.003f;
 
-Player::Player(): inven(10), backpack(10) {
+Player::Player(): inven(10), backpack(10), angle(0,0) {
 	allow_rotation = false;
 	allow_raycast = false;
 	selitem = 0;

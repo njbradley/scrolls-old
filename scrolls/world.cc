@@ -115,16 +115,19 @@ void World::startup() {
 
 void World::spawn_player() {
   cout << "spawning player " << endl;
-  // ivec3 spawnpos(15,terrainloader.get_height(ivec2(15,15))+8,15);
-  ivec3 spawnpos(32, 37, 32);
+  ivec3 spawnpos(0,terrainloader.get_height(ivec2(15,15))+8,0);
+  // ivec3 spawnpos(32, 37, 32);
   int i = 0;
   // while (loader.gen_func(ivec4(spawnpos.x, spawnpos.y, spawnpos.z, 1)) != 0 and i < 100) {
   //   i ++;
   //   spawnpos = ivec3(spawnpos.x+1,loader.get_height(ivec2(10,10))+4,10);
   // }
   Block* spawnblock = get_global(spawnpos, 8);
-  if (spawnblock == nullptr or (!spawnblock->continues and !spawnblock->pixel->done_generating)) {
+  if (spawnblock == nullptr) {
     cout << "player spawn location is null (waiting, though last_player_pos might be corrupt)" << endl;
+    return;
+  }
+  if (!spawnblock->continues and !spawnblock->pixel->done_generating) {
     return;
   }
   player = new Player();
@@ -156,10 +159,12 @@ void World::set_spectator_vars() {
 
 void World::divide_terrain(Block* block, int max_divides) {
   std::lock_guard<Block> guard(*block);
-  ivec3 blockpos = block->globalpos + block->scale/2;
-  int diff = (blockpos.z/2) - (blockpos.y);
-  block->set_pixel(new Pixel(diff > 0));
-  if (std::abs(diff) < block->scale/2) {
+  
+  bool split = false;
+  Blocktype val = terrainloader.terrain->gen_block(block->globalpos, block->scale, &split);
+  block->set_pixel(new Pixel(val));
+  
+  if (split) {
     if (max_divides > 0) {
       block->divide();
       for (int i = 0; i < 8; i ++) {
@@ -173,26 +178,41 @@ void World::divide_terrain(Block* block, int max_divides) {
 }
 
 void World::load_nearby_chunks() {
-  if (block == nullptr) {
-    block = new Block();
-    block->set_parent(this, ivec3(0,0,0), 256);
-    divide_terrain(block, 4);
+  if (mainblock == nullptr) {
+    mainblock = new Block();
+    // max_scale = 4096;
+    mainblock->set_parent(this, ivec3(-max_scale/2), max_scale);
+    divide_terrain(mainblock, 4);
   } else {
     bool done = true;
-    if (spectator.controller != nullptr) {
-      last_player_pos = spectator.position;
+    if (player != nullptr) {
+      last_player_pos = player->box.position;
     }
-    for (Pixel* pix : block->iter()) {
-      if (!pix->done_generating) {
-        float dist = glm::length(vec3(last_player_pos - (pix->parbl->globalpos + pix->parbl->scale/2)));
-        dist = std::max(dist - pix->parbl->scale/2, 0.0f);
-        dist /= 50;
-        if (pix->parbl->scale > dist) {
-          divide_terrain(pix->parbl, 1);
-          done = false;
-        }
+    
+    for (Block* block : BlockIterable<BlockIterator<Block>>(mainblock)) {
+      float dist = glm::length(vec3(last_player_pos - (block->globalpos + block->scale/2)));
+      dist = std::max(dist - block->scale/2, 0.0f);
+      dist /= 20;
+      if (block->continues and block->scale < dist) {
+        block->join();
+        block->set_pixel(new Pixel(block->prevvalue));
+      } else if (!block->continues and !block->pixel->done_generating and block->scale > dist) {
+        divide_terrain(block, 1);
+        done = false;
       }
     }
+    
+    // for (Pixel* pix : block->iter()) {
+    //   if (!pix->done_generating) {
+    //     float dist = glm::length(vec3(last_player_pos - (pix->parbl->globalpos + pix->parbl->scale/2)));
+    //     dist = std::max(dist - pix->parbl->scale/2, 0.0f);
+    //     dist /= 10;
+    //     if (pix->parbl->scale > dist) {
+    //       divide_terrain(pix->parbl, 1);
+    //       done = false;
+    //     }
+    //   }
+    // }
     if (done) {
       initial_generation = false;
     }
@@ -274,33 +294,37 @@ void World::tick(float curtime, float deltatime) {
 }
 
 bool World::render() {
-  static bool start_render = true;
-  if (block == nullptr or initial_generation) return false;
-  if (start_render) {
-    cout << "starting render" << endl;
-    start_render = false;
-  }
-  bool changed = block->flags & Block::RENDER_FLAG;
-  block->render(graphics->blockvecs, graphics->transvecs);
+  // static bool start_render = true;
+  // if (block == nullptr or initial_generation) return false;
+  // if (start_render) {
+  //   cout << "starting render" << endl;
+  //   start_render = false;
+  // }
+  load_nearby_chunks();
+  bool changed = mainblock->flags & Block::RENDER_FLAG;
+  mainblock->render(graphics->blockvecs, graphics->transvecs);
+  first_render = false;
   return changed;
 }
 
 void World::set_root(Block* nblock) {
-  if (block != nullptr) delete block;
-  block = nblock;
-  block->set_parent(this, ivec3(0,0,0), max_scale);
+  if (mainblock != nullptr) delete mainblock;
+  mainblock = nblock;
+  mainblock->set_parent(this, ivec3(0,0,0), max_scale);
 }
 
 Block* World::get_global(ivec3 pos, int scale) {
-  return block->get_global(pos, scale);
+  if (mainblock == nullptr) return nullptr;
+  return mainblock->get_global(pos, scale);
 }
 
 const Block* World::get_global(ivec3 pos, int scale) const {
-  return block->get_global(pos, scale);
+  if (mainblock == nullptr) return nullptr;
+  return mainblock->get_global(pos, scale);
 }
 
 void World::set_global(ivec3 pos, int w, Blocktype val, int direction, int joints[6]) {
-  block->set_global(pos, w, val, direction, joints);
+  mainblock->set_global(pos, w, val, direction, joints);
 }
 
 Blocktype World::get(ivec3 pos) {
@@ -325,7 +349,7 @@ Block* World::raycast(vec3* pos, vec3 dir, double time) {
 }
 
 bool World::is_world_closed() {
-  return world_closing and block == nullptr and deleting_chunks.size() == 0;
+  return world_closing and mainblock == nullptr and deleting_chunks.size() == 0;
 }
 
 void World::close_world() {
@@ -353,7 +377,7 @@ void World::close_world() {
   //   delete tile;
   // }
   ofstream blockfile (path("chunks/chunk.dat"));
-  block->to_file(blockfile);
+  mainblock->to_file(blockfile);
   
   if (saving) {
     ofstream datafile(path("worlddata.txt"));

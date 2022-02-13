@@ -147,20 +147,19 @@ void Block::update() {
   if (locked) {
     set_flag(UPDATE_FLAG);
   } else {
-    // cout << "start " << endl;
-    // if (scale != 0) {
-    //   for (int i = 0; i < 6; i ++) {
-    //     Block* side = get_global(globalpos + dir_array[i]*scale, scale);
-    //     if (side != nullptr) {
-    //       for (Pixel* pix : side->iter_side(dir_array[i])) {
-    //         pix->parbl->set_flag(RENDER_FLAG | LIGHT_FLAG | CHANGE_FLAG | CHANGE_PROP_FLAG);
-    //       }
-    //     }
-    //   }
-    // }
-    // cout << "endl" << endl;
+    if (scale != 0 and !world->first_render) {
+      for (int i = 0; i < 6; i ++) {
+        Block* side = get_global(globalpos + dir_array[i]*scale, scale);
+        if (side != nullptr) {
+          for (Pixel* pix : side->iter_side(dir_array[i])) {
+            pix->parbl->set_flag(RENDER_FLAG | LIGHT_FLAG | CHANGE_FLAG | CHANGE_PROP_FLAG);
+          }
+        }
+      }
+    }
     
     if (!continues and pixel != nullptr) {
+      prevvalue = pixel->value;
       if (pixel->physicsbox != nullptr) {
         if (pixel->value == 0) {
           delete pixel->physicsbox;

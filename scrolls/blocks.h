@@ -40,6 +40,7 @@ class Block: public Collider { public:
 	uint8 locked = 0;
 	FreeBlock* freechild = nullptr;
 	int freecount = 0;
+	Blocktype prevvalue = 0;
 	union {
 		Pixel* pixel;
 		Block* children[csize3];
