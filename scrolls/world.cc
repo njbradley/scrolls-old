@@ -288,7 +288,7 @@ void World::load_nearby_chunks() {
       initial_generation = false;
     }
     
-    if (!changed) {
+    if (!changed and max_dist < max_scale / chunksize) {
       max_dist ++;
     }
     

@@ -136,7 +136,7 @@ void main() {
 	addQuad(center-vec4(voxSize/2,voxSize/2,0,0), vec4(voxSize,0,0,0), vec4(0,voxSize,0,0), vec4(0,0,voxSize,0), chosenface);
 	return;*/
 	
-	blending_light = (facepx[0].y & 0xffu) != 0;
+	blending_light = (facepx[0].y & 0xffu) != 0u;
 	if (blending_light) {
 		
 		light = vec2(0,0);
