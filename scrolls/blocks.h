@@ -36,23 +36,29 @@ class Block: public Collider { public:
 	Container* world;
 	FreeBlock* freecontainer = nullptr;
 	bool continues;
-	uint8 flags = 0b00000000;
 	uint8 locked = 0;
 	FreeBlock* freechild = nullptr;
+	int flags = 0;
 	int freecount = 0;
+	int min_scale = 0;
 	Blocktype prevvalue = 0;
 	union {
 		Pixel* pixel;
 		Block* children[csize3];
 	};
 	
-	enum BlockFlags : uint8 {
-		RENDER_FLAG = 0b00000001,
-		LIGHT_FLAG = 0b00000010,
-		CHANGE_PROP_FLAG = 0b00000100,
-		UPDATE_FLAG = 0b00010000,
-		CHANGE_FLAG = 0b00100000,
-		PROPAGATING_FLAGS = 0b00001111,
+	enum BlockFlags : int {
+		RENDER_FLAG = 0x0001,
+		LIGHT_FLAG = 0x0002,
+		CHANGE_PROP_FLAG = 0x0004,
+		
+		GENERATION_FLAG = 0x0010,
+		
+		UPDATE_FLAG = 0x0100,
+		CHANGE_FLAG = 0x0200,
+		
+		PROPAGATING_FLAGS = 0x00FF,
+		GLOBAL_FLAGS = 0x000F,
 	};
 	
 	// Initializes to undef
@@ -78,6 +84,7 @@ class Block: public Collider { public:
 	void swap(Block* other);
 	
 	void update();
+	void update_min_scale();
 	void on_change();
 	// sets the parent of this block (only call for toplevel blocks)
 	void set_parent(Container* world, ivec3 gpos, int nscale);
@@ -121,6 +128,8 @@ class Block: public Collider { public:
 	Hitbox hitbox() const;
 	Hitbox freebox() const;
 	Movingbox movingbox() const;
+	
+	int chunk_scale() const;
 	// travels the tree to find the requested size and pos.
 	// calls to world if it reaches the top
 	Block* get_global(ivec3 pos, int w);
@@ -150,11 +159,11 @@ class Block: public Collider { public:
 	// and are not propagated up
 	// when reseting, no values are propagated, as it cannot be determined
 	// if the flag was set by other blocks
-	void set_flag(uint8 flag);
-	void reset_flag(uint8 flag);
+	void set_flag(int flag);
+	void reset_flag(int flag);
 	// sets the flags all up to top node
-	void set_all_flags(uint8 flag);
-	void reset_all_flags(uint8 flag);
+	void set_all_flags(int flag);
+	void reset_all_flags(int flag);
 	
 	void tick(float curtime, float deltatime);
 	void timestep(float curtime, float deltatime);

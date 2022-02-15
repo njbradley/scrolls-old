@@ -232,7 +232,7 @@ void GLGraphicsContext::block_draw_call() {
 	vec3 up = glm::cross( right, forward );
 	
 	// Projection matrix : 45 Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-	glm::mat4 projectionMatrix = glm::perspective(glm::radians(settings->fov), (float) settings->aspect_ratio(), 0.1f, 1000.0f);
+	glm::mat4 projectionMatrix = glm::perspective(glm::radians(settings->fov), (float) settings->aspect_ratio(), 0.1f, 100000.0f);
 	glm::mat4 viewMatrix = glm::lookAt(*camera_pos, *camera_pos + direction, up);
 	glm::mat4 modelMatrix = glm::mat4(1.0);
 	glm::mat4 P = projectionMatrix;

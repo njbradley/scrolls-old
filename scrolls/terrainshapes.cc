@@ -39,59 +39,30 @@ Blocktype ShapeResolver<Shapes...>::gen_func(ivec3 globalpos, int scale, bool* s
 template <typename ... Shapes>
 Blocktype ShapeResolver<Shapes...>::gen_block(ivec3 globalpos, int scale, bool* split) {
 	*split = false;
-	Blocktype val = gen_block<Shapes...>(globalpos, scale, split, 0);
-	if (val == BLOCK_NULL) {
-		return 0;
-	} else {
-		return val;
-	}
+	return gen_block<Shapes...>(globalpos, scale, split);
 }
 
 
 
 template <typename ... Shapes>
 template <typename FirstShape, typename SecondShape, typename ... OtherShapes>
-Blocktype ShapeResolver<Shapes...>::gen_block(ivec3 globalpos, int scale, bool* split, float curval) {
-	float shapeval = FirstShape::gen_value(seed, vec3(globalpos) + float(scale)/2);
-	float level_needed = float(scale-1)/2 * FirstShape::max_deriv() * 2.1f;
-	
-	if (std::abs(shapeval) < level_needed) {
-		*split = true;
-		if (shapeval > curval) {
-			Blocktype nextval = gen_block<SecondShape,OtherShapes...>(globalpos, scale, split, shapeval);
-			if (nextval == BLOCK_NULL) {
-				return FirstShape::block_val();
-			} else {
-				return nextval;
-			}
-		} else {
-			return BLOCK_NULL;
-		}
-	}
-	if (shapeval >= 0) {
-		return FirstShape::block_val();
+Blocktype ShapeResolver<Shapes...>::gen_block(ivec3 globalpos, int scale, bool* split) {
+	Blocktype val = gen_func<FirstShape>(globalpos, scale, split);
+	if (val == BLOCK_NULL) {
+		return gen_block<SecondShape,OtherShapes...>(globalpos, scale, split);
 	} else {
-		return gen_block<SecondShape,OtherShapes...>(globalpos, scale, split, curval);
+		return val;
 	}
 }
 
 template <typename ... Shapes>
 template <typename Shape>
-Blocktype ShapeResolver<Shapes...>::gen_block(ivec3 globalpos, int scale, bool* split, float curval) {
-	float shapeval = Shape::gen_value(seed, vec3(globalpos) + float(scale)/2);
-	float level_needed = float(scale-1)/2 * Shape::max_deriv() * 2.1f;
-	
-	if (std::abs(shapeval) < level_needed) {
-		*split = true;
-		if (shapeval > curval) {
-			return Shape::block_val();
-		}
+Blocktype ShapeResolver<Shapes...>::gen_block(ivec3 globalpos, int scale, bool* split) {
+	Blocktype val = gen_func<Shape>(globalpos, scale, split);
+	if (val == BLOCK_NULL) {
+		val = 0;
 	}
-	if (shapeval >= 0) {
-		return Shape::block_val();
-	} else {
-		return BLOCK_NULL;
-	}
+	return val;
 }
 
 

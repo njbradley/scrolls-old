@@ -175,8 +175,28 @@ template class FreeBlockIterator<const Block>;
 template class BlockIterable<FreeBlockIterator<Block>>;
 template class BlockIterable<FreeBlockIterator<const Block>>;
 
+template <typename BlockT>
+bool ChunkIterator<BlockT>::valid_block(BlockT* block) {
+  return BlockIterator<BlockT>::valid_block(block) and block->scale >= World::chunksize;
+}
 
+template <typename BlockT>
+bool ChunkIterator<BlockT>::skip_block(BlockT* block) {
+  int scale = block->scale;
+  while (scale != 0) {
+    if (scale == World::chunksize) {
+      // cout << " got here " << block << ' ' << block->scale << endl;
+      return false;
+    }
+    scale /= World::chunksize;
+  }
+  return true;
+}
 
+template class ChunkIterator<Block>;
+template class ChunkIterator<const Block>;
+template class BlockIterable<ChunkIterator<Block>>;
+template class BlockIterable<ChunkIterator<const Block>>;
 
 
 template <typename Iterator>

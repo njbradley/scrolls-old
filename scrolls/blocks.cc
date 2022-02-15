@@ -140,8 +140,25 @@ void Block::swap(Block* other) {
   on_change();
   other->on_change();
 }
-    
-    
+
+
+void Block::update_min_scale() {
+  int new_min_scale = INT_MAX;
+  if (continues) {
+    for (CHILDREN_LOOP(i)) {
+      if (children[i]->min_scale < new_min_scale) {
+        new_min_scale = children[i]->min_scale;
+      }
+    }
+  } else {
+    new_min_scale = scale;
+  }
+  
+  if (new_min_scale != min_scale and new_min_scale != INT_MAX) {
+    min_scale = new_min_scale;
+    if (parent != nullptr) parent->update_min_scale();
+  }
+}
 
 void Block::update() {
   if (locked) {
@@ -174,6 +191,7 @@ void Block::update() {
 
 void Block::on_change() {
   set_flag(RENDER_FLAG | LIGHT_FLAG | CHANGE_FLAG | CHANGE_PROP_FLAG);
+  update_min_scale();
 }
 
 void Block::set_parent(Container* nworld, ivec3 gpos, int nscale) {
@@ -416,6 +434,22 @@ Movingbox Block::movingbox() const {
     newbox.posbox = vec3(globalpos) + scale/2.0f;
     return newbox;
   }
+}
+
+int make_sizes_mask() {
+  int result = 0;
+  int size = 1;
+  
+  while (size != 0) {
+    result |= size;
+    size *= World::chunksize;
+  }
+  return result;
+}
+
+int Block::chunk_scale() const {
+  static int sizes_mask = make_sizes_mask();
+  return (((scale - 1) & sizes_mask) * World::chunksize) & ~(scale - 1);
 }
 
 Block* Block::get_global(ivec3 pos, int w) {
@@ -729,12 +763,25 @@ Block::Block(istream& ifile): continues(false), pixel(nullptr) {
   from_file(ifile);
 }
 
-void Block::set_flag(uint8 flag) {
+void Block::set_flag(int flag) {
   Block* curblock = this;
+  int cur_chunk_scale = 0;
+  
+  if (flag & PROPAGATING_FLAGS and !(flag & GLOBAL_FLAGS)) {
+    cur_chunk_scale = World::chunksize;
+    while (cur_chunk_scale < scale) {
+      cur_chunk_scale *= World::chunksize;
+    }
+  }
   
   do {
     curblock->flags |= flag;
     flag &= PROPAGATING_FLAGS;
+    if (cur_chunk_scale != 0 and curblock->scale > cur_chunk_scale) {
+      flag &= GLOBAL_FLAGS;
+      if (flag == 0) return;
+    }
+    
     if (curblock->locked) break;
     
     if (curblock->parent == nullptr and curblock->freecontainer != nullptr) {
@@ -745,11 +792,11 @@ void Block::set_flag(uint8 flag) {
   } while (curblock != nullptr);
 }
 
-void Block::reset_flag(uint8 flag) {
+void Block::reset_flag(int flag) {
   flags &= ~flag;
 }
 
-void Block::set_all_flags(uint8 flag) {
+void Block::set_all_flags(int flag) {
   flags |= flag;
   if (continues) {
     for (CHILDREN_LOOP(i)) {
@@ -761,7 +808,7 @@ void Block::set_all_flags(uint8 flag) {
   }
 }
 
-void Block::reset_all_flags(uint8 flag) {
+void Block::reset_all_flags(int flag) {
   flags &= ~flag;
   if (continues) {
     for (CHILDREN_LOOP(i)) {
@@ -1733,24 +1780,28 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs) {
     int i = 0;
     for (int i = 0; i < 6; i ++) {
       ivec3 dir = dir_array[i];
-      // Block* block = parbl->get_global((vec3(gpos) + parbl->scale/2.0f) + vec3(dir) * (parbl->scale/2.0f), parbl->scale, dir);
-      // Block* block = parbl->get_global(gpos + dir * parbl->scale, parbl->scale);
+      
+      int sunlevel = 0;
+      int blocklevel = 0;
+      int num_pix = 0;
+      for (const Pixel* pix : BlockSideIterable<const Block>(parbl, dir)) {
+        if (pix->value == 0) {
+          sunlevel += pix->sunlight;
+          blocklevel += pix->blocklight;
+          num_pix ++;
+        }
+      }
+      
       renderdata.type.faces[i].tex = 0;
-      // if (parbl->freecontainer != nullptr) {
-      //   renderdata.type.faces[i].tex = mat[i];
-      //   renderdata.type.faces[i].rot = dirs[i];
-      //   renderdata.type.faces[i].blocklight = lightmax;
-      //   renderdata.type.faces[i].sunlight = lightmax;
-      //   exposed = true;
-      // } else
-      // if (parbl->is_air(dir, value) and parbl->freecontainer == nullptr) {
-      if (parbl->is_air(dir, value)) {
+      
+      if (num_pix != 0) {
         renderdata.type.faces[i].tex = mat[i];
         renderdata.type.faces[i].rot = dirs[i];
+        renderdata.type.faces[i].flags = !done_generating;
         // renderdata.type.faces[i].blocklight = (parbl->freecontainer == nullptr) ? parbl->get_blocklight(dir) : 20;
         // renderdata.type.faces[i].sunlight = (parbl->freecontainer == nullptr) ? parbl->get_sunlight(dir) : 20;
-        renderdata.type.faces[i].blocklight = parbl->get_blocklight(dir);
-        renderdata.type.faces[i].sunlight = parbl->get_sunlight(dir);
+        renderdata.type.faces[i].blocklight = blocklevel / num_pix;
+        renderdata.type.faces[i].sunlight = sunlevel / num_pix;
         exposed = true;
       }
     }

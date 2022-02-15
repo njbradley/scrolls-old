@@ -25,7 +25,7 @@ DEFINE_AND_EXPORT_PLUGIN(World);
 
 
 float World::tick_deltatime = 0.030f;
-
+int World::chunksize = 16;
 
 World::World(string oldname): seed(std::hash<string>()(name)), terrainloader(seed), tileloader(this), name(oldname), physics(this, tick_deltatime) {
   
@@ -107,7 +107,8 @@ void World::startup() {
       // player = new Player(this, ifile);
       // set_player_vars();
     } else {
-      last_player_pos = ivec3(10,terrainloader.get_height(ivec2(10,10))+4,10);
+      last_player_pos = ivec3(32,terrainloader.get_height(ivec2(32,32))+4,32);
+      last_player_pos = SAFEDIV(last_player_pos, chunksize);
       // spawn_player();
     }
   }
@@ -115,7 +116,7 @@ void World::startup() {
 
 void World::spawn_player() {
   cout << "spawning player " << endl;
-  ivec3 spawnpos(0,terrainloader.get_height(ivec2(15,15))+8,0);
+  ivec3 spawnpos(32,terrainloader.get_height(ivec2(32,32))+8,32);
   // ivec3 spawnpos(32, 37, 32);
   int i = 0;
   // while (loader.gen_func(ivec4(spawnpos.x, spawnpos.y, spawnpos.z, 1)) != 0 and i < 100) {
@@ -165,57 +166,132 @@ void World::divide_terrain(Block* block, int max_divides) {
   block->set_pixel(new Pixel(val));
   
   if (split) {
-    if (max_divides > 0) {
-      block->divide();
-      for (int i = 0; i < 8; i ++) {
-        block->set_child(i, new Block());
-        divide_terrain(block->children[i], max_divides - 1);
-      }
-    }
+    block->set_flag(Block::GENERATION_FLAG);
   } else {
     block->pixel->done_generating = true;
   }
 }
 
+BlockIterator<Block> worlditer = BlockIterator<Block>(nullptr);
+
+
+void World::join_level(Block* block, int level) {
+  if (block == nullptr) return;
+  
+  if (block->continues) {
+    if (block->scale == level*2) {
+      block->join();
+      block->set_pixel(new Pixel(block->prevvalue));
+    } else {
+      for (int i = 0; i < csize3; i ++) {
+        join_level(block->children[i], level);
+      }
+    }
+  }
+}
+
+
+void World::divide_level(Block* block, int level) {
+  if (block == nullptr or !(block->flags & Block::GENERATION_FLAG)) return;
+  block->reset_flag(Block::GENERATION_FLAG);
+  
+  if (block->scale == level) {
+    if (!block->continues) {
+      block->divide();
+      for (int i = 0; i < 8; i ++) {
+        bool split = false;
+        Block* newblock = new Block();
+        block->set_child(i, newblock);
+        Blocktype val = terrainloader.terrain->gen_block(newblock->globalpos, newblock->scale, &split);
+        newblock->set_pixel(new Pixel(val));
+        if (split) {
+          newblock->set_flag(Block::GENERATION_FLAG);
+        } else {
+          newblock->pixel->done_generating = true;
+        }
+      }
+    }
+  } else if (block->continues) {
+    for (int i = 0; i < csize3; i ++) {
+      divide_level(block->children[i], level);
+    }
+  }
+}
+
 void World::load_nearby_chunks() {
+  static int max_dist = 1;
+  // cout << " last pos " << last_player_pos << endl;
   if (mainblock == nullptr) {
     mainblock = new Block();
-    // max_scale = 4096;
+    max_scale = World::chunksize * World::chunksize * World::chunksize;
     mainblock->set_parent(this, ivec3(-max_scale/2), max_scale);
+    // mainblock->set_flag(Block::GENERATION_FLAG);
     divide_terrain(mainblock, 4);
+    cout << (mainblock->flags & Block::GENERATION_FLAG) << endl;
   } else {
-    bool done = true;
     if (player != nullptr) {
-      last_player_pos = player->box.position;
+      last_player_pos = SAFEDIV(player->highparent->globalpos, World::chunksize);
     }
     
-    for (Block* block : BlockIterable<BlockIterator<Block>>(mainblock)) {
-      float dist = glm::length(vec3(last_player_pos - (block->globalpos + block->scale/2)));
-      dist = std::max(dist - block->scale/2, 0.0f);
-      dist /= 20;
-      if (block->continues and block->scale < dist) {
-        block->join();
-        block->set_pixel(new Pixel(block->prevvalue));
-      } else if (!block->continues and !block->pixel->done_generating and block->scale > dist) {
-        divide_terrain(block, 1);
-        done = false;
+    
+    // worlditer = BlockIterator<Block>(mainblock);
+    
+    double startTime = getTime();
+    
+    // cout << " STARTING ____  -- - - _  __ _ _ _ __ ___-- - _  _" << (mainblock->flags & Block::GENERATION_FLAG) << endl;
+    bool changed = false;
+    
+    for (Block* block : BlockIterable<ChunkIterator<Block>>(mainblock)) {
+      // cout << block << ' ' << block->globalpos << ' ' << block->scale << ' ' << (block->flags & Block::GENERATION_FLAG) << endl;
+      if (block->scale != block->chunk_scale()) {
+        cout << "bru" << ' ' << block->scale << ' ' << block->chunk_scale() << endl;
+      }
+      ivec3 blockpos = block->globalpos + block->scale/2;
+      blockpos = SAFEDIV(blockpos, World::chunksize);
+      float dist = glm::length(vec3(last_player_pos - blockpos));
+      dist = std::max(dist - block->scale / 2 / chunksize, 0.0f);
+      // cout << dist << endl;
+      if (player == nullptr and dist >= max_dist) {
+        continue;
+      }
+      
+      dist /= 5;
+      
+      int goal_scale = 1;
+      while (goal_scale < dist) {
+        goal_scale *= csize;
+      }
+      
+      goal_scale = std::min(std::max(goal_scale, block->scale / World::chunksize), block->scale);
+      // cout << " goal scale " << goal_scale << endl;
+      
+      if (std::min(std::max(block->min_scale, block->scale / chunksize), block->scale) > goal_scale and (block->flags & Block::GENERATION_FLAG)) {
+        // cout << " dividing level " << block->min_scale << endl;
+        divide_level(block, std::min(std::max(block->min_scale, block->scale / chunksize), block->scale));
+        changed = true;
+      }
+      
+      if (std::min(std::max(block->min_scale, block->scale / chunksize), block->scale) < goal_scale) {
+        // cout << " joining level " << block->min_scale << endl;
+        join_level(block, std::min(std::max(block->min_scale, block->scale / chunksize), block->scale));
+        changed = true;
       }
     }
     
-    // for (Pixel* pix : block->iter()) {
-    //   if (!pix->done_generating) {
-    //     float dist = glm::length(vec3(last_player_pos - (pix->parbl->globalpos + pix->parbl->scale/2)));
-    //     dist = std::max(dist - pix->parbl->scale/2, 0.0f);
-    //     dist /= 10;
-    //     if (pix->parbl->scale > dist) {
-    //       divide_terrain(pix->parbl, 1);
-    //       done = false;
-    //     }
-    //   }
-    // }
-    if (done) {
+    if (changed) {
+      cout << " changed " << last_player_pos << ' ' << max_dist << endl;
+    }
+    if (max_dist >= 3) {
+      if (initial_generation) {
+        cout << "initial generation done " << endl;
+      }
       initial_generation = false;
     }
+    
+    if (!changed) {
+      max_dist ++;
+    }
+    
   }
 }
 
@@ -240,7 +316,7 @@ void World::timestep(float curtime, float deltatime) {
     free->timestep(curtime, deltatime);
   }
   
-  if (player == nullptr and get_global(last_player_pos, 32) != nullptr) {
+  if (player == nullptr and get_global(last_player_pos * chunksize, 32) != nullptr and controls->key_pressed('L')) {
     spawn_player();
   }
   

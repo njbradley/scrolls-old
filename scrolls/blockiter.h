@@ -135,8 +135,13 @@ class FreeBlockIterator: public BlockIterator<BlockT> { public:
   typename BlockTypes<BlockT>::FreeBlockT* operator*();
 };
 
-
-
+template <typename BlockT>
+class ChunkIterator: public BlockIterator<BlockT> { public:
+  using BlockIterator<BlockT>::BlockIterator;
+  
+  virtual bool valid_block(BlockT* block);
+  virtual bool skip_block(BlockT* block);
+};
 
 
 

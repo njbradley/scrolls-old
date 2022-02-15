@@ -25,16 +25,25 @@ uniform vec3 sunlight;
 
 float voxSize = 1;
 
+bool blending_light = false;
 vec2 light;
 uvec3 outattr;
+
+vec2 get_light(uvec2 data, vec4 normal) {
+	float sundot = -dot(sunlight, normal.xyz/voxSize);
+	return vec2(float((data.y & 0xff000000u) >> 24u) - (sundot*5+5), float((data.y & 0xff0000u) >> 16u)) / 20;
+}
 
 void gen_attr(uvec2 data, vec4 normal) {
 	outattr.z = 0u;
 	outattr.x = data.x;
 	outattr.y = (data.y & 0xff00u) >> 8u;
-	float sundot = -dot(sunlight, normal.xyz/voxSize);
-	light = vec2(float((data.y & 0xff000000u) >> 24u) - (sundot*5+5), float((data.y & 0xff0000u) >> 16u)) / 20;
+	if (!blending_light) {
+		light = get_light(data, normal);
+	}
 }
+
+
 
 void set_attr() {
 	edges = outattr.z;
@@ -49,7 +58,7 @@ void addQuad(vec4 position, vec4 dy, vec4 dx, vec4 normal, uvec2 data) {
 	}
 	gen_attr(data, normal);
 	
-  UV = vec2(1,0);
+  UV = vec2(scale[0],0);
 	set_attr();
   gl_Position = Pmat * (position + dx - dy);
   EmitVertex();
@@ -59,12 +68,12 @@ void addQuad(vec4 position, vec4 dy, vec4 dx, vec4 normal, uvec2 data) {
 	gl_Position = Pmat * (position - dx - dy);
   EmitVertex();
 
-	UV = vec2(1,1);
+	UV = vec2(scale[0],scale[0]);
 	set_attr();
 	gl_Position = Pmat * (position + dx + dy);
   EmitVertex();
 
-	UV = vec2(0,1);
+	UV = vec2(0,scale[0]);
 	set_attr();
   gl_Position = Pmat * (position - dx + dy);
   EmitVertex();
@@ -126,6 +135,39 @@ void main() {
 	
 	addQuad(center-vec4(voxSize/2,voxSize/2,0,0), vec4(voxSize,0,0,0), vec4(0,voxSize,0,0), vec4(0,0,voxSize,0), chosenface);
 	return;*/
+	
+	blending_light = (facepx[0].y & 0xffu) != 0;
+	if (blending_light) {
+		
+		light = vec2(0,0);
+		int num = 0;
+		if ((facepx[0].x) != 0u) {
+	  	light += get_light(facepx[0], dx);
+			num ++;
+	  }
+	  if ((facenx[0].x) != 0u) {
+	    light += get_light(facenx[0], -dx);
+			num ++;
+		}
+	  if ((facepy[0].x) != 0u) {
+	    light += get_light(facepy[0], dy);
+			num ++;
+		}
+	  if ((faceny[0].x) != 0u) {
+	    light += get_light(faceny[0], -dy);
+			num ++;
+		}
+	  if ((facepz[0].x) != 0u) {
+	    light += get_light(facepz[0], dz);
+			num ++;
+		}
+	  if ((facenz[0].x) != 0u) {
+	    light += get_light(facenz[0], -dz);
+			num ++;
+		}
+		
+		light /= num;
+	}
 	
 	if ((facepx[0].x) != 0u) {
   	addQuad(center + dx, dy, dz,  dx, facepx[0]);

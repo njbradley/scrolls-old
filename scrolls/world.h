@@ -18,6 +18,7 @@ class World: public Container { public:
   BASE_PLUGIN_HEAD(World, (string name));
   
   static float tick_deltatime;
+  static int chunksize;
   
   string name;
   int seed;
@@ -62,6 +63,8 @@ class World: public Container { public:
   void drop_ticks();
   
   void divide_terrain(Block* block, int max_divides);
+  void divide_level(Block* block, int level);
+  void join_level(Block* block, int level);
   virtual void load_nearby_chunks();
   
   void set_root(Block* nblock);
