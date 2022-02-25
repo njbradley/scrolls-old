@@ -764,20 +764,17 @@ Block::Block(istream& ifile): continues(false), pixel(nullptr) {
 }
 
 void Block::set_flag(int flag) {
-  Block* curblock = this;
-  int cur_chunk_scale = 0;
+  flags |= flag;
+  flag &= PROPAGATING_FLAGS;
   
-  if (flag & PROPAGATING_FLAGS and !(flag & GLOBAL_FLAGS)) {
-    cur_chunk_scale = World::chunksize;
-    while (cur_chunk_scale < scale) {
-      cur_chunk_scale *= World::chunksize;
-    }
-  }
+  if (flags == 0) return;
   
-  do {
+  Block* curblock = this->parent;
+  int start_chunk_scale = chunk_scale();
+  
+  while (curblock != nullptr) {
     curblock->flags |= flag;
-    flag &= PROPAGATING_FLAGS;
-    if (cur_chunk_scale != 0 and curblock->scale > cur_chunk_scale) {
+    if (curblock->scale >= start_chunk_scale) {
       flag &= GLOBAL_FLAGS;
       if (flag == 0) return;
     }
@@ -789,7 +786,7 @@ void Block::set_flag(int flag) {
     } else {
       curblock = curblock->parent;
     }
-  } while (curblock != nullptr);
+  }
 }
 
 void Block::reset_flag(int flag) {
@@ -1752,6 +1749,13 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs) {
     RenderData renderdata;
     
     bool exposed = false;
+    bool chunk_loading = false;
+    int chunk_scale = parbl->chunk_scale();
+    Block* chunk = parbl;
+    while (chunk->parent != nullptr and chunk->scale != chunk_scale) {
+      chunk = chunk->parent;
+    }
+    chunk_loading = !!(parbl->flags & Block::GENERATION_FLAG);
     
     Hitbox mybox = parbl->local_hitbox();
     FreeBlock* freecont = parbl->freecontainer;
@@ -1793,15 +1797,15 @@ void Pixel::render(RenderVecs* allvecs, RenderVecs* transvecs) {
       }
       
       renderdata.type.faces[i].tex = 0;
+      renderdata.type.faces[i].flags = chunk_loading;
       
       if (num_pix != 0) {
         renderdata.type.faces[i].tex = mat[i];
         renderdata.type.faces[i].rot = dirs[i];
-        renderdata.type.faces[i].flags = !done_generating;
         // renderdata.type.faces[i].blocklight = (parbl->freecontainer == nullptr) ? parbl->get_blocklight(dir) : 20;
         // renderdata.type.faces[i].sunlight = (parbl->freecontainer == nullptr) ? parbl->get_sunlight(dir) : 20;
         renderdata.type.faces[i].blocklight = blocklevel / num_pix;
-        renderdata.type.faces[i].sunlight = sunlevel / num_pix;
+        renderdata.type.faces[i].sunlight = sunlevel / num_pix;// * !chunk_loading;
         exposed = true;
       }
     }

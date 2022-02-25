@@ -190,6 +190,7 @@ void World::join_level(Block* block, int level) {
   }
 }
 
+static int num_blocks = 0;
 
 void World::divide_level(Block* block, int level) {
   if (block == nullptr or !(block->flags & Block::GENERATION_FLAG)) return;
@@ -197,17 +198,26 @@ void World::divide_level(Block* block, int level) {
   
   if (block->scale == level) {
     if (!block->continues) {
-      block->divide();
+      Blocktype vals[csize3];
+      bool splits[csize3];
+      bool same_vals = true;
       for (int i = 0; i < 8; i ++) {
-        bool split = false;
-        Block* newblock = new Block();
-        block->set_child(i, newblock);
-        Blocktype val = terrainloader.terrain->gen_block(newblock->globalpos, newblock->scale, &split);
-        newblock->set_pixel(new Pixel(val));
-        if (split) {
-          newblock->set_flag(Block::GENERATION_FLAG);
-        } else {
-          newblock->pixel->done_generating = true;
+        ivec3 newglobalpos = block->globalpos + block->posof(i) * (block->scale/2);
+        vals[i] = terrainloader.terrain->gen_block(newglobalpos, block->scale/2, &splits[i]);
+        same_vals = same_vals and !splits[i] and vals[i] == vals[0];
+      }
+      if (!same_vals) {
+        block->divide();
+        for (int i = 0; i < 8; i ++) {
+          Block* newblock = new Block();
+          num_blocks ++;
+          block->set_child(i, newblock);
+          newblock->set_pixel(new Pixel(vals[i]));
+          if (splits[i]) {
+            newblock->set_flag(Block::GENERATION_FLAG);
+          } else {
+            newblock->pixel->done_generating = true;
+          }
         }
       }
     }
@@ -220,10 +230,12 @@ void World::divide_level(Block* block, int level) {
 
 void World::load_nearby_chunks() {
   static int max_dist = 1;
+  static double startTime = getTime();
+  static bool full_gen = false;
   // cout << " last pos " << last_player_pos << endl;
   if (mainblock == nullptr) {
     mainblock = new Block();
-    max_scale = World::chunksize * World::chunksize * World::chunksize;
+    max_scale = 4096;// * World::chunksize;
     mainblock->set_parent(this, ivec3(-max_scale/2), max_scale);
     // mainblock->set_flag(Block::GENERATION_FLAG);
     divide_terrain(mainblock, 4);
@@ -236,22 +248,23 @@ void World::load_nearby_chunks() {
     
     // worlditer = BlockIterator<Block>(mainblock);
     
-    double startTime = getTime();
     
     // cout << " STARTING ____  -- - - _  __ _ _ _ __ ___-- - _  _" << (mainblock->flags & Block::GENERATION_FLAG) << endl;
     bool changed = false;
-    
-    for (Block* block : BlockIterable<ChunkIterator<Block>>(mainblock)) {
-      // cout << block << ' ' << block->globalpos << ' ' << block->scale << ' ' << (block->flags & Block::GENERATION_FLAG) << endl;
-      if (block->scale != block->chunk_scale()) {
-        cout << "bru" << ' ' << block->scale << ' ' << block->chunk_scale() << endl;
+    int num = 0;
+    for (Block* block : BlockIterable<ChunkIterator<Block>>(mainblock)) { num ++;
+      if (block->chunk_scale() != block->scale) {
+        cout << block->globalpos << ' ' << block->scale << ' ' << block->chunk_scale() << endl;
       }
+      int max_chunk_scale = block->scale;
+      int min_chunk_scale = block->chunk_scale() / World::chunksize;
+      // cout << block << ' ' << block->globalpos << ' ' << block->scale << ' ' << (block->flags & Block::GENERATION_FLAG) << endl;
       ivec3 blockpos = block->globalpos + block->scale/2;
       blockpos = SAFEDIV(blockpos, World::chunksize);
       float dist = glm::length(vec3(last_player_pos - blockpos));
-      dist = std::max(dist - block->scale / 2 / chunksize, 0.0f);
+      dist = std::max(dist - min_chunk_scale/2, 0.0f);
       // cout << dist << endl;
-      if (player == nullptr and dist >= max_dist) {
+      if (dist >= max_dist) {
         continue;
       }
       
@@ -262,24 +275,24 @@ void World::load_nearby_chunks() {
         goal_scale *= csize;
       }
       
-      goal_scale = std::min(std::max(goal_scale, block->scale / World::chunksize), block->scale);
+      goal_scale = std::min(std::max(goal_scale, min_chunk_scale), max_chunk_scale);
       // cout << " goal scale " << goal_scale << endl;
       
-      if (std::min(std::max(block->min_scale, block->scale / chunksize), block->scale) > goal_scale and (block->flags & Block::GENERATION_FLAG)) {
+      while (std::min(std::max(block->min_scale, min_chunk_scale), max_chunk_scale) > goal_scale and (block->flags & Block::GENERATION_FLAG)) {
         // cout << " dividing level " << block->min_scale << endl;
-        divide_level(block, std::min(std::max(block->min_scale, block->scale / chunksize), block->scale));
+        divide_level(block, std::min(std::max(block->min_scale, min_chunk_scale), max_chunk_scale));
         changed = true;
       }
       
-      if (std::min(std::max(block->min_scale, block->scale / chunksize), block->scale) < goal_scale) {
+      while (std::min(std::max(block->min_scale, min_chunk_scale), max_chunk_scale) < goal_scale) {
         // cout << " joining level " << block->min_scale << endl;
-        join_level(block, std::min(std::max(block->min_scale, block->scale / chunksize), block->scale));
+        join_level(block, std::min(std::max(block->min_scale, min_chunk_scale), max_chunk_scale));
         changed = true;
       }
     }
     
     if (changed) {
-      cout << " changed " << last_player_pos << ' ' << max_dist << endl;
+      cout << " changed " << last_player_pos << ' ' << max_dist << ' ' << num_blocks << endl;
     }
     if (max_dist >= 3) {
       if (initial_generation) {
@@ -288,10 +301,14 @@ void World::load_nearby_chunks() {
       initial_generation = false;
     }
     
-    if (!changed and max_dist < max_scale / chunksize) {
-      max_dist ++;
+    if (max_dist >= max_scale / chunksize and !full_gen) {
+      cout << "Full generation done: " << getTime() - startTime << endl;
+      full_gen = true;
     }
     
+    if (!changed and max_dist < max_scale / chunksize) {
+      max_dist *= 2;
+    }
   }
 }
 
@@ -316,7 +333,7 @@ void World::timestep(float curtime, float deltatime) {
     free->timestep(curtime, deltatime);
   }
   
-  if (player == nullptr and get_global(last_player_pos * chunksize, 32) != nullptr and controls->key_pressed('L')) {
+  if (player == nullptr and get_global(last_player_pos * chunksize, 32) != nullptr) {
     spawn_player();
   }
   

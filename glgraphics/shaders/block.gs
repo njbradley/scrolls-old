@@ -27,6 +27,7 @@ float voxSize = 1;
 
 bool blending_light = false;
 vec2 light;
+float num_lights;
 uvec3 outattr;
 
 vec2 get_light(uvec2 data, vec4 normal) {
@@ -52,8 +53,12 @@ void set_attr() {
 	outlight = light;
 }
 
+bool is_quad_visible(vec4 position, vec4 normal) {
+	return dot(position, normal) <= 0;
+}
+
 void addQuad(vec4 position, vec4 dy, vec4 dx, vec4 normal, uvec2 data) {
-	if (dot(position, normal) > 0) {
+	if (!is_quad_visible(position, normal)) {
 		return;
 	}
 	gen_attr(data, normal);
@@ -79,6 +84,13 @@ void addQuad(vec4 position, vec4 dy, vec4 dx, vec4 normal, uvec2 data) {
   EmitVertex();
 
   EndPrimitive();
+}
+
+void sum_light(vec4 position, uvec2 data, vec4 normal) {
+	float scalar = -dot(position/length(position), normal/voxSize);
+	if (scalar < 0) return;
+	light += get_light(data, normal) * scalar;
+	num_lights += scalar;
 }
 
 vec4 rotatePos(vec4 v, vec4 q) {
@@ -140,33 +152,31 @@ void main() {
 	if (blending_light) {
 		
 		light = vec2(0,0);
-		int num = 0;
+		num_lights = 0;
 		if ((facepx[0].x) != 0u) {
-	  	light += get_light(facepx[0], dx);
-			num ++;
+			sum_light(center + dx, facepx[0], dx);
 	  }
 	  if ((facenx[0].x) != 0u) {
-	    light += get_light(facenx[0], -dx);
-			num ++;
+			sum_light(center - dx, facenx[0], -dx);
 		}
 	  if ((facepy[0].x) != 0u) {
-	    light += get_light(facepy[0], dy);
-			num ++;
+			sum_light(center + dy, facepy[0], dy);
 		}
 	  if ((faceny[0].x) != 0u) {
-	    light += get_light(faceny[0], -dy);
-			num ++;
+			sum_light(center - dy, faceny[0], -dy);
 		}
 	  if ((facepz[0].x) != 0u) {
-	    light += get_light(facepz[0], dz);
-			num ++;
+			sum_light(center + dz, facepz[0], dz);
 		}
 	  if ((facenz[0].x) != 0u) {
-	    light += get_light(facenz[0], -dz);
-			num ++;
+			sum_light(center - dz, facenz[0], -dz);
 		}
 		
-		light /= num;
+		if (num_lights == 0) {
+			light = vec2(10,10);
+		} else {
+			light /= num_lights;
+		}
 	}
 	
 	if ((facepx[0].x) != 0u) {

@@ -182,15 +182,16 @@ bool ChunkIterator<BlockT>::valid_block(BlockT* block) {
 
 template <typename BlockT>
 bool ChunkIterator<BlockT>::skip_block(BlockT* block) {
-  int scale = block->scale;
-  while (scale != 0) {
-    if (scale == World::chunksize) {
-      // cout << " got here " << block << ' ' << block->scale << endl;
-      return false;
-    }
-    scale /= World::chunksize;
-  }
-  return true;
+  return block->parent != nullptr and block->chunk_scale() != block->scale;
+  // int scale = block->scale;
+  // while (scale != 0) {
+  //   if (scale == World::chunksize) {
+  //     // cout << " got here " << block << ' ' << block->scale << endl;
+  //     return false;
+  //   }
+  //   scale /= World::chunksize;
+  // }
+  // return true;
 }
 
 template class ChunkIterator<Block>;
