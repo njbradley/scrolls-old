@@ -41,7 +41,7 @@ struct ShapeResolver : public TerrainGenerator {
 	template <typename Shape>
 	Blocktype gen_func(ivec3 pos, int scale, bool* split);
 	
-	virtual Blocktype gen_block(ivec3 globalpos, int scale, bool* split);
+	virtual Blocktype gen_block(ivec3 globalpos, int scale, int* split);
 	
 	template <typename FirstShape, typename SecondShape, typename ... OtherShapes>
 	Blocktype gen_block(ivec3 globalpos, int scale, bool* split);

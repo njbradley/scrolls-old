@@ -71,7 +71,7 @@ class TerrainGenerator { public:
 	TerrainGenerator(int seed);
 	virtual ~TerrainGenerator() {}
 	
-	virtual Blocktype gen_block(ivec3 pos, int scale, bool* split) = 0;
+	virtual Blocktype gen_block(ivec3 pos, int scale, int* split) = 0;
 	
 	// virtual Block* generate_chunk(ivec3 pos) = 0;
 	virtual int get_height(ivec3 pos) = 0;

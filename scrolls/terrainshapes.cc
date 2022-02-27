@@ -37,9 +37,37 @@ Blocktype ShapeResolver<Shapes...>::gen_func(ivec3 globalpos, int scale, bool* s
 
 
 template <typename ... Shapes>
-Blocktype ShapeResolver<Shapes...>::gen_block(ivec3 globalpos, int scale, bool* split) {
-	*split = false;
-	return gen_block<Shapes...>(globalpos, scale, split);
+Blocktype ShapeResolver<Shapes...>::gen_block(ivec3 globalpos, int scale, int* num_split) {
+	*num_split = false;
+	bool split = false;
+	Blocktype val = gen_block<Shapes...>(globalpos, scale, &split);
+	if (split) {
+		(*num_split) ++;
+		int newscale = scale/2;
+		int i = 0;
+		// return val;
+		while (newscale >= 1 and i < 1) {
+			split = false;
+			for (int x = 0; x < scale; x += newscale) {
+				for (int y = 0; y < scale; y += newscale) {
+					for (int z = 0; z < scale; z += newscale) {
+						Blocktype newval = gen_block<Shapes...>(globalpos, scale, &split);
+						if (newval != val) {
+							return val;
+						}
+					}
+				}
+			}
+			(*num_split) ++;
+			newscale /= 2;
+			i ++;
+			if (!split) {
+				return val;
+			}
+		}
+	}
+	
+	return val;
 }
 
 

@@ -128,7 +128,7 @@ void World::spawn_player() {
     cout << "player spawn location is null (waiting, though last_player_pos might be corrupt)" << endl;
     return;
   }
-  if (!spawnblock->continues and !spawnblock->pixel->done_generating) {
+  if (!spawnblock->continues and !spawnblock->pixel->divides_left) {
     return;
   }
   player = new Player();
@@ -161,14 +161,14 @@ void World::set_spectator_vars() {
 void World::divide_terrain(Block* block, int max_divides) {
   std::lock_guard<Block> guard(*block);
   
-  bool split = false;
+  int split = 0;
   Blocktype val = terrainloader.terrain->gen_block(block->globalpos, block->scale, &split);
   block->set_pixel(new Pixel(val));
   
   if (split) {
     block->set_flag(Block::GENERATION_FLAG);
   } else {
-    block->pixel->done_generating = true;
+    block->pixel->divides_left = true;
   }
 }
 
@@ -191,6 +191,7 @@ void World::join_level(Block* block, int level) {
 }
 
 static int num_blocks = 0;
+static int num_terrain_calls = 0;
 
 void World::divide_level(Block* block, int level) {
   if (block == nullptr or !(block->flags & Block::GENERATION_FLAG)) return;
@@ -198,33 +199,54 @@ void World::divide_level(Block* block, int level) {
   
   if (block->scale == level) {
     if (!block->continues) {
-      Blocktype vals[csize3];
-      bool splits[csize3];
-      bool same_vals = true;
+      int divides_left = block->pixel->divides_left;
+      Blocktype val = block->pixel->value;
+      block->divide();
       for (int i = 0; i < 8; i ++) {
-        ivec3 newglobalpos = block->globalpos + block->posof(i) * (block->scale/2);
-        vals[i] = terrainloader.terrain->gen_block(newglobalpos, block->scale/2, &splits[i]);
-        same_vals = same_vals and !splits[i] and vals[i] == vals[0];
-      }
-      if (!same_vals) {
-        block->divide();
-        for (int i = 0; i < 8; i ++) {
-          Block* newblock = new Block();
-          num_blocks ++;
-          block->set_child(i, newblock);
-          newblock->set_pixel(new Pixel(vals[i]));
-          if (splits[i]) {
-            newblock->set_flag(Block::GENERATION_FLAG);
-          } else {
-            newblock->pixel->done_generating = true;
-          }
+        Block* newblock = new Block();
+        num_blocks ++;
+        block->set_child(i, newblock);
+        int split = 0;
+        if (divides_left-1 > 0) {
+          split = divides_left-1;
+        } else {
+          num_terrain_calls ++;
+          val = terrainloader.terrain->gen_block(newblock->globalpos, newblock->scale, &split);
         }
+        newblock->set_pixel(new Pixel(val));
+        if (split) {
+          newblock->set_flag(Block::GENERATION_FLAG);
+        }
+        newblock->pixel->divides_left = split;
       }
     }
   } else if (block->continues) {
     for (int i = 0; i < csize3; i ++) {
       divide_level(block->children[i], level);
     }
+  }
+}
+
+Blocktype num_duplicates(Block* block, int* num_dups, int* real_num_blocks) {
+  if (block == nullptr) return 0;
+  (*real_num_blocks) ++;
+  if (block->continues) {
+    Blocktype type = -1;
+    for (int i = 0; i < csize3; i ++) {
+      Blocktype newtype = num_duplicates(block->get(i), num_dups, real_num_blocks);
+      if (type == -1) {
+        type = newtype;
+      } else if (newtype == -1 or type != newtype) {
+        return -1;
+      }
+    }
+    if (type == -1) return -1;
+    *num_dups += csize3;
+    block->join();
+    block->set_pixel(new Pixel(type));
+    return type;
+  } else {
+    return block->pixel->value;
   }
 }
 
@@ -235,7 +257,7 @@ void World::load_nearby_chunks() {
   // cout << " last pos " << last_player_pos << endl;
   if (mainblock == nullptr) {
     mainblock = new Block();
-    max_scale = 4096;// * World::chunksize;
+    max_scale = 256;// * World::chunksize;
     mainblock->set_parent(this, ivec3(-max_scale/2), max_scale);
     // mainblock->set_flag(Block::GENERATION_FLAG);
     divide_terrain(mainblock, 4);
@@ -292,7 +314,7 @@ void World::load_nearby_chunks() {
     }
     
     if (changed) {
-      cout << " changed " << last_player_pos << ' ' << max_dist << ' ' << num_blocks << endl;
+      cout << " changed " << last_player_pos << ' ' << max_dist << ' ' << num_blocks << ' ' << num_terrain_calls << endl;
     }
     if (max_dist >= 3) {
       if (initial_generation) {
@@ -308,6 +330,12 @@ void World::load_nearby_chunks() {
     
     if (!changed and max_dist < max_scale / chunksize) {
       max_dist *= 2;
+    }
+    
+    if (controls->key_pressed('V')) {
+      int num_dups = 0, real_num_blocks = 0;
+      num_duplicates(mainblock, &num_dups, &real_num_blocks);
+      cout << "Num duplicates: " << num_dups << '/' << real_num_blocks << endl;
     }
   }
 }

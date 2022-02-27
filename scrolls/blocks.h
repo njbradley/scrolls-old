@@ -275,7 +275,7 @@ class Pixel { public:
 	RenderVecs* lastvecs = nullptr;
 	BlockGroup* group = nullptr;
 	PhysicsBox* physicsbox = nullptr;
-	bool done_generating = false;
+	int divides_left = 0;
 	
 	Pixel(int val, int direction = -1, int njoints[6] = nullptr);
 	Pixel(Block* newblock, istream& ifile);
